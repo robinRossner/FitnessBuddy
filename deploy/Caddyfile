@@ -1,0 +1,11 @@
+# Automatic HTTPS (Let's Encrypt) for $DOMAIN; open ports 80/443 in the OCI security list
+# and in the VM firewall (iptables/firewalld) first.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy backend:8000
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}

@@ -1,0 +1,74 @@
+"""Idempotent seeding: default gym + engine config version.
+
+Run standalone: `uv run python -m app.db.seed`
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.db.models import ConfigVersion, Gym
+from app.engine.config import content_hash, load_engine_config, load_raw
+from app.settings import BACKEND_DIR, get_settings
+
+log = logging.getLogger(__name__)
+
+
+def ensure_default_gym(db: Session, name: str, tz: str | None = None) -> Gym:
+    gym = db.scalar(select(Gym).where(Gym.name == name))
+    if gym is None:
+        gym = Gym(name=name, timezone=tz, notes="Default gym; all Strong history is assigned here.")
+        db.add(gym)
+        db.flush()
+    return gym
+
+
+def ensure_config_version(db: Session, path: Path) -> ConfigVersion:
+    """Insert the config file as an immutable version row (first one becomes active).
+
+    If a row with the same version exists but the file content changed, the stored row is kept
+    and a warning is logged: published versions are immutable, bump `version` instead.
+    """
+    raw = load_raw(path)
+    cfg = load_engine_config(path)  # validates
+    digest = content_hash(raw)
+    row = db.scalar(select(ConfigVersion).where(ConfigVersion.version == cfg.version))
+    if row is None:
+        has_active = db.scalar(select(ConfigVersion).where(ConfigVersion.is_active)) is not None
+        try:
+            src = str(path.resolve().relative_to(BACKEND_DIR))
+        except ValueError:
+            src = str(path)
+        row = ConfigVersion(
+            version=cfg.version,
+            content=raw,
+            content_hash=digest,
+            source_path=src,
+            is_active=not has_active,
+        )
+        db.add(row)
+        db.flush()
+    elif row.content_hash != digest:
+        log.warning(
+            "config %s changed on disk but version was not bumped; DB keeps the original",
+            cfg.version,
+        )
+    return row
+
+
+def main() -> None:
+    from app.db.session import session_scope
+
+    s = get_settings()
+    with session_scope() as db:
+        gym = ensure_default_gym(db, s.default_gym_name, s.user_tz)
+        cv = ensure_config_version(db, s.engine_config_path)
+        print(f"gym={gym.name!r} config={cv.version} active={cv.is_active}")
+
+
+if __name__ == "__main__":
+    main()

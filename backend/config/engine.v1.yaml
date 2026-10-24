@@ -1,0 +1,72 @@
+# FitnessBuddy engine configuration, version 1.
+# Values only: the progression / readiness engine that consumes them is a later step.
+# This file is immutable once used; seeded into the `config_versions` table as version "v1".
+# Changing a value => copy to engine.v2.yaml, bump `version`, so every logged decision stays
+# reproducible against the config it was made with.
+version: v1
+
+approval_mode: manual          # engine proposes, user approves every planned session
+
+user:
+  timezone: Europe/Vienna
+  bodyweight_kg: null          # unknown -> no e1RM for bodyweight lifts (only added weight)
+
+strength:
+  rep_range: [7, 12]           # double progression: add reps to top of range, then add load
+  rir_target: [0, 1]           # fixed 0-1 reps in reserve; no RPE/RIR logging in the app
+  stall_exposures: 3           # this many exposures without progress => stall
+  stall_reset_pct: 10          # on stall, reduce load by 10 % and build back up
+  e1rm:
+    formula: epley             # e1RM = w * (1 + reps/30)
+    max_reps: 15               # sets above this many reps are ignored for e1RM (Epley degrades)
+    min_reps: 1
+
+increments:
+  barbell_kg: 5.0              # 2 x 2.5 kg plates
+  smith_kg: 5.0                # 2 x 2.5 kg plates (assumption: same as barbell)
+  plate_loaded_kg: 5.0         # 2 x 2.5 kg plates (assumption: same as barbell)
+  dumbbell_increment_kg: 2.0   # user-selectable: 2.0 or 2.5 (depends on the gym's DB rack)
+  default_stack_step_kg: 5.0   # machine_stack/cable: used when there is no ladder or the target
+                               # is above the top rung of the variant's weight_ladder
+  bodyweight_added_kg: 2.5     # pull-ups/dips with a belt: smallest plate
+  other_kg: 2.5
+
+recovery:
+  deload_red_days: 4           # this many red readiness days within a week => deload week
+  hard_after_heavy_lower_h: 24 # no hard run within 24 h after a heavy lower session
+
+readiness:
+  green: normal                # train as planned
+  yellow:
+    strength: same_effort_minus_one_set   # same load/effort, -1 set per exercise
+    load_reduction_pct: 0      # alternative policy (not default): keep sets, reduce load by X %
+    run: intervals_to_easy     # yellow converts interval sessions to easy runs
+  red:
+    allowed: [rest, easy]      # red = rest or easy only
+
+running:
+  weekly_volume_cap_pct: 10    # weekly run volume may grow at most 10 % over previous week
+  heart_rate:
+    max_hr: 192                # measured / user-provided
+    lthr: null                 # lactate threshold HR: to be detected from Garmin data later
+    # Easy-run ceiling: polarized-training Zone 1 (Seiler) = below the first ventilatory
+    # threshold (VT1 / aerobic threshold). VT1 typically sits at ~77-80 % HRmax in trained
+    # endurance athletes (Seiler & Kjerland 2006, Scand J Med Sci Sports; Seiler 2010, IJSPP,
+    # "What is best practice for training intensity and duration distribution in endurance
+    # athletes?"). We use 80 % HRmax as the upper bound.
+    # When LTHR is known, prefer the LTHR-based bound: Friel's Zone 2 upper limit = 89 % LTHR
+    # (Friel, "The Triathlete's Training Bible"), which approximates the same aerobic threshold.
+    easy_ceiling:
+      pct_hrmax: 0.80
+      pct_lthr: 0.89           # used instead of pct_hrmax once lthr is set
+    easy_hr_max: 153           # floor(0.80 * 192) = 153 bpm
+    easy_hr_target_low: 125    # ~0.65 * 192 = 125 bpm; lower end of a useful easy-run range
+
+weekly_template:               # Mon..Sun
+  mon: upper
+  tue: lower
+  wed: easy_run
+  thu: upper
+  fri: intervals
+  sat: rest
+  sun: long_run

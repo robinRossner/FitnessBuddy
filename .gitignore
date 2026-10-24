@@ -1,0 +1,38 @@
+# personal data: raw exports + generated reports never go into git
+imports/
+
+# databases / runtime state
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+backend/var/
+backups/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# iOS / Xcode
+ios/**/xcuserdata/
+ios/**/DerivedData/
+
+# deploy runtime data
+deploy/data/
+deploy/imports/

@@ -1,0 +1,42 @@
+# Production stack for a single Oracle Cloud Always Free ARM VM.
+#   cd deploy && docker compose up -d --build
+# DB lives in ./data (host bind mount) so deploy/backup.sh can snapshot it from the host.
+services:
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      DATABASE_URL: sqlite:////app/var/fitness.db
+    volumes:
+      - ./data:/app/var
+      - ./imports:/app/imports:ro          # optional: Strong exports for one-off imports
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN, e.g. fitness.example.org}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
