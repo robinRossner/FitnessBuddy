@@ -33,6 +33,11 @@ uv run python -m app.importers.strong import            # dry run (default), wri
 uv run python -m app.importers.strong import --apply    # write to the DB
 ```
 
+Gym-bound variants (machine/cable/smith/plate-loaded) are split per gym by session date, see
+`backend/data/catalog/gyms.yaml` (rename gyms, move a boundary or add `same_as: gym1`, then
+re-import: sets move, nothing is duplicated). Mapping rows have an `active` column (false =
+no longer trained, never planned).
+
 Reports land in `imports/reports/strong_import_<timestamp>.md`. Re-running is safe (idempotent);
 newer overlapping exports replace older versions of the same workout.
 
@@ -44,9 +49,23 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check .
 ```
 
+## Bodyweight
+
+```sh
+cd backend
+uv run python -m app.cli bodyweight add 82 [--date 2026-10-24]   # idempotent, one entry per day
+uv run python -m app.cli bodyweight list
+uv run python -m app.cli stats rebuild                             # after changing the log
+```
+
+Fallback when the log is empty: `user.bodyweight_kg` in `config/engine.v2.yaml`.
+
 ## API (skeleton)
 
 ```sh
 cd backend && uv run uvicorn app.main:app --reload
 # GET /health, /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
+# bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
+# GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),
+# DELETE /api/v1/bodyweight/{id} (tombstone)
 ```

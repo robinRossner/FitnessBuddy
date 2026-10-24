@@ -30,7 +30,14 @@ class Settings(BaseSettings):
     reports_dir: Path = REPO_ROOT / "imports" / "reports"
     catalog_path: Path = BACKEND_DIR / "data" / "catalog" / "exercises.yaml"
     strong_mapping_path: Path = BACKEND_DIR / "data" / "catalog" / "strong_mapping.csv"
-    engine_config_path: Path = BACKEND_DIR / "config" / "engine.v1.yaml"
+    gyms_path: Path = BACKEND_DIR / "data" / "catalog" / "gyms.yaml"
+    engine_config_path: Path = BACKEND_DIR / "config" / "engine.v2.yaml"
+
+    # Strong sessions longer than this are considered bad data: duration is stored as NULL.
+    strong_max_duration_h: float = 4.0
+
+    # Shared bearer token for the write endpoints (bodyweight). Unset => those endpoints refuse.
+    api_token: SecretStr | None = None
 
     # Strong exports without unit columns: unit the app was set to when exporting.
     strong_default_weight_unit: str = "kg"

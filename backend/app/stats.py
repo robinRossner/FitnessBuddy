@@ -13,6 +13,7 @@ from datetime import date
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.bodyweight import load_timeline
 from app.db.models import (
     Exercise,
     ExerciseSessionStats,
@@ -43,9 +44,12 @@ class E1RMContext:
     equipment_type: str
     load_convention: str
     e1rm_meaningful: bool
-    bodyweight_kg: float | None = None
+    bodyweight_kg: float | None = None  # bodyweight on the session's date
     max_reps: int = 15
     min_reps: int = 1
+    # True: the body is (part of) the load, so e1RM uses bodyweight + added weight. False (e.g.
+    # weighted crunch): logged weight is the whole load.
+    bodyweight_loaded: bool = True
 
 
 def set_e1rm(
@@ -53,22 +57,27 @@ def set_e1rm(
 ) -> tuple[float, str] | None:
     """(e1rm, basis) for one set, basis = 'total' | 'added_weight'; None if not meaningful.
 
-    Bodyweight variants: with unknown bodyweight only sets with added weight > 0 get an
-    e1RM, computed on the added weight alone (basis='added_weight', comparable only within the
-    variant). Assistance variants (assisted/band pull-up) need bodyweight; otherwise skipped.
+    Bodyweight-loaded variants (pull-up, dip, chest-to-bar): load = bodyweight + added weight.
+    Assistance variants (assisted machine / band): load = bodyweight - assistance; a band with
+    assistance 0 is "unknown strength" and skipped. With unknown bodyweight, bodyweight variants
+    only get an e1RM on a positive added weight (basis='added_weight', comparable only within
+    the variant) and assistance variants none.
     """
     if not ctx.e1rm_meaningful or reps is None or weight is None:
         return None
     if SetType(set_type) not in E1RM_SET_TYPES:
         return None
     load, basis = weight, "total"
+    bw = ctx.bodyweight_kg
     if ctx.load_convention == LoadConvention.ASSISTANCE:
-        if ctx.bodyweight_kg is None:
+        if bw is None:
             return None
-        load = ctx.bodyweight_kg - weight
+        if ctx.equipment_type == EquipmentType.BODYWEIGHT and weight <= 0:
+            return None  # band assistance unknown
+        load = bw - weight
     elif ctx.equipment_type == EquipmentType.BODYWEIGHT:
-        if ctx.bodyweight_kg is not None:
-            load = ctx.bodyweight_kg + weight
+        if ctx.bodyweight_loaded and bw is not None:
+            load = bw + weight
         elif weight > 0:
             basis = "added_weight"
         else:
@@ -168,7 +177,12 @@ def rebuild_stats(
     max_reps: int = 15,
     min_reps: int = 1,
 ) -> int:
-    """Recompute sets.e1rm_kg and the whole exercise_session_stats table. Returns row count."""
+    """Recompute sets.e1rm_kg and the whole exercise_session_stats table. Returns row count.
+
+    `bodyweight_kg` is only the fallback (engine config); the bodyweight log is used per session
+    date via `bodyweight_at` semantics (latest on/before, else earliest after).
+    """
+    timeline = load_timeline(db, bodyweight_kg)
     variants = {
         v.id: (v, ex)
         for v, ex in db.execute(
@@ -195,7 +209,8 @@ def rebuild_stats(
             equipment_type=variant.equipment_type,
             load_convention=variant.load_convention,
             e1rm_meaningful=ex.e1rm_meaningful and not ex.is_timed,
-            bodyweight_kg=bodyweight_kg,
+            bodyweight_kg=timeline.at(local.date()),
+            bodyweight_loaded=ex.bodyweight_loaded,
             max_reps=max_reps,
             min_reps=min_reps,
         )

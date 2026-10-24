@@ -64,7 +64,7 @@ def options(imports_dir: Path, mapping_path: Path) -> ImportOptions:
         paths=[imports_dir],
         mapping_path=mapping_path,
         catalog_path=BACKEND_DIR / "data" / "catalog" / "exercises.yaml",
-        engine_config_path=BACKEND_DIR / "config" / "engine.v1.yaml",
+        engine_config_path=BACKEND_DIR / "config" / "engine.v2.yaml",
         tz="Europe/Vienna",
         apply=True,
     )

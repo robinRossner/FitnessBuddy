@@ -28,6 +28,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy import (
+    true as sa_true,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.db.types import (
@@ -35,6 +38,7 @@ from app.db.types import (
     Fidelity,
     LoadConvention,
     MappingStatus,
+    MeasurementSource,
     PlannedStatus,
     SessionKind,
     SetType,
@@ -81,6 +85,8 @@ class Syncable(Timestamps):
 class Gym(Syncable, Base):
     __tablename__ = "gyms"
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Stable identity from data/catalog/gyms.yaml (survives renames); NULL for hand-made gyms.
+    key: Mapped[str | None] = mapped_column(String(40), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120), unique=True)
     timezone: Mapped[str | None] = mapped_column(String(64))
     notes: Mapped[str | None] = mapped_column(Text)
@@ -114,6 +120,8 @@ class ExerciseVariant(Timestamps, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"), index=True)
     gym_id: Mapped[int | None] = mapped_column(ForeignKey("gyms.id"), index=True)  # None=generic
+    # Deterministic uuid5 identity (importer): survives gym renames, so re-imports never duplicate.
+    key: Mapped[str | None] = mapped_column(String(36), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(160))
     equipment_type: Mapped[EquipmentType] = mapped_column(str_enum(EquipmentType, "equipment_type"))
     load_convention: Mapped[LoadConvention] = mapped_column(
@@ -121,6 +129,8 @@ class ExerciseVariant(Timestamps, Base):
     )
     weight_ladder: Mapped[list[Any] | None] = mapped_column(JSON)  # available weights, sorted
     ladder_inferred: Mapped[bool] = mapped_column(Boolean, default=False)  # False = user-edited
+    # False = the user no longer does this exercise: history is kept, never planned again.
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_true())
     notes: Mapped[str | None] = mapped_column(Text)
 
     exercise: Mapped[Exercise] = relationship(back_populates="variants")
@@ -256,6 +266,20 @@ class ExerciseSessionStats(Base):
 
 
 # --------------------------------------------------------------------------- endurance + health
+
+
+class BodyMeasurement(Syncable, Base):
+    """Bodyweight log (manual now; Garmin / HealthKit later). Syncable: client-supplied uuid."""
+
+    __tablename__ = "body_measurements"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    measured_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    day: Mapped[date] = mapped_column(Date, index=True)  # local calendar day of measured_at
+    weight_kg: Mapped[float] = mapped_column(Float)
+    source: Mapped[MeasurementSource] = mapped_column(
+        str_enum(MeasurementSource, "measurement_source"), default=MeasurementSource.MANUAL
+    )
+    note: Mapped[str | None] = mapped_column(Text)
 
 
 class Run(Syncable, Base):

@@ -57,7 +57,7 @@ exercises:
   - {slug: squat, name: Squat, primary_muscle: quads, secondary_muscles: [glutes, adductors], movement_pattern: squat, default_equipment: barbell, e1rm: true, aliases: [squat, back squat]}
   - {slug: hack_squat, name: Hack Squat, primary_muscle: quads, secondary_muscles: [glutes], movement_pattern: squat, default_equipment: plate_loaded, e1rm: true, aliases: [hack squat]}
   - {slug: leg_press, name: Leg Press, primary_muscle: quads, secondary_muscles: [glutes], movement_pattern: squat, default_equipment: plate_loaded, e1rm: true, aliases: [leg press]}
-  - {slug: sissy_squat, name: Sissy Squat, primary_muscle: quads, movement_pattern: knee_extension, default_equipment: bodyweight, e1rm: true, bodyweight_loaded: true, aliases: [sissy squat]}
+  - {slug: sissy_squat, name: Sissy Squat, primary_muscle: quads, movement_pattern: knee_extension, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [sissy squat]}
   - {slug: bulgarian_split_squat, name: Bulgarian Split Squat, primary_muscle: quads, secondary_muscles: [glutes], movement_pattern: lunge, default_equipment: dumbbell, e1rm: true, aliases: [bulgarian split squat, split squat]}
   - {slug: leg_extension, name: Leg Extension, primary_muscle: quads, movement_pattern: knee_extension, default_equipment: machine_stack, e1rm: true, aliases: [leg extension]}
   - {slug: leg_curl, name: Leg Curl, primary_muscle: hamstrings, movement_pattern: knee_flexion, default_equipment: machine_stack, e1rm: true, aliases: [lying leg curl, seated leg curl, leg curl]}

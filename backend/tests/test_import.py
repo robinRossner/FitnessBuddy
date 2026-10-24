@@ -46,7 +46,7 @@ def test_import_basic_counts(db, options):
         "2024-10-27T02:30:00": "ambiguous",
     }
     assert _count(db, Gym) == 1 and db.scalar(select(Gym.name)) == "Main gym"
-    assert db.scalar(select(ConfigVersion.version)) == "v1"
+    assert db.scalar(select(ConfigVersion.version)) == "v2"
     assert _count(db, ExerciseNameMapping) == 9
     assert _count(db, ImportRun) == 1
 
@@ -98,7 +98,7 @@ def test_reimport_is_idempotent(db, options):
     assert second.sets_updated == 0 and second.sets_tombstoned == 0
     assert _count(db, TrainingSession) == 4
     assert _count(db, WorkoutSet) == 18
-    assert _count(db, ExerciseVariant) == 8  # Mystery Exercise has no variant
+    assert _count(db, ExerciseVariant) == 7  # only variants with sets (created on first use)
     assert _count(db, ImportRun) == 2
 
 
@@ -177,8 +177,9 @@ def test_stats_and_ladder(db, options):
     pull_stats = db.scalar(
         select(ExerciseSessionStats).where(ExerciseSessionStats.variant_id == pull.id)
     )
-    assert pull_stats.e1rm_basis == "added_weight"
-    assert pull_stats.best_e1rm_kg == round(10 * (1 + 5 / 30), 2)
+    # engine config v2 falls back to 82 kg bodyweight: (82 + 10 added) * (1 + 5/30)
+    assert pull_stats.e1rm_basis == "total"
+    assert pull_stats.best_e1rm_kg == round(85 * (1 + 5 / 30), 2)
 
 
 def test_user_edited_ladder_is_kept(db, options):

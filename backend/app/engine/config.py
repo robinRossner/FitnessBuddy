@@ -51,10 +51,16 @@ class UserConfig(_Model):
     bodyweight_kg: float | None = None
 
 
+class BodyweightConfig(_Model):
+    # Context signal for the advisor, not a goal (the user wants to maintain their weight).
+    change_flag_pct_4w: float = 3.0
+
+
 class EngineConfig(_Model):
     version: str
     approval_mode: str = "manual"
     user: UserConfig = UserConfig()
+    bodyweight: BodyweightConfig = BodyweightConfig()
     strength: StrengthConfig = StrengthConfig()
     increments: IncrementConfig = IncrementConfig()
     recovery: dict[str, Any] = {}

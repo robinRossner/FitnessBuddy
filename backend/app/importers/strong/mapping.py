@@ -21,6 +21,7 @@ FIELDNAMES = [
     "equipment_type",
     "load_convention",
     "status",
+    "active",
     "notes",
 ]
 
@@ -48,11 +49,21 @@ class MappingRow:
     equipment_type: str = ""
     load_convention: str = ""
     status: str = MappingStatus.UNMAPPED.value
+    active: bool = True  # False: the user no longer does it; history kept, never planned
     notes: str = ""
 
     @property
     def importable(self) -> bool:
         return self.status in (MappingStatus.AUTO, MappingStatus.CONFIRMED)
+
+
+_TRUE = {"true", "1", "yes", "y"}
+_FALSE = {"false", "0", "no", "n"}
+
+
+def parse_bool(raw: str | None, *, default: bool) -> bool:
+    v = (raw or "").strip().lower()
+    return True if v in _TRUE else False if v in _FALSE else default
 
 
 def read_mapping(path: Path) -> dict[str, MappingRow]:
@@ -68,7 +79,9 @@ def read_mapping(path: Path) -> dict[str, MappingRow]:
                 continue
             values = {k: (v or "").strip() for k, v in rec.items() if k in known}
             values["status"] = (values.get("status") or MappingStatus.UNMAPPED.value).lower()
-            out[name] = MappingRow(**values)
+            active = parse_bool(rec.get("active"), default=True)
+            values.pop("active", None)
+            out[name] = MappingRow(**values, active=active)
         return out
 
 
@@ -78,7 +91,9 @@ def write_mapping(path: Path, rows: dict[str, MappingRow]) -> None:
         writer = csv.DictWriter(fh, fieldnames=FIELDNAMES, lineterminator="\n")
         writer.writeheader()
         for name in sorted(rows, key=str.casefold):
-            writer.writerow(asdict(rows[name]))
+            rec = asdict(rows[name])
+            rec["active"] = "true" if rec["active"] else "false"
+            writer.writerow(rec)
 
 
 def _split_name(name: str) -> tuple[str, str | None]:
@@ -143,7 +158,7 @@ def merge_mapping(
 def validate_mapping(rows: dict[str, MappingRow], catalog: dict[str, CatalogExercise]) -> list[str]:
     """Errors for importable rows (auto/confirmed). Unmapped rows are not validated."""
     errors: list[str] = []
-    variant_specs: dict[str, tuple[str, str, str]] = {}
+    variant_specs: dict[str, tuple[str, str, str, bool]] = {}
     for r in rows.values():
         if r.status not in {s.value for s in MappingStatus}:
             errors.append(f"{r.strong_name}: invalid status {r.status!r}")
@@ -158,7 +173,7 @@ def validate_mapping(rows: dict[str, MappingRow], catalog: dict[str, CatalogExer
             errors.append(f"{r.strong_name}: invalid load_convention {r.load_convention!r}")
         if not r.variant_name:
             errors.append(f"{r.strong_name}: empty variant_name")
-        spec = (r.canonical_exercise, r.equipment_type, r.load_convention)
+        spec = (r.canonical_exercise, r.equipment_type, r.load_convention, r.active)
         prev = variant_specs.setdefault(r.variant_name, spec)
         if prev != spec:
             errors.append(

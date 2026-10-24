@@ -27,8 +27,8 @@ def ensure_default_gym(db: Session, name: str, tz: str | None = None) -> Gym:
     return gym
 
 
-def ensure_config_version(db: Session, path: Path) -> ConfigVersion:
-    """Insert the config file as an immutable version row (first one becomes active).
+def ensure_config_version(db: Session, path: Path, *, activate: bool = True) -> ConfigVersion:
+    """Insert the config file as an immutable version row; `activate` makes it the active one.
 
     If a row with the same version exists but the file content changed, the stored row is kept
     and a warning is logged: published versions are immutable, bump `version` instead.
@@ -39,6 +39,10 @@ def ensure_config_version(db: Session, path: Path) -> ConfigVersion:
     row = db.scalar(select(ConfigVersion).where(ConfigVersion.version == cfg.version))
     if row is None:
         has_active = db.scalar(select(ConfigVersion).where(ConfigVersion.is_active)) is not None
+        is_active = activate or not has_active
+        if is_active:
+            for other in db.scalars(select(ConfigVersion).where(ConfigVersion.is_active)):
+                other.is_active = False
         try:
             src = str(path.resolve().relative_to(BACKEND_DIR))
         except ValueError:
@@ -48,7 +52,7 @@ def ensure_config_version(db: Session, path: Path) -> ConfigVersion:
             content=raw,
             content_hash=digest,
             source_path=src,
-            is_active=not has_active,
+            is_active=is_active,
         )
         db.add(row)
         db.flush()

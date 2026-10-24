@@ -77,6 +77,7 @@ class SetType(StrEnum):
 class SessionKind(StrEnum):
     UPPER = "upper"
     LOWER = "lower"
+    FULL = "full"  # upper and lower body in one session (inferred from the exercises)
     PUSH = "push"
     PULL = "pull"
     LEGS = "legs"
@@ -86,6 +87,12 @@ class SessionKind(StrEnum):
     LONG_RUN = "long_run"
     REST = "rest"
     OTHER = "other"
+
+
+class MeasurementSource(StrEnum):
+    MANUAL = "manual"
+    GARMIN = "garmin"
+    HEALTHKIT = "healthkit"
 
 
 class Fidelity(StrEnum):

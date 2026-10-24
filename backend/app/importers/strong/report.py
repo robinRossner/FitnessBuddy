@@ -10,7 +10,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Exercise, ExerciseSessionStats, ExerciseVariant
+from app.db.models import Exercise, ExerciseSessionStats, ExerciseVariant, Gym
 from app.db.types import EquipmentType, LoadConvention, SetType
 from app.importers.strong.importer import ImportResult
 
@@ -44,6 +44,8 @@ class VariantSummary:
     best_e1rm_date: date | None
     basis: str | None
     weights: list[float]
+    active: bool = True
+    gym: str | None = None
 
 
 def variant_summaries(db: Session) -> list[VariantSummary]:
@@ -53,6 +55,7 @@ def variant_summaries(db: Session) -> list[VariantSummary]:
         .join(Exercise, ExerciseVariant.exercise_id == Exercise.id)
         .order_by(ExerciseSessionStats.session_date)
     ).all()
+    gym_names = dict(db.execute(select(Gym.id, Gym.name)).all())
     grouped: dict[int, list[tuple[ExerciseSessionStats, ExerciseVariant, Exercise]]] = defaultdict(
         list
     )
@@ -83,6 +86,8 @@ def variant_summaries(db: Session) -> list[VariantSummary]:
                 best_e1rm_date=best[0] if best else None,
                 basis=e1[0][2] if e1 else None,
                 weights=[st.top_set_weight_kg for st, _, _ in items if st.top_set_weight_kg],
+                active=v.active,
+                gym=gym_names.get(v.gym_id),
             )
         )
     out.sort(key=lambda s: (-s.sessions, s.name))
@@ -94,6 +99,7 @@ def weight_jumps(db: Session) -> list[tuple[str, date, float, date, float, float
     rows = db.execute(
         select(ExerciseSessionStats, ExerciseVariant.name)
         .join(ExerciseVariant, ExerciseSessionStats.variant_id == ExerciseVariant.id)
+        .where(ExerciseVariant.active.is_(True))  # inactive variants are not anomalies
         .order_by(ExerciseSessionStats.variant_id, ExerciseSessionStats.session_date)
     ).all()
     out = []
@@ -162,6 +168,8 @@ def build_report(db: Session, res: ImportResult, generated_at: datetime) -> str:
         f"- Workouts present in several files: {res.overlapping_workouts} "
         f"({res.overlapping_differing} with differing content; newest export used)",
         f"- exercise_session_stats rows: {res.stats_rows}",
+        f"- Sets moved to another variant (gym change): {res.sets_moved}; orphaned variants "
+        f"removed: {res.variants_removed}",
         "",
     ]
     if res.skip_reasons:
@@ -177,7 +185,7 @@ def build_report(db: Session, res: ImportResult, generated_at: datetime) -> str:
         L += [""]
     else:
         L += ["No unmapped names.", ""]
-    auto = [res.mapping[n] for n in res.auto_names if n in res.mapping]
+    auto = [res.mapping[n] for n in res.auto_names if n in res.mapping and res.mapping[n].active]
     if auto:
 
         def conf(m) -> int:
@@ -209,32 +217,41 @@ def build_report(db: Session, res: ImportResult, generated_at: datetime) -> str:
 
     summaries = variant_summaries(db)
 
-    # ---------------------------------------------------------------- questions
-    L += ["## Open questions", ""]
-    dbs = [s for s in summaries if s.equipment == EquipmentType.DUMBBELL]
-    if dbs:
-        L += [
-            "1. **Dumbbell weights: per hand or total?** All dumbbell variants are imported as "
-            "`per_hand` (weight = one dumbbell). If Strong holds the sum of both, change "
-            "`load_convention` to `total` in the mapping; next-load steps then double. Ranges:",
-            "",
-        ]
-        L += [f"   - {s.name}: {min(s.weights or [0]):g}–{max(s.weights or [0]):g} kg" for s in dbs]
-        L += [""]
+    # ---------------------------------------------------------------- gyms + decisions
+    L += ["## Gyms", ""]
     L += [
-        "2. **Bodyweight unknown** (`user.bodyweight_kg: null` in engine config): pull-ups, dips "
-        "etc. get no e1RM unless weight was added, and then it is computed on the *added* weight "
-        "only (basis `added_weight`). Assisted/band pull-ups get none.",
-        "3. **Machines** – stack vs plate-loaded and whether the sled/bar is included was guessed "
-        "(see LOW/MEDIUM notes above). Big weight jumps below may indicate a gym or machine "
-        "change; all history currently sits in gym “Main gym”.",
+        "Gym-bound variants (machine / cable / smith / plate-loaded) exist once per gym; periods "
+        "come from `data/catalog/gyms.yaml` (edit and re-import to change them).",
+        "",
+    ]
+    L += _table(
+        ["gym", "from", "note", "sessions"],
+        [
+            [name, start or "(beginning)", note or "", res.sessions_by_gym.get(name, 0)]
+            for name, start, note in res.gym_ranges
+        ],
+    )
+    per_gym = Counter(s.gym or "(generic)" for s in summaries)
+    listing = ", ".join(f"{k}: {v}" for k, v in sorted(per_gym.items()))
+    L += ["", f"Variants with data per gym: {listing}", ""]
+    L += ["## Applied decisions", ""]
+    L += [
+        "- Dumbbell weights are **per hand** (confirmed). Inactive variants "
+        + (", ".join(sorted(n for n, m in res.mapping.items() if not m.active)) or "(none)")
+        + " keep their history but are left out of the review and anomaly sections.",
+        "- Bodyweight comes from the `body_measurements` log (latest on/before the session date, "
+        "else the earliest after, else `user.bodyweight_kg` from the engine config). Pull-ups, "
+        "dips etc. use bodyweight + added weight, assisted/band pull-ups bodyweight - assistance.",
+        f"- Sessions with an inferred kind (generic names): {sum(res.kinds_inferred.values())} "
+        + (str(dict(res.kinds_inferred)) if res.kinds_inferred else ""),
         "",
     ]
 
     # ---------------------------------------------------------------- anomalies
     L += ["## Anomalies", ""]
     variant_by_name = {m.strong_name: m for m in res.mapping.values()}
-    rows = [r for wk in res.workouts for r in wk.rows]
+    inactive = {n for n, m in res.mapping.items() if not m.active}
+    rows = [r for wk in res.workouts for r in wk.rows if r.exercise_name not in inactive]
 
     jumps = weight_jumps(db)
     L += [
@@ -315,13 +332,32 @@ def build_report(db: Session, res: ImportResult, generated_at: datetime) -> str:
     ]
     L += [f"- {n}: {w:g} kg × {c}" for (n, w), c in odd_w.most_common(LIST_LIMIT)]
 
+    res.anomaly_counts = {
+        "weight jumps": len(jumps),
+        "sets > 30 reps": len(many_reps),
+        "zero-weight sets": sum(zero.values()),
+        "odd start times": len(odd),
+        "DST-ambiguous starts": len(res.dst_flags),
+        "odd weights": sum(odd_w.values()),
+    }
+    corrected = {start for start, _, _ in res.duration_corrected}
     weird_dur = [
         wk
         for wk in res.workouts
-        if not wk.duration_s or wk.duration_s < 600 or wk.duration_s > 3 * 3600
+        if wk.start_local not in corrected
+        and (not wk.duration_s or wk.duration_s < 600 or wk.duration_s > 3 * 3600)
     ]
+    res.anomaly_counts["odd durations"] = len(weird_dur)
     L += ["", f"### Workout duration missing, < 10 min or > 3 h: {len(weird_dur)}", ""]
     L += [f"- {wk.start_local} {wk.name}: {_dur(wk.duration_s)}" for wk in weird_dur[:LIST_LIMIT]]
+
+    L += [
+        "",
+        f"### Durations corrected (> {_dur(res.max_duration_s)}, stored as NULL): "
+        f"{len(res.duration_corrected)}",
+        "",
+    ]
+    L += [f"- {d} {n}: was {_dur(sec)}" for d, n, sec in res.duration_corrected]
 
     issues = Counter(issue for _, issue in res.row_issues)
     if issues:
@@ -401,7 +437,14 @@ def console_summary(res: ImportResult) -> str:
         f"date range {res.date_min} -> {res.date_max}",
         f"unmapped names: {len(res.unmapped_names)} | "
         f"auto-mapped (to review): {len(res.auto_names)}",
+        f"gyms: {dict(res.sessions_by_gym)} | sets moved {res.sets_moved} | "
+        f"variants removed {res.variants_removed} | durations corrected "
+        f"{len(res.duration_corrected)}",
     ]
+    if res.anomaly_counts:
+        lines.append(
+            f"anomalies remaining: {sum(res.anomaly_counts.values())} {res.anomaly_counts}"
+        )
     for reason, n in res.skip_reasons.most_common():
         lines.append(f"  skipped: {reason}: {n}")
     return "\n".join(lines)

@@ -5,25 +5,37 @@ from __future__ import annotations
 import uuid
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
-from sqlalchemy import inspect, select
+from sqlalchemy import delete, inspect, select
 from sqlalchemy.orm import Session
 
 from app.db.catalog import CatalogExercise, load_catalog, sync_catalog
 from app.db.models import (
     Exercise,
     ExerciseNameMapping,
+    ExerciseSessionStats,
     ExerciseVariant,
     Gym,
     ImportRun,
+    PlannedSession,
     TrainingSession,
     WorkoutSet,
 )
-from app.db.seed import ensure_config_version, ensure_default_gym
-from app.db.types import EquipmentType, Fidelity, LoadConvention, MappingStatus, Source, utcnow
+from app.db.seed import ensure_config_version
+from app.db.types import (
+    EquipmentType,
+    Fidelity,
+    LoadConvention,
+    MappingStatus,
+    SessionKind,
+    SetType,
+    Source,
+    utcnow,
+)
 from app.engine.config import load_engine_config
+from app.gyms import GYM_BOUND_EQUIPMENT, GymPeriods, GymSpec, load_gyms
 from app.importers.strong.mapping import MappingRow, read_mapping, validate_mapping
 from app.importers.strong.parser import (
     ParsedFile,
@@ -35,17 +47,22 @@ from app.importers.strong.parser import (
     parse_file,
     to_utc,
 )
+from app.session_kind import ExerciseUse, infer_session_kind
 from app.stats import rebuild_stats
 
 # Fixed namespace: ids must never change, or re-imports would duplicate data.
 NAMESPACE = uuid.UUID("6f1c2b7e-3a59-4d2e-9b8f-5e7a1c0d4f21")
-GENERIC_EQUIPMENT = {EquipmentType.BARBELL, EquipmentType.DUMBBELL, EquipmentType.BODYWEIGHT}
 LADDER_EQUIPMENT = {EquipmentType.MACHINE_STACK, EquipmentType.CABLE}
 SOURCE_NAME = "strong"
 
 
 def session_uuid(start_local: datetime) -> str:
     return str(uuid.uuid5(NAMESPACE, f"strong:session:{start_local.isoformat()}"))
+
+
+def variant_uuid(base_name: str, gym_key: str | None) -> str:
+    """Stable identity of a variant: mapping variant name + (for gym-bound equipment) gym key."""
+    return str(uuid.uuid5(NAMESPACE, f"strong:variant:{base_name}|{gym_key or ''}"))
 
 
 def set_uuid(start_local: datetime, exercise: str, occurrence: int, position: int) -> str:
@@ -60,7 +77,9 @@ class ImportOptions:
     catalog_path: Path
     engine_config_path: Path
     tz: str = "Europe/Vienna"
-    gym_name: str = "Main gym"
+    gym_name: str = "Main gym"  # used when there is no gyms file: one gym for everything
+    gyms_path: Path | None = None
+    max_duration_s: int = 4 * 3600  # longer sessions are bad data: duration stored as NULL
     apply: bool = False
     default_weight_unit: str = "kg"
     default_distance_unit: str = "km"
@@ -95,6 +114,14 @@ class ImportResult:
     sets_updated: int = 0
     sets_unchanged: int = 0
     sets_tombstoned: int = 0
+    sets_moved: int = 0  # existing sets re-pointed to another variant (gym change)
+    variants_removed: int = 0  # orphaned variants deleted (no sets left)
+    duration_corrected: list[tuple[datetime, str | None, int]] = field(default_factory=list)
+    max_duration_s: int = 4 * 3600
+    anomaly_counts: dict[str, int] = field(default_factory=dict)  # filled by build_report
+    kinds_inferred: Counter[str] = field(default_factory=Counter)
+    sessions_by_gym: Counter[str] = field(default_factory=Counter)
+    gym_ranges: list[tuple[str, date | None, str | None]] = field(default_factory=list)
     overlapping_workouts: int = 0
     overlapping_differing: int = 0
     date_min: datetime | None = None
@@ -144,38 +171,113 @@ def select_workouts(parsed: list[ParsedFile]) -> tuple[dict[datetime, Workout], 
 # --------------------------------------------------------------------------- DB helpers
 
 
-def _sync_variants(
+def _sync_gyms(db: Session, periods: GymPeriods, default_tz: str) -> dict[str, Gym]:
+    """Upsert the canonical gyms. Identity = key (renames follow); legacy rows adopt by name."""
+    rows = list(db.scalars(select(Gym)))
+    by_key = {g.key: g for g in rows if g.key}
+    by_name = {g.name: g for g in rows}
+    out: dict[str, Gym] = {}
+    for spec in periods.canonical_gyms:
+        gym = by_key.get(spec.key)
+        if gym is None:
+            gym = by_name.get(spec.name)
+            if gym is not None and gym.key not in (None, spec.key):
+                gym = None  # same name but another gym's identity: do not steal it
+        if gym is None:
+            gym = Gym(name=spec.name)
+            db.add(gym)
+        gym.key = spec.key
+        gym.name = spec.name
+        gym.timezone = spec.timezone or gym.timezone or default_tz
+        if spec.notes:
+            gym.notes = spec.notes
+        gym.deleted_at = None
+        out[spec.key] = gym
+    db.flush()
+    return out
+
+
+def _retire_gyms(db: Session, keep: set[int], legacy_name: str) -> None:
+    """Tombstone gyms the importer used to manage but that no longer exist (merged / removed)."""
+    for gym in db.scalars(select(Gym).where(Gym.deleted_at.is_(None))):
+        if gym.id in keep or not (gym.key or gym.name == legacy_name):
+            continue
+        referenced = any(
+            db.scalar(select(col).where(fk == gym.id).limit(1)) is not None
+            for col, fk in (
+                (TrainingSession.id, TrainingSession.gym_id),
+                (ExerciseVariant.id, ExerciseVariant.gym_id),
+                (PlannedSession.id, PlannedSession.gym_id),
+            )
+        )
+        if not referenced:
+            gym.deleted_at = utcnow()
+
+
+class VariantResolver:
+    """strong mapping row + gym -> ExerciseVariant, created on first use (deterministic key)."""
+
+    def __init__(
+        self,
+        db: Session,
+        exercises: dict[str, Exercise],
+        gyms: dict[str, Gym],
+        *,
+        multi_gym: bool,
+    ):
+        self.db = db
+        self.exercises = exercises
+        self.gyms = gyms
+        self.multi_gym = multi_gym
+        existing = list(db.scalars(select(ExerciseVariant)))
+        self.by_key = {v.key: v for v in existing if v.key}
+        self.legacy = {(v.name, v.gym_id): v for v in existing if not v.key}
+
+    def get(self, m: MappingRow, gym: GymSpec) -> ExerciseVariant:
+        eq = EquipmentType(m.equipment_type)
+        bound = eq.value in GYM_BOUND_EQUIPMENT
+        gym_row = self.gyms[gym.key] if bound else None
+        key = variant_uuid(m.variant_name, gym.key if bound else None)
+        name = (
+            f"{m.variant_name} @ {gym_row.name}"
+            if gym_row is not None and self.multi_gym
+            else m.variant_name
+        )
+        v = self.by_key.get(key)
+        if v is None:  # a variant from before keys existed: adopt it
+            v = self.legacy.pop((name, gym_row.id if gym_row else None), None)
+        if v is None:
+            v = ExerciseVariant()
+            self.db.add(v)
+        v.key = key
+        v.name = name
+        v.gym_id = gym_row.id if gym_row else None
+        v.exercise = self.exercises[m.canonical_exercise]
+        v.equipment_type = eq
+        v.load_convention = LoadConvention(m.load_convention)
+        v.active = m.active
+        self.by_key[key] = v
+        if v.id is None:
+            self.db.flush()
+        return v
+
+
+def _sync_name_mappings(
     db: Session,
     mapping: dict[str, MappingRow],
     exercises: dict[str, Exercise],
-    gym: Gym,
-) -> dict[str, ExerciseVariant]:
-    """Create/update variants + exercise_name_mappings rows. Returns strong_name -> variant."""
-    by_key: dict[tuple[str, int | None], ExerciseVariant] = {
-        (v.name, v.gym_id): v for v in db.scalars(select(ExerciseVariant))
-    }
+    latest_variant: dict[str, ExerciseVariant],
+) -> None:
+    """Mirror strong_mapping.csv into exercise_name_mappings. For gym-bound exercises the
+    variant is the one of the most recent session (the gym you train at now)."""
     name_rows = {
         m.source_name: m
         for m in db.scalars(
             select(ExerciseNameMapping).where(ExerciseNameMapping.source == SOURCE_NAME)
         )
     }
-    out: dict[str, ExerciseVariant] = {}
     for row in mapping.values():
-        variant: ExerciseVariant | None = None
         exercise = exercises.get(row.canonical_exercise)
-        if row.importable and exercise is not None:
-            eq = EquipmentType(row.equipment_type)
-            gym_id = None if eq in GENERIC_EQUIPMENT else gym.id
-            variant = by_key.get((row.variant_name, gym_id))
-            if variant is None:
-                variant = ExerciseVariant(name=row.variant_name, gym_id=gym_id)
-                db.add(variant)
-                by_key[(row.variant_name, gym_id)] = variant
-            variant.exercise = exercise
-            variant.equipment_type = eq
-            variant.load_convention = LoadConvention(row.load_convention)
-            out[row.strong_name] = variant
         nm = name_rows.get(row.strong_name)
         if nm is None:
             nm = ExerciseNameMapping(source=SOURCE_NAME, source_name=row.strong_name)
@@ -183,21 +285,47 @@ def _sync_variants(
         nm.status = MappingStatus(row.status)
         nm.exercise_id = exercise.id if exercise is not None else None
         nm.notes = row.notes or None
-        db.flush()
+        variant = latest_variant.get(row.strong_name) if row.importable else None
         nm.variant_id = variant.id if variant is not None else None
     db.flush()
-    return out
 
 
-def _infer_ladders(db: Session, variants: set[ExerciseVariant]) -> dict[str, list[float]]:
-    """Ladder for stack/cable variants = sorted distinct historical weights (> 0).
+def _remove_orphan_variants(db: Session, mapping: dict[str, MappingRow]) -> int:
+    """Delete importer-made variants that no set / mapping refers to any more (e.g. the single
+    'Lat Pulldown (Cable)' from before gym periods, or a merged gym's variants)."""
+    bases = {m.variant_name for m in mapping.values() if m.variant_name}
+    used = set(db.scalars(select(WorkoutSet.variant_id).distinct()))
+    used |= set(
+        db.scalars(
+            select(ExerciseNameMapping.variant_id).where(
+                ExerciseNameMapping.variant_id.is_not(None)
+            )
+        )
+    )
+    removed = 0
+    for v in db.scalars(select(ExerciseVariant)):
+        if v.id in used or v.name.split(" @ ")[0] not in bases:
+            continue
+        db.execute(delete(ExerciseSessionStats).where(ExerciseSessionStats.variant_id == v.id))
+        db.delete(v)
+        removed += 1
+    db.flush()
+    return removed
 
-    Only touches variants whose ladder is empty or was inferred before (user edits win).
+
+def _infer_ladders(db: Session) -> dict[str, list[float]]:
+    """Ladder per stack/cable variant (so per gym) = sorted distinct historical weights (> 0).
+
+    Only touches variants whose ladder is empty or was inferred before (user edits win); an
+    inferred ladder is rebuilt from the current sets, so sets moved to another gym leave it.
     """
     out: dict[str, list[float]] = {}
+    variants = db.scalars(
+        select(ExerciseVariant).where(
+            ExerciseVariant.equipment_type.in_([e.value for e in LADDER_EQUIPMENT])
+        )
+    )
     for v in variants:
-        if v.equipment_type not in LADDER_EQUIPMENT:
-            continue
         if v.weight_ladder and not v.ladder_inferred:
             continue
         weights = db.scalars(
@@ -209,13 +337,34 @@ def _infer_ladders(db: Session, variants: set[ExerciseVariant]) -> dict[str, lis
             )
             .distinct()
         ).all()
-        ladder = sorted({float(w) for w in weights} | {float(w) for w in (v.weight_ladder or [])})
+        ladder = sorted({float(w) for w in weights})
         if ladder:
-            v.weight_ladder = ladder
+            if v.weight_ladder != ladder:
+                v.weight_ladder = ladder
             v.ladder_inferred = True
             out[v.name] = ladder
     db.flush()
     return out
+
+
+def _exercise_uses(
+    wk: Workout, mapping: dict[str, MappingRow], catalog: dict[str, CatalogExercise]
+) -> list[ExerciseUse]:
+    """One entry per non-warm-up set of an importable exercise, for session-kind inference."""
+    uses = []
+    for r in wk.rows:
+        m = mapping.get(r.exercise_name)
+        cat = catalog.get(m.canonical_exercise) if m is not None and m.importable else None
+        if cat is None or r.set_type == SetType.WARMUP:
+            continue
+        uses.append(
+            ExerciseUse(
+                cat.movement_pattern,
+                cat.primary_muscle,
+                bodyweight=m.equipment_type == EquipmentType.BODYWEIGHT.value,
+            )
+        )
+    return uses
 
 
 def _assign(obj, values: dict) -> bool:
@@ -232,7 +381,7 @@ def _assign(obj, values: dict) -> bool:
 
 def run_import(db: Session, opts: ImportOptions) -> ImportResult:
     """Run the full import inside `db`'s transaction. Caller commits (apply) or rolls back."""
-    res = ImportResult(apply=opts.apply)
+    res = ImportResult(apply=opts.apply, max_duration_s=opts.max_duration_s)
     catalog: dict[str, CatalogExercise] = load_catalog(opts.catalog_path)
     mapping = read_mapping(opts.mapping_path)
     res.mapping = mapping
@@ -282,10 +431,18 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
                 )
 
     # ---- reference data
-    gym = ensure_default_gym(db, opts.gym_name, opts.tz)
+    if opts.gyms_path is not None and opts.gyms_path.exists():
+        periods = load_gyms(opts.gyms_path)
+    else:
+        periods = GymPeriods.single(opts.gym_name)
+    gyms = _sync_gyms(db, periods, opts.tz)
+    res.gym_ranges = [
+        (g.name, g.start, (f"same as {g.same_as}" if g.same_as else None)) for g in periods.specs
+    ]
     ensure_config_version(db, opts.engine_config_path)
     exercises = sync_catalog(db, catalog)
-    variants = _sync_variants(db, mapping, exercises, gym)
+    resolver = VariantResolver(db, exercises, gyms, multi_gym=len(periods.canonical_gyms) > 1)
+    latest_variant: dict[str, tuple[datetime, ExerciseVariant]] = {}
 
     # ---- sessions + sets
     run = ImportRun(source=SOURCE_NAME, mode="apply" if opts.apply else "dry_run")
@@ -308,7 +465,6 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
     for ws in existing_sets.values():
         sets_by_session[ws.session_id].append(ws)
     seen_set_ids: set[str] = set()
-    touched_variants: set[ExerciseVariant] = set()
     now = utcnow()
 
     for start, wk in chosen.items():
@@ -316,13 +472,25 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
         utc, dst_flag = to_utc(start, opts.tz)
         if dst_flag:
             res.dst_flags.append((start, dst_flag))
+        gym_spec = periods.resolve(start.date())
+        gym_row = gyms[gym_spec.key]
+        res.sessions_by_gym[gym_row.name] += 1
+        duration_s = wk.duration_s
+        if duration_s and duration_s > opts.max_duration_s:  # bad data (e.g. timer left running)
+            res.duration_corrected.append((start, wk.name, duration_s))
+            duration_s = None
+        kind = derive_session_kind(wk.name)
+        if kind is SessionKind.OTHER:  # generic name ("Morning Workout"): look at the exercises
+            kind = infer_session_kind(_exercise_uses(wk, mapping, catalog))
+            res.kinds_inferred[kind.value] += 1
         values = {
             "name": wk.name,
-            "session_kind": derive_session_kind(wk.name),
+            "session_kind": kind,
+            "gym_id": gym_row.id,  # gyms.yaml is the source of truth for imported sessions
             "started_at_local": start,
             "tz": opts.tz,
             "started_at_utc": utc,
-            "duration_s": wk.duration_s,
+            "duration_s": duration_s,
             "notes": wk.notes,
             "fidelity": Fidelity.LOW if any(r.is_cardio for r in wk.rows) else Fidelity.HIGH,
         }
@@ -340,7 +508,6 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
                 id=sid,
                 source=Source.STRONG_IMPORT,
                 source_ref=wk.source_file,
-                gym_id=gym.id,  # only on create: a later gym reassignment by the user is kept
                 import_run_id=run.id,
                 **values,
             )
@@ -356,7 +523,7 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
             for issue in row.issues:
                 res.row_issues.append((row, issue))
             m = mapping.get(row.exercise_name)
-            if m is None or not m.importable or row.exercise_name not in variants:
+            if m is None or not m.importable or m.canonical_exercise not in exercises:
                 res.unmapped_names[row.exercise_name] += 1
                 res.skipped.append(
                     SkippedRow(wk.source_file, row.line_no, "exercise unmapped", row.exercise_name)
@@ -364,8 +531,10 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
                 continue
             if m.status == MappingStatus.AUTO:
                 res.auto_names[row.exercise_name] += 1
-            variant = variants[row.exercise_name]
-            touched_variants.add(variant)
+            variant = resolver.get(m, gym_spec)
+            prev = latest_variant.get(row.exercise_name)
+            if prev is None or start >= prev[0]:
+                latest_variant[row.exercise_name] = (start, variant)
             set_id = set_uuid(start, row.exercise_name, row.block_occurrence, row.set_index)
             seen_set_ids.add(set_id)
             set_values = {
@@ -389,11 +558,14 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
             if ws is None:
                 db.add(WorkoutSet(id=set_id, source=Source.STRONG_IMPORT, **set_values))
                 res.sets_created += 1
-            elif _assign(ws, set_values):
-                res.sets_updated += 1
-                session_changed = True
             else:
-                res.sets_unchanged += 1
+                moved = ws.variant_id != variant.id
+                if _assign(ws, set_values):
+                    res.sets_moved += moved
+                    res.sets_updated += 1
+                    session_changed = True
+                else:
+                    res.sets_unchanged += 1
             res.rows_imported += 1
 
         # sets of this session that are no longer in the chosen export -> tombstone
@@ -415,14 +587,18 @@ def run_import(db: Session, opts: ImportOptions) -> ImportResult:
         res.date_min, res.date_max = min(chosen), max(chosen)
     db.flush()
 
-    # ---- derived data
-    res.ladders = _infer_ladders(db, touched_variants)
+    # ---- name mappings, derived data, cleanup
+    _sync_name_mappings(db, mapping, exercises, {n: v for n, (_, v) in latest_variant.items()})
+    res.ladders = _infer_ladders(db)
     res.stats_rows = rebuild_stats(
         db,
         bodyweight_kg=cfg.user.bodyweight_kg,
         max_reps=cfg.strength.e1rm.max_reps,
         min_reps=cfg.strength.e1rm.min_reps,
     )
+    res.variants_removed = _remove_orphan_variants(db, mapping)
+    _retire_gyms(db, {g.id for g in gyms.values()}, opts.gym_name)
+    db.flush()
 
     for s in res.skipped:
         res.skip_reasons[s.reason] += 1
@@ -459,6 +635,10 @@ def fill_run(run: ImportRun, res: ImportResult) -> ImportRun:
         "sets_updated": res.sets_updated,
         "sets_unchanged": res.sets_unchanged,
         "sets_tombstoned": res.sets_tombstoned,
+        "sets_moved": res.sets_moved,
+        "variants_removed": res.variants_removed,
+        "durations_corrected": len(res.duration_corrected),
+        "sessions_by_gym": dict(res.sessions_by_gym),
         "overlapping_workouts": res.overlapping_workouts,
         "overlapping_differing": res.overlapping_differing,
         "unmapped_names": dict(res.unmapped_names),

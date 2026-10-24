@@ -70,6 +70,8 @@ def import_cmd(
         engine_config_path=s.engine_config_path,
         tz=tz or s.user_tz,
         gym_name=s.default_gym_name,
+        gyms_path=s.gyms_path,
+        max_duration_s=int(s.strong_max_duration_h * 3600),
         apply=apply,
         default_weight_unit=s.strong_default_weight_unit,
         default_distance_unit=s.strong_default_distance_unit,
