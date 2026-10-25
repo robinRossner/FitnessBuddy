@@ -10,10 +10,12 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_token
 from app.db.models import ExerciseSessionStats, ExerciseVariant, TrainingSession
 from app.db.session import get_session_factory
 
-router = APIRouter()
+public_router = APIRouter()  # /health only
+router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
 
 
 def get_db() -> Iterator[Session]:
@@ -59,12 +61,12 @@ class StatOut(_Out):
     is_weight_pr: bool
 
 
-@router.get("/health")
+@public_router.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/api/v1/sessions", response_model=list[SessionOut])
+@router.get("/sessions", response_model=list[SessionOut])
 def list_sessions(
     limit: int = Query(50, ge=1, le=500), db: Session = Depends(get_db)
 ) -> list[TrainingSession]:
@@ -78,12 +80,18 @@ def list_sessions(
     )
 
 
-@router.get("/api/v1/variants", response_model=list[VariantOut])
+@router.get("/variants", response_model=list[VariantOut])
 def list_variants(db: Session = Depends(get_db)) -> list[ExerciseVariant]:
-    return list(db.scalars(select(ExerciseVariant).order_by(ExerciseVariant.name)))
+    return list(
+        db.scalars(
+            select(ExerciseVariant)
+            .where(ExerciseVariant.deleted_at.is_(None))
+            .order_by(ExerciseVariant.name)
+        )
+    )
 
 
-@router.get("/api/v1/variants/{variant_id}/stats", response_model=list[StatOut])
+@router.get("/variants/{variant_id}/stats", response_model=list[StatOut])
 def variant_stats(variant_id: int, db: Session = Depends(get_db)) -> list[ExerciseSessionStats]:
     if db.get(ExerciseVariant, variant_id) is None:
         raise HTTPException(404, "variant not found")

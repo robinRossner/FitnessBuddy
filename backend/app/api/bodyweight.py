@@ -7,38 +7,21 @@ rebuild`, not on every request.
 
 from __future__ import annotations
 
-import secrets
 import uuid
 from datetime import date, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_token
 from app.api.routes import get_db
 from app.bodyweight import upsert_measurement
 from app.db.models import BodyMeasurement
 from app.db.types import MeasurementSource, utcnow
 from app.settings import get_settings
-
-
-def get_api_token() -> str | None:
-    token = get_settings().api_token
-    return token.get_secret_value() if token else None
-
-
-def require_token(
-    authorization: Annotated[str | None, Header()] = None,
-    token: str | None = Depends(get_api_token),
-) -> None:
-    if not token:
-        raise HTTPException(503, "API_TOKEN is not configured on the server")
-    scheme, _, supplied = (authorization or "").partition(" ")
-    if scheme.lower() != "bearer" or not secrets.compare_digest(supplied.strip(), token):
-        raise HTTPException(401, "invalid or missing bearer token", {"WWW-Authenticate": "Bearer"})
-
 
 router = APIRouter(prefix="/api/v1/bodyweight", dependencies=[Depends(require_token)])
 

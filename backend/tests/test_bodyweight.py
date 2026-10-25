@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app.api.bodyweight import get_api_token
+from app.api.auth import get_api_token
 from app.api.routes import get_db
 from app.bodyweight import BodyweightTimeline, bodyweight_at, manual_id, upsert_measurement
 from app.db.models import BodyMeasurement
@@ -196,6 +196,6 @@ def test_auth(db):
             == 401
         )
         assert c.get("/api/v1/bodyweight", headers=AUTH).status_code == 200
-        assert c.get("/health").status_code == 200  # the rest of the skeleton stays open
+        assert c.get("/health").status_code == 200  # health stays public
     finally:
         app.dependency_overrides.clear()

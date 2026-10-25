@@ -21,7 +21,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.bodyweight import require_token
+from app.api.auth import require_token
 from app.api.routes import get_db
 from app.engine import config_service as cs
 from app.engine import service

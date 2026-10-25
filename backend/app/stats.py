@@ -7,11 +7,13 @@ All weights are in the variant's logged convention (per dumbbell for per_hand va
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from datetime import date
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.bodyweight import load_timeline
 from app.db.models import (
@@ -176,8 +178,10 @@ def rebuild_stats(
     bodyweight_kg: float | None = None,
     max_reps: int = 15,
     min_reps: int = 1,
+    variant_ids: Collection[int] | None = None,
 ) -> int:
-    """Recompute sets.e1rm_kg and the whole exercise_session_stats table. Returns row count.
+    """Recompute sets.e1rm_kg and exercise_session_stats (all variants, or just `variant_ids`:
+    PRs are per variant, so a partial rebuild is exact). Returns the row count written.
 
     `bodyweight_kg` is only the fallback (engine config); the bodyweight log is used per session
     date via `bodyweight_at` semantics (latest on/before, else earliest after).
@@ -191,11 +195,15 @@ def rebuild_stats(
             )
         )
     }
-    rows = db.execute(
+    q = (
         select(WorkoutSet, TrainingSession.started_at_local, TrainingSession.started_at_utc)
         .join(TrainingSession, WorkoutSet.session_id == TrainingSession.id)
         .where(WorkoutSet.deleted_at.is_(None), TrainingSession.deleted_at.is_(None))
-        .order_by(
+    )
+    if variant_ids is not None:
+        q = q.where(WorkoutSet.variant_id.in_(list(variant_ids)))
+    rows = db.execute(
+        q.order_by(
             TrainingSession.started_at_utc,
             WorkoutSet.exercise_order,
             WorkoutSet.set_index,
@@ -218,6 +226,8 @@ def rebuild_stats(
         value = res[0] if res else None
         if ws.e1rm_kg != value:
             ws.e1rm_kg = value
+            # e1rm_kg is derived: keep the client-visible updated_at (no onupdate bump).
+            flag_modified(ws, "updated_at")
         bucket = grouped[ws.variant_id].setdefault(ws.session_id, (local.date(), []))
         bucket[1].append(
             SetLike(
@@ -230,7 +240,10 @@ def rebuild_stats(
             )
         )
 
-    db.execute(delete(ExerciseSessionStats))
+    stale = delete(ExerciseSessionStats)
+    if variant_ids is not None:
+        stale = stale.where(ExerciseSessionStats.variant_id.in_(list(variant_ids)))
+    db.execute(stale)
     count = 0
     for variant_id, sessions in grouped.items():
         variant, _ex = variants[variant_id]
@@ -261,7 +274,7 @@ def rebuild_stats(
     return count
 
 
-def rebuild_with_config(db: Session) -> int:
+def rebuild_with_config(db: Session, variant_ids: Collection[int] | None = None) -> int:
     """`rebuild_stats` with the active engine config (bodyweight fallback, e1RM rep limits)."""
     from app.engine.config import load_engine_config
     from app.settings import get_settings
@@ -272,4 +285,5 @@ def rebuild_with_config(db: Session) -> int:
         bodyweight_kg=cfg.user.bodyweight_kg,
         max_reps=cfg.strength.e1rm.max_reps,
         min_reps=cfg.strength.e1rm.min_reps,
+        variant_ids=variant_ids,
     )

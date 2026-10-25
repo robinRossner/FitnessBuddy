@@ -1,0 +1,2 @@
+// Shared build settings. Do not put your team id here, see Local.xcconfig.
+#include? "Local.xcconfig"

@@ -2,7 +2,7 @@
 
 Personal training system: strength log + running + recovery data, with a deterministic
 progression engine and an optional Claude advisor (later). Steps 1-3 = backend, Strong import,
-Garmin sync, training engine + plans.
+Garmin sync, training engine + plans; step 4 adds the sync API for the iOS app.
 
 ```
 backend/   FastAPI app, SQLAlchemy models, Alembic, Strong importer, tests
@@ -121,11 +121,32 @@ uv run python -m app.cli engine config show|rollback VERSION|check-garmin
   `/config` (active + history), `POST /config/rollback/{version}`. Plan JSON: see `app/api/engine.py`.
 - Rules, thresholds and their reasoning: `config/engine.v3.yaml` (comments) and `docs/spec/decisions.md`.
 
+## Sync API for the iOS app (step 4)
+
+Offline-first sync with per-record last-write-wins (client `updated_at`) and a server-side change
+sequence as pull cursor (`server_seq`, stamped by SQLite triggers from migration 0005, so every
+write path - import, engine, Garmin, API - is picked up). Full contract, semantics and example
+payloads: `docs/api/sync.md`; real fixtures: `docs/api/examples/`
+(`cd backend && uv run python -m scripts.gen_api_examples` regenerates them from a copy of the DB).
+
+```
+GET  /api/v1/health                          no auth: {"status","version"}
+POST /api/v1/sync/push                       sessions / sets / body_measurements -> per-record applied|stale|rejected
+GET  /api/v1/sync/pull?since=<cursor>        changes incl. tombstones + catalog + planned sessions + config (paged)
+GET  /api/v1/variants/{id}/history?limit=10  previous performance (last N sessions)
+```
+
+After a push that changed sessions/sets the server links the planned session (done/modified),
+recomputes the stats of the touched variants and re-runs the engine in the background
+(`app/jobs/engine_jobs.py`, skipped with `ENGINE_AUTO_RUN=false`). Run `uv run alembic upgrade head`
+after pulling this step (adds `server_seq`, `sync_seq`, `sets.completed_at`).
+
 ## API (skeleton)
 
 ```sh
 cd backend && uv run uvicorn app.main:app --reload
-# GET /health, /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
+# public: GET /health, /api/v1/health. Everything else needs `Authorization: Bearer $API_TOKEN`:
+# GET /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
 # bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
 # GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),
 # DELETE /api/v1/bodyweight/{id} (tombstone)

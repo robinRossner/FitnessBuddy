@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import DailyHealth, PlannedSession, Run, TrainingSession
-from app.db.types import utcnow
+from app.db.types import iso_z, utcnow
 from app.engine.data import planned_id
 from app.engine.decisions import add_trigger, log_decision
 from app.engine.planner import DayPlan, WeekPlan
@@ -220,7 +220,7 @@ def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
         "notes": pr.get("notes", []),
         "session": pr.get("session"),
         "config_version_id": p.config_version_id,
-        "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+        "updated_at": iso_z(p.updated_at),
     }
 
 

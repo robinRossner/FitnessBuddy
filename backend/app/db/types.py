@@ -31,6 +31,15 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+def iso_z(value: datetime | None) -> str | None:
+    """Wire format of every timestamp the sync API emits: UTC, millisecond precision, `Z`."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
 def str_enum(enum_cls: type[StrEnum], name: str) -> Enum:
     """Portable enum: VARCHAR + CHECK constraint, stores `.value`."""
     return Enum(

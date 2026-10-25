@@ -203,11 +203,16 @@ def _retire_gyms(db: Session, keep: set[int], legacy_name: str) -> None:
         if gym.id in keep or not (gym.key or gym.name == legacy_name):
             continue
         referenced = any(
-            db.scalar(select(col).where(fk == gym.id).limit(1)) is not None
-            for col, fk in (
-                (TrainingSession.id, TrainingSession.gym_id),
-                (ExerciseVariant.id, ExerciseVariant.gym_id),
-                (PlannedSession.id, PlannedSession.gym_id),
+            db.scalar(select(col).where(fk == gym.id, *extra).limit(1)) is not None
+            for col, fk, extra in (
+                (TrainingSession.id, TrainingSession.gym_id, ()),
+                # tombstoned variants do not keep a gym alive
+                (
+                    ExerciseVariant.id,
+                    ExerciseVariant.gym_id,
+                    (ExerciseVariant.deleted_at.is_(None),),
+                ),
+                (PlannedSession.id, PlannedSession.gym_id, ()),
             )
         )
         if not referenced:
@@ -249,6 +254,7 @@ class VariantResolver:
         if v is None:
             v = ExerciseVariant()
             self.db.add(v)
+        v.deleted_at = None  # revive a tombstoned variant that is in use again
         v.key = key
         v.name = name
         v.gym_id = gym_row.id if gym_row else None
@@ -291,8 +297,9 @@ def _sync_name_mappings(
 
 
 def _remove_orphan_variants(db: Session, mapping: dict[str, MappingRow]) -> int:
-    """Delete importer-made variants that no set / mapping refers to any more (e.g. the single
-    'Lat Pulldown (Cable)' from before gym periods, or a merged gym's variants)."""
+    """Tombstone (deleted_at) importer-made variants that no set / mapping refers to any more
+    (e.g. the single 'Lat Pulldown (Cable)' from before gym periods, or a merged gym's variants).
+    Soft delete so sync clients learn about it; the resolver revives a variant if it is needed."""
     bases = {m.variant_name for m in mapping.values() if m.variant_name}
     used = set(db.scalars(select(WorkoutSet.variant_id).distinct()))
     used |= set(
@@ -303,11 +310,11 @@ def _remove_orphan_variants(db: Session, mapping: dict[str, MappingRow]) -> int:
         )
     )
     removed = 0
-    for v in db.scalars(select(ExerciseVariant)):
+    for v in db.scalars(select(ExerciseVariant).where(ExerciseVariant.deleted_at.is_(None))):
         if v.id in used or v.name.split(" @ ")[0] not in bases:
             continue
         db.execute(delete(ExerciseSessionStats).where(ExerciseSessionStats.variant_id == v.id))
-        db.delete(v)
+        v.deleted_at = utcnow()
         removed += 1
     db.flush()
     return removed

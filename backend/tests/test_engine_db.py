@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app.api.bodyweight import get_api_token
+from app.api.auth import get_api_token
 from app.api.routes import get_db
 from app.db.models import (
     AdvisorTrigger,

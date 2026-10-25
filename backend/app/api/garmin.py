@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.bodyweight import require_token
+from app.api.auth import require_token
 from app.api.routes import get_db
 from app.db.models import DailyHealth, Run
 from app.sources.garmin.mapping import RUN_TYPES

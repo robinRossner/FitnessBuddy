@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.bodyweight import get_api_token
+from app.api.auth import get_api_token
 from app.api.routes import get_db
 from app.db.models import DailyHealth, Lap, Run
 from app.db.types import Source

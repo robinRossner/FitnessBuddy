@@ -79,10 +79,20 @@ class Syncable(Timestamps):
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
 
 
+class ServerSeq:
+    """Change sequence for `GET /api/v1/sync/pull`: a SQLite trigger (migration 0005) stamps every
+    insert / sync-relevant update with the next value of the global `sync_seq` counter, whichever
+    code path wrote the row. Never set it from Python. NOTE: SQLite batch migrations recreate the
+    table and drop its triggers, so re-create them in any migration that batch-alters these tables.
+    """
+
+    server_seq: Mapped[int | None] = mapped_column(Integer, index=True)
+
+
 # --------------------------------------------------------------------------- reference data
 
 
-class Gym(Syncable, Base):
+class Gym(ServerSeq, Syncable, Base):
     __tablename__ = "gyms"
     id: Mapped[int] = mapped_column(primary_key=True)
     # Stable identity from data/catalog/gyms.yaml (survives renames); NULL for hand-made gyms.
@@ -92,7 +102,7 @@ class Gym(Syncable, Base):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
-class Exercise(Timestamps, Base):
+class Exercise(ServerSeq, Timestamps, Base):
     """Canonical movement (e.g. 'Lat Pulldown'), independent of equipment and gym."""
 
     __tablename__ = "exercises"
@@ -112,7 +122,7 @@ class Exercise(Timestamps, Base):
     variants: Mapped[list[ExerciseVariant]] = relationship(back_populates="exercise")
 
 
-class ExerciseVariant(Timestamps, Base):
+class ExerciseVariant(ServerSeq, Timestamps, Base):
     """The unit progression is tracked on: equipment + (for machines/cables) the specific gym."""
 
     __tablename__ = "exercise_variants"
@@ -132,6 +142,9 @@ class ExerciseVariant(Timestamps, Base):
     # False = the user no longer does this exercise: history is kept, never planned again.
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_true())
     notes: Mapped[str | None] = mapped_column(Text)
+    # Tombstone: set by the importer when nothing refers to the variant any more (never reused
+    # silently: the resolver clears it if the variant is needed again).
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
 
     exercise: Mapped[Exercise] = relationship(back_populates="variants")
     gym: Mapped[Gym | None] = relationship()
@@ -201,7 +214,7 @@ class ImportRun(Base):
     summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
-class TrainingSession(Syncable, Base):
+class TrainingSession(ServerSeq, Syncable, Base):
     __tablename__ = "sessions"
     __table_args__ = (Index("ix_sessions_started_at_utc", "started_at_utc"),)
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -223,7 +236,7 @@ class TrainingSession(Syncable, Base):
     gym: Mapped[Gym | None] = relationship()
 
 
-class WorkoutSet(Syncable, Base):
+class WorkoutSet(ServerSeq, Syncable, Base):
     __tablename__ = "sets"
     __table_args__ = (Index("ix_sets_variant_session", "variant_id", "session_id"),)
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -238,6 +251,7 @@ class WorkoutSet(Syncable, Base):
     weight_kg: Mapped[float | None] = mapped_column(Float)  # 0 = bodyweight only
     reps: Mapped[int | None] = mapped_column(Integer)  # None for timed holds
     duration_s: Mapped[float | None] = mapped_column(Float)
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)  # set by the app
     distance_m: Mapped[float | None] = mapped_column(Float)
     rir: Mapped[float | None] = mapped_column(Float)
     rpe: Mapped[float | None] = mapped_column(Float)
@@ -247,6 +261,14 @@ class WorkoutSet(Syncable, Base):
 
     session: Mapped[TrainingSession] = relationship(back_populates="sets")
     variant: Mapped[ExerciseVariant] = relationship()
+
+
+class SyncSeq(Base):
+    """Global change counter; rows are only ever inserted by the sync triggers (see ServerSeq)."""
+
+    __tablename__ = "sync_seq"
+    __table_args__ = {"sqlite_autoincrement": True}  # noqa: RUF012 - never reuse a seq
+    seq: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
 class ExerciseSessionStats(Base):
@@ -276,7 +298,7 @@ class ExerciseSessionStats(Base):
 # --------------------------------------------------------------------------- endurance + health
 
 
-class BodyMeasurement(Syncable, Base):
+class BodyMeasurement(ServerSeq, Syncable, Base):
     """Bodyweight log (manual now; Garmin / HealthKit later). Syncable: client-supplied uuid."""
 
     __tablename__ = "body_measurements"
@@ -429,7 +451,7 @@ class SyncState(Base):
 # --------------------------------------------------------------------------- planning + audit
 
 
-class PlannedSession(Syncable, Base):
+class PlannedSession(ServerSeq, Syncable, Base):
     __tablename__ = "planned_sessions"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     day: Mapped[date] = mapped_column(Date, index=True)

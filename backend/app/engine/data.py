@@ -74,7 +74,13 @@ def current_gym(db: Session, gyms_path: Path | None = None) -> Gym | None:
 def resolve_variant(db: Session, base_name: str, gym: Gym | None) -> ExerciseVariant | None:
     """Generic variant `base_name`, or the gym-bound one named "<base_name> @ <gym>"."""
     names = [base_name] + ([f"{base_name} @ {gym.name}"] if gym else [])
-    rows = list(db.scalars(select(ExerciseVariant).where(ExerciseVariant.name.in_(names))))
+    rows = list(
+        db.scalars(
+            select(ExerciseVariant).where(
+                ExerciseVariant.name.in_(names), ExerciseVariant.deleted_at.is_(None)
+            )
+        )
+    )
     rows.sort(key=lambda v: v.gym_id is None)  # gym-specific first
     return rows[0] if rows else None
 

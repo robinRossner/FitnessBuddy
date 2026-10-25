@@ -76,7 +76,10 @@ def env(tmp_path: Path):
 
 
 def _variants(db) -> dict[str, ExerciseVariant]:
-    return {v.name: v for v in db.scalars(select(ExerciseVariant))}
+    return {
+        v.name: v
+        for v in db.scalars(select(ExerciseVariant).where(ExerciseVariant.deleted_at.is_(None)))
+    }
 
 
 def _count(db, model, *where):
@@ -247,7 +250,11 @@ def test_same_as_merges_gym3_into_gym1_and_back(db, env):
     db.commit()
     assert res.sets_created == 0 and _count(db, WorkoutSet) == 8
     names = _variants(db)
-    assert "Lat Pulldown (Cable) @ Gym 3" not in names  # orphan removed
+    assert "Lat Pulldown (Cable) @ Gym 3" not in names  # orphan removed ...
+    orphan = db.scalar(
+        select(ExerciseVariant).where(ExerciseVariant.name == "Lat Pulldown (Cable) @ Gym 3")
+    )
+    assert orphan is not None and orphan.deleted_at is not None  # ... as a tombstone, not deleted
     assert "Leg Curl (Machine) @ Gym 1" in names
     # the 2026-08-17 pulldown now shares Gym 1's variant and ladder
     assert names["Lat Pulldown (Cable) @ Gym 1"].weight_ladder == [30.0, 50.0, 60.0]
@@ -262,6 +269,7 @@ def test_same_as_merges_gym3_into_gym1_and_back(db, env):
     db.commit()
     names = _variants(db)
     assert names["Lat Pulldown (Cable) @ Gym 3"].weight_ladder == [30.0]
+    assert names["Lat Pulldown (Cable) @ Gym 3"].id == orphan.id  # the tombstone was revived
     assert db.scalar(select(Gym).where(Gym.key == "gym3")).deleted_at is None
     assert _count(db, WorkoutSet) == 8
 

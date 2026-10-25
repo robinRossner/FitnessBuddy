@@ -36,3 +36,7 @@ ios/**/DerivedData/
 # deploy runtime data
 deploy/data/
 deploy/imports/
+ios/Config/Local.xcconfig
+ios/**/*.xcuserstate
+ios/build/
+ios/FitnessBuddy.xcodeproj/
