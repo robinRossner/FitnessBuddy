@@ -183,12 +183,19 @@ def evaluate_version(
     metrics: dict[str, Metric] = {}
     for ch in changes:
         m_over = OVERRIDE_RE.match(ch.param)
-        if m_over and m_over["key"] == "variant":
-            key = f"swap:{m_over['slug']}"
+        if m_over and m_over["key"] in ("variant", "rest_s"):
+            key = f"{m_over['key']}:{m_over['slug']}"
             if key not in metrics:
+                what = "an exercise swap" if m_over["key"] == "variant" else "a rest time"
                 metrics[key] = Metric(
-                    f"{m_over['slug']}_swap", "", note="an exercise swap is not scored"
+                    f"{m_over['slug']}_{'swap' if m_over['key'] == 'variant' else 'rest'}",
+                    "",
+                    note=f"{what} is not scored",
                 )
+        elif ch.param.startswith("lifting."):
+            key = "lifting_setting"
+            if key not in metrics:
+                metrics[key] = Metric("lifting_settings", "", note="a rest time is not scored")
         elif m_over:
             key = f"lift:{m_over['slug']}"
             if key not in metrics:

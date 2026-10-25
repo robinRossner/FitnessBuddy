@@ -93,6 +93,7 @@ struct WorkoutService {
                 set.targetWeightKg = ps.targetWeight
                 set.targetReps = ps.targetReps
                 set.targetDurationS = ps.targetDurationS
+                set.plannedRestS = ex.restS
                 set.prevWeightKg = prev?.weight
                 set.prevReps = prev?.reps
                 set.prevDurationS = prev?.durationS
@@ -159,6 +160,7 @@ struct WorkoutService {
             let p = i < prev.count ? prev[i] : prev.last
             set.variantId = variant.id
             set.variantName = variant.name
+            set.plannedRestS = nil
             set.targetWeightKg = nil
             set.targetReps = nil
             set.targetDurationS = nil

@@ -32,6 +32,7 @@ enum SyncMerge {
         PlanCache.merge(planned: pull.plannedSessions, in: ctx)
         if let cfg = pull.config, let data = try? APICoding.makeEncoder().encode(cfg) {
             SyncState.current(in: ctx).configData = data
+            RestSettings.reconcile(cfg.lifting, in: ctx)
         }
         try ctx.save()
         return stats

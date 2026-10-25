@@ -35,7 +35,8 @@ from app.db.models import (
 )
 from app.db.types import iso_z, utcnow
 from app.engine import config_service as cs
-from app.engine import service
+from app.engine import rest, service
+from app.engine.config import EngineConfig
 from app.engine.persist import planned_to_dict
 from app.settings import Settings
 
@@ -140,8 +141,8 @@ def measurement_out(m: BodyMeasurement) -> dict[str, Any]:
     }
 
 
-def planned_out(p: PlannedSession) -> dict[str, Any]:
-    d = planned_to_dict(p)
+def planned_out(p: PlannedSession, cfg: EngineConfig | None = None) -> dict[str, Any]:
+    d = planned_to_dict(p, cfg)
     d["deleted_at"] = iso_z(p.deleted_at)
     return d
 
@@ -211,6 +212,12 @@ def config_out(db: Session, settings: Settings) -> dict[str, Any]:
             "bodyweight_added": inc.bodyweight_added_kg,
             "other": inc.other_kg,
         },
+        # rest timers: the default and the per-exercise overrides, listed per variant id (the iOS
+        # app reconciles its local overrides with this on every pull)
+        "lifting": {
+            "rest_default_s": cfg.lifting_cfg.rest_default_s,
+            "rest_s_by_variant": rest.overrides_by_variant(db, cfg),
+        },
     }
 
 
@@ -274,6 +281,7 @@ def pull(
         next_cur = Cursor(last)
 
     rep_ranges = program_rep_ranges(settings)
+    plan_cfg = service.active_config(db, settings)
     out: dict[str, Any] = {
         "cursor": next_cur.encode(),
         "has_more": has_more,
@@ -290,7 +298,7 @@ def pull(
         "sessions": session_out,
         "sets": set_out,
         "body_measurements": measurement_out,
-        "planned_sessions": planned_out,
+        "planned_sessions": lambda p: planned_out(p, plan_cfg),
         "variants": lambda v: variant_out(v, rep_ranges),
         "exercises": exercise_out,
         "gyms": gym_out,

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// App settings. URL / gym / timer live in UserDefaults; the API token only in the Keychain.
+/// App settings. URL / gym live in UserDefaults; the API token only in the Keychain.
 @MainActor
 @Observable
 final class SettingsStore {
@@ -17,9 +17,6 @@ final class SettingsStore {
     var currentGymId: Int? {
         didSet { defaults.set(currentGymId, forKey: "currentGymId") }
     }
-    var restSeconds: Int {
-        didSet { defaults.set(restSeconds, forKey: "restSeconds") }
-    }
     var apiToken: String {
         didSet { if persistToken { tokenStored = Keychain.set(apiToken, for: Self.tokenAccount) } }
     }
@@ -29,8 +26,6 @@ final class SettingsStore {
         self.persistToken = loadToken
         backendURL = defaults.string(forKey: "backendURL") ?? ""
         currentGymId = defaults.object(forKey: "currentGymId") as? Int
-        let stored = defaults.integer(forKey: "restSeconds")
-        restSeconds = stored > 0 ? stored : 150
         apiToken = loadToken ? (Keychain.get(Self.tokenAccount) ?? "") : ""
         #if DEBUG
         // Launch-argument override for end-to-end runs: `-backendURL http://localhost:8000 -debugApiToken <token>`

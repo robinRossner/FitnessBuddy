@@ -63,6 +63,7 @@ enum BackendReset {
         try? ctx.delete(model: CachedVariant.self)
         try? ctx.delete(model: CachedExercise.self)
         try? ctx.delete(model: CachedGym.self)
+        try? ctx.delete(model: LocalRestOverride.self)  // variant ids belong to one backend
 
         let state = SyncState.current(in: ctx)
         state.cursor = nil

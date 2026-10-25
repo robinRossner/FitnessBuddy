@@ -18,6 +18,9 @@ enum RestTimerEvent: Equatable {
 final class RestTimer {
     private(set) var endDate: Date?
     private(set) var totalSeconds: TimeInterval = 0
+    /// Variant id of the exercise whose set started the running rest (nil: not tied to an exercise).
+    private(set) var variantId: Int?
+    @ObservationIgnored private var startDate: Date?
 
     @ObservationIgnored var onEvent: ((RestTimerEvent) -> Void)?
     @ObservationIgnored private var finishTask: Task<Void, Never>?
@@ -34,9 +37,11 @@ final class RestTimer {
         max(0, (endDate ?? date).timeIntervalSince(date))
     }
 
-    func start(seconds: Int) {
+    func start(seconds: Int, variantId: Int? = nil) {
         let total = TimeInterval(max(5, seconds))
         totalSeconds = total
+        self.variantId = variantId
+        startDate = Date()
         arm(end: Date().addingTimeInterval(total))
         onEvent?(.started(end: endDate!, total: totalSeconds))
         requestAuthorizationIfNeeded()
@@ -46,6 +51,16 @@ final class RestTimer {
         guard let end = endDate else { return }
         let newEnd = max(Date().addingTimeInterval(1), end.addingTimeInterval(delta))
         totalSeconds = max(1, totalSeconds + delta)
+        arm(end: newEnd)
+        onEvent?(.adjusted(end: newEnd, total: totalSeconds))
+    }
+
+    /// The exercise's rest time was changed while this rest runs: count the running rest as `seconds` in total
+    /// (measured from when it started, so ±15 s taps made so far are replaced). Ignored for another exercise.
+    func retarget(variantId: Int, to seconds: Int, now: Date = Date()) {
+        guard endDate != nil, self.variantId == variantId, let start = startDate else { return }
+        let newEnd = max(now.addingTimeInterval(1), start.addingTimeInterval(TimeInterval(seconds)))
+        totalSeconds = max(1, newEnd.timeIntervalSince(start))
         arm(end: newEnd)
         onEvent?(.adjusted(end: newEnd, total: totalSeconds))
     }
@@ -77,6 +92,8 @@ final class RestTimer {
 
     private func clear() {
         endDate = nil
+        variantId = nil
+        startDate = nil
         finishTask?.cancel()
         finishTask = nil
         notificationCenter?.removePendingNotificationRequests(withIdentifiers: [notificationId])

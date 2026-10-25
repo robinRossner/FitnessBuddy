@@ -87,6 +87,23 @@ def set_path(content: dict[str, Any], dotted: str, value: Any) -> None:
     node[parts[-1]] = value
 
 
+def unset_path(content: dict[str, Any], dotted: str) -> None:
+    """Remove a key; parents that become empty are removed too (no stray `{slug: {}}`)."""
+    parts = dotted.split(".")
+    chain: list[dict[str, Any]] = [content]
+    for part in parts[:-1]:
+        nxt = chain[-1].get(part)
+        if not isinstance(nxt, dict):
+            return
+        chain.append(nxt)
+    chain[-1].pop(parts[-1], None)
+    for node, key in zip(reversed(chain[:-1]), reversed(parts[:-1]), strict=True):
+        if node.get(key) == {}:
+            del node[key]
+        else:
+            break
+
+
 def _next_label(db: Session, parent: ConfigVersion) -> str:
     family = parent.version.split(".")[0]
     taken = set(
@@ -138,9 +155,11 @@ def create_version(
     author: str = "engine",
     meta: dict[str, Any] | None = None,
     consultation_id: int | None = None,
+    unset: tuple[str, ...] = (),
 ) -> ConfigVersion:
     """New active version = active content + `changes` (dotted paths, e.g.
-    {"running.heart_rate.lthr": 178}). Returns the active version unchanged if nothing differs.
+    {"running.heart_rate.lthr": 178}), minus the `unset` paths. Returns the active version
+    unchanged if nothing differs.
     `consultation_id` (advisor versions) is kept in `meta["consultation_id"]`."""
     if author not in AUTHORS:
         raise ConfigError(f"author must be one of {AUTHORS}")
@@ -148,6 +167,8 @@ def create_version(
     content = copy.deepcopy(parent.content)
     for path, value in changes.items():
         set_path(content, path, value)
+    for path in unset:
+        unset_path(content, path)
     if not compute_diff(parent.content, content):
         return parent
     extra = {"consultation_id": consultation_id} if consultation_id is not None else {}

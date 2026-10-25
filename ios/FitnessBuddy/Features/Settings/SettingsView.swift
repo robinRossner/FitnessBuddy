@@ -55,14 +55,15 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 backendSection
-                Section("Training") {
+                Section {
                     Picker("Current gym", selection: $settings.currentGymId) {
                         Text("Not set").tag(Int?.none)
                         ForEach(gyms) { gym in Text(gym.name).tag(Int?.some(gym.id)) }
                     }
-                    Stepper(value: $settings.restSeconds, in: 30...600, step: 15) {
-                        LabeledContent("Rest timer", value: Fmt.duration(TimeInterval(settings.restSeconds)))
-                    }
+                } header: {
+                    Text("Training")
+                } footer: {
+                    Text("Rest times are set per exercise: tap the timer next to an exercise during a workout.")
                 }
                 syncSection
                 coachSection

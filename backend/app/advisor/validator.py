@@ -40,7 +40,7 @@ from app.engine import config_service as cs
 from app.engine import data as D
 from app.engine import schedule_edit as SE
 from app.engine import schedule_rules as SR
-from app.engine.config import EngineConfig
+from app.engine.config import REST_MAX_S, REST_MIN_S, EngineConfig
 from app.engine.program import Program
 
 LOW, MEDIUM, HIGH = "low", "medium", "high"
@@ -107,6 +107,7 @@ class Context:
                 "increments": cfg.increments.model_dump(),
                 "recovery": cfg.recovery_cfg.model_dump(),
                 "running": cfg.running_cfg.model_dump(),
+                "lifting": cfg.lifting_cfg.model_dump(),
             }
         node: Any = self._eff
         for part in path.split("."):
@@ -273,6 +274,11 @@ def _ov_sets(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checked:
     return Checked(new, MEDIUM if cur is None or abs(new - cur) <= 1 else HIGH)
 
 
+def _ov_rest(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checked:
+    _require_program_slug(ctx, g["slug"])
+    return _REST_CHECK(value, cur, ctx, g)
+
+
 def _ov_variant(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checked:
     """Exercise swap: only to an active variant of the same movement pattern or body region at the
     current gym (or a generic one); never onto an exercise the day already has."""
@@ -397,6 +403,16 @@ def _reps_spec(key: str, label: str) -> Spec:
     )
 
 
+_REST_CHECK = _numeric(
+    REST_MIN_S,
+    REST_MAX_S,
+    integer=True,
+    max_step=REST_MAX_S - REST_MIN_S,
+    risk=_always(LOW),
+    unit=" s",
+)
+
+
 SPECS: tuple[Spec, ...] = (
     Spec(
         "strength.rep_range",
@@ -428,6 +444,27 @@ SPECS: tuple[Spec, ...] = (
         "pattern or body region, at the current gym or generic",
         _ov_current("variant", _program_attr("variant")),
         _ov_variant,
+    ),
+    Spec(
+        "exercise_overrides.{slug}.rest_s",
+        _slug_label("rest time (s)"),
+        "per program exercise: rest timer in seconds, int 30..600; always low risk",
+        _ov_current("rest_s", lambda c, _slug: c.effective("lifting.rest_default_s")),
+        _ov_rest,
+    ),
+    Spec(
+        "lifting.rest_default_s",
+        "Default rest time (s)",
+        "rest timer for every exercise without its own, int 30..600; always low risk",
+        _path_current("lifting.rest_default_s"),
+        _numeric(
+            REST_MIN_S,
+            REST_MAX_S,
+            integer=True,
+            max_step=REST_MAX_S - REST_MIN_S,
+            risk=_always(LOW),
+            unit=" s",
+        ),
     ),
     _increment_spec("barbell_kg", "Barbell increment", (2.5, 5.0)),
     _increment_spec("smith_kg", "Smith machine increment", (2.5, 5.0)),

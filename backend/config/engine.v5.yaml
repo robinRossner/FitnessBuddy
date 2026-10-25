@@ -1,0 +1,198 @@
+# FitnessBuddy engine configuration, version 5 (v4 + the `lifting` section: the default rest timer;
+# per-exercise rest times are `exercise_overrides.<slug>.rest_s`). A running database gets the same
+# section as a derived version (migration 0009); this file seeds fresh databases once
+# settings.engine_config_path points at it.
+# This file is only the SEED of the `config_versions` table: after seeding, the database is the
+# source of truth (the engine/advisor/user create derived versions v3.1, v3.2 ... with a diff,
+# reason and author, and the active one can be rolled back). Do not edit it once used; copy to
+# engine.v6.yaml and bump `version` instead.
+version: v5
+
+approval_mode: manual          # engine proposes, user approves every planned session
+
+user:
+  timezone: Europe/Vienna
+  bodyweight_kg: 82            # fallback only: the body_measurements log wins (see app/bodyweight.py)
+
+bodyweight:
+  # Bodyweight (BW) is a context signal for the advisor, NOT a goal: the user wants to maintain.
+  change_flag_pct_4w: 3.0      # flag to the advisor if BW moves by more than 3 % within 4 weeks
+
+strength:
+  rep_range: [7, 12]           # double progression: add reps to the top of the range, then load
+  rir_target: [0, 1]           # fixed 0-1 reps in reserve; the engine never prescribes RPE/RIR
+  stall_exposures: 3           # no best-e1RM improvement over this many exposures => stall
+  stall_reset_pct: 10          # on stall: load -10 % (rounded DOWN to an available load), rebuild
+  decrease_load_if_first_set_below_range: true   # first working set < range bottom => one step down
+  timed_step_s: 5              # timed holds (plank, L-sit): +5 s on the best hold of the last time
+  deload:
+    sets_pct: 40               # deload week: working sets -40 % (rounded, min 1)
+    load_pct: 10               # ... and load -10 % (rounded down to an available load)
+  e1rm:
+    formula: epley             # e1RM = w * (1 + reps/30)
+    max_reps: 15               # sets above this many reps are ignored for e1RM (Epley degrades)
+    min_reps: 1
+
+increments:
+  barbell_kg: 5.0              # 2 x 2.5 kg plates
+  smith_kg: 5.0                # 2 x 2.5 kg plates (assumption: same as barbell)
+  plate_loaded_kg: 5.0         # 2 x 2.5 kg plates (assumption: same as barbell)
+  dumbbell_increment_kg: 2.0   # user-selectable: 2.0 or 2.5 (depends on the gym's DB rack)
+  default_stack_step_kg: 5.0   # machine_stack/cable: used when there is no ladder or the target
+                               # is above the top rung of the variant's weight_ladder
+  bodyweight_added_kg: 2.5     # pull-ups/dips with a belt: smallest plate
+  other_kg: 2.5
+
+recovery:
+  deload_red_days: 4           # this many CONSECUTIVE red readiness days => deload week (7 days)
+  hard_after_heavy_lower_h: 24 # no hard run (intervals) within 24 h after a heavy lower session
+                               # -> day-level rule: at least 2 calendar days apart (see scheduling)
+
+readiness:
+  # Daily colour from daily_health (Garmin). Every signal is scored green / yellow / red:
+  #   hrv        overnight HRV vs the mean of the previous `baseline_days` days (needs >=
+  #              `min_baseline_days` values; else Garmin's own balanced range), plus Garmin's
+  #              hrv_status (worst of both counts)
+  #   rhr        resting HR vs the mean of the previous `baseline_days` days
+  #   sleep      the worse of sleep duration and sleep score
+  # Colour: any red => red; otherwise `yellow_signals_needed` yellow signals => yellow; else green.
+  # Tuning: a red SLEEP signal alone (one short night, HRV and resting HR normal) is only yellow;
+  # it becomes red when another signal is at least yellow too (`sleep_red_needs_corroboration`).
+  # No data at all => "unknown", treated as green ("no data").
+  baseline_days: 7
+  min_baseline_days: 3
+  hrv:
+    yellow_pct: -10            # HRV >= 10 % below baseline
+    red_pct: -20               # HRV >= 20 % below baseline
+    garmin_status:             # Garmin hrv_status -> signal level
+      UNBALANCED: yellow
+      LOW: yellow
+      POOR: red
+  rhr:
+    yellow_bpm: 5              # resting HR >= 5 bpm above baseline
+    red_bpm: 8
+  sleep:
+    yellow_h: 6.0              # < 6 h
+    red_h: 5.0                 # < 5 h
+    yellow_score: 60
+    red_score: 45
+  yellow_signals_needed: 2
+  sleep_red_needs_corroboration: true
+  hrv_drop_anomaly:            # data-anomaly advisor trigger: HRV far below baseline for days
+    pct: -15
+    days: 3
+  green: normal                # train as planned
+  yellow:
+    strength: same_effort_minus_one_set   # same load/effort, -1 working set per exercise (min 1)
+    run: intervals_to_easy                # interval sessions become easy runs
+  red:
+    allowed: [rest, easy]      # red: lifting -> rest (optional mobility); intervals / long -> short
+                               # easy run or rest; easy run -> shortened easy run
+    easy_run_km: 4             # length of the short easy run offered on a red day
+
+running:
+  pace_model: vdot             # swappable: see app/engine/pace.py (`make_pace_model`)
+  weekly_volume_cap_pct: 10    # weekly run km may grow at most 10 % over max(last week, 4-week avg)
+  stagnation_weeks: 4          # efficiency / interval pace not improving for this long => advisor
+  stagnation_min_improvement_pct: 1.0
+
+  heart_rate:
+    # Garmin (athlete_metrics, 2026-10-25): max HR 190, LTHR 171. `source: garmin` means a newer
+    # Garmin value creates a new config version automatically (app/engine/config_service.py).
+    max_hr: 190
+    lthr: 171
+    source: garmin
+    # Zones are DERIVED from LTHR (never stored): Friel's running zones as % of LTHR. The numbers
+    # are the inclusive UPPER bound of each zone; a zone starts one bpm above the previous one:
+    #   Z1 < 85 %   Z2 85-89 %   Z3 90-94 %   Z4 95-99 %   Z5a 100-102 %   Z5b 103-106 %
+    #   Z5c > 106 % (up to max HR)
+    # (Friel, "The Triathlete's Training Bible"; Joe Friel's blog "Determining Training Zones
+    # with LTHR".) At LTHR 171 that is Z1 <=145, Z2 146-152, Z3 153-161, Z4 162-169,
+    # Z5a 170-174, Z5b 175-181, Z5c 182+ (bounds = round-half-up(pct * LTHR)).
+    # Cleaner 5-zone view for display: Z1 = Z1, Z2 = Z2, Z3 = Z3, Z4 = Z4, Z5 = Z5a+Z5b+Z5c.
+    zones_pct_lthr:
+      z1: 0.85
+      z2: 0.89
+      z3: 0.94
+      z4: 0.99
+      z5a: 1.02
+      z5b: 1.06
+    # Easy-run ceiling = top of Friel Z2 (89 % LTHR, 152 bpm) ~ the aerobic threshold / VT1
+    # (polarized-training Zone 1; Seiler & Kjerland 2006, Scand J Med Sci Sports; Seiler 2010,
+    # IJSPP). Without LTHR: 80 % HRmax (VT1 typically sits at 77-80 % HRmax).
+    easy_ceiling:
+      pct_hrmax: 0.80
+      pct_lthr: 0.89
+    easy_low_pct_hrmax: 0.65   # lower end of a useful easy range (~124 bpm at HRmax 190)
+    interval_zones: [z4, z5a]  # hard-rep target = from the bottom of Z4 to the top of Z5a
+
+  vdot:
+    # Seed fitness (Jack Daniels' VDOT) until hard efforts in the data say otherwise.
+    seed_race: {distance_m: 10000, time_s: 3150}   # 10 km in 52:30 (user-provided)
+    lookback_weeks: 12
+    min_effort_km: 5           # best contiguous stretch of >= 5 km
+    min_effort_hr_pct_lthr: 0.88   # only counts as a (near-)max effort if avg HR >= 88 % LTHR
+    # Efforts can only RAISE the estimate above the seed (easy runs are not races).
+    pace_step: 0.5             # one "faster" progression step = +0.5 VDOT on interval pace
+
+  easy:
+    distance_km: 7
+    pass_pct_time_at_or_below_cap: 80   # easy-run PASS: avg HR <= cap and >= 80 % of time <= cap
+    decoupling_flag_pct: 5     # HR drift (pace:HR first vs second half) > 5 % => flag
+
+  intervals:
+    rep_distance_m: 1000
+    recovery_distance_m: 400   # jog
+    reps_start: 5              # first session without history
+    reps_min: 4                # after a pace step the rep count resets to this
+    reps_max: 6
+    warmup_km: 2.0
+    cooldown_km: 1.5
+    hr_recovery_min_bpm: 12    # mean work-lap avg HR - following recovery-lap avg HR
+    pace_tolerance_s: 4        # +- around the target pace in the app
+
+  long_run:
+    start_km: 10
+    step_km: 1.0               # +1 km per week after a passed long run, hold otherwise
+    cap_km: 21                 # half-marathon oriented (no race date): never plan beyond this
+    min_km: 8                  # the volume cap never shortens it below this
+
+weekly_template:               # Mon..Sun
+  mon: upper
+  tue: lower
+  wed: easy_run
+  thu: upper
+  fri: intervals
+  sat: rest
+  sun: long_run
+
+schedule:                      # missed-session policy + hard scheduling rules (app/engine/makeup.py)
+  # Priority of a make-up when sessions were missed. A missed lower / intervals session takes the
+  # slot of an easy run (or the rest day); upper only if a later slot is free; a missed easy run
+  # is dropped; a missed long run moves to `long_run_makeup_day` if that day is still ahead.
+  makeup_priority: [lower, intervals, upper, long, easy]
+  makeup_never: [easy]
+  makeup_replaceable: [easy]   # planned kinds whose slot a make-up may take over
+  makeup_use_rest_day: true
+  long_run_makeup_day: sat
+  # Hard rules (engine make-ups AND the coach's schedule changes; the 24 h rule after a heavy
+  # lower day is recovery.hard_after_heavy_lower_h)
+  hard_kinds: [lower, intervals]
+  max_hard_per_day: 1
+  no_consecutive_hard_days: true
+  max_sessions_per_day: 2
+  # Coach (Claude) schedule changes
+  shorten_max_pct: 50          # `shorten` may cut a run by at most half
+  horizon_weeks: 2             # current and next week only
+  kind_load:                   # a `replace` may only go to an equal or easier kind
+    rest: 0
+    easy: 1
+    upper: 2
+    long: 3
+    lower: 4
+    intervals: 4
+
+lifting:
+  rest_default_s: 120          # rest timer for every exercise (2:00); 30..600
+  # A different rest for one exercise is exercise_overrides.<slug>.rest_s (e.g. 180 for squat). The
+  # user sets it in the app (PUT /api/v1/exercises/{variant_id}/rest), the coach may propose it.

@@ -19,9 +19,11 @@ from sqlalchemy.orm import Session
 
 from app.db.models import DailyHealth, PlannedSession, Run, TrainingSession
 from app.db.types import iso_z, utcnow
+from app.engine.config import EngineConfig
 from app.engine.data import planned_id
 from app.engine.decisions import add_trigger, log_decision
 from app.engine.planner import DayPlan, WeekPlan
+from app.engine.rest import annotate_session
 from app.sources.garmin.mapping import RUN_TYPES
 
 LIFT_MATCH = {
@@ -304,7 +306,9 @@ def adaptive_fields(kind: str, status: str | None, prescription: dict | None = N
     return {"adaptive": True, "adapts_on": on}
 
 
-def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
+def planned_to_dict(p: PlannedSession, cfg: EngineConfig | None = None) -> dict[str, Any]:
+    """API JSON of a planned session. With the active `cfg`, every lifting exercise gets its
+    resolved `rest_s` (read time, so a changed rest time also reaches sessions already planned)."""
     pr = p.prescription or {}
     return {
         "id": p.id,
@@ -320,7 +324,7 @@ def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
         "readiness": pr.get("readiness"),
         "adjustments": pr.get("adjustments", []),
         "notes": pr.get("notes", []),
-        "session": pr.get("session"),
+        "session": annotate_session(pr.get("session"), cfg) if cfg else pr.get("session"),
         "config_version_id": p.config_version_id,
         "updated_at": iso_z(p.updated_at),
     }

@@ -87,6 +87,8 @@ final class LocalSet {
     var prevWeightKg: Double?
     var prevReps: Int?
     var prevDurationS: Double?
+    /// `rest_s` of the plan exercise this set was prefilled from (nil: ad-hoc exercise, older plan).
+    var plannedRestS: Int? = nil
 
     init(id: UUID = UUID(), sessionId: UUID, variantId: Int, variantName: String = "", exerciseOrder: Int,
          setOrder: Int, setType: String = "working", weightKg: Double? = nil, reps: Int? = nil,
@@ -119,6 +121,25 @@ final class LocalSet {
 
     var isCompleted: Bool { completedAt != nil }
     var isTimed: Bool { durationS != nil || targetDurationS != nil }
+}
+
+/// The user's rest time for one exercise (keyed by variant id), kept locally so it applies at once and offline.
+/// `restS == nil` means "default". `pending` rows are sent to `PUT /exercises/{id}/rest` by the next sync; the
+/// other rows mirror the server (see `RestSettings.reconcile`). New model: every property has a default so the
+/// store migrates lightweight.
+@Model
+final class LocalRestOverride {
+    @Attribute(.unique) var variantId: Int
+    var restS: Int? = nil
+    var pending: Bool = false
+    var updatedAt: Date = Date.now
+
+    init(variantId: Int, restS: Int? = nil, pending: Bool = false, updatedAt: Date = .now) {
+        self.variantId = variantId
+        self.restS = restS
+        self.pending = pending
+        self.updatedAt = updatedAt
+    }
 }
 
 @Model
@@ -291,7 +312,7 @@ final class SyncState {
 
 enum Persistence {
     static let models: [any PersistentModel.Type] = [
-        LocalSession.self, LocalSet.self, LocalBodyMeasurement.self,
+        LocalSession.self, LocalSet.self, LocalBodyMeasurement.self, LocalRestOverride.self,
         CachedPlannedSession.self, CachedVariant.self, CachedExercise.self, CachedGym.self, SyncState.self,
     ]
 

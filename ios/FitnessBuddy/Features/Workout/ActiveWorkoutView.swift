@@ -8,9 +8,11 @@ struct ActiveWorkoutView: View {
     @Query private var sets: [LocalSet]
     @Query(sort: \CachedVariant.name) private var variants: [CachedVariant]
     @Query private var states: [SyncState]
+    @Query private var restOverrides: [LocalRestOverride]
 
     @State private var showAddExercise = false
     @State private var swapOrder: Int?
+    @State private var restPickerOrder: Int?
     @State private var notesShown: Set<Int> = []
     @State private var confirmFinish = false
     @State private var confirmDiscard = false
@@ -24,6 +26,13 @@ struct ActiveWorkoutView: View {
 
     private var service: WorkoutService { WorkoutService(context: context) }
     private var variantsById: [Int: CachedVariant] { Dictionary(variants.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }) }
+    private var restByVariant: [Int: LocalRestOverride] { Dictionary(restOverrides.map { ($0.variantId, $0) }, uniquingKeysWith: { a, _ in a }) }
+
+    /// Rest after a set of this exercise: the user's choice, else the plan's, else the default (see `RestTime.resolve`).
+    private func restSeconds(variantId: Int, planned: Int?) -> Int {
+        RestTime.resolve(local: restByVariant[variantId], planned: planned, configDefault: states.first?.config?.lifting?.restDefaultS)
+    }
+
     private var dumbbellIncrement: Double? { states.first?.config?.dumbbellIncrementKg }
 
     private var groups: [(order: Int, sets: [LocalSet])] {
@@ -83,6 +92,9 @@ struct ActiveWorkoutView: View {
                 if let order = swapOrder { service.swapExercise(in: session, order: order, to: variant) }
             }
         }
+        .sheet(item: Binding(get: { restPickerOrder.map(RestPickerTarget.init) }, set: { restPickerOrder = $0?.order })) { target in
+            restPickerSheet(order: target.order)
+        }
         .confirmationDialog("Finish workout?", isPresented: $confirmFinish, titleVisibility: .visible) {
             Button("Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")") { env.finishWorkout(session) }
             Button("Keep going", role: .cancel) {}
@@ -121,7 +133,10 @@ struct ActiveWorkoutView: View {
                            ladder: variant?.weightLadder ?? [], equipment: variant?.equipmentType ?? "other",
                            dumbbellIncrement: dumbbellIncrement, increments: states.first?.config?.incrementsKg,
                            service: service, session: session) { done in
-                    if done { env.restTimer.start(seconds: env.settings.restSeconds) }
+                    if done {
+                        env.restTimer.start(seconds: restSeconds(variantId: set.variantId, planned: set.plannedRestS),
+                                            variantId: set.variantId)
+                    }
                 }
                 .listRowInsets(EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -144,13 +159,31 @@ struct ActiveWorkoutView: View {
                     Text((group.first?.variantName.isEmpty == false ? group.first!.variantName : variant?.name ?? "Exercise")
                         .withoutGymSuffix)
                         .font(.headline).foregroundStyle(.primary)
-                    if let lo = variant?.repRangeLow, let hi = variant?.repRangeHigh {
-                        Text("Target \(lo)–\(hi) reps").font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        if let lo = variant?.repRangeLow, let hi = variant?.repRangeHigh {
+                            Text("Target \(lo)–\(hi) reps").font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let first = group.first {
+                            let seconds = restSeconds(variantId: first.variantId, planned: first.plannedRestS)
+                            Button { restPickerOrder = order } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "timer")
+                                    Text(RestTime.format(seconds)).monospacedDigit()
+                                }
+                                .font(.caption).foregroundStyle(.secondary)
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.15), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Rest time \(RestTime.format(seconds))")
+                            .accessibilityHint("Opens the rest time picker")
+                        }
                     }
                 }
                 Spacer()
                 Menu {
                     Button("Swap exercise", systemImage: "arrow.triangle.swap") { swapOrder = order }
+                    Button("Rest time", systemImage: "timer") { restPickerOrder = order }
                     Button("Add note", systemImage: "note.text") { notesShown.insert(order) }
                     Button("Skip exercise", systemImage: "forward.end", role: .destructive) {
                         service.skipExercise(in: session, order: order)
@@ -164,6 +197,23 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    @ViewBuilder
+    private func restPickerSheet(order: Int) -> some View {
+        if let first = groups.first(where: { $0.order == order })?.sets.first {
+            let variantId = first.variantId
+            let defaultSeconds = states.first?.config?.lifting?.restDefaultS ?? RestTime.fallbackSeconds
+            let name = (first.variantName.isEmpty ? variantsById[variantId]?.name ?? "Exercise" : first.variantName).withoutGymSuffix
+            let resolved = restSeconds(variantId: variantId, planned: first.plannedRestS)
+            RestTimePickerSheet(exerciseName: name, defaultSeconds: defaultSeconds,
+                                current: resolved == defaultSeconds ? nil : resolved) { choice in
+                RestSettings.set(variantId: variantId, seconds: choice, in: context)
+                // a rest that is running for this exercise follows the new time right away
+                env.restTimer.retarget(variantId: variantId, to: choice ?? defaultSeconds)
+                env.sync.request(.restTimeChanged)
+            }
+        }
+    }
+
     private func setLabel(_ set: LocalSet, in group: [LocalSet], at index: Int) -> String {
         switch set.setType {
         case "warmup": return "W"
@@ -173,6 +223,62 @@ struct ActiveWorkoutView: View {
             let n = group[...index].filter { $0.setType != "warmup" }.count
             return "\(n)"
         }
+    }
+}
+
+private struct RestPickerTarget: Identifiable {
+    let order: Int
+    var id: Int { order }
+}
+
+// MARK: - Rest time picker
+
+/// "Rest time" of one exercise: Default (2:00) or 1:00 to 5:00 in 15 s steps. Saving stores it for every future
+/// workout with this exercise (see `RestSettings`).
+struct RestTimePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let exerciseName: String
+    let defaultSeconds: Int
+    /// The exercise's own time; nil = it uses the default.
+    let current: Int?
+    let onSave: (Int?) -> Void
+    @State private var choice: Int?
+
+    init(exerciseName: String, defaultSeconds: Int, current: Int?, onSave: @escaping (Int?) -> Void) {
+        self.exerciseName = exerciseName
+        self.defaultSeconds = defaultSeconds
+        self.current = current
+        self.onSave = onSave
+        _choice = State(initialValue: current)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 6) {
+                Text(exerciseName).font(.subheadline).foregroundStyle(.secondary)
+                Picker("Rest time", selection: $choice) {
+                    Text(RestTime.defaultLabel(default: defaultSeconds)).tag(Int?.none)
+                    ForEach(RestTime.pickerChoices(current: current), id: \.self) { seconds in
+                        Text(RestTime.format(seconds)).tag(Int?.some(seconds))
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 190)
+                .accessibilityIdentifier("restTimePicker")
+                Text("Applies to every workout with this exercise.").font(.footnote).foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal)
+            .navigationTitle("Rest time")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { onSave(choice); dismiss() }.fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

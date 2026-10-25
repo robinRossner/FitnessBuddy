@@ -118,6 +118,7 @@ struct APIClient: Sendable {
         static let syncPush = apiBase + "/sync/push"
         static let syncPull = apiBase + "/sync/pull"
         static func variantHistory(_ id: Int) -> String { apiBase + "/variants/\(id)/history" }
+        static func exerciseRest(variantId: Int) -> String { apiBase + "/exercises/\(variantId)/rest" }
     }
 
     func health() async throws -> HealthDTO {
@@ -145,6 +146,12 @@ struct APIClient: Sendable {
 
     func pull(since cursor: String?) async throws -> PullResponse {
         try await send(path: Endpoints.syncPull, query: [URLQueryItem(name: "since", value: cursor ?? "")])
+    }
+
+    /// Sets (or, with nil, resets) the rest time of a variant's exercise. Idempotent on the server.
+    func setRest(variantId: Int, restS: Int?) async throws -> RestResponseDTO {
+        try await send(path: Endpoints.exerciseRest(variantId: variantId), method: "PUT",
+                       body: try APICoding.makeEncoder().encode(RestRequestDTO(restS: restS)))
     }
 
     func variantHistory(id: Int, limit: Int = 10) async throws -> [VariantHistoryEntryDTO] {

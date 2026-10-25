@@ -144,16 +144,29 @@ def test_migration_adds_the_schedule_section_as_a_derived_config_version(tmp_pat
         tables = {
             r[0] for r in c.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
         }
-    assert [(r[0], r[1], r[2]) for r in rows] == [("v3", 0, "seed"), ("v3.1", 1, "engine")]
+    # 0008 adds the schedule section (v3.1), 0009 the lifting section on top (v3.2, active)
+    assert [(r[0], r[1], r[2]) for r in rows] == [
+        ("v3", 0, "seed"),
+        ("v3.1", 0, "engine"),
+        ("v3.2", 1, "engine"),
+    ]
     import json
 
-    content = json.loads(rows[1][3]) if isinstance(rows[1][3], str) else rows[1][3]
+    def load(raw):
+        return json.loads(raw) if isinstance(raw, str) else raw
+
+    content = load(rows[1][3])
     assert content["version"] == "v3.1" and content["schedule"]["makeup_priority"][0] == "lower"
     assert content["schedule"]["max_sessions_per_day"] == 2 and rows[1][4] == 1
+    latest = load(rows[2][3])
+    assert latest["schedule"] == content["schedule"] and latest["lifting"] == {
+        "rest_default_s": 120
+    }
+    assert rows[2][4] == rows[1][4] + 1
     assert {"moved_from", "change_reason", "changed_by", "schedule_lock"} <= cols
     assert "advisor_schedule_changes" in tables
     command.downgrade(cfg, "0007")
     command.upgrade(cfg, "head")  # idempotent for the config: the section is already there
     with eng.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM config_versions")).scalar() == 2
+        assert c.execute(text("SELECT count(*) FROM config_versions")).scalar() == 3
     eng.dispose()

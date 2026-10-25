@@ -75,11 +75,15 @@ struct PlannedExerciseDTO: Codable, Sendable, Equatable {
     var reason: String?
     var flags: [String]
     var unresolved: Bool?
+    /// Rest timer in seconds (the exercise's override or the default); absent on older servers.
+    var restS: Int?
 
     init(order: Int?, variantId: Int?, name: String, equipmentType: String? = nil, repRange: [Int]? = nil,
-         sets: [PlannedSetDTO], last: LastPerformanceDTO? = nil, reason: String? = nil, flags: [String] = []) {
+         sets: [PlannedSetDTO], last: LastPerformanceDTO? = nil, reason: String? = nil, flags: [String] = [],
+         restS: Int? = nil) {
         self.order = order; self.variantId = variantId; self.name = name; self.equipmentType = equipmentType
         self.repRange = repRange; self.sets = sets; self.last = last; self.reason = reason; self.flags = flags
+        self.restS = restS
     }
 
     init(from decoder: Decoder) throws {
@@ -98,6 +102,7 @@ struct PlannedExerciseDTO: Codable, Sendable, Equatable {
         reason = try c.decodeIfPresent(String.self, forKey: .reason)
         flags = try c.decodeIfPresent([String].self, forKey: .flags) ?? []
         unresolved = try c.decodeIfPresent(Bool.self, forKey: .unresolved)
+        restS = try c.decodeIfPresent(Int.self, forKey: .restS)
     }
 }
 
@@ -313,6 +318,34 @@ struct ConfigDTO: Codable, Sendable, Equatable {
     var repRange: [Int]?
     var rirTarget: [Int]?
     var incrementsKg: [String: Double]?
+    /// Rest timers; absent on older servers.
+    var lifting: LiftingConfigDTO?
+}
+
+struct LiftingConfigDTO: Codable, Sendable, Equatable {
+    var restDefaultS: Int?
+    /// Per-exercise overrides under every variant id of the exercise (JSON keys are strings).
+    var restSByVariant: [String: Int]?
+}
+
+/// Body of `PUT /exercises/{variant_id}/rest`; `rest_s: null` resets the exercise to the default, so the key is
+/// always written (the synthesized encoder would drop a nil).
+struct RestRequestDTO: Encodable, Sendable, Equatable {
+    var restS: Int?
+
+    enum CodingKeys: String, CodingKey { case restS }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        if let restS { try c.encode(restS, forKey: .restS) } else { try c.encodeNil(forKey: .restS) }
+    }
+}
+
+struct RestResponseDTO: Codable, Sendable, Equatable {
+    var variantId: Int
+    var restS: Int
+    var isDefault: Bool?
+    var configVersion: String?
 }
 
 // MARK: - Sync

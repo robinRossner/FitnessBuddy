@@ -134,10 +134,15 @@ Response (`examples/sync_pull.json`, `examples/sync_pull_incremental.json`):
     "version": "v3.1", "timezone": "Europe/Vienna",
     "dumbbell_increment_kg": 2.0, "rep_range": [7, 12], "rir_target": [0, 1],
     "increments_kg": {"barbell": 5.0, "smith": 5.0, "plate_loaded": 5.0, "dumbbell": 2.0,
-                      "default_stack_step": 5.0, "bodyweight_added": 2.5, "other": 2.5}
+                      "default_stack_step": 5.0, "bodyweight_added": 2.5, "other": 2.5},
+    "lifting": {"rest_default_s": 120, "rest_s_by_variant": {"122": 180}}
   }
 }
 ```
+
+- `config.lifting` (rest timers, `docs/api/exercises.md`): `rest_default_s` is the default rest and
+  `rest_s_by_variant` lists the per-exercise overrides under every live variant id of that exercise
+  (JSON keys are strings). It is in every pull, so the app reconciles its local overrides with it.
 
 - `sessions`, `sets`, `body_measurements` have exactly the push shapes (`updated_at` /
   `deleted_at` included). For rows the server wrote itself (Strong import) `name` may be `""`
@@ -232,6 +237,7 @@ A lifting item, abridged (taken from the real engine output in `examples/plan_we
       {"order": 2, "variant_id": 122, "variant_key": "634a70a4-b4fd-5a14-a86a-429cf78ff39e",
        "name": "Incline Bench Press (Smith Machine) @ Gym 3", "exercise": "incline_bench_press",
        "equipment_type": "smith", "load_convention": "total", "rep_range": [7, 12],
+       "rest_s": 120,
        "sets": [{"index": 1, "set_type": "working", "target_weight": 70.0, "target_reps": 7},
                 {"index": 2, "set_type": "working", "target_weight": 70.0, "target_reps": 7},
                 {"index": 3, "set_type": "working", "target_weight": 70.0, "target_reps": 7}],
@@ -262,6 +268,12 @@ A lifting item, abridged (taken from the real engine output in `examples/plan_we
     the reason of an approved coach change. Who changed it is not exposed.
 - `kind`: `upper|lower|easy_run|intervals|long_run|rest`. `session.type` is `lifting`, `easy_run`,
   `long_run`, `intervals` or `rest` (see `examples/plan_week.json` for run / rest shapes).
+- Lifting exercises: `rest_s` (int seconds, 30..600) is the resolved rest timer of the exercise:
+  `exercise_overrides.<slug>.rest_s` if set, else `lifting.rest_default_s` (120). It is on every
+  lifting exercise of every plan item (also `unresolved` ones) and resolved when the plan is read, so
+  a changed rest time shows in sessions that are already planned. `PUT /exercises/{id}/rest` bumps
+  open lifting sessions, so an incremental pull re-sends them. Older servers omit the field (the app
+  falls back to 120).
 - Lifting exercises: `variant_id` links to the catalog (match with `variants`). An exercise the
   engine cannot resolve yet has `"unresolved": true`, no `variant_id` and `target_weight: null`.
   Timed exercises carry `target_duration_s` instead of reps. `target_weight` is in the variant's
@@ -295,6 +307,8 @@ All additive unless noted:
 7. An unknown `planned_session_id` is dropped instead of rejecting the session.
 8. The engine re-run is a background task after the HTTP response (so plan changes show up in a
    later pull, not in the immediate one).
+9. Rest timers (additive): `rest_s` on lifting plan exercises and `config.lifting` in pull;
+   endpoint in `docs/api/exercises.md`.
 
 ## Example fixtures
 

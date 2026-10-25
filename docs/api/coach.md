@@ -325,6 +325,8 @@ against the earlier valid changes of the same answer.
 | `exercise_overrides.<slug>.rep_range` | same, for a program exercise (catalog slug) | same |
 | `exercise_overrides.<slug>.sets` | int 1..6, +-2 | +-1 medium, else high |
 | `exercise_overrides.<slug>.variant` | swap to an **active** variant of the same `movement_pattern` or body region, at the current gym or generic, not already in the day | medium |
+| `exercise_overrides.<slug>.rest_s` | int seconds 30..600 for a program exercise (rest timer; the user can set it too, `docs/api/exercises.md`) | **low** |
+| `lifting.rest_default_s` | int seconds 30..600, the default rest of every exercise (120) | **low** |
 | `increments.barbell_kg` / `smith_kg` / `plate_loaded_kg` / `default_stack_step_kg` | 2.5 or 5 | medium (a doubled step: high) |
 | `increments.dumbbell_increment_kg` | 2 or 2.5 | medium |
 | `increments.bodyweight_added_kg` / `other_kg` | 1.25 or 2.5 | medium |
@@ -339,7 +341,7 @@ against the earlier valid changes of the same answer.
 | `running.intervals.rep_distance_m` | 200..2000 in steps of 50, +-500 | medium; > 300: high |
 | `running.intervals.recovery_distance_m` | 100..800 in steps of 50, +-300 | medium; > 200: high |
 
-Per-exercise overrides live in the config as `exercise_overrides.<slug>.{rep_range,sets,variant}`;
+Per-exercise overrides live in the config as `exercise_overrides.<slug>.{rep_range,sets,variant,rest_s}`;
 the engine applies them on top of `program.yaml` (which is never edited), so rolling the config back
 removes them.
 
@@ -349,7 +351,7 @@ A daily job (04:15) looks at advisor config versions that are 21-28 days old (`a
 and stores an `outcomes` row: the metric for the 28 days before the change vs the days since, a
 verdict `improved | neutral | worse` (+-1 % for e1RM / efficiency, +-15 points for the interval pass
 rate) and notes. Metric per parameter: `exercise_overrides.<slug>.*` -> best e1RM of that lift
-(`<slug>_e1rm_kg`; swaps are not scored), other strength / increment / deload parameters -> best e1RM
+(`<slug>_e1rm_kg`; swaps and rest times are not scored), other strength / increment / deload parameters -> best e1RM
 across the program (`program_avg_e1rm_kg`), `running.intervals.*` -> `interval_pass_rate`, other
 `running.*` -> `aerobic_efficiency`. Too little data at 21 days waits until day 28, then records
 `neutral` ("not enough data"). Outcomes show up in `/coach/history` and in the next consultation's

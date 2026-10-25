@@ -45,6 +45,10 @@ actor SyncEngine {
             if outcome.cleared == 0 { break }  // nothing progressed (all rejected / unknown): don't spin
         }
 
+        // 1b. rest times changed in the app (before the pull, so its reconcile sees the server's new value)
+        try Task.checkCancellation()
+        report.pushed += try await RestSync.push(using: client, container: container)
+
         // 2. pull (merge + cursor commit per page)
         var cursor = SyncState.current(in: ModelContext(container)).cursor
         for _ in 0..<maxPullPages {

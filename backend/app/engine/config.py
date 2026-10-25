@@ -224,6 +224,18 @@ class ScheduleConfig(_Model):
     }
 
 
+REST_MIN_S = 30  # bounds of a rest time (user endpoint, advisor validator)
+REST_MAX_S = 600
+
+
+class LiftingConfig(_Model):
+    """Lifting settings that are not progression rules. Lives under `lifting:` in the config
+    content; every key has a default, so versions without the section (v3, v4) behave the same.
+    A per-exercise rest time is `exercise_overrides.<slug>.rest_s` (see app/engine/rest.py)."""
+
+    rest_default_s: int = 120  # rest timer between sets, for every exercise without an override
+
+
 class AdvisorConfig(_Model):
     """Claude advisor settings (app/advisor). Lives under `advisor:` in the config content; every
     key has a default, so versions without the section behave the same (v3 has none)."""
@@ -253,11 +265,13 @@ class EngineConfig(_Model):
     readiness: dict[str, Any] = {}
     running: dict[str, Any] = {}
     weekly_template: dict[str, str] = {}
-    # Per program exercise (catalog slug): {"rep_range": [8, 12], "sets": 3, "variant": "<name>"}.
-    # Set by the advisor (app/advisor); wins over program.yaml (see program.apply_overrides).
+    # Per program exercise (catalog slug): {"rep_range": [8, 12], "sets": 3, "variant": "<name>"}
+    # (set by the advisor; wins over program.yaml, see program.apply_overrides) and "rest_s": 180
+    # (rest timer; set by the user or the advisor; any catalog slug, see app/engine/rest.py).
     exercise_overrides: dict[str, Any] = {}
     advisor: dict[str, Any] = {}
     schedule: dict[str, Any] = {}
+    lifting: dict[str, Any] = {}
 
     # Typed views over the free-form sections (the raw dicts stay for old callers / old versions).
     @property
@@ -275,6 +289,10 @@ class EngineConfig(_Model):
     @property
     def schedule_cfg(self) -> ScheduleConfig:
         return ScheduleConfig.model_validate(self.schedule)
+
+    @property
+    def lifting_cfg(self) -> LiftingConfig:
+        return LiftingConfig.model_validate(self.lifting)
 
     @property
     def recovery_cfg(self) -> RecoveryConfig:

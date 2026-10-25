@@ -20,6 +20,7 @@ from app.engine.makeup import MakeupSummary, handle_missed
 from app.engine.planner import WeekPlan, generate_week
 from app.engine.program import Program, derive_program, load_program, render_program
 from app.engine.readiness import Readiness, score_day
+from app.engine.rest import annotate_session
 from app.settings import Settings, get_settings
 
 log = logging.getLogger(__name__)
@@ -189,13 +190,23 @@ def generate_program(
 # --------------------------------------------------------------------------- API helpers
 
 
-def stored_day(db: Session, day: date) -> list[dict]:
+def active_config(db: Session, settings: Settings) -> EngineConfig | None:
+    """The active engine config (seeded if the database has none); None if there is none."""
+    try:
+        cs.ensure_seeded(db, settings.engine_config_path)
+        return cs.load_active(db)[0]
+    except Exception:  # a plan is still shown without the config-dependent fields
+        log.warning("no active engine config for the plan", exc_info=True)
+        return None
+
+
+def stored_day(db: Session, day: date, cfg: EngineConfig | None = None) -> list[dict]:
     rows = db.scalars(
         select(PlannedSession)
         .where(PlannedSession.day == day, PlannedSession.deleted_at.is_(None))
         .order_by(PlannedSession.kind)
     )
-    return [P.planned_to_dict(r) for r in rows]
+    return [P.planned_to_dict(r, cfg) for r in rows]
 
 
 def plan_for_api(
@@ -205,8 +216,9 @@ def plan_for_api(
     s = settings or get_settings()
     today = user_today(s)
     per_day: dict[date, list[dict]] = {start + timedelta(days=i): [] for i in range(days)}
+    cfg = active_config(db, s)
     for d in per_day:
-        per_day[d] = stored_day(db, d)
+        per_day[d] = stored_day(db, d, cfg)
     missing = [d for d, v in per_day.items() if not v and d >= today]
     if missing:
         try:
@@ -219,7 +231,9 @@ def plan_for_api(
                             {
                                 "id": None,
                                 "status": "preview",
-                                "session": dp.prescription,
+                                "session": annotate_session(dp.prescription, cfg)
+                                if cfg
+                                else dp.prescription,
                                 **P.adaptive_fields(dp.kind, "preview", dp.prescription),
                             }
                         )
