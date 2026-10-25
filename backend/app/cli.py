@@ -217,6 +217,229 @@ def garmin_reparse() -> None:
     typer.echo(f"reparsed: {sync.reparse()}")
 
 
+engine = typer.Typer(no_args_is_help=True, help="Deterministic training engine")
+engine_program = typer.Typer(
+    no_args_is_help=True, help="Lifting program (data/program/program.yaml)"
+)
+engine_config = typer.Typer(no_args_is_help=True, help="Versioned engine config")
+cli.add_typer(engine, name="engine")
+engine.add_typer(engine_program, name="program")
+engine.add_typer(engine_config, name="config")
+
+_DATE = {"formats": ["%Y-%m-%d"]}
+
+
+def _day(value: datetime | None) -> date | None:
+    return value.date() if value else None
+
+
+@engine.command("plan")
+def engine_plan(
+    day: Annotated[
+        datetime | None, typer.Option("--date", **_DATE, help="day or week (default today)")
+    ] = None,
+    week: Annotated[bool, typer.Option("--week", help="whole week, not just the day")] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run/--apply", help="default: write nothing")
+    ] = True,
+    verbose: Annotated[bool, typer.Option("--verbose/--quiet", help="print the decisions")] = True,
+) -> None:
+    """Compute the plan and print it with the decisions behind it (nothing is written)."""
+    from app.engine import persist as P
+    from app.engine import service
+    from app.engine.render import render_week
+
+    s = get_settings()
+    today = service.user_today(s)
+    target = _day(day) or today
+    with session_scope() as db:
+        try:
+            if dry_run:
+                plan, _cfg, _cv = service.plan_week(
+                    db, today=today, week_start=service.monday(target), settings=s
+                )
+            else:
+                P.reconcile(db, today)
+                plan = service.apply_week(
+                    db, today=today, week_start=service.monday(target), settings=s
+                ).plan
+        except FileNotFoundError as exc:
+            raise _fail(exc) from None
+        if not week:
+            plan.days = [d for d in plan.days if d.day == target]
+        typer.echo(render_week(plan, detail=verbose, decisions=verbose))
+        if dry_run:
+            db.rollback()
+            typer.echo("(dry run: nothing written)")
+
+
+@engine.command("run")
+def engine_run(
+    weeks: Annotated[int, typer.Option(help="weeks to plan, starting with the current one")] = 2,
+    quiet: Annotated[bool, typer.Option("--quiet")] = False,
+) -> None:
+    """Apply: reconcile earlier plans, write planned sessions + decisions + advisor triggers."""
+    from app.engine import service
+    from app.engine.render import render_week
+
+    s = get_settings()
+    with session_scope() as db:
+        try:
+            summary = service.run_engine(db, weeks=weeks, settings=s)
+        except FileNotFoundError as exc:
+            raise _fail(exc) from None
+        typer.echo(f"config {summary.config_version}; reconciled {summary.reconciled}")
+        for wr in summary.weeks:
+            r = wr.persisted
+            typer.echo(
+                f"week {wr.plan.week_start}: created {r.created}, updated {r.updated}, "
+                f"unchanged {r.unchanged}, closed {r.skipped_closed}, re-proposed {r.reproposed}; "
+                f"decisions +{r.decisions}, advisor triggers +{r.triggers}"
+            )
+            if not quiet:
+                typer.echo(render_week(wr.plan, decisions=False))
+
+
+@engine.command("readiness")
+def engine_readiness(
+    day: Annotated[datetime | None, typer.Option("--date", **_DATE)] = None,
+) -> None:
+    """Readiness colour + reason for a day (default today)."""
+    from app.engine import service
+
+    s = get_settings()
+    d = _day(day) or service.user_today(s)
+    with session_scope() as db:
+        r = service.readiness_for(db, d, s)
+    typer.echo(f"{r.day}: {r.color}{'' if r.known else ' (no data)'} - {r.reason}")
+    for sig in r.signals:
+        typer.echo(f"  {sig.name:6} {sig.level:7} {sig.detail}")
+
+
+@engine.command("evaluate-runs")
+def engine_evaluate_runs(
+    weeks: Annotated[int, typer.Option(help="look back this many weeks")] = 6,
+) -> None:
+    """Evaluate recent runs: easy-run pass/fail, efficiency, HR drift, interval sessions."""
+    from app.engine import service
+
+    s = get_settings()
+    with session_scope() as db:
+        rows = service.evaluate_runs(db, today=service.user_today(s), weeks=weeks, settings=s)
+    for r in rows:
+        ev = r["evaluation"]
+        if r["type"] == "intervals":
+            typer.echo(
+                f"{r['date']} intervals {ev['reps']} reps @ {ev['work_pace_s_per_km']:.0f}s/km, "
+                f"work HR {ev['work_hr'] and round(ev['work_hr'])}, recovery drop {ev['recovery_drop_bpm'] and round(ev['recovery_drop_bpm'])} bpm, "  # noqa: E501
+                f"{'PASS' if ev['passed'] else 'FAIL ' + '; '.join(ev['reasons'])}"
+            )
+        else:
+            typer.echo(
+                f"{r['date']} easy/long {r['km']:g} km avg HR {r['avg_hr'] and round(r['avg_hr'])}, "  # noqa: E501
+                f"{'PASS' if ev['passed'] else 'FAIL ' + '; '.join(ev['reasons'])}, "
+                f"EF {ev['efficiency']}, drift {ev['decoupling_pct']}%"
+                f"{' FLAG' if ev['decoupling_flag'] else ''}, <=cap {ev['pct_at_or_below_cap'] and round(ev['pct_at_or_below_cap'])}%"  # noqa: E501
+            )
+
+
+@engine.command("triggers")
+def engine_triggers(status: Annotated[str, typer.Option()] = "open") -> None:
+    """List advisor triggers."""
+    from app.db.models import AdvisorTrigger
+
+    with session_scope() as db:
+        for t in db.scalars(
+            select(AdvisorTrigger)
+            .where(AdvisorTrigger.status == status)
+            .order_by(AdvisorTrigger.id)
+        ):
+            typer.echo(
+                f"#{t.id} {t.created_at:%Y-%m-%d} {t.type} {t.subject_type}:{t.subject_id} {t.payload}"  # noqa: E501
+            )
+
+
+@engine_program.command("generate")
+def engine_program_generate(
+    weeks: Annotated[int, typer.Option(help="look back this many weeks")] = 8,
+    write: Annotated[bool, typer.Option("--write/--print")] = True,
+) -> None:
+    """Derive data/program/program.yaml from the recent Upper/Lower sessions at the current gym."""
+    from app.engine import service
+
+    s = get_settings()
+    with session_scope() as db:
+        _program, text = service.generate_program(db, weeks=weeks, settings=s, write=write)
+    typer.echo(text)
+    if write:
+        typer.echo(f"written to {s.program_path}")
+
+
+@engine_config.command("show")
+def engine_config_show() -> None:
+    """The active config version and its lineage."""
+    from app.engine import config_service as cs
+
+    s = get_settings()
+    with session_scope() as db:
+        cs.ensure_seeded(db, s.engine_config_path)
+        for v in cs.history(db):
+            mark = "*" if v.is_active else " "
+            typer.echo(
+                f"{mark} {v.version:8} {v.author:7} {v.created_at:%Y-%m-%d %H:%M} {v.reason or ''}"
+            )
+
+
+@engine_config.command("rollback")
+def engine_config_rollback(version: str) -> None:
+    """Make an older version's content active again (as a new version)."""
+    from app.engine import config_service as cs
+
+    with session_scope() as db:
+        try:
+            row = cs.rollback(db, version, author="user")
+        except cs.ConfigError as exc:
+            raise _fail(exc) from None
+        typer.echo(f"active: {row.version} ({row.reason})")
+
+
+@engine_config.command("set")
+def engine_config_set(
+    path: Annotated[str, typer.Argument(help="dotted path, e.g. running.weekly_volume_floor_km")],
+    value: Annotated[str, typer.Argument(help="YAML/JSON value, e.g. 18 or [7,12]")],
+    reason: Annotated[str, typer.Option(help="why (stored on the new version)")],
+    author: Annotated[str, typer.Option(help="engine | advisor | user")] = "user",
+) -> None:
+    """Create a new config version with one value changed (the active one is never edited)."""
+    import yaml
+    from pydantic import ValidationError
+
+    from app.engine import config_service as cs
+
+    s = get_settings()
+    with session_scope() as db:
+        cs.ensure_seeded(db, s.engine_config_path)
+        try:
+            row = cs.create_version(db, {path: yaml.safe_load(value)}, reason=reason, author=author)
+        except (cs.ConfigError, ValidationError) as exc:
+            raise _fail(exc) from None
+        typer.echo(f"active: {row.version} ({row.author}) diff {row.diff}")
+
+
+@engine_config.command("check-garmin")
+def engine_config_check_garmin() -> None:
+    """Apply Garmin's latest max HR / LTHR to the config now (the sync hook does this too)."""
+    from app.engine import config_service as cs
+
+    s = get_settings()
+    with session_scope() as db:
+        cs.ensure_seeded(db, s.engine_config_path)
+        row = cs.apply_garmin_hr(db)
+        typer.echo(
+            f"new version {row.version}: {row.reason}" if row else "config already matches Garmin"
+        )
+
+
 def _echo_report(report) -> None:
     typer.echo("done:")
     for r in report.results:

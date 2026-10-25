@@ -169,6 +169,14 @@ class ConfigVersion(Base):
     source_path: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    # Lineage (app/engine/config_service.py): derived versions point at the version they were
+    # made from; `diff` = {dotted.path: {"old": .., "new": ..}} against the parent.
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("config_versions.id"))
+    author: Mapped[str] = mapped_column(String(16), default="seed", server_default="seed")
+    reason: Mapped[str | None] = mapped_column(Text)
+    diff: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # Bookkeeping that is not part of the config itself, e.g. {"garmin_metrics_day": "2026-10-25"}.
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
 
 # --------------------------------------------------------------------------- training log
@@ -465,6 +473,30 @@ class AdvisorConsultation(Base):
     tokens_out: Mapped[int | None] = mapped_column(Integer)
     decision_id: Mapped[int | None] = mapped_column(ForeignKey("decisions_log.id"))
     accepted: Mapped[bool | None] = mapped_column(Boolean)
+
+
+class AdvisorTrigger(Base):
+    """Something the deterministic engine wants the (optional) LLM advisor to look at.
+
+    `dedupe_key` makes engine runs idempotent: the same condition on the same subject/day is
+    recorded once. `status`: open -> consulted | dismissed.
+    """
+
+    __tablename__ = "advisor_triggers"
+    __table_args__ = (UniqueConstraint("dedupe_key", name="dedupe_key"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+    type: Mapped[str] = mapped_column(
+        String(32), index=True
+    )  # lift_stall | deload | rule_conflict ..
+    status: Mapped[str] = mapped_column(String(16), default="open")
+    dedupe_key: Mapped[str] = mapped_column(String(160))
+    subject_type: Mapped[str | None] = mapped_column(String(32))
+    subject_id: Mapped[str | None] = mapped_column(String(64))
+    day: Mapped[date | None] = mapped_column(Date)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    decision_id: Mapped[int | None] = mapped_column(ForeignKey("decisions_log.id"))
+    consultation_id: Mapped[int | None] = mapped_column(ForeignKey("advisor_consultations.id"))
 
 
 class Outcome(Base):

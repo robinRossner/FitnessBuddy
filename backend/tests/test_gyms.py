@@ -284,3 +284,83 @@ def test_legacy_single_gym_variants_are_replaced(db, env):
     assert "Lat Pulldown (Cable)" not in names and "Lat Pulldown (Cable) @ Gym 1" in names
     assert names["Squat (Barbell)"].key == variant_uuid("Squat (Barbell)", None)  # adopted
     assert db.scalar(select(Gym).where(Gym.name == "Main gym")).deleted_at is not None
+
+
+# --------------------------------------------------------------------------- per-date overrides
+
+
+OVERRIDE_GYMS = GYMS + "overrides:\n  - {date: 2026-08-26, gym: gym2, note: one visit}\n"
+
+
+def test_override_pins_a_date_to_another_gym():
+    p = load_gyms_from(OVERRIDE_GYMS)
+    assert p.resolve(date(2026, 8, 25)).name == "Gym 3"
+    assert p.resolve(date(2026, 8, 26)).name == "Gym 2"
+    assert p.resolve(date(2026, 8, 27)).name == "Gym 3"
+    # by name, and merged through same_as
+    by_name = load_gyms_from(OVERRIDE_GYMS.replace("gym: gym2", "gym: Gym 2"))
+    assert by_name.resolve(date(2026, 8, 26)).key == "gym2"
+    merged = load_gyms_from(
+        OVERRIDE_GYMS.replace("start: 2026-08-17}", "start: 2026-08-17, same_as: gym2}")
+    )
+    assert merged.resolve(date(2026, 8, 26)).key == "gym2"
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        "overrides:\n  - {date: 2026-08-26, gym: nope}\n",
+        "overrides:\n  - {gym: gym2}\n",
+        "overrides:\n  - {date: 2026-08-26, gym: gym2}\n  - {date: 2026-08-26, gym: gym1}\n",
+    ],
+)
+def test_invalid_overrides(extra):
+    with pytest.raises(GymConfigError):
+        load_gyms_from(GYMS + extra)
+
+
+def test_import_honours_override_and_is_idempotent(db, env):
+    opts, gyms = env
+    gyms.write_text(OVERRIDE_GYMS, encoding="utf-8")
+    csv = opts.paths[0] / "strong.csv"
+    extra = [
+        ("2026-08-26 10:00:00", "Lower", "Lat Pulldown (Cable)", 47.0, 10),  # visit at Gym 2
+        ("2026-08-27 10:00:00", "Lower", "Lat Pulldown (Cable)", 32.0, 10),
+    ]
+    csv.write_text(_csv(ROWS + extra), encoding="utf-8")
+    run_import(db, opts)
+    db.commit()
+    assert _gym_of_session(db, "2026-08-26") == "Gym 2"
+    assert _gym_of_session(db, "2026-08-27") == "Gym 3"
+    names = _variants(db)
+    assert names["Lat Pulldown (Cable) @ Gym 2"].weight_ladder == [40.0, 45.0, 47.0]
+    assert names["Lat Pulldown (Cable) @ Gym 3"].weight_ladder == [30.0, 32.0]
+    again = run_import(db, opts)
+    db.commit()
+    assert again.sets_created == again.sets_updated == again.sets_moved == 0
+    # dropping the override moves the sets back (no duplicates)
+    gyms.write_text(GYMS, encoding="utf-8")
+    moved = run_import(db, opts)
+    db.commit()
+    assert moved.sets_moved == 1
+    assert _gym_of_session(db, "2026-08-26") == "Gym 3"
+
+
+def test_split_gym_with_new_machines_keeps_separate_variants(db, env):
+    opts, gyms = env
+    gyms.write_text(
+        "gyms:\n"
+        "  - {key: gym1_old, name: Gym 1 (old machines)}\n"
+        "  - {key: gym1, name: Gym 1, start: 2024-06-01}\n"
+        "  - {key: gym2, name: Gym 2, start: 2024-09-02}\n"
+        "  - {key: gym3, name: Gym 3, start: 2026-08-17}\n",
+        encoding="utf-8",
+    )
+    run_import(db, opts)
+    db.commit()
+    names = _variants(db)
+    assert "Lat Pulldown (Cable) @ Gym 1 (old machines)" in names
+    assert "Lat Pulldown (Cable) @ Gym 1" in names  # 2024-09-29 session, new machines
+    assert names["Lat Pulldown (Cable) @ Gym 1 (old machines)"].weight_ladder == [50.0]
+    assert names["Lat Pulldown (Cable) @ Gym 1"].weight_ladder == [60.0]
+    assert _gym_of_session(db, "2024-01-10") == "Gym 1 (old machines)"

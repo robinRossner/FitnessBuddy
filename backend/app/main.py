@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.bodyweight import router as bodyweight_router
+from app.api.engine import router as engine_router
 from app.api.garmin import router as garmin_router
 from app.api.routes import router
 from app.settings import get_settings
@@ -37,3 +38,4 @@ app = FastAPI(title="FitnessBuddy", version="0.1.0", lifespan=lifespan)
 app.include_router(router)
 app.include_router(bodyweight_router)
 app.include_router(garmin_router)
+app.include_router(engine_router)

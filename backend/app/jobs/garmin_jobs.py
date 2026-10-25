@@ -20,11 +20,30 @@ _lock = threading.Lock()  # one sync at a time, whether CLI-in-process or schedu
 
 
 def on_new_data(report: SyncReport) -> None:
-    """Hook: run the progression/readiness engine after new data arrived. Placeholder."""
+    """Hook: after new Garmin data, (1) auto-update max HR / LTHR in the engine config if Garmin
+    reports different values (new config version, author=engine), then (2) re-run the engine
+    (reconcile + plan current and next week). Never raises: a sync must not fail because of it."""
     log.info(
-        "new Garmin data (%d kinds updated); engine hook not implemented yet",
+        "new Garmin data (%d kinds updated); running the engine",
         sum(1 for r in report.results if r.rows),
     )
+    try:
+        from app.engine import service
+
+        with session_scope() as db:
+            service.record_config_check(db)
+        if get_settings().engine_auto_run:
+            with session_scope() as db:
+                summary = service.run_engine(db)
+            log.info(
+                "engine run: config %s, %d week(s) planned",
+                summary.config_version,
+                len(summary.weeks),
+            )
+    except FileNotFoundError as exc:  # no program.yaml yet
+        log.warning("engine not run: %s", exc)
+    except Exception:
+        log.exception("engine run after Garmin sync failed")
 
 
 def after_sync(report: SyncReport) -> None:

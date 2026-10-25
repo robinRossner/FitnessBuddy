@@ -7,6 +7,13 @@ File format (see the yaml for the real thing)::
       - {key: gym2, name: Gym 2, start: 2024-09-02}  # first session at this gym
       - {key: gym3, name: Gym 3, start: 2026-08-17, same_as: gym1}   # optional: same place
 
+Optional per-date overrides for days that do not fit the period (e.g. one visit to the old gym)::
+
+    overrides:
+      - {date: 2026-08-30, gym: gym2, note: lower day at the old gym}
+
+An override applies to every session on that local date. `gym` is a key or name.
+
 A gym is in use from its `start` (inclusive) until the next gym's `start`. `key` is the stable
 identity (rename `name` freely). `same_as` (a key or a name) merges a period into another gym:
 sessions and machine/cable variants then belong to that gym, as if it was never left.
@@ -41,7 +48,7 @@ class GymSpec:
 
 
 class GymPeriods:
-    def __init__(self, specs: list[GymSpec]):
+    def __init__(self, specs: list[GymSpec], overrides: dict[date, str] | None = None):
         if not specs:
             raise GymConfigError("gyms: at least one gym is required")
         keys = [g.key for g in specs]
@@ -60,6 +67,12 @@ class GymPeriods:
         self._by_ref = {**{g.name: g for g in specs}, **{g.key: g for g in specs}}
         self._canonical: dict[str, GymSpec] = {g.key: self._follow(g) for g in specs}
         self._starts = later  # sorted, none None
+        self.overrides: dict[date, GymSpec] = {}
+        for day, ref in (overrides or {}).items():
+            target = self._by_ref.get(ref)
+            if target is None:
+                raise GymConfigError(f"gyms: override {day}: {ref!r} is not a gym")
+            self.overrides[day] = self._canonical[target.key]
 
     def _follow(self, gym: GymSpec) -> GymSpec:
         seen = {gym.key}
@@ -79,7 +92,10 @@ class GymPeriods:
         return self.specs[bisect_right(self._starts, day)]
 
     def resolve(self, day: date) -> GymSpec:
-        """The canonical gym for a session on `day` (after `same_as` merging)."""
+        """The canonical gym for a session on `day` (override, else period; after `same_as`)."""
+        override = self.overrides.get(day)
+        if override is not None:
+            return override
         return self._canonical[self.period_gym(day).key]
 
     @property
@@ -128,4 +144,13 @@ def load_gyms(path: Path) -> GymPeriods:
                 notes=item.get("notes"),
             )
         )
-    return GymPeriods(specs)
+    overrides: dict[date, str] = {}
+    for i, item in enumerate(data.get("overrides") or []):
+        where = f"overrides[{i}]"
+        day = _as_date(item.get("date"), where)
+        if day is None or not item.get("gym"):
+            raise GymConfigError(f"{where}: `date` and `gym` are required")
+        if day in overrides:
+            raise GymConfigError(f"{where}: duplicate override for {day}")
+        overrides[day] = str(item["gym"])
+    return GymPeriods(specs, overrides)

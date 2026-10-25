@@ -1,7 +1,8 @@
 # FitnessBuddy
 
 Personal training system: strength log + running + recovery data, with a deterministic
-progression engine and an optional Claude advisor (later steps). Step 1 = backend + Strong import.
+progression engine and an optional Claude advisor (later). Steps 1-3 = backend, Strong import,
+Garmin sync, training engine + plans.
 
 ```
 backend/   FastAPI app, SQLAlchemy models, Alembic, Strong importer, tests
@@ -35,7 +36,9 @@ uv run python -m app.importers.strong import --apply    # write to the DB
 
 Gym-bound variants (machine/cable/smith/plate-loaded) are split per gym by session date, see
 `backend/data/catalog/gyms.yaml` (rename gyms, move a boundary or add `same_as: gym1`, then
-re-import: sets move, nothing is duplicated). Mapping rows have an `active` column (false =
+re-import: sets move, nothing is duplicated). `overrides: [{date, gym}]` pins single days to a
+gym (e.g. one visit to the old gym); a gym can also be split in time ("Gym 1 (old machines)" /
+"Gym 1") when the machines were replaced. Mapping rows have an `active` column (false =
 no longer trained, never planned).
 
 Reports land in `imports/reports/strong_import_<timestamp>.md`. Re-running is safe (idempotent);
@@ -87,6 +90,36 @@ uv run python -m app.cli garmin reparse                  # re-run parsers over s
   floors), `garmin_raw` (raw JSON), originals in `backend/var/fit/` (all gitignored).
 - Scheduler: `SCHEDULER_ENABLED=true` starts APScheduler with the API (nightly 03:30 full sync,
   four lighter runs at `SYNC_DAY_TIMES`, timezone Europe/Vienna). Off by default.
+
+## Training engine (step 3)
+
+Deterministic, parameterised by the versioned config, every decision logged (`decisions_log`).
+
+```sh
+cd backend
+uv run alembic upgrade head
+uv run python -m app.cli engine program generate        # data/program/program.yaml from the last 8 weeks (edit it!)
+uv run python -m app.cli engine plan --date 2026-10-26 --week   # dry run (default): plan + decisions, writes nothing
+uv run python -m app.cli engine run                      # apply: reconcile, plan this + next week, decisions, triggers
+uv run python -m app.cli engine readiness [--date D]
+uv run python -m app.cli engine evaluate-runs [--weeks 6]
+uv run python -m app.cli engine triggers                 # open advisor triggers
+uv run python -m app.cli engine config show|rollback VERSION|check-garmin
+```
+
+- **Config**: `config/engine.v3.yaml` only seeds the `config_versions` table; afterwards the DB is the
+  source of truth. Derived versions (`v3.1`, ...) carry parent, diff, reason and author
+  (`engine|advisor|user`); rollback creates a new version. After a Garmin sync the hook
+  (`app/jobs/garmin_jobs.py`) creates a new version when Garmin reports a different max HR / LTHR
+  ("Garmin reported LTHR 171->178 on ...") and re-runs the engine (`ENGINE_AUTO_RUN=false` to skip).
+  HR zones are derived from LTHR (Friel run zones) and never stored.
+- **Plans**: `planned_sessions` with a stable id per (week, template slot); regeneration is idempotent,
+  `done/skipped/modified` sessions are never overwritten, an `approved` one whose content changes goes
+  back to `proposed`. Today's readiness adjustments (yellow: -1 set / intervals -> easy run; red: rest
+  or a short easy run) are written into that day's planned session.
+- **API** (bearer token): `GET /api/v1/plan/today`, `/plan/week?start=`, `/readiness?date=`,
+  `/config` (active + history), `POST /config/rollback/{version}`. Plan JSON: see `app/api/engine.py`.
+- Rules, thresholds and their reasoning: `config/engine.v3.yaml` (comments) and `docs/spec/decisions.md`.
 
 ## API (skeleton)
 

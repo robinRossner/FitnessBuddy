@@ -33,7 +33,11 @@ class Settings(BaseSettings):
     catalog_path: Path = BACKEND_DIR / "data" / "catalog" / "exercises.yaml"
     strong_mapping_path: Path = BACKEND_DIR / "data" / "catalog" / "strong_mapping.csv"
     gyms_path: Path = BACKEND_DIR / "data" / "catalog" / "gyms.yaml"
-    engine_config_path: Path = BACKEND_DIR / "config" / "engine.v2.yaml"
+    engine_config_path: Path = (
+        BACKEND_DIR / "config" / "engine.v3.yaml"
+    )  # SEED only, see config_service
+    program_path: Path = BACKEND_DIR / "data" / "program" / "program.yaml"
+    engine_auto_run: bool = True  # run the engine after a Garmin sync brought new data
 
     # Strong sessions longer than this are considered bad data: duration is stored as NULL.
     strong_max_duration_h: float = 4.0

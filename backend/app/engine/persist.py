@@ -1,0 +1,227 @@
+"""Writing a `WeekPlan` to the database (planned_sessions, decisions_log, advisor_triggers) and
+reconciling earlier plans with what actually happened.
+
+Regeneration is idempotent: a planned session has a stable id per (week, template slot), so
+re-running updates the same row. Rows the user (or reconcile) already closed (done / skipped /
+modified) or deleted are never touched. A session the user had `approved` that changes content is
+sent back to `proposed` (approval_mode is manual) with a note.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.db.models import DailyHealth, PlannedSession, Run, TrainingSession
+from app.db.types import utcnow
+from app.engine.data import planned_id
+from app.engine.decisions import add_trigger, log_decision
+from app.engine.planner import DayPlan, WeekPlan
+from app.sources.garmin.mapping import RUN_TYPES
+
+LIFT_MATCH = {
+    "upper": {"upper", "full", "push", "pull", "calisthenics"},
+    "lower": {"lower", "legs", "full"},
+}
+
+
+def stored_prescription(day: DayPlan) -> dict[str, Any]:
+    return json.loads(
+        json.dumps(
+            {
+                "title": day.title,
+                "slot_id": day.slot_id,
+                "template_kind": day.template_kind,
+                "readiness": day.readiness,
+                "adjustments": day.adjustments,
+                "notes": day.notes,
+                "session": day.prescription,
+            },
+            default=str,
+        )
+    )
+
+
+@dataclass
+class PersistResult:
+    created: int = 0
+    updated: int = 0
+    unchanged: int = 0
+    skipped_closed: int = 0
+    reproposed: int = 0
+    decisions: int = 0
+    triggers: int = 0
+    ids: dict[str, str] = field(default_factory=dict)  # slot -> planned id
+
+
+def persist_week(
+    db: Session, plan: WeekPlan, *, config_version_id: int | None, gym_id: int | None
+) -> PersistResult:
+    res = PersistResult()
+    for d in plan.days:
+        pid = planned_id(plan.week_start, d.slot_id)
+        res.ids[d.slot_id] = pid
+        row = db.get(PlannedSession, pid)
+        presc = stored_prescription(d)
+        if row is None:
+            db.add(
+                PlannedSession(
+                    id=pid,
+                    day=d.day,
+                    kind=d.kind,
+                    status="proposed",
+                    gym_id=gym_id if d.kind in ("upper", "lower") else None,
+                    config_version_id=config_version_id,
+                    prescription=presc,
+                )
+            )
+            res.created += 1
+            continue
+        if row.deleted_at is not None or row.status in ("done", "skipped", "modified"):
+            res.skipped_closed += 1
+            continue
+        changed = row.day != d.day or row.kind != d.kind or row.prescription != presc
+        if not changed:
+            res.unchanged += 1
+            continue
+        row.day, row.kind, row.prescription = d.day, d.kind, presc
+        row.config_version_id = config_version_id
+        row.gym_id = gym_id if d.kind in ("upper", "lower") else None
+        if row.status == "approved":
+            row.status = "proposed"
+            row.approved_at = None
+            row.notes = f"re-proposed {utcnow().date()}: plan changed after approval"
+            res.reproposed += 1
+        res.updated += 1
+    db.flush()
+
+    for rec in plan.decisions:
+        pid = res.ids.get(rec.slot_id) if rec.slot_id else None
+        row = log_decision(
+            db,
+            kind=rec.kind,
+            rule=rec.rule,
+            inputs=rec.inputs,
+            output=rec.output,
+            rationale=rec.rationale,
+            subject_type=rec.subject_type,
+            subject_id=rec.subject_id,
+            config_version_id=config_version_id,
+            planned_session_id=pid,
+        )
+        res.decisions += row is not None
+    for t in plan.triggers:
+        row = add_trigger(
+            db,
+            type=t.type,
+            dedupe_key=t.dedupe_key,
+            payload=t.payload,
+            subject_type=t.subject_type,
+            subject_id=t.subject_id,
+            day=t.day,
+        )
+        res.triggers += row is not None
+    write_readiness_colors(db, plan.readiness_history)
+    return res
+
+
+def write_readiness_colors(db: Session, colors: dict[date, str]) -> None:
+    """Keep daily_health.readiness_color (engine output) in sync."""
+    if not colors:
+        return
+    rows = db.scalars(
+        select(DailyHealth).where(DailyHealth.source == "garmin", DailyHealth.day.in_(list(colors)))
+    )
+    for r in rows:
+        if r.readiness_color != colors[r.day]:
+            r.readiness_color = colors[r.day]
+
+
+def reconcile(db: Session, today: date) -> dict[str, int]:
+    """Close earlier proposals: done (matching activity found, linked) or skipped (day passed).
+
+    Lifting: a session of a matching kind on that date; runs: a running activity on that date;
+    rest days are simply done once past. Today's unmatched sessions stay open.
+    """
+    counts = {"done": 0, "skipped": 0}
+    rows = db.scalars(
+        select(PlannedSession).where(
+            PlannedSession.deleted_at.is_(None),
+            PlannedSession.status.in_(["proposed", "approved", "skipped"]),
+            PlannedSession.day <= today,
+            # Strong exports arrive late: re-check what was skipped recently ("self-healing")
+            PlannedSession.day >= today - timedelta(days=14),
+        )
+    )
+    for p in rows:
+        start = datetime.combine(p.day, datetime.min.time())
+        end = start + timedelta(days=1)
+        kind = p.kind
+        if kind in LIFT_MATCH:
+            hit = db.scalars(
+                select(TrainingSession)
+                .where(
+                    TrainingSession.deleted_at.is_(None),
+                    TrainingSession.started_at_local >= start,
+                    TrainingSession.started_at_local < end,
+                )
+                .order_by(TrainingSession.started_at_local)
+            ).all()
+            hit = [s for s in hit if s.session_kind in LIFT_MATCH[kind]]
+            if hit:
+                for s in hit:
+                    s.planned_session_id = p.id
+                p.status = "done"
+                counts["done"] += 1
+        elif kind in ("easy_run", "intervals", "long_run"):
+            runs = db.scalars(
+                select(Run).where(
+                    Run.deleted_at.is_(None),
+                    Run.activity_type.in_(RUN_TYPES),
+                    Run.started_at_local >= start,
+                    Run.started_at_local < end,
+                )
+            ).all()
+            if runs:
+                for r in runs:
+                    r.planned_session_id = p.id
+                p.status = "done"
+                counts["done"] += 1
+        elif kind == "rest" and p.day < today:
+            p.status = "done"
+            counts["done"] += 1
+            continue
+        if p.status in ("proposed", "approved") and p.day < today:
+            p.status = "skipped"
+            counts["skipped"] += 1
+        elif p.status == "skipped" and p.day < today:
+            pass  # still unmatched: stays skipped
+    db.flush()
+    return counts
+
+
+def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
+    pr = p.prescription or {}
+    return {
+        "id": p.id,
+        "date": p.day.isoformat(),
+        "kind": p.kind,
+        "status": p.status,
+        "title": pr.get("title"),
+        "slot_id": pr.get("slot_id"),
+        "template_kind": pr.get("template_kind"),
+        "readiness": pr.get("readiness"),
+        "adjustments": pr.get("adjustments", []),
+        "notes": pr.get("notes", []),
+        "session": pr.get("session"),
+        "config_version_id": p.config_version_id,
+        "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+    }
+
+
+__all__ = ["PersistResult", "persist_week", "planned_to_dict", "reconcile", "utcnow"]
