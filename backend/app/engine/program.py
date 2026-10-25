@@ -13,10 +13,11 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from pathlib import Path
 from statistics import fmean, median
+from typing import Any
 
 import yaml
 
@@ -65,6 +66,30 @@ def load_program(path: Path) -> Program:
             )
         days[str(kind)] = out
     return Program(days, data.get("generated") or {})
+
+
+def apply_overrides(program: Program, overrides: dict[str, Any] | None) -> Program:
+    """Program with the config's per-exercise overrides applied (`exercise_overrides` in the engine
+    config, keyed by catalog slug; set by the advisor): rep_range, sets, variant. They win over
+    program.yaml, which stays untouched; rolling the config back removes them."""
+    if not overrides:
+        return program
+    days: dict[str, list[ProgramExercise]] = {}
+    for kind, items in program.days.items():
+        out = []
+        for pe in items:
+            ov = overrides.get(pe.exercise) or {}
+            if ov:
+                rr = ov.get("rep_range")
+                pe = replace(
+                    pe,
+                    rep_range=(int(rr[0]), int(rr[1])) if rr else pe.rep_range,
+                    sets=int(ov["sets"]) if ov.get("sets") else pe.sets,
+                    variant=str(ov["variant"]) if ov.get("variant") else pe.variant,
+                )
+            out.append(pe)
+        days[kind] = out
+    return Program(days, program.meta)
 
 
 # --------------------------------------------------------------------------- derivation

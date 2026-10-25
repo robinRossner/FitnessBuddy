@@ -484,6 +484,13 @@ class DecisionLog(Base):
 
 
 class AdvisorConsultation(Base):
+    """One call (or would-be call) to the Claude advisor and what came of it (app/advisor).
+
+    `trigger` = proposal trigger type (lift_stall | rule_conflict | running_stagnation |
+    data_anomaly | weekly_review | ask); `kind` = budget bucket (weekly | trigger | ask);
+    `request` = the compact input summary, `response` = the validated output JSON.
+    """
+
     __tablename__ = "advisor_consultations"
     id: Mapped[int] = mapped_column(primary_key=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
@@ -495,6 +502,48 @@ class AdvisorConsultation(Base):
     tokens_out: Mapped[int | None] = mapped_column(Integer)
     decision_id: Mapped[int | None] = mapped_column(ForeignKey("decisions_log.id"))
     accepted: Mapped[bool | None] = mapped_column(Boolean)
+    # --- step 6
+    updated_at: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, default=utcnow, onupdate=utcnow
+    )
+    status: Mapped[str] = mapped_column(String(24), default="queued", index=True)
+    kind: Mapped[str] = mapped_column(String(12), default="trigger")
+    trigger_info: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # title, detail, ref, ...
+    question: Mapped[str | None] = mapped_column(Text)
+    usage: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    cost_usd: Mapped[float | None] = mapped_column(Float)
+    error: Mapped[str | None] = mapped_column(Text)
+    dry_run: Mapped[bool] = mapped_column(Boolean, default=False)
+    reject_note: Mapped[str | None] = mapped_column(Text)
+    week_start: Mapped[date | None] = mapped_column(Date)  # weekly review: the Monday it covers
+    applied_config_version_id: Mapped[int | None] = mapped_column(ForeignKey("config_versions.id"))
+
+    changes: Mapped[list[AdvisorChange]] = relationship(
+        back_populates="consultation", order_by="AdvisorChange.position"
+    )
+
+
+class AdvisorChange(Base):
+    """One proposed parameter change of a consultation, validated on its own."""
+
+    __tablename__ = "advisor_changes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    consultation_id: Mapped[int] = mapped_column(ForeignKey("advisor_consultations.id"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    param: Mapped[str] = mapped_column(String(160))
+    label: Mapped[str] = mapped_column(String(200))
+    old_value: Mapped[Any] = mapped_column(JSON)
+    new_value: Mapped[Any] = mapped_column(JSON)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    risk: Mapped[str] = mapped_column(String(8), default="medium")  # validator's classification
+    claude_risk: Mapped[str | None] = mapped_column(String(8))
+    valid: Mapped[bool] = mapped_column(Boolean, default=False)
+    validation_error: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(12), default="proposed")
+    applied_config_version_id: Mapped[int | None] = mapped_column(ForeignKey("config_versions.id"))
+    applied_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+
+    consultation: Mapped[AdvisorConsultation] = relationship(back_populates="changes")
 
 
 class AdvisorTrigger(Base):
@@ -534,3 +583,11 @@ class Outcome(Base):
     adherence: Mapped[str | None] = mapped_column(String(16))  # completed | partial | skipped
     metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     notes: Mapped[str | None] = mapped_column(Text)
+    # Advisor outcome tracking (step 6): what happened 21-28 days after a config version the
+    # advisor made. `metrics` = {"before": {..}, "after": {..}, "changes": [..]}.
+    kind: Mapped[str | None] = mapped_column(String(24))  # "advisor_change"
+    verdict: Mapped[str | None] = mapped_column(String(12))  # improved | neutral | worse
+    consultation_id: Mapped[int | None] = mapped_column(ForeignKey("advisor_consultations.id"))
+    config_version_id: Mapped[int | None] = mapped_column(
+        ForeignKey("config_versions.id"), unique=True
+    )

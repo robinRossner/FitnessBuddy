@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -191,6 +191,24 @@ class RecoveryConfig(_Model):
     hard_after_heavy_lower_h: float = 24
 
 
+class AdvisorConfig(_Model):
+    """Claude advisor settings (app/advisor). Lives under `advisor:` in the config content; every
+    key has a default, so versions without the section behave the same (v3 has none)."""
+
+    approval_mode: Literal["manual", "auto-low-risk", "auto"] = "manual"
+    max_calls_per_week: int = 4  # trigger + weekly review calls; "Ask coach" is not counted
+    max_ask_per_day: int = 5
+    outcome_after_days: tuple[int, int] = (21, 28)  # check an applied change in this age window
+    trigger_max_age_days: int = 10  # older open triggers are dismissed, not consulted
+    input_budget_tokens: int = 15000  # the compact input is trimmed to stay below this (chars/4)
+    verdict_threshold_pct: float = 1.0  # +- this much change in the metric = improved / worse
+    # Claude Opus 5.5 list prices in USD per million tokens (cache write = 1.25 x input, 5 min TTL)
+    price_input_per_mtok: float = 4.0
+    price_output_per_mtok: float = 20.0
+    price_cache_read_per_mtok: float = 0.2
+    price_cache_write_per_mtok: float = 5.0
+
+
 class EngineConfig(_Model):
     version: str
     approval_mode: str = "manual"
@@ -202,6 +220,10 @@ class EngineConfig(_Model):
     readiness: dict[str, Any] = {}
     running: dict[str, Any] = {}
     weekly_template: dict[str, str] = {}
+    # Per program exercise (catalog slug): {"rep_range": [8, 12], "sets": 3, "variant": "<name>"}.
+    # Set by the advisor (app/advisor); wins over program.yaml (see program.apply_overrides).
+    exercise_overrides: dict[str, Any] = {}
+    advisor: dict[str, Any] = {}
 
     # Typed views over the free-form sections (the raw dicts stay for old callers / old versions).
     @property
@@ -211,6 +233,10 @@ class EngineConfig(_Model):
     @property
     def running_cfg(self) -> RunningConfig:
         return RunningConfig.model_validate(self.running)
+
+    @property
+    def advisor_cfg(self) -> AdvisorConfig:
+        return AdvisorConfig.model_validate(self.advisor)
 
     @property
     def recovery_cfg(self) -> RecoveryConfig:

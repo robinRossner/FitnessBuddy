@@ -7,6 +7,12 @@ enum AppTab: Hashable {
     case today, workout, progress, health, coach
 }
 
+/// Where the Coach tab navigates to when opened from elsewhere.
+enum CoachRoute: Hashable {
+    case proposal(String)
+    case history
+}
+
 /// Composition root: owns the container, settings, sync and timer, and app-level navigation state.
 @MainActor
 @Observable
@@ -17,6 +23,7 @@ final class AppEnvironment {
     let sync: SyncCoordinator
     let restTimer: RestTimer
     let stats: StatsRepository
+    let coach: CoachRepository
 
     #if DEBUG
     /// `-uiTab progress|health|...` selects the tab at launch (screenshots).
@@ -35,6 +42,8 @@ final class AppEnvironment {
     var finishedSummary: WorkoutSummary?
     /// The "Start workout" chooser (planned sessions / empty).
     var showWorkoutChooser = false
+    /// Set by "open this proposal" from anywhere (Today banner, Ask coach); the Coach tab consumes it.
+    var coachRoute: CoachRoute?
 
     static var isRunningTests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
@@ -53,11 +62,24 @@ final class AppEnvironment {
         self.restTimer = RestTimer()
         self.stats = StatsRepository(settings: settings, store: testing ? MemoryStatsCache() : DiskStatsCache(),
                                      isDemo: { SyncState.current(in: container.mainContext).demoActive })
+        self.coach = CoachRepository(settings: settings, network: network,
+                                     store: testing ? MemoryStatsCache() : DiskStatsCache(directory: Self.coachCacheDirectory),
+                                     isDemo: { SyncState.current(in: container.mainContext).demoActive })
         self.sync = SyncCoordinator(container: container, settings: settings, network: network)
         self.sync.enabled = !testing
         #if DEBUG
         self.stats.demoTransport = DemoStats.transport
+        self.coach.demoTransport = DemoCoach.shared.transport
         #endif
+        coach.afterPlanChange = { [weak self] in await self?.sync.sync(.manual) }
+        coach.onPendingChanged = { [weak self] count, latest in
+            guard let self else { return }
+            let state = SyncState.current(in: self.context)
+            guard state.coachPendingCount != count || state.coachLatestPendingId != latest else { return }
+            state.coachPendingCount = count
+            state.coachLatestPendingId = latest
+            try? self.context.save()
+        }
         network.onBecameConnected = { [weak self] in self?.sync.request(.network) }
         // The cache must belong to the configured backend before anything syncs (also covers launch-argument
         // overrides, URL/token changed outside the Settings screen, and caches from older app versions).
@@ -92,6 +114,8 @@ final class AppEnvironment {
 
     private func wipeLocalData(fingerprint: String?) {
         BackendReset.reset(in: context, fingerprint: fingerprint)
+        coach.reset()
+        coachRoute = nil
         settings.currentGymId = nil
         sync.didResetData()
     }
@@ -119,11 +143,29 @@ final class AppEnvironment {
         await sync.sync(.manual)
     }
 
+    static var coachCacheDirectory: URL {
+        (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent("CoachCache", isDirectory: true)
+    }
+
+    /// Shows a proposal (or just the Coach tab) from anywhere.
+    func openCoach(proposal id: String? = nil) {
+        coachRoute = id.map { CoachRoute.proposal($0) }
+        selectedTab = .coach
+    }
+
     var context: ModelContext { container.mainContext }
     var workout: WorkoutService { WorkoutService(context: context) }
 
     func start() {
         guard !Self.isRunningTests else { return }
+        #if DEBUG
+        // `-uiDemo YES` loads the demo data at launch (screenshots).
+        if UserDefaults.standard.bool(forKey: "uiDemo"), !SyncState.current(in: context).demoActive {
+            DemoData.load(into: context, settings: settings)
+            sync.didResetData()
+        }
+        #endif
         network.start()
         sync.request(.launch)
     }

@@ -12,7 +12,9 @@ Plan JSON (one entry per planned session; ids are stable per (week, template slo
                | {"type": "rest", "optional", "original"?}}
 
 GET /plan/today also carries `readiness_today` (same object as /stats/health: level, headline,
-metrics, details; contract in docs/api/stats.md) next to the engine's `readiness`.
+metrics, details; contract in docs/api/stats.md) next to the engine's `readiness`, and
+`coach: {pending_count, latest_pending_id}` (coach proposals waiting for a decision;
+docs/api/coach.md) for the Today banner.
 
 Days without a stored plan get a `status: "preview"` entry with `id: null` (computed on the fly).
 """
@@ -24,6 +26,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.advisor import service as service_advisor
 from app.analytics import health
 from app.api.auth import require_token
 from app.api.routes import get_db
@@ -48,6 +51,7 @@ def plan_today(db: Session = Depends(get_db)) -> dict:
         "readiness": r.as_dict(),
         "readiness_today": health.readiness_today(db, today, r),
         "sessions": day["sessions"],
+        "coach": service_advisor.pending_summary(db),
     }
 
 

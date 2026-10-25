@@ -25,6 +25,8 @@ struct RunAnalysisView: View {
                 } else {
                     StatsPlaceholder(resource: analysis, symbol: "figure.run", emptyTitle: "run analysis")
                 }
+                AskCoachButton(title: "Ask coach about this run",
+                               context: .run(id: runId, name: analysis.value?.run.name ?? "This run"))
                 FreshnessLabel(resource: analysis)
             }
             .padding(.horizontal, 16)

@@ -49,6 +49,9 @@ enum DemoData {
         today.date = days[0]
         today.sessions = []  // already stored via the week
         PlanCache.store(today: today, in: ctx)
+        let state = SyncState.current(in: ctx)
+        state.coachPendingCount = 1
+        state.coachLatestPendingId = DemoCoach.pendingId
 
         UserDefaults.standard.set(days[0], forKey: AppClock.overrideKey)
         settings?.currentGymId = 3

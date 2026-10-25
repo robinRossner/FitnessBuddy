@@ -28,6 +28,7 @@ from app.engine import config_service as cs
 from app.engine import data as D
 from app.engine import service
 from app.engine.lifting import detect_stall
+from app.engine.program import apply_overrides
 from app.settings import get_settings
 
 TREND_DAYS = 28
@@ -129,6 +130,7 @@ def _program_variant_ids(db: Session) -> set[int]:
         program = service.get_program(s)
     except (OSError, ValueError):  # no program file yet (FileNotFoundError) or an invalid one
         return set()
+    program = apply_overrides(program, cs.load_active(db)[0].exercise_overrides)
     gym = D.current_gym(db, s.gyms_path)
     ids = set()
     for kind in program.days:
@@ -210,6 +212,11 @@ def lift_summaries(db: Session) -> list[dict]:
     ]
     out.sort(key=lambda s: (s["last_date"], s["name"]), reverse=True)
     return out
+
+
+def rows_by_variant(db: Session) -> dict[int, list[Row]]:
+    """Per-session stats rows per variant, oldest first (for the advisor input)."""
+    return _rows_by_variant(db)
 
 
 def lifts_payload(db: Session) -> dict:

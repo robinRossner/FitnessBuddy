@@ -12,6 +12,8 @@ from app.db.session import make_engine
 from app.importers.strong.importer import ImportOptions
 from app.settings import BACKEND_DIR
 
+pytest_plugins = ("tests.advisor_helpers",)  # advisor fixtures: world, fake, client, ...
+
 FIXTURES = Path(__file__).parent / "fixtures"
 
 TEST_MAPPING = """\

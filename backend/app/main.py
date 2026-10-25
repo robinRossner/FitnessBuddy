@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from app import __version__
 from app.api.bodyweight import router as bodyweight_router
+from app.api.coach import router as coach_router
 from app.api.engine import router as engine_router
 from app.api.garmin import router as garmin_router
 from app.api.routes import public_router, router
@@ -45,5 +46,6 @@ app.include_router(bodyweight_router)
 app.include_router(garmin_router)
 app.include_router(engine_router)
 app.include_router(stats_router)
+app.include_router(coach_router)
 app.include_router(sync_public)
 app.include_router(sync_router)

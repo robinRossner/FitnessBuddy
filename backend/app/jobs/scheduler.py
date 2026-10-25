@@ -1,4 +1,5 @@
-"""APScheduler wiring: nightly full incremental Garmin sync + lighter daytime runs.
+"""APScheduler wiring: nightly full incremental Garmin sync + lighter daytime runs, and the advisor
+jobs (weekly review Sunday 20:00, daily trigger batch and outcome check).
 
 Started from the FastAPI lifespan only when SCHEDULER_ENABLED=true. Jobs never raise into the
 scheduler: failures are logged (and recorded in `sync_state.last_error`).
@@ -30,8 +31,46 @@ def garmin_job(kinds: tuple[str, ...]) -> None:
         log.exception("scheduled Garmin sync failed (kinds=%s)", ",".join(kinds))
 
 
+def add_advisor_jobs(sched: BackgroundScheduler, settings: Settings) -> None:
+    """Weekly review (Sunday), daily trigger batch and daily outcome check (jobs/advisor_jobs)."""
+    from app.jobs import advisor_jobs
+
+    tz = settings.scheduler_tz
+    h, m = _hhmm(settings.advisor_weekly_time)
+    sched.add_job(
+        advisor_jobs.weekly_review_job,
+        CronTrigger(day_of_week="sun", hour=h, minute=m, timezone=tz),
+        id="advisor_weekly",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=6 * 3600,
+        replace_existing=True,
+    )
+    h, m = _hhmm(settings.advisor_trigger_time)
+    sched.add_job(
+        advisor_jobs.trigger_job,
+        CronTrigger(hour=h, minute=m, timezone=tz),
+        id="advisor_triggers",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+        replace_existing=True,
+    )
+    h, m = _hhmm(settings.advisor_outcome_time)
+    sched.add_job(
+        advisor_jobs.outcome_job,
+        CronTrigger(hour=h, minute=m, timezone=tz),
+        id="advisor_outcomes",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=6 * 3600,
+        replace_existing=True,
+    )
+
+
 def build_scheduler(settings: Settings) -> BackgroundScheduler:
     sched = BackgroundScheduler(timezone=settings.scheduler_tz)
+    add_advisor_jobs(sched, settings)
     h, m = _hhmm(settings.sync_nightly_time)
     sched.add_job(
         garmin_job,

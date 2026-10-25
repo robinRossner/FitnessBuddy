@@ -268,6 +268,9 @@ final class SyncState {
     var readinessDate: String?
     /// Re-encoded `ReadinessTodayDTO` of `readinessDate` (headline, metrics, details).
     var readinessTodayData: Data?
+    /// `coach.pending_count` / `latest_pending_id` of the last plan fetch (Today banner), kept fresh by the Coach tab.
+    var coachPendingCount: Int = 0
+    var coachLatestPendingId: String?
 
     init(deviceId: String = UUID().uuidString.lowercased()) {
         self.key = "singleton"

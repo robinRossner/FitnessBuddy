@@ -236,9 +236,13 @@ struct PlanTodayDTO: Codable, Sendable, Equatable {
     var sessions: [PlanItemDTO]
     /// Headline + compact metrics + detail lines (newer backends only).
     var readinessToday: ReadinessTodayDTO?
+    /// Proposals waiting for review (newer backends only).
+    var coach: CoachSummaryDTO?
 
-    init(date: String, readiness: ReadinessDTO? = nil, sessions: [PlanItemDTO], readinessToday: ReadinessTodayDTO? = nil) {
+    init(date: String, readiness: ReadinessDTO? = nil, sessions: [PlanItemDTO], readinessToday: ReadinessTodayDTO? = nil,
+         coach: CoachSummaryDTO? = nil) {
         self.date = date; self.readiness = readiness; self.sessions = sessions; self.readinessToday = readinessToday
+        self.coach = coach
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -247,6 +251,7 @@ struct PlanTodayDTO: Codable, Sendable, Equatable {
         sessions = try c.decode([PlanItemDTO].self, forKey: .sessions)
         // Additive block: a shape change there must not hide today's plan.
         readinessToday = (try? c.decodeIfPresent(ReadinessTodayDTO.self, forKey: .readinessToday)) ?? nil
+        coach = (try? c.decodeIfPresent(CoachSummaryDTO.self, forKey: .coach)) ?? nil
     }
 }
 

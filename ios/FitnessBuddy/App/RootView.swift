@@ -1,7 +1,9 @@
+import SwiftData
 import SwiftUI
 
 struct RootView: View {
     @Environment(AppEnvironment.self) private var env
+    @Query private var states: [SyncState]
 
     var body: some View {
         @Bindable var env = env
@@ -10,7 +12,8 @@ struct RootView: View {
             Tab("Workout", systemImage: "dumbbell.fill", value: AppTab.workout) { WorkoutTabView() }
             Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.progress) { ProgressTabView() }
             Tab("Health", systemImage: "heart.fill", value: AppTab.health) { HealthTabView() }
-            Tab("Coach", systemImage: "bubble.left.and.text.bubble.right.fill", value: AppTab.coach) { CoachPlaceholderView() }
+            Tab("Coach", systemImage: "bubble.left.and.text.bubble.right.fill", value: AppTab.coach) { CoachView() }
+                .badge(states.first?.coachPendingCount ?? 0)
         }
         .tint(Domain.lifting.color)
         .sheet(isPresented: $env.showWorkoutChooser) { WorkoutChooserSheet() }

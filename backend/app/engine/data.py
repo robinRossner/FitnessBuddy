@@ -31,7 +31,7 @@ from app.engine import lifting as L
 from app.engine import running as R
 from app.engine.config import EngineConfig
 from app.engine.planner import LiftContext, PlanInputs, VariantInfo
-from app.engine.program import Program
+from app.engine.program import Program, apply_overrides
 from app.engine.readiness import HealthDay
 from app.engine.scheduling import WEEKDAYS
 from app.sources.garmin.mapping import RUN_TYPES
@@ -304,6 +304,7 @@ def load_inputs(
     gyms_path: Path | None = None,
 ) -> PlanInputs:
     gym = current_gym(db, gyms_path)
+    program = apply_overrides(program, cfg.exercise_overrides)
     lookback = max(cfg.running_cfg.vdot.lookback_weeks, 8) + 4
     runs = load_runs(db, today - timedelta(weeks=lookback), today)
     return PlanInputs(

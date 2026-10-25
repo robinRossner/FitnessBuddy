@@ -137,9 +137,11 @@ def create_version(
     reason: str,
     author: str = "engine",
     meta: dict[str, Any] | None = None,
+    consultation_id: int | None = None,
 ) -> ConfigVersion:
     """New active version = active content + `changes` (dotted paths, e.g.
-    {"running.heart_rate.lthr": 178}). Returns the active version unchanged if nothing differs."""
+    {"running.heart_rate.lthr": 178}). Returns the active version unchanged if nothing differs.
+    `consultation_id` (advisor versions) is kept in `meta["consultation_id"]`."""
     if author not in AUTHORS:
         raise ConfigError(f"author must be one of {AUTHORS}")
     parent = get_active(db)
@@ -148,14 +150,11 @@ def create_version(
         set_path(content, path, value)
     if not compute_diff(parent.content, content):
         return parent
-    return _insert_version(
-        db,
-        parent,
-        content,
-        reason=reason,
-        author=author,
-        meta={**(parent.meta or {}), **(meta or {})},
-    )
+    extra = {"consultation_id": consultation_id} if consultation_id is not None else {}
+    new_meta = {**(parent.meta or {}), **(meta or {}), **extra}
+    if consultation_id is None:
+        new_meta.pop("consultation_id", None)  # never inherit the parent's link
+    return _insert_version(db, parent, content, reason=reason, author=author, meta=new_meta)
 
 
 def latest_garmin_metrics(db: Session) -> dict[str, AthleteMetric]:
@@ -184,6 +183,7 @@ def rollback(
         return current
     # Garmin values up to now count as handled, so the rollback is not undone by the next sync.
     meta = dict(current.meta or {})
+    meta.pop("consultation_id", None)  # a rollback is not the advisor's doing
     metrics = latest_garmin_metrics(db)
     if metrics:
         meta[GARMIN_METRIC_DAY] = max(m.day for m in metrics.values()).isoformat()

@@ -73,7 +73,22 @@ class Settings(BaseSettings):
     sync_nightly_time: str = "03:30"  # full incremental sync
     sync_day_times: str = "07:30,11:30,15:30,19:30"  # lighter runs (activities + today's health)
 
+    # Claude advisor (app/advisor). No key => consultations wait with status `awaiting_key`.
     anthropic_api_key: SecretStr | None = None
+    advisor_model: str = "claude-opus-5-5"
+    advisor_dry_run: bool = False  # build + store the input, never call Claude
+    advisor_max_tokens: int = 16000
+    advisor_max_retries: int = 3  # SDK retries (429 / 5xx / connection) with exponential backoff
+    advisor_timeout_s: float = 600.0
+    advisor_weekly_time: str = "20:00"  # every Sunday, scheduler_tz
+    advisor_trigger_time: str = "18:30"  # daily (not Sundays): batch open advisor_triggers
+    advisor_outcome_time: str = "04:15"  # daily: outcomes of changes applied 21-28 days ago
+
+    @property
+    def advisor_key(self) -> str | None:
+        """The API key if one is configured (blank counts as unset)."""
+        key = self.anthropic_api_key.get_secret_value().strip() if self.anthropic_api_key else ""
+        return key or None
 
 
 @lru_cache

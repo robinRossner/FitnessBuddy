@@ -21,9 +21,11 @@ cli = typer.Typer(add_completion=False, no_args_is_help=True, help="FitnessBuddy
 bodyweight = typer.Typer(no_args_is_help=True, help="Bodyweight log")
 stats = typer.Typer(no_args_is_help=True, help="Derived stats")
 cli.add_typer(bodyweight, name="bodyweight")
+advisor = typer.Typer(no_args_is_help=True, help="Claude advisor (docs/api/coach.md)")
 garmin = typer.Typer(no_args_is_help=True, help="Garmin sync (read-only towards Garmin)")
 cli.add_typer(stats, name="stats")
 cli.add_typer(garmin, name="garmin")
+cli.add_typer(advisor, name="advisor")
 
 
 def _rebuild(db) -> int:
@@ -438,6 +440,71 @@ def engine_config_check_garmin() -> None:
         typer.echo(
             f"new version {row.version}: {row.reason}" if row else "config already matches Garmin"
         )
+
+
+@advisor.command("status")
+def advisor_status() -> None:
+    """Key configured? dry run? budget used this week, open triggers, waiting consultations."""
+    from sqlalchemy import func
+
+    from app.advisor import service
+    from app.db.models import AdvisorConsultation, AdvisorTrigger
+
+    s = get_settings()
+    with session_scope() as db:
+        st = service.coach_settings(db, s)
+        typer.echo(
+            f"model {s.advisor_model}; key {'set' if st.api_key_configured else 'NOT set'}; "
+            f"dry run {st.dry_run}; approval {st.approval_mode}; "
+            f"calls this week {st.calls_this_week}/{st.max_calls_per_week}"
+        )
+        for status, n in db.execute(
+            select(AdvisorConsultation.status, func.count()).group_by(AdvisorConsultation.status)
+        ):
+            typer.echo(f"  consultations {status}: {n}")
+        open_n = db.scalar(select(func.count()).where(AdvisorTrigger.status == "open"))
+        typer.echo(f"  open engine triggers: {open_n}")
+
+
+@advisor.command("run")
+def advisor_run(
+    what: Annotated[str, typer.Argument(help="weekly | triggers | retry | outcomes")],
+) -> None:
+    """Run an advisor job now (respects ADVISOR_DRY_RUN, the missing-key rule and the budget)."""
+    from app.advisor import outcomes, service
+
+    s = get_settings()
+    with session_scope() as db:
+        if what == "weekly":
+            c = service.run_weekly_review(db, s)
+        elif what == "triggers":
+            c = service.run_trigger_batch(db, s)
+        elif what == "retry":
+            typer.echo(f"{service.retry_awaiting_key(db, s)} consultation(s) run")
+            return
+        elif what == "outcomes":
+            typer.echo(f"{len(outcomes.run_outcome_check(db, s))} outcome(s) recorded")
+            return
+        else:
+            raise _fail(ValueError("what must be weekly, triggers, retry or outcomes"))
+        if c is None:
+            typer.echo("nothing to do (already done this week, no open triggers, or over budget)")
+        else:
+            typer.echo(f"consultation {c.id}: {c.status}" + (f" ({c.error})" if c.error else ""))
+
+
+@advisor.command("input")
+def advisor_input() -> None:
+    """Build the weekly-review input now and print its size per section (nothing is stored)."""
+    from app.advisor import service, summary
+
+    s = get_settings()
+    with session_scope() as db:
+        info = service.weekly_trigger_info(service.engine_service.monday(service.user_today(s)), [])
+        doc = summary.build_input(db, trigger=info, question=None, settings=s)
+    typer.echo(f"total ~{summary.estimate_tokens(doc)} tokens (chars / 4)")
+    for key, value in doc.items():
+        typer.echo(f"  {key:22} ~{summary.estimate_tokens(value)}")
 
 
 def _echo_report(report) -> None:

@@ -23,6 +23,8 @@ struct LiftDetailView: View {
                 } else {
                     StatsPlaceholder(resource: detail, symbol: "dumbbell.fill", emptyTitle: "lift history")
                 }
+                AskCoachButton(title: "Ask coach about this lift",
+                               context: .lift(id: lift.variantId, name: (detail.value?.lift.name ?? lift.name).withoutGymSuffix))
                 FreshnessLabel(resource: detail)
             }
             .padding(.horizontal, 16)

@@ -16,6 +16,7 @@ _PATTERNS = [
         r"(?i)(authorization['\"]?\s*[:=]\s*['\"]?)(?:(?:Bearer|ApiKey|Basic)\s+)?[^\s'\",}]+"
     ),
     re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*"),  # JWT
+    re.compile(r"\bsk-ant-[A-Za-z0-9_-]{6,}"),  # Anthropic API keys (also admin / oauth ones)
 ]
 _secrets: set[str] = set()
 _installed = False
@@ -31,7 +32,8 @@ def redact(text: str) -> str:
         text = text.replace(secret, "***")
     text = _PATTERNS[1].sub(lambda m: f"{m.group(1)}***", text)
     text = _PATTERNS[0].sub(lambda m: f"{m.group(1)} ***", text)
-    return _PATTERNS[2].sub("***", text)
+    text = _PATTERNS[2].sub("***", text)
+    return _PATTERNS[3].sub("***", text)
 
 
 class RedactingFilter(logging.Filter):

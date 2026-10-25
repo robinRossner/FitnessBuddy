@@ -65,6 +65,7 @@ struct SettingsView: View {
                     }
                 }
                 syncSection
+                coachSection
 
                 #if DEBUG
                 Section {
@@ -157,6 +158,14 @@ struct SettingsView: View {
         } header: { Text("Backend") } footer: {
             Text("Changing the URL or token deletes the cached data from the old backend and downloads everything again. "
                  + "Plain http:// works for local-network addresses only. Use https:// anywhere else.")
+        }
+    }
+
+    private var coachSection: some View {
+        Section {
+            ApprovalModePicker()
+        } header: { Text("Coach") } footer: {
+            Text("How proposed settings changes are handled. Every applied change becomes a config version you can roll back.")
         }
     }
 

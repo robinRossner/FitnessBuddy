@@ -23,6 +23,8 @@ enum PlanCache {
             state.readinessData = data
             state.readinessDate = today.date
         }
+        state.coachPendingCount = today.coach?.pendingCount ?? 0
+        state.coachLatestPendingId = today.coach?.latestPendingId
         state.readinessTodayData = today.readinessToday.flatMap { try? APICoding.makeEncoder().encode($0) }
         if today.readinessToday != nil { state.readinessDate = today.date }
         try? ctx.save()

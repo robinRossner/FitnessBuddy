@@ -48,6 +48,14 @@ enum APICoding {
         return d
     }
 
+    /// Same dates, but object keys are kept exactly as sent. For payloads with free-form JSON (coach config diffs,
+    /// where a key such as `running.easy_pace` must not become `running.easyPace`); DTOs spell their keys out.
+    static func makeRawKeyDecoder() -> JSONDecoder {
+        let d = makeDecoder()
+        d.keyDecodingStrategy = .useDefaultKeys
+        return d
+    }
+
     static func makeEncoder() -> JSONEncoder {
         let e = JSONEncoder()
         e.keyEncodingStrategy = .convertToSnakeCase

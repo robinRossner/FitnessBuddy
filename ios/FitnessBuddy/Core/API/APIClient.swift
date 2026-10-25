@@ -177,6 +177,11 @@ struct APIClient: Sendable {
         try await raw(path: path, query: query, method: "GET", authorized: true, body: nil)
     }
 
+    /// Authorised request with an optional JSON body, returning the raw body (coach writes: approve, reject, ask ...).
+    func perform(method: String, path: String, query: [URLQueryItem] = [], body: Data? = nil) async throws -> Data {
+        try await raw(path: path, query: query, method: method, authorized: true, body: body)
+    }
+
     private func raw(path: String, query: [URLQueryItem], method: String, authorized: Bool, body: Data?) async throws -> Data {
         let req = try makeRequest(path: path, query: query, method: method, authorized: authorized, body: body)
         let (respData, response): (Data, URLResponse)

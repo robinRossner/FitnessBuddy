@@ -117,6 +117,9 @@ def test_scheduler_jobs_and_default_off():
             "garmin_day_1130",
             "garmin_day_1530",
             "garmin_day_1930",
+            "advisor_weekly",
+            "advisor_triggers",
+            "advisor_outcomes",
         }
         night = jobs["garmin_nightly"].trigger
         assert str(night.timezone) == "Europe/Vienna"

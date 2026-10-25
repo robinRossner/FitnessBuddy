@@ -20,6 +20,7 @@ struct TodayView: View {
 
     private var today: String { AppClock.todayString }
     private var todayItems: [CachedPlannedSession] { planned.filter { $0.date == today } }
+    private var coachPending: Int { states.first?.coachPendingCount ?? 0 }
     private var activeSession: LocalSession? { sessions.first { $0.isActive } }
 
     private var readinessSummary: ReadinessSummary? {
@@ -36,6 +37,9 @@ struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    if CoachLogic.bannerVisible(pendingCount: coachPending) {
+                        CoachBanner(pendingCount: coachPending, latestId: states.first?.coachLatestPendingId)
+                    }
                     ReadinessCard(summary: readinessSummary, startOpen: openSheet == "readiness")
                     if todayItems.isEmpty {
                         EmptyPlanCard(isConfigured: env.settings.isConfigured) { showSettings = true }
