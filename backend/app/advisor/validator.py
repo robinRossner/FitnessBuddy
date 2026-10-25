@@ -406,6 +406,14 @@ def _num_spec(
     )
 
 
+def _bool_check(value: Any, cur: Any, _ctx: Context, _g: dict[str, str]) -> Checked:
+    if not isinstance(value, bool):
+        raise Invalid("must be true or false")
+    if cur is not None and value == cur:
+        raise Invalid(f"already {str(cur).lower()}: nothing to change")
+    return Checked(value, LOW)
+
+
 def _phase_spec(name: str, label: str, lo: int, hi: int, step: int) -> Spec:
     """Weeks of one quality-cycle phase: the override, else the phase's configured weeks."""
 
@@ -634,6 +642,22 @@ SPECS: tuple[Spec, ...] = (
         0.1,
         risk=_up_risk(1.15),
         doc="number 1.0..1.3, max step 0.1; raising above 1.15 is high risk",
+    ),
+    Spec(
+        "running.volume.hold_last_week",
+        "Weekly cap may hold last week's completed km",
+        "true or false (low risk: repeating a volume just completed)",
+        _path_current("running.volume.hold_last_week"),
+        _bool_check,
+    ),
+    _num_spec(
+        "running.volume.hold_limit_factor",
+        "Held volume vs the highest of the 4 weeks before it (x)",
+        1.0,
+        1.2,
+        0.1,
+        risk=_up_risk(1.1),
+        doc="number 1.0..1.2, max step 0.1; raising above 1.1 is high risk",
     ),
     _int_spec("running.long_run.step_back_every", "Long run step-back every N weeks", 3, 6, 1),
     _num_spec("running.long_run.step_back_pct", "Long run step-back (%)", 10, 30, 10, unit=" %"),

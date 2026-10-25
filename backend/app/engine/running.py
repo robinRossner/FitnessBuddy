@@ -14,7 +14,7 @@ The Friday quality cycle and its levers live in `quality.py`, VDOT updates in `v
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from statistics import fmean, median
@@ -462,15 +462,63 @@ def volume_cap_km(
     *,
     weeks_avg: int = 4,
     abs_km: float = 2.0,
+    hold_km: float | None = None,
 ) -> float | None:
     """Max km for the week starting `week_start`: the mean of the last `weeks_avg` weeks of
-    ACTUAL km (weeks without runs count as 0), then max(mean x (1 + cap %), mean + abs_km).
-    No run in those weeks: nothing to cap against (None)."""
+    ACTUAL km (weeks without runs count as 0), then max(mean x (1 + cap %), mean + abs_km,
+    hold_km). `hold_km` is the volume of the last completed week that may be repeated
+    (`hold_volume`). No run in those weeks: nothing to cap against (None)."""
     prev = [weekly.get(week_start - timedelta(days=7 * i), 0.0) for i in range(1, weeks_avg + 1)]
     if not any(prev):
         return None
     mean = fmean(prev)
-    return round(max(mean * (1 + cap_pct / 100), mean + abs_km), 2)
+    return round(max(mean * (1 + cap_pct / 100), mean + abs_km, hold_km or 0.0), 2)
+
+
+@dataclass
+class VolumeHold:
+    """Whether the weekly cap may hold the last completed week's km (see `hold_volume`)."""
+
+    last_week_km: float
+    limit_km: float  # limit_factor x the highest week of the 4 weeks before the last one
+    km: float | None  # the hold fed into the cap; None = no hold
+    blocked: str | None = None  # why there is no hold
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "last_week_km": round(self.last_week_km, 2),
+            "limit_km": round(self.limit_km, 2),
+            "hold_km": None if self.km is None else round(self.km, 2),
+            "blocked": self.blocked,
+        }
+
+
+def hold_volume(
+    weekly: dict[date, float],
+    runs: Sequence[RunData],
+    week_start: date,
+    *,
+    limit_factor: float,
+    flagged: Callable[[RunData], bool],
+) -> VolumeHold | None:
+    """Holding a volume you just completed is low risk: the km of the last completed week
+    (Mon-Sun before `week_start`), at most `limit_factor` x the highest weekly km of the 4 weeks
+    before that week, and only when none of its easy / long runs (`flagged`: an HR fail or a drift
+    flag; interval sessions are not judged) was flagged. None when that week had no runs."""
+    last = week_start - timedelta(days=7)
+    km = weekly.get(last, 0.0)
+    if km <= 0:
+        return None
+    limit = limit_factor * max(weekly.get(last - timedelta(days=7 * i), 0.0) for i in range(1, 5))
+    bad = [
+        r
+        for r in runs
+        if iso_week_start(r.day) == last and split_intervals(r.laps) is None and flagged(r)
+    ]
+    if bad:
+        why = f"the easy / long run of {bad[-1].day} had an HR fail or HR drift"
+        return VolumeHold(km, limit, None, why)
+    return VolumeHold(km, limit, round(min(km, limit), 2))
 
 
 def mean_km(weekly: dict[date, float], week_start: date, weeks: int = 4) -> float:

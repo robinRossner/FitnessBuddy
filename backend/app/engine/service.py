@@ -9,12 +9,13 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import PlannedSession
+from app.db.models import ExerciseVariant, PlannedSession
 from app.engine import config_service as cs
 from app.engine import data as D
 from app.engine import persist as P
 from app.engine import running as R
 from app.engine.config import EngineConfig
+from app.engine.decisions import log_decision
 from app.engine.hr import zones_from_config
 from app.engine.makeup import MakeupSummary, handle_missed
 from app.engine.planner import WeekPlan, generate_week
@@ -128,6 +129,112 @@ def apply_week(
         db, plan, config_version_id=cv_id, gym_id=gym.id if gym else None, only_days=only_days
     )
     return WeekResult(plan, res)
+
+
+@dataclass
+class CancelResult:
+    week_start: date
+    status: str  # cancelled | already_cancelled | no_deload
+    message: str
+    reason: str | None = None
+    retest: list[str] = field(default_factory=list)  # lifts that retest their old load now
+    replanned: bool = False
+
+    def as_dict(self) -> dict:
+        return {
+            "week_start": self.week_start.isoformat(),
+            "status": self.status,
+            "changed": self.status == "cancelled",
+            "message": self.message,
+            "reason": self.reason,
+            "retest": self.retest,
+            "replanned": self.replanned,
+        }
+
+
+def cancel_deload(
+    db: Session,
+    *,
+    week_start: date,
+    reason: str | None = None,
+    today: date | None = None,
+    replan: bool = True,
+    settings: Settings | None = None,
+    program: Program | None = None,
+) -> CancelResult:
+    """The user cancels the soft deload of a week (multi-lift stall, fatigue index): that week's
+    lifts get their normal sets and the lifts the deload was going to retest do so at once, at
+    their old loads. Stored as a `deload_cancel` decision (author user) that the window loader
+    honours, so later engine runs keep the week cancelled. Idempotent: a week that is already
+    cancelled, or that has no deload, changes nothing. With `replan`, the week's plan is
+    regenerated and persisted (what the next `engine run` would do)."""
+    s = settings or get_settings()
+    today = today or user_today(s)
+    ws = monday(week_start)
+    cs.ensure_seeded(db, s.engine_config_path)
+    cfg, _row = cs.load_active(db)
+    if ws in D.load_cancelled_weeks(db):
+        return CancelResult(
+            ws, "already_cancelled", f"The deload of the week of {ws} is already cancelled."
+        )
+    found = [
+        w
+        for w in D.load_windows(db, cfg, ws - timedelta(days=30))
+        if D.cancel_window(w, ws) is not None
+    ]
+    if not found:  # not stored yet: would the engine create one for this week?
+        try:
+            plan, _c, _id = plan_week(db, today=today, week_start=ws, settings=s, program=program)
+        except FileNotFoundError:
+            plan = None
+        for d in plan.decisions if plan else []:
+            win = (d.output or {}).get("window")
+            if d.kind == "deload" and win and win.get("start"):
+                w = D._window_from(win)
+                if D.cancel_window(w, ws) is not None:
+                    found.append(w)
+    if not found:
+        return CancelResult(
+            ws,
+            "no_deload",
+            f"No lifting deload to cancel in the week of {ws} (nothing was changed).",
+        )
+    names = sorted(
+        {v.name for w in found for k in w.retest if (v := db.get(ExerciseVariant, k)) is not None}
+    )
+    why = f" ({reason})" if reason else ""
+    log_decision(
+        db,
+        kind=D.DELOAD_CANCEL,
+        rule="deload_cancel",
+        subject_type="week",
+        subject_id=ws.isoformat(),
+        inputs={"windows": [_window_json(w) for w in found]},
+        output={"author": "user", "week_start": ws.isoformat(), "reason": reason},
+        rationale=f"The user cancelled the deload of the week of {ws}{why}: normal sets, "
+        "stalled lifts retest their old loads this week.",
+    )
+    res = CancelResult(
+        ws,
+        "cancelled",
+        f"Deload of the week of {ws} cancelled: normal sets"
+        + (f"; {len(names)} lifts retest their old loads now" if names else ""),
+        reason,
+        names,
+    )
+    if replan:
+        try:
+            apply_week(db, today=today, week_start=ws, settings=s, program=program)
+            res.replanned = True
+        except FileNotFoundError:
+            pass
+    return res
+
+
+def _window_json(w) -> dict:
+    from app.engine.planner import _window_dict
+
+    return _window_dict(w)
 
 
 def readiness_for(db: Session, day: date, settings: Settings | None = None) -> Readiness:

@@ -7,7 +7,7 @@ struct TodayView: View {
     @Query private var states: [SyncState]
     @Query(filter: #Predicate<LocalSession> { $0.deletedAt == nil }, sort: \LocalSession.startedAt, order: .reverse)
     private var sessions: [LocalSession]
-    @State private var showSettings = false
+    @State private var showSettings: Bool
     private let openSheet: String?
 
     init() {
@@ -16,6 +16,7 @@ struct TodayView: View {
         #else
         openSheet = nil
         #endif
+        _showSettings = State(initialValue: openSheet == "settings")
     }
 
     private var today: String { AppClock.todayString }
@@ -237,7 +238,9 @@ struct AdjustmentNote: View {
 }
 
 struct LiftingBody: View {
+    @Environment(AppEnvironment.self) private var env
     let session: PrescriptionDTO?
+    @State private var setupTarget: MachineSetupTarget?
 
     var body: some View {
         let exercises = session?.exercises ?? []
@@ -247,8 +250,19 @@ struct LiftingBody: View {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ex.name.withoutGymSuffix).font(.subheadline.weight(.medium))
-                        if ex.variantId == nil {
+                        if ex.showsSetupButton {
+                            Button { setupTarget = MachineSetupTarget(exercise: ex) } label: {
+                                Label("Set up machine", systemImage: "wrench.and.screwdriver")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .buttonStyle(.bordered).tint(.orange).controlSize(.small)
+                            .disabled(!env.gyms.canWrite)
+                            .accessibilityHint(env.gyms.writeBlockedHint ?? "Opens the machine editor for the current gym")
+                        } else if ex.variantId == nil {
                             Text(ex.reason ?? "Log it once to get targets").font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let note = ex.setupNote {
+                            Text(note).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     Spacer(minLength: 8)
@@ -259,6 +273,7 @@ struct LiftingBody: View {
                 .padding(.vertical, 8)
             }
         }
+        .sheet(item: $setupTarget) { MachineSetupSheet(target: $0) }
     }
 }
 

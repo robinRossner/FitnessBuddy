@@ -89,6 +89,11 @@ final class LocalSet {
     var prevDurationS: Double?
     /// `rest_s` of the plan exercise this set was prefilled from (nil: ad-hoc exercise, older plan).
     var plannedRestS: Int? = nil
+    /// First session at this machine (`progression_state == "baseline"`): no target, `hintWeightKg` is only a placeholder.
+    var isBaseline: Bool = false
+    var hintWeightKg: Double? = nil
+    /// The plan said the machine of this exercise is not set up at the current gym yet.
+    var needsSetup: Bool = false
 
     init(id: UUID = UUID(), sessionId: UUID, variantId: Int, variantName: String = "", exerciseOrder: Int,
          setOrder: Int, setType: String = "working", weightKg: Double? = nil, reps: Int? = nil,

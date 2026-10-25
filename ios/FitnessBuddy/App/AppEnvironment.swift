@@ -24,6 +24,7 @@ final class AppEnvironment {
     let restTimer: RestTimer
     let stats: StatsRepository
     let coach: CoachRepository
+    let gyms: GymRepository
 
     #if DEBUG
     /// `-uiTab progress|health|...` selects the tab at launch (screenshots).
@@ -65,13 +66,18 @@ final class AppEnvironment {
         self.coach = CoachRepository(settings: settings, network: network,
                                      store: testing ? MemoryStatsCache() : DiskStatsCache(directory: Self.coachCacheDirectory),
                                      isDemo: { SyncState.current(in: container.mainContext).demoActive })
+        self.gyms = GymRepository(settings: settings, network: network,
+                                  store: testing ? MemoryStatsCache() : DiskStatsCache(directory: Self.gymCacheDirectory),
+                                  isDemo: { SyncState.current(in: container.mainContext).demoActive })
         self.sync = SyncCoordinator(container: container, settings: settings, network: network)
         self.sync.enabled = !testing
         #if DEBUG
         self.stats.demoTransport = DemoStats.transport
         self.coach.demoTransport = DemoCoach.shared.transport
+        self.gyms.demoTransport = DemoGyms.shared.transport
         #endif
         coach.afterPlanChange = { [weak self] in await self?.sync.sync(.manual) }
+        gyms.afterPlanChange = { [weak self] in await self?.sync.sync(.manual) }
         coach.onPendingChanged = { [weak self] count, latest in
             guard let self else { return }
             let state = SyncState.current(in: self.context)
@@ -115,6 +121,7 @@ final class AppEnvironment {
     private func wipeLocalData(fingerprint: String?) {
         BackendReset.reset(in: context, fingerprint: fingerprint)
         coach.reset()
+        gyms.reset()
         coachRoute = nil
         settings.currentGymId = nil
         sync.didResetData()
@@ -146,6 +153,11 @@ final class AppEnvironment {
     static var coachCacheDirectory: URL {
         (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
             .appendingPathComponent("CoachCache", isDirectory: true)
+    }
+
+    static var gymCacheDirectory: URL {
+        (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent("GymCache", isDirectory: true)
     }
 
     /// Shows a proposal (or just the Coach tab) from anywhere.

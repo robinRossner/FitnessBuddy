@@ -70,6 +70,8 @@ class LiftContext:
     variant: VariantInfo | None
     history: list[L.Exposure] = field(default_factory=list)
     ladder: list[L.LadderEvent] = field(default_factory=list)  # stall-ladder steps so far
+    # no history here yet: (gym name, weight kg, reps) of the same exercise at another gym
+    previous: tuple[str, float, int | None] | None = None
 
 
 @dataclass
@@ -94,6 +96,8 @@ class PlanInputs:
     vdot_log: list[V.VdotRecord] = field(default_factory=list)
     cycle_start: date | None = None
     last_step_back: date | None = None  # Monday of the last long-run step-back week
+    # weeks whose soft deload the user cancelled (`engine deload cancel`) -> the reason
+    cancelled_weeks: dict[date, str | None] = field(default_factory=dict)
     bodyweight_kg: float | None = None
 
 
@@ -574,6 +578,9 @@ class _Planner:
             hard_run_days=self.hard_run_days,
             windows=windows,
             ladder=list(ctx.ladder),
+            previous_gym=ctx.previous[0] if ctx.previous else None,
+            previous_weight_kg=ctx.previous[1] if ctx.previous else None,
+            previous_reps=ctx.previous[2] if ctx.previous else None,
         )
 
     def _prepare_lifts(self, todo: list[S.Slot]) -> None:
@@ -626,6 +633,9 @@ class _Planner:
                         w.start,
                     )
                 )
+        cancelled = ws in inp.cancelled_weeks
+        if cancelled:
+            self._cancel_decision(ws)
         if not lift_days:
             return
         for d in lift_days:  # reactive deload from a red streak (also lines up the step-back)
@@ -688,17 +698,27 @@ class _Planner:
                     (x for x in an.evals if abs(x.load - last.load) < 1e-6), key=lambda x: x.total
                 )
                 retest[ctx.variant.id] = L.Retest(last.load, ref.reps, ref.e1rm)  # type: ignore[union-attr]
-            w = L.DeloadWindow(start, until, "multi_lift_stall", retest)
+            if cancelled:  # the user cancelled this week's deload: straight to the retest
+                w = L.DeloadWindow(
+                    start, start - timedelta(days=1), "multi_lift_stall", retest, False, True
+                )
+            else:
+                w = L.DeloadWindow(start, until, "multi_lift_stall", retest)
             self.windows.append(w)
             self._created_window = w
             names = [ctx.variant.name for ctx, _an in stalled]  # type: ignore[union-attr]
+            plan_text = (
+                "the deload is cancelled by the user: retest of the old loads right away"
+                if cancelled
+                else f"soft deload {start} .. {until} (sets halved, loads kept), then a retest "
+                "of the old loads"
+            )
             self.decisions.append(
                 DecisionRec(
                     "deload",
                     "deload:multi_lift_stall",
                     f"{n_stalled} lifts stalled within {st.multi_stall_days} days "
-                    f"({', '.join(names)}): no per-lift resets; soft deload {start} .. {until} "
-                    "(sets halved, loads kept), then a retest of the old loads",
+                    f"({', '.join(names)}): no per-lift resets; {plan_text}",
                     {"stalled": {ctx.variant.name: an.counter for ctx, an in stalled}},  # type: ignore[union-attr]
                     {"window": _window_dict(w)},
                     "week",
@@ -721,7 +741,7 @@ class _Planner:
                     start,
                 )
             )
-        elif not recent_window and not any(w.covers(first) for w in self.windows):
+        elif not cancelled and not recent_window and not any(w.covers(first) for w in self.windows):
             self._fatigue_window(analyses, start, until)
 
         for vid, (ctx, an, _spec) in analyses.items():
@@ -733,6 +753,36 @@ class _Planner:
                 "ladder_position": an.ladder_pos,
                 "censored": an.censored(),
             }
+
+    def _cancel_decision(self, ws: date) -> None:
+        """Audit line for a week whose deload the user cancelled (only when it had one)."""
+        week_end = ws + timedelta(days=6)
+        done = [w for w in self.windows if w.cancelled and w.start <= week_end]
+        if not done:
+            return
+        names_by_id = {c.variant.id: c.variant.name for c in self.inp.lifts.values() if c.variant}
+        retest = sorted({names_by_id.get(k, str(k)) for w in done for k in w.retest})
+        reason = self.inp.cancelled_weeks.get(ws)
+        self.decisions.append(
+            DecisionRec(
+                "deload",
+                "deload:cancelled",
+                f"deload of the week of {ws} cancelled by the user"
+                + (f" ({reason})" if reason else "")
+                + ": normal set counts"
+                + (
+                    f"; {len(retest)} stalled lifts retest their old loads this week "
+                    f"({', '.join(retest)})"
+                    if retest
+                    else ""
+                )
+                + "; the other lifts progress by the normal rules",
+                {"week_start": ws.isoformat(), "reason": reason},
+                {"lifts_retesting": retest},  # no `window` key: windows are rebuilt from the log
+                "week",
+                ws.isoformat(),
+            )
+        )
 
     def _fatigue_window(self, analyses, start: date, until: date) -> None:
         st = self.st
@@ -800,7 +850,13 @@ class _Planner:
                         "name": pe.variant,
                         "exercise": pe.exercise,
                         "unresolved": True,
-                        "reason": "no variant at the current gym yet: log it once to get targets",
+                        "reason": "no variant at the current gym yet: set up this machine",
+                        "needs_setup": True,
+                        "progression_note": (
+                            f"Set up this machine for {inp.gym_name}"
+                            if inp.gym_name
+                            else "Set up this machine"
+                        ),
                         "sets": [
                             {
                                 "index": i + 1,
@@ -840,6 +896,8 @@ class _Planner:
                     "rule": presc.rule,
                     "reason": presc.reason,
                     "flags": presc.flags,
+                    "needs_setup": False,
+                    **({"hint_weight_kg": presc.hint_weight_kg} if presc.hint_weight_kg else {}),
                 }
             )
             out: dict[str, Any] = {
@@ -1083,8 +1141,26 @@ class _Planner:
         run_slots = {s.kind: s for s in todo if s.kind in ("easy_run", "intervals", "long_run")}
         weekly = R.weekly_km(self.inp.runs)
         mean = R.mean_km(weekly, ws, vol.mean_weeks)
+        hold = None
+        if vol.hold_last_week:
+            lower = self.inp.actual_lower_days
+
+            def flagged(r: R.RunData) -> bool:
+                ev = R.evaluate_easy_run(
+                    r, self.zones, rc.easy, after_lower=(r.day - timedelta(days=1)) in lower
+                )
+                return not ev.passed or ev.decoupling_flag
+
+            hold = R.hold_volume(
+                weekly, self.inp.runs, ws, limit_factor=vol.hold_limit_factor, flagged=flagged
+            )
         cap = R.volume_cap_km(
-            weekly, ws, rc.weekly_volume_cap_pct, weeks_avg=vol.mean_weeks, abs_km=vol.cap_abs_km
+            weekly,
+            ws,
+            rc.weekly_volume_cap_pct,
+            weeks_avg=vol.mean_weeks,
+            abs_km=vol.cap_abs_km,
+            hold_km=hold.km if hold else None,
         )
         single = R.single_run_cap_km(
             self.inp.runs,
@@ -1123,12 +1199,21 @@ class _Planner:
         fitted, notes = R.fit_to_cap(km, remaining, vol.min_run_km, vol.min_run_km)
         target = rc.weekly_volume_floor_km or None
         factor = 1 + rc.weekly_volume_cap_pct / 100
+        held = hold is not None and hold.km is not None
         reasoning = (
             f"4-week mean {mean:g} km -> cap max({mean:g} x {factor:g}, "
-            f"{mean:g} + {vol.cap_abs_km:g}) = {cap:g} km"
+            f"{mean:g} + {vol.cap_abs_km:g}{f', hold {hold.km:g}' if held else ''}) = {cap:g} km"
             if cap is not None
             else "no runs in the last 4 weeks: no cap"
         )
+        if cap is not None and hold is not None:
+            reasoning += (
+                f"; hold: last week ran {hold.last_week_km:g} km, held up to {hold.km:g} km "
+                f"(limit {vol.hold_limit_factor:g} x the highest of the 4 weeks before it = "
+                f"{hold.limit_km:g} km)"
+                if held
+                else f"; no hold of last week's {hold.last_week_km:g} km: {hold.blocked}"
+            )
         if target:
             reasoning += (
                 f"; target {target:g} km/week is reached step by step, never as one jump"
@@ -1142,6 +1227,7 @@ class _Planner:
             "mean_km_4w": mean,
             "target_km": target,
             "single_run_cap_km": single,
+            "hold": hold.as_dict() if hold else None,
             "done_km_this_week": round(done, 2),
             "planned_km_before_cap": {k: round(v, 2) for k, v in km.items()},
             "planned_km": {k: round(v, 2) for k, v in fitted.items()},
@@ -1689,6 +1775,7 @@ def _window_dict(w: L.DeloadWindow) -> dict[str, Any]:
         "until": w.until.isoformat(),
         "reason": w.reason,
         "deload": w.deload,
+        "cancelled": w.cancelled,
         "retest": {
             str(k): {"load": r.load, "reps": list(r.reps), "best_e1rm": r.best_e1rm}
             for k, r in w.retest.items()

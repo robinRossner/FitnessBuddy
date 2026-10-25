@@ -1,5 +1,6 @@
 """The weekly planner on synthetic plain data (no database), progression engine v2."""
 
+from dataclasses import replace
 from datetime import date, timedelta
 
 import pytest
@@ -493,6 +494,80 @@ def test_three_stalled_lifts_become_one_soft_deload_and_a_retest():
     assert not [t for t in plan2.triggers if t.type == "multi_lift_stall"]
 
 
+def _three_stalled():
+    d0 = MON - timedelta(days=21)
+    squat_hist = stalled(90, MON - timedelta(days=34), n=5, step=7)
+    return {
+        "Bench Press (Barbell)": LiftContext(BENCH, stalled(60, d0)),
+        "Lat Pulldown (Cable)": LiftContext(PULL, stalled(50, d0)),
+        "Squat (Barbell)": LiftContext(SQUAT, squat_hist),
+    }
+
+
+def test_a_cancelled_deload_week_goes_straight_to_the_retest_with_normal_sets():
+    ctxs = _three_stalled()
+    plan = generate_week(inputs(lifts=ctxs, cancelled_weeks={MON: "feeling fine"}))
+    mon, tue, thu = (day_of(plan, s) for s in ("mon_upper", "tue_lower", "thu_upper"))
+    assert mon.prescription["deload"] is None and "deload" not in mon.title
+    assert sets_of(mon, "Bench") == [(60, 11), (60, 10), (60, 10)]  # 3 sets, beat 10/9/9
+    assert sets_of(tue, "Squat") == [(90, 11), (90, 10), (90, 10)]
+    ex = mon.prescription["exercises"][0]
+    assert ex["progression_state"] == "retest"
+    assert ex["progression_note"] == "Retest at old load 60 kg: beat 10/9/9"
+    assert sets_of(thu, "Bench") == sets_of(mon, "Bench")
+    rec = next(d for d in plan.decisions if d.rule == "deload:multi_lift_stall")
+    assert "cancelled by the user" in rec.rationale
+    assert rec.output["window"]["deload"] is False and rec.output["window"]["cancelled"] is True
+    assert not any(d.rule.startswith("stall:") for d in plan.decisions)
+
+
+def test_cancelling_a_stored_deload_retests_the_stalled_lifts_and_progresses_the_rest():
+    from app.engine import data as D
+
+    ctxs = _three_stalled()
+    ctxs["Squat (Barbell)"] = LiftContext(SQUAT, [expo(MON - timedelta(days=6), 90, [10, 10, 9])])
+    w = L.DeloadWindow(
+        MON,
+        MON + timedelta(days=6),
+        "multi_lift_stall",
+        {1: L.Retest(60, (10, 9, 9)), 2: L.Retest(50, (10, 9, 9))},
+    )
+    soft = generate_week(inputs(lifts=ctxs, windows=[w]))
+    assert soft.days[0].prescription["deload"]["active"]
+    cancelled = D.apply_cancellations([w], {MON: None})
+    assert [(c.deload, c.cancelled, c.until) for c in cancelled] == [
+        (False, True, MON - timedelta(days=1))
+    ]
+    assert D.apply_cancellations(cancelled, {MON: None}) == cancelled  # idempotent
+    plan = generate_week(inputs(lifts=ctxs, windows=cancelled, cancelled_weeks={MON: None}))
+    mon, tue = day_of(plan, "mon_upper"), day_of(plan, "tue_lower")
+    assert [e["progression_state"] for e in mon.prescription["exercises"]] == ["retest"] * 2
+    assert sets_of(mon, "Lat Pulldown") == [(50, 11), (50, 10), (50, 10)]
+    assert mon.prescription["deload"] is None
+    sq = tue.prescription["exercises"][0]  # not stalled: double progression, full sets
+    assert sq["progression_state"] != "retest" and len(sq["sets"]) == 3
+    assert sets_of(tue, "Squat") == [(90, 11), (90, 11), (90, 10)]
+    cd = next(d for d in plan.decisions if d.rule == "deload:cancelled")
+    assert cd.output["lifts_retesting"] == ["Bench Press (Barbell)", "Lat Pulldown (Cable) @ Gym 3"]
+    assert "window" not in cd.output  # a window row would be read back as a deload window
+    assert "progress by the normal rules" in cd.rationale
+
+
+def test_the_running_step_back_no_longer_lines_up_with_a_cancelled_deload():
+    w = L.DeloadWindow(MON, MON + timedelta(days=6), "multi_lift_stall")
+    cfg = _with_running(long_run={"step_back_every": 3})
+    base = {"cfg": cfg, "last_step_back": MON - timedelta(days=14)}  # 2 of 3 weeks: one early
+    soft = generate_week(inputs(windows=[w], **base))
+    long = day_of(soft, "sun_long_run").prescription
+    assert (
+        long["step_back"] is True and "aligned with the lifting deload" in long["progression_note"]
+    )
+    for cancelled in (replace(w, deload=False, cancelled=True), None):
+        ws = [] if cancelled is None else [cancelled]
+        plan = generate_week(inputs(windows=ws, cancelled_weeks={MON: None}, **base))
+        assert day_of(plan, "sun_long_run").prescription["step_back"] is False
+
+
 def test_fatigue_index_two_weeks_in_a_row_triggers_a_reactive_deload():
     def falling(weight, start, step):
         out = [
@@ -546,6 +621,51 @@ def test_weekly_cap_from_the_4_week_mean_and_the_18_km_target():
     assert sum(v["planned_km"].values()) <= 8.0 + 4.5  # quality minimum + the 3 km floors
     long = day_of(plan, "sun_long_run").prescription["distance_km"]
     assert long <= 6.6  # never above 1.1 x the longest run of 30 days
+
+
+def _with_running(**sections):
+    raw = CFG.model_dump()
+    for name, over in sections.items():
+        raw["running"][name] = {**raw["running"].get(name, {}), **over}
+    return CFG.__class__.model_validate(raw)
+
+
+def _hold_runs(hr=140):
+    """Last week 20 km (8 km easy + 12 km long), before that 14, 8, 6 km."""
+    mon = MON - timedelta(days=7)
+    runs = [easy_run(mon + timedelta(days=2), 8, hr), easy_run(mon + timedelta(days=6), 12, hr)]
+    for w, km in ((2, 14), (3, 8), (4, 6)):
+        runs.append(easy_run(MON - timedelta(days=7 * w - 2), km, 140))
+    return sorted(runs, key=lambda r: r.day)
+
+
+def test_the_cap_holds_last_weeks_completed_volume_up_to_the_limit():
+    plan = generate_week(inputs(runs=_hold_runs()))
+    v = plan.volume
+    assert v["mean_km_4w"] == 12.0
+    assert v["hold"]["hold_km"] == pytest.approx(15.4) and v["hold"]["limit_km"] == 15.4
+    assert v["cap_km"] == pytest.approx(15.4)  # max(12 x 1.1, 12 + 2, 15.4): was 14
+    assert "cap max(12 x 1.1, 12 + 2, hold 15.4) = 15.4 km" in v["reasoning"]
+    assert "last week ran 20 km, held up to 15.4 km" in v["reasoning"]
+    assert v["single_run_cap_km"] == 15.4  # the single-run cap stays 1.1 x the longest run (14)
+    assert "single run <= 15.4 km" in v["reasoning"]
+    assert day_of(plan, "sun_long_run").prescription["distance_km"] <= 15.4
+
+
+def test_no_hold_after_a_week_with_an_easy_run_hr_fail():
+    plan = generate_week(inputs(runs=_hold_runs(hr=175)))
+    v = plan.volume
+    assert v["hold"]["hold_km"] is None and "HR fail" in v["hold"]["blocked"]
+    assert v["cap_km"] == pytest.approx(14.0)
+    assert "hold" not in v["reasoning"].split("= 14 km")[0]
+    assert "no hold of last week's 20 km" in v["reasoning"]
+
+
+def test_hold_can_be_switched_off():
+    cfg = _with_running(volume={"hold_last_week": False})
+    plan = generate_week(inputs(cfg=cfg, runs=_hold_runs()))
+    assert plan.volume["hold"] is None and plan.volume["cap_km"] == pytest.approx(14.0)
+    assert "hold" not in plan.volume["reasoning"]
 
 
 def test_cap_below_the_template_minimum_raises_a_rule_conflict_trigger():

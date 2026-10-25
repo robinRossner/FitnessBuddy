@@ -122,6 +122,7 @@ final class SyncCoordinator {
         case .success(let report):
             failures = 0
             lastReport = report
+            settings.currentGymId = GymSync.resolve(local: settings.currentGymId, server: report.serverGymId)
             lastSyncAt = SyncState.current(in: ModelContext(container)).lastSyncAt
             status = .idle
         case .failure(let error):

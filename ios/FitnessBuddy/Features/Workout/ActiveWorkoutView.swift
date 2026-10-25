@@ -13,6 +13,7 @@ struct ActiveWorkoutView: View {
     @State private var showAddExercise = false
     @State private var swapOrder: Int?
     @State private var restPickerOrder: Int?
+    @State private var setupTarget: MachineSetupTarget?
     @State private var notesShown: Set<Int> = []
     @State private var confirmFinish = false
     @State private var confirmDiscard = false
@@ -92,6 +93,7 @@ struct ActiveWorkoutView: View {
                 if let order = swapOrder { service.swapExercise(in: session, order: order, to: variant) }
             }
         }
+        .sheet(item: $setupTarget) { MachineSetupSheet(target: $0) }
         .sheet(item: Binding(get: { restPickerOrder.map(RestPickerTarget.init) }, set: { restPickerOrder = $0?.order })) { target in
             restPickerSheet(order: target.order)
         }
@@ -159,6 +161,16 @@ struct ActiveWorkoutView: View {
                     Text((group.first?.variantName.isEmpty == false ? group.first!.variantName : variant?.name ?? "Exercise")
                         .withoutGymSuffix)
                         .font(.headline).foregroundStyle(.primary)
+                    if group.first?.isBaseline == true {
+                        Text(SetupRules.baselineNote).font(.caption).foregroundStyle(Domain.lifting.color).textCase(nil)
+                    }
+                    if group.first?.needsSetup == true, let first = group.first {
+                        Button { setupTarget = MachineSetupTarget(variantId: first.variantId, name: first.variantName) } label: {
+                            Label("Set up machine", systemImage: "wrench.and.screwdriver").font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered).tint(.orange).controlSize(.small)
+                        .disabled(!env.gyms.canWrite)
+                    }
                     HStack(spacing: 8) {
                         if let lo = variant?.repRangeLow, let hi = variant?.repRangeHigh {
                             Text("Target \(lo)–\(hi) reps").font(.caption).foregroundStyle(.secondary)

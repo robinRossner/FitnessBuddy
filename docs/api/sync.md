@@ -24,6 +24,7 @@ Base URL `https://<host>/api/v1`, JSON only.
 | GET | `/api/v1/sync/pull?since=<cursor>` | yes | changes + catalog + plan + config |
 | GET | `/api/v1/variants/{id}/history?limit=10` | yes | previous performance of a variant |
 | GET | `/api/v1/plan/today`, `/api/v1/plan/week?start=` | yes | plan (existing, see below) |
+| POST | `/api/v1/engine/deload/cancel` | yes | cancel the lifting deload of a week ([engine.md](engine.md)) |
 
 ### GET /api/v1/health
 

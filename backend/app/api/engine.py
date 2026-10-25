@@ -24,6 +24,7 @@ from __future__ import annotations
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.advisor import service as service_advisor
@@ -102,3 +103,21 @@ def rollback_config(version: str, db: Session = Depends(get_db)) -> dict:
         raise HTTPException(404, str(exc)) from None
     db.commit()
     return {"active": _version(row)}
+
+
+class DeloadCancel(BaseModel):
+    week_start: date  # any date; the week (Mon-Sun) containing it
+    reason: str | None = None
+
+
+@router.post("/engine/deload/cancel")
+def cancel_deload(body: DeloadCancel, db: Session = Depends(get_db)) -> dict:
+    """Cancel the lifting deload of a week (docs/api/engine.md). Idempotent."""
+    try:
+        res = service.cancel_deload(
+            db, week_start=body.week_start, reason=(body.reason or "").strip() or None
+        )
+    except cs.ConfigError as exc:
+        raise HTTPException(409, str(exc)) from None
+    db.commit()
+    return res.as_dict()

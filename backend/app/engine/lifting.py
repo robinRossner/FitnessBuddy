@@ -50,7 +50,8 @@ _EPS = 1e-9
 # progression_state values of a plan item
 PROGRESSING, GRINDING, STALLED = "progressing", "grinding", "stalled"
 DELOAD, RETEST, REBUILD = "deload", "retest", "rebuild"
-STATES = (PROGRESSING, GRINDING, STALLED, DELOAD, RETEST, REBUILD)
+BASELINE = "baseline"  # a variant without history (new machine / new gym): find the first load
+STATES = (PROGRESSING, GRINDING, STALLED, DELOAD, RETEST, REBUILD, BASELINE)
 
 # stall-ladder steps
 LADDER_RESET_SMALL, LADDER_ADVISOR, LADDER_RESET_LARGE = 1, 2, 3
@@ -120,7 +121,8 @@ class DeloadWindow:
     until: date
     reason: str  # multi_lift_stall | fatigue_index | red_streak | legacy_reset
     retest: dict[int, Retest] = field(default_factory=dict)  # variant id -> retest
-    deload: bool = True  # False: only the retest (a converted single reset)
+    deload: bool = True  # False: only the retest (a converted single reset, or a cancelled deload)
+    cancelled: bool = False  # the user cancelled the deload: the retest starts without it
 
     def covers(self, d: date) -> bool:
         return self.deload and self.start <= d <= self.until
@@ -136,6 +138,11 @@ class LiftEnv:
     windows: list[DeloadWindow] = field(default_factory=list)
     ladder: list[LadderEvent] = field(default_factory=list)
     allow_ladder: bool = True  # False while the planner handles a multi-lift stall
+    # No history here yet: the same exercise at another gym (a hint, machines differ): its last
+    # top set. Filled by the planner's data loader; the targets stay empty either way.
+    previous_gym: str | None = None
+    previous_weight_kg: float | None = None
+    previous_reps: int | None = None
 
 
 @dataclass
@@ -172,6 +179,7 @@ class LiftPrescription:
     effective_rep_range: tuple[int, int] | None = None
     ladder: LadderEvent | None = None  # a NEW ladder step decided by this prescription
     retest: bool = False
+    hint_weight_kg: float | None = None  # baseline only: last top set at another gym
 
     @property
     def load(self) -> float | None:
@@ -578,13 +586,24 @@ def prescribe(
         return done(p)
     if last is None:
         sets = [SetTarget(i + 1, None, lo) for i in range(spec.n_sets)]
+        about = (lo + hi + 1) // 2
+        bound = " @ " in (getattr(spec.variant, "name", None) or "")
+        note = (
+            f"First session at this gym: pick a weight for about {about} reps"
+            if bound
+            else f"New lift: pick a weight for about {about} reps"
+        )
+        if ctx.previous_gym and ctx.previous_weight_kg:
+            reps = f" × {ctx.previous_reps}" if ctx.previous_reps else ""
+            note += f" (previous gym: {ctx.previous_weight_kg:g} kg{reps}; machines differ)"
         return done(
             LiftPrescription(
                 sets,
                 "no_history",
                 f"no history for this variant: pick a load for {lo}-{hi} reps",
-                state=GRINDING,
-                note=f"new lift: pick a load you can do {lo}-{hi} times",
+                state=BASELINE,
+                note=note,
+                hint_weight_kg=ctx.previous_weight_kg if ctx.previous_gym else None,
             )
         )
 
@@ -640,7 +659,11 @@ def prescribe(
             continue  # retest done: the normal rules judge it
         top2, _inf, _n = effective_top(spec, cfg, rt.load)
         sets = _targets(spec.n_sets, rt.load, rt.reps, top2, plus=1)
-        note = f"retest {rt.load:g} kg after the deload: beat {_fmt_reps(rt.reps)}"
+        note = (
+            f"Retest at old load {rt.load:g} kg: beat {_fmt_reps(rt.reps)}"
+            if w.cancelled
+            else f"retest {rt.load:g} kg after the deload: beat {_fmt_reps(rt.reps)}"
+        )
         flags = ["retest"] + (["identical_exposures"] if _identical(hist, 3) else [])
         return done(
             LiftPrescription(

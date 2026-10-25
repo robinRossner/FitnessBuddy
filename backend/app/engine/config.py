@@ -341,8 +341,11 @@ class LongRunConfig(_Model):
 
 
 class VolumeConfig(_Model):
-    """Weekly cap = max(mean x (1 + weekly_volume_cap_pct %), mean + cap_abs_km) of the last
-    `mean_weeks` weeks of ACTUAL km; `weekly_volume_floor_km` is now a target, not a floor."""
+    """Weekly cap = max(mean x (1 + weekly_volume_cap_pct %), mean + cap_abs_km, hold) of the last
+    `mean_weeks` weeks of ACTUAL km; `weekly_volume_floor_km` is now a target, not a floor.
+    `hold` (with `hold_last_week`) = the km of the last completed week, limited to
+    `hold_limit_factor` x the highest week of the 4 weeks before it, and only when that week had
+    no easy / long run with an HR fail or a drift flag (running.hold_volume_km)."""
 
     mean_weeks: int = 4
     cap_abs_km: float = 2.0
@@ -350,6 +353,8 @@ class VolumeConfig(_Model):
     single_run_abs_km: float = 0.0  # ... or longest + this, whichever is larger
     single_run_days: int = 30
     min_run_km: float = 3.0  # the cap never shortens an easy or long run below this
+    hold_last_week: bool = True  # the cap may hold the km of the last completed week
+    hold_limit_factor: float = 1.1  # ... at most this x the max weekly km of the 4 weeks before
 
 
 class FourthRunConfig(_Model):

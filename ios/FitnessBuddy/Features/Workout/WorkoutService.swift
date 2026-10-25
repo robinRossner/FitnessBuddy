@@ -81,12 +81,13 @@ struct WorkoutService {
         for ex in exercises {
             guard let variantId = ex.variantId else { continue }  // unresolved exercises can't be logged yet
             order += 1
-            let last = ex.last?.sets ?? []
+            let baseline = ex.isBaseline
+            let last = baseline ? [] : (ex.last?.sets ?? [])  // other gym's numbers say nothing about this machine
             for (i, ps) in ex.sets.enumerated() {
                 let prev = i < last.count ? last[i] : last.last
                 let set = LocalSet(sessionId: s.id, variantId: variantId, variantName: ex.name, exerciseOrder: order,
                                    setOrder: i + 1, setType: ps.setType,
-                                   weightKg: ps.targetWeight ?? prev?.weight,
+                                   weightKg: SetupRules.prefillWeight(target: ps.targetWeight, last: prev?.weight, baseline: baseline),
                                    reps: ps.targetReps ?? ex.repRange?.last,
                                    durationS: ps.targetDurationS)
                 set.isDemo = demo
@@ -94,6 +95,9 @@ struct WorkoutService {
                 set.targetReps = ps.targetReps
                 set.targetDurationS = ps.targetDurationS
                 set.plannedRestS = ex.restS
+                set.isBaseline = baseline
+                set.hintWeightKg = ex.hintWeightKg
+                set.needsSetup = ex.showsSetupButton
                 set.prevWeightKg = prev?.weight
                 set.prevReps = prev?.reps
                 set.prevDurationS = prev?.durationS
@@ -237,6 +241,8 @@ struct WorkoutService {
     @discardableResult
     func toggleComplete(_ set: LocalSet) -> Bool {
         if set.completedAt == nil {
+            // First session at a machine: there is no target, so a weight must be picked (the hint is only a placeholder).
+            if set.isBaseline && set.weightKg == nil { return false }
             if set.weightKg == nil { set.weightKg = set.targetWeightKg ?? set.prevWeightKg }
             if set.reps == nil && !set.isTimed { set.reps = set.targetReps ?? set.prevReps }
             if set.durationS == nil && set.targetDurationS != nil { set.durationS = set.targetDurationS }

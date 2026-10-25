@@ -43,6 +43,14 @@ class Program:
     def exercises(self, kind: str) -> list[ProgramExercise]:
         return [e for e in self.days.get(kind, []) if e.active]
 
+    def by_exercise(self) -> dict[str, ProgramExercise]:
+        """Active entries by catalog slug (upper before lower; the first entry of a slug wins)."""
+        out: dict[str, ProgramExercise] = {}
+        for kind in KINDS:
+            for e in self.exercises(kind):
+                out.setdefault(e.exercise, e)
+        return out
+
 
 def load_program(path: Path) -> Program:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

@@ -224,9 +224,11 @@ engine_program = typer.Typer(
     no_args_is_help=True, help="Lifting program (data/program/program.yaml)"
 )
 engine_config = typer.Typer(no_args_is_help=True, help="Versioned engine config")
+engine_deload = typer.Typer(no_args_is_help=True, help="Lifting deload weeks")
 cli.add_typer(engine, name="engine")
 engine.add_typer(engine_program, name="program")
 engine.add_typer(engine_config, name="config")
+engine.add_typer(engine_deload, name="deload")
 
 _DATE = {"formats": ["%Y-%m-%d"]}
 
@@ -273,6 +275,36 @@ def engine_plan(
         if dry_run:
             db.rollback()
             typer.echo("(dry run: nothing written)")
+
+
+@engine_deload.command("cancel")
+def engine_deload_cancel(
+    week: Annotated[
+        datetime, typer.Option("--week", **_DATE, help="any date of the week (Monday start)")
+    ],
+    reason: Annotated[str | None, typer.Option(help="why (kept in the audit log)")] = None,
+    replan: Annotated[
+        bool, typer.Option("--replan/--no-replan", help="regenerate that week's plan now")
+    ] = True,
+) -> None:
+    """Cancel the soft deload of a week: normal sets, and the lifts the deload was going to
+    retest do so at once at their old loads. Idempotent; the cancel is an audit-log entry
+    (author user), so later engine runs keep the week cancelled."""
+    from app.engine import service
+
+    s = get_settings()
+    with session_scope() as db:
+        try:
+            res = service.cancel_deload(
+                db, week_start=week.date(), reason=reason, replan=replan, settings=s
+            )
+        except Exception as exc:
+            raise _fail(exc) from None
+    typer.echo(res.message)
+    if res.retest:
+        typer.echo("retest at the old load: " + ", ".join(res.retest))
+    if res.status == "cancelled":
+        typer.echo("plan regenerated" if res.replanned else "run `engine run` to update the plan")
 
 
 @engine.command("run")

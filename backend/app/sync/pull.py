@@ -218,7 +218,19 @@ def config_out(db: Session, settings: Settings) -> dict[str, Any]:
             "rest_default_s": cfg.lifting_cfg.rest_default_s,
             "rest_s_by_variant": rest.overrides_by_variant(db, cfg),
         },
+        **gym_config(db, settings),
     }
+
+
+def gym_config(db: Session, settings: Settings) -> dict[str, Any]:
+    """The current gym and the gym list (docs/api/gyms.md); never fails a pull."""
+    try:
+        from app import gym_service
+
+        listing = gym_service.list_gyms(db, settings)
+        return {"current_gym_id": listing["current_gym_id"], "gyms": listing["gyms"]}
+    except Exception:
+        return {"current_gym_id": None, "gyms": []}
 
 
 # --------------------------------------------------------------------------- pull

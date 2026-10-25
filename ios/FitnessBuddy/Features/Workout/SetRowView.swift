@@ -16,8 +16,13 @@ struct SetRowView: View {
             HStack(spacing: 6) {
                 typeBadge
                 StepperField(title: "Weight", unit: "kg", value: set.weightKg, fractionDigits: 2,
+                             placeholder: set.weightKg == nil ? (SetupRules.placeholder(hintWeightKg: set.hintWeightKg) ?? "–") : "–",
                              decrement: { service.setWeight(set, WeightStepper.previous(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments), in: session) },
-                             increment: { service.setWeight(set, WeightStepper.next(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments), in: session) },
+                             increment: {
+                                 // an empty baseline set adopts its hint on the first tap
+                                 if set.weightKg == nil, let hint = set.hintWeightKg { service.setWeight(set, hint, in: session); return }
+                                 service.setWeight(set, WeightStepper.next(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments), in: session)
+                             },
                              commit: { service.setWeight(set, $0, in: session) })
                 if set.isTimed {
                     StepperField(title: "Seconds", unit: "sec", value: set.durationS, fractionDigits: 0,
@@ -93,6 +98,7 @@ struct StepperField: View {
     let unit: String
     let value: Double?
     let fractionDigits: Int
+    var placeholder = "–"
     let decrement: () -> Void
     let increment: () -> Void
     let commit: (Double?) -> Void
@@ -104,7 +110,7 @@ struct StepperField: View {
         HStack(spacing: 0) {
             stepButton("minus", "Decrease \(title.lowercased())", decrement)
             VStack(spacing: 0) {
-                TextField("–", text: $text)
+                TextField(placeholder, text: $text)
                     .focused($focused)
                     .keyboardType(fractionDigits > 0 ? .decimalPad : .numberPad)
                     .multilineTextAlignment(.center)

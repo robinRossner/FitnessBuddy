@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from app.db.models import (
     AthleteMetric,
     DailyHealth,
     DecisionLog,
+    Exercise,
     ExerciseSessionStats,
     ExerciseVariant,
     Gym,
@@ -56,7 +58,13 @@ def template_slot_ids(template: dict[str, str]) -> list[str]:
 
 
 def current_gym(db: Session, gyms_path: Path | None = None) -> Gym | None:
-    """The gym in use now: latest entry of gyms.yaml, else the gym of the newest session."""
+    """The gym in use now: the one chosen in the app (config `gym.current_id`), else the latest
+    entry of gyms.yaml, else the gym of the newest session."""
+    from app.gym_service import configured_current_gym
+
+    chosen = configured_current_gym(db)
+    if chosen is not None:
+        return chosen
     if gyms_path is not None and gyms_path.exists():
         from app.gyms import load_gyms
 
@@ -73,8 +81,12 @@ def current_gym(db: Session, gyms_path: Path | None = None) -> Gym | None:
     return db.get(Gym, gym_id) if gym_id else None
 
 
-def resolve_variant(db: Session, base_name: str, gym: Gym | None) -> ExerciseVariant | None:
-    """Generic variant `base_name`, or the gym-bound one named "<base_name> @ <gym>"."""
+def resolve_variant(
+    db: Session, base_name: str, gym: Gym | None, exercise_slug: str | None = None
+) -> ExerciseVariant | None:
+    """Generic variant `base_name`, or the machine at `gym`: named "<base_name> @ <gym>", else
+    (given `exercise_slug`) the active variant of that exercise at the gym, so a renamed machine
+    still resolves. Gym-specific variants must be active (a deactivated machine is "not set up")."""
     names = [base_name] + ([f"{base_name} @ {gym.name}"] if gym else [])
     rows = list(
         db.scalars(
@@ -83,7 +95,24 @@ def resolve_variant(db: Session, base_name: str, gym: Gym | None) -> ExerciseVar
             )
         )
     )
+    rows = [v for v in rows if v.gym_id is None or v.active]
     rows.sort(key=lambda v: v.gym_id is None)  # gym-specific first
+    if (not rows or rows[0].gym_id is None) and gym is not None and exercise_slug:
+        here = list(
+            db.scalars(
+                select(ExerciseVariant)
+                .join(Exercise, Exercise.id == ExerciseVariant.exercise_id)
+                .where(
+                    Exercise.slug == exercise_slug,
+                    ExerciseVariant.gym_id == gym.id,
+                    ExerciseVariant.deleted_at.is_(None),
+                    ExerciseVariant.active.is_(True),
+                )
+                .order_by(ExerciseVariant.id)
+            )
+        )
+        if here:
+            return here[0]
     return rows[0] if rows else None
 
 
@@ -194,7 +223,48 @@ def _window_from(d: dict) -> L.DeloadWindow:
             for k, v in (d.get("retest") or {}).items()
         },
         bool(d.get("deload", True)),
+        bool(d.get("cancelled", False)),
     )
+
+
+DELOAD_CANCEL = "deload_cancel"  # decisions_log kind: the user cancelled the deload of a week
+CANCELLABLE = ("multi_lift_stall", "fatigue_index", "legacy_reset")  # persisted deload windows
+
+
+def load_cancelled_weeks(db: Session) -> dict[date, str | None]:
+    """Weeks (Mondays) whose deload the user cancelled (`engine deload cancel`) -> the reason."""
+    out: dict[date, str | None] = {}
+    for r in db.scalars(
+        select(DecisionLog).where(DecisionLog.kind == DELOAD_CANCEL).order_by(DecisionLog.id)
+    ):
+        try:
+            out[date.fromisoformat(r.subject_id or "")] = (r.output or {}).get("reason")
+        except ValueError:
+            continue
+    return out
+
+
+def cancel_window(w: L.DeloadWindow, week_start: date) -> L.DeloadWindow | None:
+    """The window as it is after the user cancelled the deload of `week_start`: the soft deload
+    is gone (this week and later; an earlier part that was already trained stays), the retest of
+    the old loads starts right away. None when the window does not deload in that week."""
+    end = week_start + timedelta(days=6)
+    if not w.deload or w.reason not in CANCELLABLE or w.start > end or w.until < week_start:
+        return None
+    if w.start < week_start:  # started in an earlier week: keep that part, cancel from here on
+        return replace(w, until=week_start - timedelta(days=1), cancelled=True)
+    return replace(w, until=w.start - timedelta(days=1), deload=False, cancelled=True)
+
+
+def apply_cancellations(
+    windows: list[L.DeloadWindow], cancelled: dict[date, str | None]
+) -> list[L.DeloadWindow]:
+    out = []
+    for w in windows:
+        for ws in sorted(cancelled):
+            w = cancel_window(w, ws) or w
+        out.append(w)
+    return out
 
 
 def load_windows(db: Session, cfg: EngineConfig, since: date) -> list[L.DeloadWindow]:
@@ -213,6 +283,7 @@ def load_windows(db: Session, cfg: EngineConfig, since: date) -> list[L.DeloadWi
         out.setdefault((w["start"], win.reason), win)
     windows = list(out.values())
     windows += [w for w in legacy_windows(db, cfg) if (w.start.isoformat(), w.reason) not in out]
+    windows = apply_cancellations(windows, load_cancelled_weeks(db))
     return sorted(windows, key=lambda w: w.start)
 
 
@@ -276,13 +347,22 @@ def legacy_windows(db: Session, cfg: EngineConfig) -> list[L.DeloadWindow]:
 
 def load_lift_contexts(db: Session, program: Program, gym: Gym | None) -> dict[str, LiftContext]:
     out: dict[str, LiftContext] = {}
-    names = {e.variant for exs in program.days.values() for e in exs if e.active}
+    from app.gym_service import previous_hint
+
+    names = {e.variant: e.exercise for exs in program.days.values() for e in exs if e.active}
     for name in sorted(names):
-        v = resolve_variant(db, name, gym)
+        v = resolve_variant(db, name, gym, names[name])
         if v is None:
             out[name] = LiftContext(None)
             continue
-        out[name] = LiftContext(variant_info(v), load_exposures(db, v.id), load_ladder(db, v.id))
+        history = load_exposures(db, v.id)
+        hint = previous_hint(db, v) if not history else None
+        out[name] = LiftContext(
+            variant_info(v),
+            history,
+            load_ladder(db, v.id),
+            (hint["gym_name"], hint["weight_kg"], hint["reps"]) if hint else None,
+        )
     return out
 
 
@@ -568,6 +648,7 @@ def load_inputs(
         excluded_slots=excluded,
         gym_name=gym.name if gym else None,
         windows=load_windows(db, cfg, today - timedelta(days=90)),
+        cancelled_weeks=load_cancelled_weeks(db),
         quality_log=load_quality_log(db, since, today),
         vdot_log=load_vdot_log(db),
         cycle_start=cycle_start,

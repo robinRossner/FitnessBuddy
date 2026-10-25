@@ -57,6 +57,16 @@ def test_v2_keys_are_on_the_allowlist_with_bounds_and_risks():
     assert "running.vdot.max_step" in V.describe_allowlist()
 
 
+def test_volume_hold_keys_are_on_the_allowlist():
+    off = check("running.volume.hold_last_week", False)
+    assert off.valid and off.risk == "low" and off.current is True  # default on
+    assert not check("running.volume.hold_last_week", True).valid  # already true
+    assert not check("running.volume.hold_last_week", "no").valid
+    assert check("running.volume.hold_limit_factor", 1.2).risk == "high"
+    assert not check("running.volume.hold_limit_factor", 1.5).valid
+    assert "running.volume.hold_last_week" in V.describe_allowlist()
+
+
 def _row(type_, payload):
     return SimpleNamespace(type=type_, payload=payload, day=None, subject_id="1", id=1)
 

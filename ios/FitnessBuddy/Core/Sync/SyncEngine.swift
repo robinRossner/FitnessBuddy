@@ -6,6 +6,8 @@ struct SyncReport: Sendable, Equatable {
     var rejected = 0
     var pulledPages = 0
     var planRefreshed = false
+    /// `config.current_gym_id` of the pulled pages, when the server sent one.
+    var serverGymId: Int?
 
     /// "Pushed 2, pulled 1 page, plan updated"
     var summary: String {
@@ -56,6 +58,7 @@ actor SyncEngine {
             let page = try await client.pull(since: cursor)
             let ctx = ModelContext(container)
             try SyncMerge.apply(page, in: ctx)
+            if let gym = page.config?.currentGymId { report.serverGymId = gym }
             if let next = page.cursor, !next.isEmpty {
                 SyncState.current(in: ctx).cursor = next
                 try ctx.save()

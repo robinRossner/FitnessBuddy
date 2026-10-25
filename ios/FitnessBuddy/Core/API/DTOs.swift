@@ -77,13 +77,24 @@ struct PlannedExerciseDTO: Codable, Sendable, Equatable {
     var unresolved: Bool?
     /// Rest timer in seconds (the exercise's override or the default); absent on older servers.
     var restS: Int?
+    /// Additive (gym machines): no machine mapped at the current gym yet.
+    var needsSetup: Bool?
+    /// "baseline" = first session at this machine: no target, pick a weight.
+    var progressionState: String?
+    var hintWeightKg: Double?
+    var progressionNote: String?
+    /// Present once the backend sends it; otherwise resolved through the variant / name.
+    var exerciseId: Int?
 
     init(order: Int?, variantId: Int?, name: String, equipmentType: String? = nil, repRange: [Int]? = nil,
          sets: [PlannedSetDTO], last: LastPerformanceDTO? = nil, reason: String? = nil, flags: [String] = [],
-         restS: Int? = nil) {
+         restS: Int? = nil, exercise: String? = nil, needsSetup: Bool? = nil, progressionState: String? = nil,
+         hintWeightKg: Double? = nil, progressionNote: String? = nil, exerciseId: Int? = nil) {
         self.order = order; self.variantId = variantId; self.name = name; self.equipmentType = equipmentType
         self.repRange = repRange; self.sets = sets; self.last = last; self.reason = reason; self.flags = flags
-        self.restS = restS
+        self.restS = restS; self.exercise = exercise; self.needsSetup = needsSetup
+        self.progressionState = progressionState; self.hintWeightKg = hintWeightKg
+        self.progressionNote = progressionNote; self.exerciseId = exerciseId
     }
 
     init(from decoder: Decoder) throws {
@@ -103,6 +114,12 @@ struct PlannedExerciseDTO: Codable, Sendable, Equatable {
         flags = try c.decodeIfPresent([String].self, forKey: .flags) ?? []
         unresolved = try c.decodeIfPresent(Bool.self, forKey: .unresolved)
         restS = try c.decodeIfPresent(Int.self, forKey: .restS)
+        // Additive fields: a wrong shape must not hide the exercise.
+        needsSetup = (try? c.decodeIfPresent(Bool.self, forKey: .needsSetup)) ?? nil
+        progressionState = (try? c.decodeIfPresent(String.self, forKey: .progressionState)) ?? nil
+        hintWeightKg = (try? c.decodeIfPresent(Double.self, forKey: .hintWeightKg)) ?? nil
+        progressionNote = (try? c.decodeIfPresent(String.self, forKey: .progressionNote)) ?? nil
+        exerciseId = (try? c.decodeIfPresent(Int.self, forKey: .exerciseId)) ?? nil
     }
 }
 
@@ -318,6 +335,8 @@ struct ConfigDTO: Codable, Sendable, Equatable {
     var repRange: [Int]?
     var rirTarget: [Int]?
     var incrementsKg: [String: Double]?
+    /// The server's current gym (additive; the server value wins after a pull).
+    var currentGymId: Int?
     /// Rest timers; absent on older servers.
     var lifting: LiftingConfigDTO?
 }

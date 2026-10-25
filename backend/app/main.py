@@ -14,6 +14,7 @@ from app.api.coach import router as coach_router
 from app.api.engine import router as engine_router
 from app.api.exercises import router as exercises_router
 from app.api.garmin import router as garmin_router
+from app.api.gyms import router as gyms_router
 from app.api.routes import public_router, router
 from app.api.stats import router as stats_router
 from app.api.sync import public as sync_public
@@ -47,6 +48,7 @@ app.include_router(bodyweight_router)
 app.include_router(garmin_router)
 app.include_router(engine_router)
 app.include_router(exercises_router)
+app.include_router(gyms_router)
 app.include_router(stats_router)
 app.include_router(coach_router)
 app.include_router(sync_public)

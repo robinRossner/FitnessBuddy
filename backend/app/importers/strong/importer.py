@@ -35,6 +35,7 @@ from app.db.types import (
     utcnow,
 )
 from app.engine.config import load_engine_config
+from app.gym_service import is_user_variant
 from app.gyms import GYM_BOUND_EQUIPMENT, GymPeriods, GymSpec, load_gyms
 from app.importers.strong.mapping import MappingRow, read_mapping, validate_mapping
 from app.importers.strong.parser import (
@@ -236,7 +237,9 @@ class VariantResolver:
         self.multi_gym = multi_gym
         existing = list(db.scalars(select(ExerciseVariant)))
         self.by_key = {v.key: v for v in existing if v.key}
-        self.legacy = {(v.name, v.gym_id): v for v in existing if not v.key}
+        # adoptable by (name, gym): variants from before keys existed, and machines the user set
+        # up in the app (app/gym_service.py) before the same machine showed up in an import
+        self.legacy = {(v.name, v.gym_id): v for v in existing if not v.key or is_user_variant(v)}
 
     def get(self, m: MappingRow, gym: GymSpec) -> ExerciseVariant:
         eq = EquipmentType(m.equipment_type)
@@ -311,8 +314,8 @@ def _remove_orphan_variants(db: Session, mapping: dict[str, MappingRow]) -> int:
     )
     removed = 0
     for v in db.scalars(select(ExerciseVariant).where(ExerciseVariant.deleted_at.is_(None))):
-        if v.id in used or v.name.split(" @ ")[0] not in bases:
-            continue
+        if v.id in used or v.name.split(" @ ")[0] not in bases or is_user_variant(v):
+            continue  # machines set up in the app are the user's, never importer leftovers
         db.execute(delete(ExerciseSessionStats).where(ExerciseSessionStats.variant_id == v.id))
         v.deleted_at = utcnow()
         removed += 1

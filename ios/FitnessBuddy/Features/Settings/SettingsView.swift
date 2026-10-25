@@ -4,7 +4,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
-    @Query(filter: #Predicate<CachedGym> { $0.deletedAt == nil }, sort: \CachedGym.name) private var gyms: [CachedGym]
     @Query private var states: [SyncState]
 
     // Backend fields are edited as a draft and applied explicitly ("Save & sync" / Done).
@@ -51,20 +50,14 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        @Bindable var settings = env.settings
         NavigationStack {
             Form {
                 backendSection
+                GymSettingsSection()
                 Section {
-                    Picker("Current gym", selection: $settings.currentGymId) {
-                        Text("Not set").tag(Int?.none)
-                        ForEach(gyms) { gym in Text(gym.name).tag(Int?.some(gym.id)) }
-                    }
-                } header: {
-                    Text("Training")
-                } footer: {
-                    Text("Rest times are set per exercise: tap the timer next to an exercise during a workout.")
-                }
+                    Label("Rest times are set per exercise: tap the timer next to an exercise during a workout.", systemImage: "timer")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } header: { Text("Training") }
                 syncSection
                 coachSection
 

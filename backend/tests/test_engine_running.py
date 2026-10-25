@@ -296,3 +296,54 @@ def test_best_effort_picks_fastest_5k_stretch():
     assert R.best_effort(run(laps[:3]), 5000) is None  # 3 km only
     no_laps = R.RunData("r", D, 8000, 2400, 150)
     assert R.best_effort(no_laps, 5000).distance_m == 8000
+
+
+# --------------------------------------------------------------------------- volume hold
+
+
+def _hold_world(prior=(14, 8, 6, 0), last=20, hr=140):
+    """Weeks before `mon`: `last` km (an 8 km easy run + the rest as a long run), then `prior`."""
+    mon = date(2026, 10, 26)
+    runs = [
+        run([lap(330, hr)] * 8, day=mon - timedelta(days=7) + timedelta(days=2)),
+        run([lap(330, hr)] * int(last - 8), day=mon - timedelta(days=7) + timedelta(days=6)),
+    ]
+    runs += [week(mon - timedelta(days=7 * (i + 2)), km) for i, km in enumerate(prior) if km]
+    return mon, runs, R.weekly_km(runs)
+
+
+def test_hold_applies_the_last_weeks_km_over_the_mean_cap():
+    mon, runs, weekly = _hold_world()
+    h = R.hold_volume(weekly, runs, mon, limit_factor=1.1, flagged=lambda r: False)
+    assert h.last_week_km == 20 and h.limit_km == pytest.approx(15.4) and h.blocked is None
+    assert h.km == pytest.approx(15.4)  # limited to 1.1 x the highest of the 4 weeks before
+    assert R.mean_km(weekly, mon) == 12.0
+    assert R.volume_cap_km(weekly, mon, 10) == pytest.approx(14.0)  # without the hold
+    assert R.volume_cap_km(weekly, mon, 10, hold_km=h.km) == pytest.approx(15.4)
+    assert R.volume_cap_km(weekly, mon, 10, hold_km=9) == pytest.approx(14.0)  # never lowers
+
+
+def test_hold_is_the_whole_last_week_when_under_the_limit():
+    mon, runs, weekly = _hold_world(prior=(18, 16, 14, 12), last=20)
+    h = R.hold_volume(weekly, runs, mon, limit_factor=1.1, flagged=lambda r: False)
+    assert h.km == 19.8 and h.limit_km == pytest.approx(19.8)  # 1.1 x 18 < 20: limited
+    mon, runs, weekly = _hold_world(prior=(20, 16, 14, 12), last=18)
+    h = R.hold_volume(weekly, runs, mon, limit_factor=1.1, flagged=lambda r: False)
+    assert h.km == 18 and h.limit_km == pytest.approx(22.0)  # last week is below the limit
+
+
+def test_no_hold_after_a_flagged_week_or_without_runs():
+    mon, runs, weekly = _hold_world()
+    h = R.hold_volume(weekly, runs, mon, limit_factor=1.1, flagged=lambda r: r.km >= 12)
+    assert h.km is None and "HR fail or HR drift" in h.blocked
+    assert R.volume_cap_km(weekly, mon, 10, hold_km=h.km) == pytest.approx(14.0)
+    assert R.hold_volume({}, [], mon, limit_factor=1.1, flagged=lambda r: False) is None
+    # intervals are not judged by the easy-run rule
+    iv = run(
+        [lap(311, 142, 1000, "warmup")]
+        + [lap(250, 170, 1000, "active"), lap(370, 150, 400, "recovery")] * 4
+        + [lap(305, 150, 1000, "cooldown")],
+        day=mon - timedelta(days=3),
+    )
+    h = R.hold_volume(R.weekly_km([iv]), [iv], mon, limit_factor=1.1, flagged=lambda r: True)
+    assert h.blocked is None

@@ -548,12 +548,190 @@ def test_legacy_minus_10_percent_resets_become_a_soft_deload_and_a_retest(
     assert db.scalar(select(func.count()).select_from(DecisionLog)) == n
 
 
+def _stall_week(db, world):
+    _legacy_reset(db, world["bench"], 60, [11, 10, 9], 54.0)
+    _legacy_reset(db, world["pull"], 50, [12, 12, 12], 45.0)
+    _legacy_reset(db, world["squat"], 90, [10, 10, 9], 80.0)
+    db.commit()
+
+
+def _cancel_rows(db):
+    return db.scalars(select(DecisionLog).where(DecisionLog.kind == "deload_cancel")).all()
+
+
+def test_cancelling_the_deload_gives_normal_sets_and_moves_the_retest_into_the_week(
+    db, world, program, settings
+):
+    _stall_week(db, world)
+    service.run_engine(db, today=TODAY, weeks=2, settings=settings, program=program)
+    db.commit()
+    soft = db.scalars(select(PlannedSession).where(PlannedSession.day == TODAY)).one()
+    assert soft.prescription["session"]["deload"]["active"]
+    res = service.cancel_deload(
+        db, week_start=TODAY, reason="feeling fine", today=TODAY, settings=settings, program=program
+    )
+    db.commit()
+    assert res.status == "cancelled" and res.replanned and len(res.retest) == 3
+    (row,) = _cancel_rows(db)
+    assert row.output["author"] == "user" and row.output["reason"] == "feeling fine"
+    assert row.subject_id == TODAY.isoformat()
+    rows = {r.day: r for r in db.scalars(select(PlannedSession))}
+    mon = rows[TODAY].prescription["session"]
+    bench = mon["exercises"][0]
+    assert mon["deload"] is None and bench["progression_state"] == "retest"
+    assert [(s["target_weight"], s["target_reps"]) for s in bench["sets"]] == [
+        (60, 12),
+        (60, 11),
+        (60, 10),
+    ]  # old load, normal 3 sets, beat 11/10/9
+    assert bench["progression_note"] == "Retest at old load 60 kg: beat 11/10/9"
+    squat = rows[TODAY + timedelta(days=1)].prescription["session"]["exercises"][0]
+    assert squat["progression_state"] == "retest" and len(squat["sets"]) == 3
+    # a later engine run keeps the week cancelled and writes nothing new
+    n = db.scalar(select(func.count()).select_from(DecisionLog))
+    service.run_engine(db, today=TODAY, weeks=2, settings=settings, program=program)
+    db.commit()
+    again = db.scalars(select(PlannedSession).where(PlannedSession.day == TODAY)).one()
+    assert again.prescription["session"]["exercises"][0]["progression_state"] == "retest"
+    assert again.prescription["session"]["deload"] is None
+    assert db.scalar(select(func.count()).select_from(DecisionLog)) == n
+    cfg, _ = cs.load_active(db)
+    (w,) = D.load_windows(db, cfg, TODAY - timedelta(days=30))
+    assert (w.deload, w.cancelled) == (False, True) and len(w.retest) == 3
+
+
+def test_cancelling_twice_changes_nothing(db, world, program, settings):
+    _stall_week(db, world)
+    first = service.cancel_deload(
+        db, week_start=TODAY, today=TODAY, settings=settings, program=program
+    )
+    db.commit()
+    n = db.scalar(select(func.count()).select_from(DecisionLog))
+    plans = {r.id: r.prescription for r in db.scalars(select(PlannedSession))}
+    second = service.cancel_deload(
+        db, week_start=TODAY, reason="again", today=TODAY, settings=settings, program=program
+    )
+    db.commit()
+    assert first.status == "cancelled" and second.status == "already_cancelled"
+    assert "already cancelled" in second.message and not second.as_dict()["changed"]
+    assert db.scalar(select(func.count()).select_from(DecisionLog)) == n
+    assert {r.id: r.prescription for r in db.scalars(select(PlannedSession))} == plans
+    assert len(_cancel_rows(db)) == 1
+
+
+def test_cancelling_a_week_without_a_deload_is_a_no_op(db, world, program, settings):
+    res = service.cancel_deload(
+        db, week_start=TODAY, today=TODAY, settings=settings, program=program
+    )
+    assert res.status == "no_deload" and "No lifting deload to cancel" in res.message
+    assert not _cancel_rows(db)
+    _stall_week(db, world)  # the deload is in the week of TODAY, not two weeks later
+    later = service.cancel_deload(
+        db, week_start=TODAY + timedelta(days=14), today=TODAY, settings=settings, program=program
+    )
+    assert later.status == "no_deload" and not _cancel_rows(db)
+
+
+def test_deload_cancel_api(client, db, world, program, settings):
+    _stall_week(db, world)
+    service.run_engine(db, today=TODAY, weeks=1, settings=settings, program=program)
+    db.commit()
+    url = "/api/v1/engine/deload/cancel"
+    assert TestClient(app).post(url, json={"week_start": "2026-10-26"}).status_code == 401
+    r = client.post(url, json={"week_start": "2026-10-28", "reason": "fine"})  # any day of the week
+    body = r.json()
+    assert r.status_code == 200 and body["status"] == "cancelled" and body["changed"] is True
+    assert body["week_start"] == "2026-10-26" and body["reason"] == "fine"
+    assert len(body["retest"]) == 3 and body["replanned"] is True
+    mon = client.get("/api/v1/plan/week", params={"start": "2026-10-26"}).json()["days"][0]
+    assert mon["sessions"][0]["session"]["exercises"][0]["progression_state"] == "retest"
+    again = client.post(url, json={"week_start": "2026-10-26"}).json()
+    assert again["status"] == "already_cancelled" and again["changed"] is False
+    none = client.post(url, json={"week_start": "2026-11-16"}).json()
+    assert none["status"] == "no_deload" and "No lifting deload" in none["message"]
+    assert client.post(url, json={}).status_code == 422
+
+
+def test_deload_cancel_cli(db, world, program, settings, monkeypatch):
+    from typer.testing import CliRunner
+
+    from app import cli
+
+    _stall_week(db, world)
+    monkeypatch.setattr(service, "user_today", lambda settings=None: TODAY)
+    monkeypatch.setattr(service, "get_program", lambda settings=None: program)
+    monkeypatch.setattr(cli, "get_settings", lambda: settings)
+    monkeypatch.setattr(cli, "session_scope", lambda: _Scope(db))
+    out = CliRunner().invoke(
+        cli.cli, ["engine", "deload", "cancel", "--week", "2026-10-26", "--reason", "fine"]
+    )
+    assert out.exit_code == 0, out.output
+    assert "Deload of the week of 2026-10-26 cancelled" in out.output
+    assert "retest at the old load" in out.output
+    out = CliRunner().invoke(cli.cli, ["engine", "deload", "cancel", "--week", "2026-10-26"])
+    assert out.exit_code == 0 and "already cancelled" in out.output
+
+
+class _Scope:
+    """`session_scope()` over the test session (commit on success)."""
+
+    def __init__(self, db):
+        self.db = db
+
+    def __enter__(self):
+        return self.db
+
+    def __exit__(self, exc_type, *_):
+        if exc_type is None:
+            self.db.commit()
+        return False
+
+
 def test_a_trained_legacy_reset_is_left_alone(db, world, program, settings):
     _legacy_reset(db, world["bench"], 60, [11, 10, 9], 54.0)
     world["session"](TODAY, "Upper", "upper", [(world["bench"], 54, [12, 12, 12])])
     db.commit()
     cfg, _ = cs.load_active(db)
     assert D.legacy_windows(db, cfg) == []
+
+
+def test_migration_0011_adds_the_volume_hold_keys(tmp_path):
+    import json
+
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, text
+
+    from app.engine.config import EngineConfig
+
+    url = f"sqlite:///{tmp_path / 'm.db'}"
+    acfg = Config(str(BACKEND_DIR / "alembic.ini"))
+    acfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    acfg.attributes["url"] = url
+    command.upgrade(acfg, "0010")
+    content = {"version": "v6", "running": {"volume": {"cap_abs_km": 3.0}}}
+    eng = create_engine(url)
+    with eng.begin() as c:
+        c.execute(
+            text(
+                "INSERT INTO config_versions (version, content, content_hash, is_active, "
+                "created_at, author) VALUES ('v6', :c, 'h', 1, '2026-10-01 00:00:00', 'seed')"
+            ),
+            {"c": json.dumps(content)},
+        )
+    command.upgrade(acfg, "head")
+    command.downgrade(acfg, "0010")
+    command.upgrade(acfg, "head")  # a second run changes nothing: the keys exist
+    with eng.connect() as c:
+        rows = c.execute(
+            text("SELECT version, is_active, author, content FROM config_versions ORDER BY id")
+        ).all()
+    eng.dispose()
+    assert [(r[0], r[1], r[2]) for r in rows] == [("v6", 0, "seed"), ("v6.1", 1, "engine")]
+    new = json.loads(rows[1][3]) if isinstance(rows[1][3], str) else rows[1][3]
+    vol = EngineConfig.model_validate(new).running_cfg.volume
+    assert vol.hold_last_week is True and vol.hold_limit_factor == 1.1
+    assert vol.cap_abs_km == 3.0  # existing values stay
 
 
 def test_migration_0010_adds_the_v2_keys_and_retires_v1_stall_triggers(tmp_path):
@@ -596,7 +774,7 @@ def test_migration_0010_adds_the_v2_keys_and_retires_v1_stall_triggers(tmp_path)
                 ),
                 {"t": typ, "k": key, "p": json.dumps(payload)},
             )
-    command.upgrade(acfg, "head")
+    command.upgrade(acfg, "0010")
     with eng.connect() as c:
         rows = c.execute(
             text("SELECT version, is_active, author, content FROM config_versions ORDER BY id")

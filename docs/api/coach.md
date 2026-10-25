@@ -354,6 +354,8 @@ against the earlier valid changes of the same answer.
 | `running.interval_pace_tolerance_pct` | 1..6, +-2 | medium |
 | `running.volume.cap_abs_km` | 0..4, +-1 | medium; raising above 2: high |
 | `running.volume.single_run_factor` | 1.0..1.3, +-0.1 | medium; raising above 1.15: high |
+| `running.volume.hold_last_week` | true / false (the weekly cap may hold last week's completed km) | **low** |
+| `running.volume.hold_limit_factor` | 1.0..1.2, +-0.1 | medium; raising above 1.1: high |
 | `running.long_run.step_back_every` / `step_back_pct` / `drift_hold_pct` | int 3..6, +-1 / 10..30, +-10 / 3..10, +-2 | medium |
 | `running.vdot.max_step` / `max_per_4w` | 0.25..1.0, +-0.5 / 0.5..2.0, +-0.5 | medium; raising above 0.5 / 1.0: high |
 | `running.easy.strides.reps` | int 0..8, +-2 | **low** |
