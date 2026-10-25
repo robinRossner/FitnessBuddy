@@ -131,3 +131,24 @@ Notes:
   tokens `/app/var/garminconnect`, Personal API token cache `/app/var/garmin_token.json`, all in `./data`.
 - Logs: `ssh ubuntu@HOST 'cd /opt/fitnessbuddy/deploy && docker compose logs -f backend'`.
 - One-off Strong imports: run them locally and push the DB with `--with-db`.
+
+## 9. Offsite backup to the Mac
+
+The nightly server backups live on the same VM as the database, so this Mac keeps an offsite copy.
+`deploy/pull-backup.sh` takes a fresh snapshot on the server, downloads it to
+`~/Backups/FitnessBuddy/db/`, verifies it (gzip, `PRAGMA integrity_check`, row counts), mirrors the
+Garmin FIT files to `~/Backups/FitnessBuddy/fit/`, keeps the newest 12 copies and shows a macOS
+notification. A launchd agent runs it at login and daily; the script only copies when the newest
+local copy is older than 7 days, so the copy is at most about a week old whenever the Mac is on.
+
+```bash
+mkdir -p ~/Library/Logs/FitnessBuddy
+cp deploy/com.robinrossner.fitnessbuddy.backup.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.robinrossner.fitnessbuddy.backup.plist
+bash deploy/pull-backup.sh --force      # copy now
+tail ~/Library/Logs/FitnessBuddy/backup.log
+```
+
+Restore from a Mac copy: `gunzip -c ~/Backups/FitnessBuddy/db/fitness_<stamp>.db.gz > /tmp/fitness.db`,
+then follow "Restore from backup" above with that file. Remove the job with
+`launchctl bootout gui/$(id -u)/com.robinrossner.fitnessbuddy.backup`.

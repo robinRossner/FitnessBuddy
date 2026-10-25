@@ -20,6 +20,16 @@ Signing is automatic; with an empty `DEVELOPMENT_TEAM` the simulator build still
 xcodebuild -scheme FitnessBuddy -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build test
 ```
 
+## App icon
+
+The icon (three activity-style rings in the lifting orange / running teal / coach purple on deep navy) is drawn by
+`scripts/make_app_icon.py`; the PNGs and `Contents.json` in `Resources/Assets.xcassets/AppIcon.appiconset` are its output
+(iOS 18 single-size 1024 px: light, dark = transparent background, tinted = grayscale). Regenerate after changing it:
+
+```sh
+uv run --with pillow python ios/scripts/make_app_icon.py --preview   # --preview also writes docs/screenshots/app-icon-preview.png
+```
+
 ## First run
 
 Settings (gear on Today): backend URL (`http://<lan-ip>:8000` is allowed for local networks, anything else needs
