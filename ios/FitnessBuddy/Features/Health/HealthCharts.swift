@@ -175,98 +175,68 @@ struct SleepCard: View {
     }
 }
 
-// MARK: - Body Battery
-
-struct BodyBatteryCard: View {
-    let days: [HealthDayDTO]
-
-    var body: some View {
-        let pts = days.compactMap { d -> (Date, Double, Double)? in
-            guard let date = DayKey.date(d.date), let lo = d.bodyBatteryLow, let hi = d.bodyBatteryHigh else { return nil }
-            return (date, lo, hi)
-        }
-        ChartCard(title: "Body Battery", subtitle: "Daily low to high.", symbol: "battery.100percent.bolt", color: ChartPalette.battery) {
-            if pts.isEmpty {
-                ChartEmpty(symbol: "battery.50percent", message: notEnoughDays, height: 120)
-            } else {
-                Chart(pts, id: \.0) { date, lo, hi in
-                    BarMark(x: .value("Date", date, unit: .day), yStart: .value("Low", lo), yEnd: .value("High", hi))
-                        .foregroundStyle(LinearGradient(colors: [ChartPalette.battery.opacity(0.4), ChartPalette.battery], startPoint: .bottom, endPoint: .top))
-                        .cornerRadius(3)
-                }
-                .chartXAxis { dateAxis() }
-                .chartYScale(domain: 0...100)
-                .chartYAxis { AxisMarks(position: .leading, values: [0, 50, 100]) }
-                .frame(height: 150)
-                .accessibilityLabel("Body Battery daily range over \(pts.count) days")
-                .accessibilityValue("Latest \(Int(pts.last?.1 ?? 0)) to \(Int(pts.last?.2 ?? 0))")
-            }
-        }
-    }
-}
-
 // MARK: - Steps
 
 struct StepsCard: View {
+    /// Series of the whole loaded history (so the first days of the window already have a full 7-day average).
+    let series: [StepPoint]
+    let range: HealthRange
+    let summary: HealthSummaryDTO?
     let days: [HealthDayDTO]
+    @State private var selected: Date?
+
+    static let goal = 10_000.0
 
     var body: some View {
-        let pts = days.compactMap { d -> (Date, Double)? in
-            guard let date = DayKey.date(d.date), let s = d.steps else { return nil }
-            return (date, s)
+        let key = DayKey.string(DayKey.daysAgo(range.rawValue - 1, from: .now))
+        let pts = series.filter { $0.date >= key }.compactMap { p -> (Date, StepPoint)? in
+            DayKey.date(p.date).map { ($0, p) }
         }
-        ChartCard(title: "Steps", symbol: "figure.walk", color: ChartPalette.steps) {
-            if pts.isEmpty {
+        let atGoal = HealthTransforms.daysAtGoal(days, summary: summary)
+        let avg = HealthTransforms.latestStepsAvg(series, summary: summary)
+        let sel = selected.flatMap { s in pts.min { abs($0.0.timeIntervalSince(s)) < abs($1.0.timeIntervalSince(s)) } }
+        ChartCard(title: "Steps", subtitle: "Bars are single days, the line is the 7-day average.", symbol: "figure.walk", color: ChartPalette.steps) {
+            if pts.allSatisfy({ $0.1.steps == nil && $0.1.avg7 == nil }) {
                 ChartEmpty(symbol: "figure.walk", message: notEnoughDays, height: 120)
             } else {
-                Chart(pts, id: \.0) { date, steps in
-                    BarMark(x: .value("Date", date, unit: .day), y: .value("Steps", steps))
-                        .foregroundStyle(ChartPalette.steps.gradient)
-                        .cornerRadius(3)
+                KpiGrid {
+                    KpiTile(title: "Days with 10k+, last 7", value: "\(atGoal)", unit: "of 7",
+                            caption: atGoal >= 5 ? "solid week" : nil, captionColor: .green, color: ChartPalette.steps)
+                    KpiTile(title: "7-day average", value: avg.map { Fmt.number($0, maxFraction: 0) } ?? "–", unit: "steps")
                 }
-                .chartXAxis { dateAxis() }
-                .chartYAxis { AxisMarks(position: .leading) { v in AxisGridLine(); AxisValueLabel { if let d = v.as(Double.self) { Text(Fmt.number(d / 1000, maxFraction: 0) + "k") } } } }
-                .frame(height: 140)
-                .accessibilityLabel("Daily steps over \(pts.count) days")
-                .accessibilityValue("Average \(Fmt.number(pts.map(\.1).reduce(0, +) / Double(pts.count), maxFraction: 0)) steps")
-            }
-        }
-    }
-}
-
-// MARK: - Readiness calendar
-
-struct ReadinessCalendarCard: View {
-    let days: [HealthDayDTO]
-    let count: Int
-
-    var body: some View {
-        let strip = HealthTransforms.readinessStrip(days, count: count)
-        let known = strip.filter { $0.level != .unknown }.count
-        ChartCard(title: "Readiness", subtitle: "One dot per day, oldest first.", symbol: "circle.grid.3x3.fill", color: Domain.recovery.color) {
-            if known == 0 {
-                ChartEmpty(symbol: "circle.dotted", message: "Readiness appears once your watch data has synced.", height: 80)
-            } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 15), spacing: 6) {
-                    ForEach(strip, id: \.date) { item in
-                        Circle()
-                            .fill(item.level == .unknown ? Color.secondary.opacity(0.18) : item.level.color)
-                            .aspectRatio(1, contentMode: .fit)
-                            .accessibilityHidden(true)
+                Chart {
+                    ForEach(pts, id: \.0) { date, p in
+                        if let steps = p.steps {
+                            BarMark(x: .value("Date", date, unit: .day), y: .value("Steps", steps))
+                                .foregroundStyle(ChartPalette.steps.opacity(0.22))
+                                .cornerRadius(2)
+                        }
+                    }
+                    ForEach(pts.filter { $0.1.avg7 != nil }, id: \.0) { date, p in
+                        LineMark(x: .value("Date", date), y: .value("7-day average", p.avg7 ?? 0), series: .value("Series", "avg"))
+                            .foregroundStyle(ChartPalette.steps)
+                            .interpolationMethod(.monotone)
+                            .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    }
+                    RuleMark(y: .value("Goal", Self.goal))
+                        .foregroundStyle(.secondary.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .annotation(position: .top, alignment: .leading, spacing: 2) { Text("10k").font(.caption2).foregroundStyle(.secondary) }
+                    if let sel {
+                        RuleMark(x: .value("Date", sel.0)).foregroundStyle(.secondary.opacity(0.4))
+                            .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                                DayCallout(day: sel.1.date, lines: ["\(sel.1.steps.map { Fmt.number($0, maxFraction: 0) } ?? "–") steps",
+                                                                     "7-day avg \(sel.1.avg7.map { Fmt.number($0, maxFraction: 0) } ?? "–")"])
+                            }
                     }
                 }
-                HStack(spacing: 12) {
-                    dot(.green, "Ready"); dot(.yellow, "Easier"); dot(.red, "Recover"); dot(Color.secondary.opacity(0.3), "No data")
-                }
-                .font(.caption2)
+                .chartXSelection(value: $selected)
+                .chartXAxis { dateAxis() }
+                .chartYAxis { AxisMarks(position: .leading) { v in AxisGridLine(); AxisValueLabel { if let d = v.as(Double.self) { Text(Fmt.number(d / 1000, maxFraction: 0) + "k") } } } }
+                .frame(height: 180)
+                .accessibilityLabel("Daily steps and 7-day average over \(pts.count) days")
+                .accessibilityValue("7-day average \(avg.map { Fmt.number($0, maxFraction: 0) } ?? "unknown") steps, \(atGoal) of the last 7 days above 10,000")
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Readiness calendar, last \(count) days")
-        .accessibilityValue("\(strip.filter { $0.level == .green }.count) green, \(strip.filter { $0.level == .yellow }.count) yellow, \(strip.filter { $0.level == .red }.count) red days")
-    }
-
-    private func dot(_ color: Color, _ text: String) -> some View {
-        HStack(spacing: 4) { Circle().fill(color).frame(width: 8, height: 8); Text(text).foregroundStyle(.secondary) }
     }
 }

@@ -189,15 +189,6 @@ enum HealthTransforms {
         return days.filter { $0.date >= key }.sorted { $0.date < $1.date }
     }
 
-    /// One slot per calendar day of the window; missing days are `nil` so the strip shows gaps honestly.
-    static func readinessStrip(_ days: [HealthDayDTO], count: Int, now: Date = .now, calendar: Calendar = .current) -> [(date: String, level: ReadinessLevel)] {
-        let byDay = Dictionary(days.map { ($0.date, $0) }, uniquingKeysWith: { _, b in b })
-        return (0..<count).reversed().map { offset in
-            let key = DayKey.string(DayKey.daysAgo(offset, from: now, calendar: calendar), calendar: calendar)
-            return (key, byDay[key]?.readiness?.readinessLevel ?? .unknown)
-        }
-    }
-
     static func latestReadinessDay(_ days: [HealthDayDTO]) -> HealthDayDTO? {
         days.sorted { $0.date < $1.date }.last { $0.readiness != nil }
     }

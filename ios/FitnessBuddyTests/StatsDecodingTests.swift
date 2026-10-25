@@ -73,9 +73,12 @@ struct StatsDecodingTests {
 
     @Test func correlationsFixture() throws {
         let r = try Fixture.decode(CorrelationsDTO.self, "stats_correlations")
-        #expect(r.items.map(\.id) == ["sleep_vs_lifting", "hrv_vs_easy_efficiency", "sleep_score_vs_readiness"])
+        #expect(r.items.map(\.id) == ["sleep_vs_lifting", "hrv_vs_lift_performance", "hrv_vs_easy_efficiency",
+                                      "rhr_vs_easy_efficiency", "run_load_vs_lift_performance"])
         let first = r.items[0]
         #expect(first.r == 0.582 && first.n == 11 && first.points.count == 11 && first.note?.hasPrefix("n=11") == true)
+        #expect(first.category == .recovery && first.insight?.hasPrefix("More sleep") == true)
+        #expect(r.items.filter { $0.category == .hybrid }.map(\.id) == ["run_load_vs_lift_performance"])
     }
 
     // MARK: Tolerance

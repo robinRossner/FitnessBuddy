@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.analytics import common
 from app.analytics.common import num
+from app.db.catalog import load_catalog, region_of_muscle
 from app.db.models import (
     AdvisorTrigger,
     DecisionLog,
@@ -25,6 +26,7 @@ from app.db.models import (
 )
 from app.engine import config_service as cs
 from app.engine import data as D
+from app.engine import service
 from app.engine.lifting import detect_stall
 from app.settings import get_settings
 
@@ -111,7 +113,34 @@ def _trend_4w_pct(rows: list[Row], today: date) -> float | None:
     return (max(recent) - max(prior)) / max(prior) * 100
 
 
-def _summary(v, ex, gym_name, rows, today, stall_n, resets, triggers) -> dict:
+@dataclass
+class Context:
+    stall_n: int
+    resets: dict[int, date]
+    triggers: set[int]
+    regions: dict[str, str]  # exercise slug -> coarse body region (catalog)
+    program_ids: set[int]  # variants the program lists for the current gym
+
+
+def _program_variant_ids(db: Session) -> set[int]:
+    """Variants of the active program exercises, resolved as the engine does at the current gym."""
+    s = get_settings()
+    try:
+        program = service.get_program(s)
+    except (OSError, ValueError):  # no program file yet (FileNotFoundError) or an invalid one
+        return set()
+    gym = D.current_gym(db, s.gyms_path)
+    ids = set()
+    for kind in program.days:
+        for pe in program.exercises(kind):
+            v = D.resolve_variant(db, pe.variant, gym)
+            if v is not None:
+                ids.add(v.id)
+    return ids
+
+
+def _summary(v, ex, gym_name, rows, today, ctx: Context) -> dict:
+    stall_n, resets, triggers = ctx.stall_n, ctx.resets, ctx.triggers
     e1rms = [r.e1rm for r in rows if r.e1rm]
     reset_day = resets.get(v.id)
     window = [r for r in rows if reset_day is None or r.day >= reset_day]
@@ -124,9 +153,11 @@ def _summary(v, ex, gym_name, rows, today, stall_n, resets, triggers) -> dict:
         "name": D.base_name_of(v),
         "exercise_id": ex.id,
         "muscle_group": ex.primary_muscle,
+        "body_region": ctx.regions.get(ex.slug) or region_of_muscle(ex.primary_muscle),
         "gym_id": v.gym_id,
         "gym_name": gym_name,
         "active": bool(v.active),
+        "in_program": v.id in ctx.program_ids,
         "sessions": len(rows),
         "first_date": rows[0].day.isoformat(),
         "last_date": rows[-1].day.isoformat(),
@@ -149,9 +180,21 @@ def _variant_meta(db: Session, ids: list[int] | None = None):
     return {v.id: (v, ex, gym) for v, ex, gym in db.execute(q)}
 
 
-def _context(db: Session):
+def _context(db: Session) -> Context:
     cfg, _ = cs.load_active(db)
-    return cfg.strength.stall_exposures, _stall_resets(db), _open_stall_triggers(db)
+    catalog_path = get_settings().catalog_path
+    regions = (
+        {slug: c.body_region for slug, c in load_catalog(catalog_path).items()}
+        if catalog_path.exists()
+        else {}
+    )
+    return Context(
+        cfg.strength.stall_exposures,
+        _stall_resets(db),
+        _open_stall_triggers(db),
+        regions,
+        _program_variant_ids(db),
+    )
 
 
 def lift_summaries(db: Session) -> list[dict]:
@@ -159,9 +202,9 @@ def lift_summaries(db: Session) -> list[dict]:
     today = common.today()
     by_variant = _rows_by_variant(db)
     meta = _variant_meta(db, list(by_variant))
-    n, resets, triggers = _context(db)
+    ctx = _context(db)
     out = [
-        _summary(*meta[vid], rows, today, n, resets, triggers)
+        _summary(*meta[vid], rows, today, ctx)
         for vid, rows in by_variant.items()
         if vid in meta and rows
     ]
@@ -199,8 +242,7 @@ def lift_detail(db: Session, variant_id: int, start: date | None, end: date | No
     meta = _variant_meta(db, [variant_id]).get(variant_id)
     if not rows or meta is None:
         return None
-    n, resets, triggers = _context(db)
-    summary = _summary(*meta, rows, common.today(), n, resets, triggers)
+    summary = _summary(*meta, rows, common.today(), _context(db))
     shown = [r for r in rows if (start is None or r.day >= start) and (end is None or r.day <= end)]
     points = [
         {

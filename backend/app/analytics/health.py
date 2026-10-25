@@ -12,12 +12,19 @@ from app.analytics.common import mean, num
 from app.db.models import BodyMeasurement, DailyHealth
 from app.engine import config_service as cs
 from app.engine import data as D
-from app.engine.readiness import Readiness, score_day
+from app.engine import service
+from app.engine.readiness import GREEN, RED, YELLOW, Readiness, score_day
 from app.settings import get_settings
 
 BASELINE_LOOKBACK_DAYS = 45  # same history the engine loads for a readiness score
 WEIGHT_CHANGE_WINDOW_DAYS = 28
 WEIGHT_CHANGE_TOLERANCE_DAYS = 14  # the reference weigh-in may be this far from "4 weeks ago"
+STEPS_GOAL = 10_000
+SLEEP_BASELINE_DAYS = 7  # same window as the HRV / RHR baselines in the engine
+SLEEP_BASELINE_MIN_DAYS = 3
+
+HEADLINE = {GREEN: "Ready", YELLOW: "Take it easier", RED: "Recover", "unknown": "No data"}
+STATUS = {GREEN: "ok", YELLOW: "warn", RED: "bad"}
 
 
 def readiness_by_day(db: Session, start: date, end: date) -> dict[date, Readiness]:
@@ -47,6 +54,94 @@ def _window_mean(rows: dict[date, DailyHealth], attr: str, today: date, days: in
     return mean(vals)
 
 
+def _days_over(rows: dict[date, DailyHealth], attr: str, goal: float, today: date, days: int):
+    """Days in the last `days` with attr >= goal; None when none of them has a value."""
+    vals = [
+        v
+        for i in range(days)
+        if (row := rows.get(today - timedelta(days=i))) is not None
+        and (v := getattr(row, attr)) is not None
+    ]
+    return sum(v >= goal for v in vals) if vals else None
+
+
+def _sleep_baseline_h(rows: dict[date, DailyHealth], day: date) -> float | None:
+    """Mean sleep (h) of the 7 nights before `day` (needs 3), like the engine's HRV baseline."""
+    vals = [
+        row.sleep_s / 3600
+        for i in range(1, SLEEP_BASELINE_DAYS + 1)
+        if (row := rows.get(day - timedelta(days=i))) is not None and row.sleep_s
+    ]
+    return mean(vals) if len(vals) >= SLEEP_BASELINE_MIN_DAYS else None
+
+
+def _details(r: Readiness) -> list[str]:
+    """The explanation lines behind `Readiness.reason`, one per line, first letter capitalised."""
+    if not r.known:
+        return ["No data"]
+    flagged = [s for s in r.signals if s.level != GREEN]
+    lines = [s.detail for s in flagged] if flagged else [s.detail for s in r.signals]
+    if not flagged:
+        lines.insert(0, "all signals normal")
+    elif r.color == GREEN:
+        lines.append("only a minor flag, so no change")
+    elif r.color == YELLOW and any(s.level == RED for s in flagged):
+        lines.append("short night alone: yellow")
+    return [ln[:1].upper() + ln[1:] for ln in lines]
+
+
+METRICS = (("hrv", "HRV", "ms"), ("rhr", "Resting HR", "bpm"), ("sleep", "Sleep", "h"))
+
+
+def readiness_view(r: Readiness, sleep_baseline_h: float | None) -> dict:
+    """Compact readiness for the Today / Health screens (`readiness_today`).
+
+    `metrics` has one entry per signal the engine scored (hrv, rhr, sleep), in that order.
+    """
+    signals = {s.name: s for s in r.signals}
+    metrics = []
+    for key, label, unit in METRICS:
+        sig = signals.get(key)
+        if sig is None or sig.value is None:
+            continue
+        base = sig.baseline if key != "sleep" else sleep_baseline_h
+        delta = (sig.value - base) / base * 100 if base else None
+        metrics.append(
+            {
+                "key": key,
+                "label": label,
+                "value": num(sig.value, 1),
+                "unit": unit,
+                "baseline": num(base, 1),
+                "delta_pct": num(delta, 1),
+                "status": STATUS[sig.level],
+            }
+        )
+    level = r.color if r.known else "unknown"
+    return {
+        "level": level,
+        "headline": HEADLINE[level],
+        "metrics": metrics,
+        "details": _details(r),
+    }
+
+
+def readiness_today(db: Session, day: date, r: Readiness | None = None) -> dict:
+    """`readiness_view` for `day` (used by GET /plan/today, which passes the score it has)."""
+    r = r or service.readiness_for(db, day)
+    rows = {
+        h.day: h
+        for h in db.scalars(
+            select(DailyHealth).where(
+                DailyHealth.source == "garmin",
+                DailyHealth.day >= day - timedelta(days=SLEEP_BASELINE_DAYS),
+                DailyHealth.day < day,
+            )
+        )
+    }
+    return readiness_view(r, _sleep_baseline_h(rows, day))
+
+
 def bodyweight_change_pct(points: list[tuple[date, float]]) -> float | None:
     """Latest weigh-in vs the one nearest to 28 days before it (within +-14 days); else None.
 
@@ -74,7 +169,7 @@ def health_stats(db: Session, days: int) -> dict:
         for r in db.scalars(
             select(DailyHealth).where(
                 DailyHealth.source == "garmin",
-                DailyHealth.day >= today - timedelta(days=27),
+                DailyHealth.day >= min(today - timedelta(days=27), start - timedelta(days=6)),
             )
         )
     }
@@ -111,6 +206,7 @@ def health_stats(db: Session, days: int) -> dict:
                 "body_battery_low": num(h.body_battery_min, 0) if h else None,
                 "stress_avg": num(h.stress_avg, 0) if h else None,
                 "steps": h.steps if h else None,
+                "steps_7d_avg": num(_window_mean(rows, "steps", d, 7), 0),
                 "readiness": {
                     "level": r.color if r.known else "unknown",
                     "reason": r.reason,
@@ -147,6 +243,8 @@ def health_stats(db: Session, days: int) -> dict:
         "rhr_28d": avg("resting_hr", 28),
         "sleep_7d_s": avg("sleep_s", 7, 0),
         "sleep_28d_s": avg("sleep_s", 28, 0),
+        "steps_7d_avg": avg("steps", 7, 0),
+        "days_10k_last_7": _days_over(rows, "steps", STEPS_GOAL, today, 7),
         "bodyweight_latest": num(pts[-1][1]) if pts else None,
         "bodyweight_change_4w_pct": num(bodyweight_change_pct(pts)),
     }
@@ -155,4 +253,5 @@ def health_stats(db: Session, days: int) -> dict:
         "days": out_days,
         "bodyweight": bodyweight,
         "summary": summary,
+        "readiness_today": readiness_view(ready[today], _sleep_baseline_h(rows, today)),
     }

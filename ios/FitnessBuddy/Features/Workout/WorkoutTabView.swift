@@ -31,36 +31,28 @@ struct WorkoutStartView: View {
            sort: \LocalSession.startedAt, order: .reverse)
     private var finished: [LocalSession]
 
-    private var todaysLifting: [CachedPlannedSession] {
-        planned.filter { $0.date == AppClock.todayString && ["upper", "lower", "full"].contains($0.kind) }
+    private var next: WorkoutChoice? {
+        WorkoutChooserLogic.choices(in: env.context).first { $0.source != .empty }
     }
 
     var body: some View {
         List {
-            if !todaysLifting.isEmpty {
-                Section("Planned today") {
-                    ForEach(todaysLifting, id: \.id) { row in
-                        Button { env.startWorkout(from: row) } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(row.title).font(.headline)
-                                    Text("\(row.item?.session?.exercises?.count ?? 0) exercises")
-                                        .font(.subheadline).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "play.circle.fill").font(.title).foregroundStyle(Domain.lifting.color)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
             Section {
-                Button { env.startWorkout(from: nil) } label: {
-                    Label("Start empty workout", systemImage: "plus.circle.fill")
-                        .font(.headline).frame(minHeight: 36)
+                Button { env.beginWorkout() } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.circle.fill").font(.largeTitle).foregroundStyle(Domain.lifting.color)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Start workout").font(.headline)
+                            Text(next.map { "Next: \($0.label)" } ?? "Start with an empty workout")
+                                .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
             if !finished.isEmpty {
                 Section("Recent") {
@@ -75,9 +67,6 @@ struct WorkoutStartView: View {
             }
         }
         .navigationTitle("Workout")
-        .overlay {
-            if todaysLifting.isEmpty && finished.isEmpty { Color.clear }
-        }
     }
 }
 

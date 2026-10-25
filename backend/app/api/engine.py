@@ -11,6 +11,9 @@ Plan JSON (one entry per planned session; ids are stable per (week, template slo
                | {"type": "intervals", "structure": {"warmup","work","recovery","cooldown"}, ..}
                | {"type": "rest", "optional", "original"?}}
 
+GET /plan/today also carries `readiness_today` (same object as /stats/health: level, headline,
+metrics, details; contract in docs/api/stats.md) next to the engine's `readiness`.
+
 Days without a stored plan get a `status: "preview"` entry with `id: null` (computed on the fly).
 """
 
@@ -21,6 +24,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.analytics import health
 from app.api.auth import require_token
 from app.api.routes import get_db
 from app.engine import config_service as cs
@@ -39,7 +43,12 @@ def plan_today(db: Session = Depends(get_db)) -> dict:
     today = _today()
     day = service.plan_for_api(db, today, 1)[0]
     r = service.readiness_for(db, today)
-    return {"date": today.isoformat(), "readiness": r.as_dict(), "sessions": day["sessions"]}
+    return {
+        "date": today.isoformat(),
+        "readiness": r.as_dict(),
+        "readiness_today": health.readiness_today(db, today, r),
+        "sessions": day["sessions"],
+    }
 
 
 @router.get("/plan/week")

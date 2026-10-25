@@ -6,6 +6,9 @@
 #   name                 display name
 #   primary_muscle       chest | back | lats | shoulders | rear_delts | biceps | triceps |
 #                        forearms | quads | hamstrings | glutes | adductors | calves | abs | traps
+#   body_region          coarse region for dashboards: Chest | Back | Shoulders | Arms | Legs | Core | Other
+#                        (rear_delts -> Shoulders; lats, traps -> Back; biceps, triceps, forearms ->
+#                        Arms; quads, hamstrings, glutes, adductors, calves -> Legs; abs -> Core)
 #   movement_pattern     horizontal_push | vertical_push | horizontal_pull | vertical_pull |
 #                        squat | hinge | lunge | knee_extension | knee_flexion | hip_adduction |
 #                        calf_raise | elbow_flexion | elbow_extension | shoulder_abduction |
@@ -23,55 +26,55 @@
 
 exercises:
   # ---------------------------------------------------------------- push
-  - {slug: bench_press, name: Bench Press, primary_muscle: chest, secondary_muscles: [triceps, shoulders], movement_pattern: horizontal_push, default_equipment: barbell, e1rm: true, aliases: [bench press]}
-  - {slug: incline_bench_press, name: Incline Bench Press, primary_muscle: chest, secondary_muscles: [shoulders, triceps], movement_pattern: horizontal_push, default_equipment: dumbbell, e1rm: true, aliases: [incline bench press, incline press]}
-  - {slug: chest_press, name: Chest Press, primary_muscle: chest, secondary_muscles: [triceps, shoulders], movement_pattern: horizontal_push, default_equipment: machine_stack, e1rm: true, aliases: [chest press]}
-  - {slug: chest_fly, name: Chest Fly, primary_muscle: chest, movement_pattern: horizontal_adduction, default_equipment: machine_stack, e1rm: true, aliases: [chest fly, incline chest fly, pec deck, cable fly]}
-  - {slug: dip, name: Dip, primary_muscle: chest, secondary_muscles: [triceps, shoulders], movement_pattern: vertical_push, default_equipment: bodyweight, e1rm: true, bodyweight_loaded: true, aliases: [chest dip, dip, triceps dip]}
-  - {slug: overhead_press, name: Overhead Press, primary_muscle: shoulders, secondary_muscles: [triceps], movement_pattern: vertical_push, default_equipment: dumbbell, e1rm: true, aliases: [overhead press, shoulder press, seated overhead press]}
-  - {slug: lateral_raise, name: Lateral Raise, primary_muscle: shoulders, movement_pattern: shoulder_abduction, default_equipment: dumbbell, e1rm: true, aliases: [lateral raise]}
-  - {slug: front_raise, name: Front Raise, primary_muscle: shoulders, movement_pattern: shoulder_flexion, default_equipment: dumbbell, e1rm: true, aliases: [front raise]}
-  - {slug: triceps_extension, name: Triceps Extension, primary_muscle: triceps, movement_pattern: elbow_extension, default_equipment: cable, e1rm: true, aliases: [triceps extension, triceps pushdown, overhead triceps extension]}
-  - {slug: skullcrusher, name: Skullcrusher, primary_muscle: triceps, movement_pattern: elbow_extension, default_equipment: barbell, e1rm: true, aliases: [skullcrusher, lying triceps extension]}
-  - {slug: jm_press, name: JM Press, primary_muscle: triceps, secondary_muscles: [chest], movement_pattern: elbow_extension, default_equipment: smith, e1rm: true, aliases: [jm press]}
-  - {slug: handstand_hold, name: Handstand Hold, primary_muscle: shoulders, movement_pattern: isometric_inversion, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [handstand]}
+  - {slug: bench_press, name: Bench Press, primary_muscle: chest, body_region: Chest, secondary_muscles: [triceps, shoulders], movement_pattern: horizontal_push, default_equipment: barbell, e1rm: true, aliases: [bench press]}
+  - {slug: incline_bench_press, name: Incline Bench Press, primary_muscle: chest, body_region: Chest, secondary_muscles: [shoulders, triceps], movement_pattern: horizontal_push, default_equipment: dumbbell, e1rm: true, aliases: [incline bench press, incline press]}
+  - {slug: chest_press, name: Chest Press, primary_muscle: chest, body_region: Chest, secondary_muscles: [triceps, shoulders], movement_pattern: horizontal_push, default_equipment: machine_stack, e1rm: true, aliases: [chest press]}
+  - {slug: chest_fly, name: Chest Fly, primary_muscle: chest, body_region: Chest, movement_pattern: horizontal_adduction, default_equipment: machine_stack, e1rm: true, aliases: [chest fly, incline chest fly, pec deck, cable fly]}
+  - {slug: dip, name: Dip, primary_muscle: chest, body_region: Chest, secondary_muscles: [triceps, shoulders], movement_pattern: vertical_push, default_equipment: bodyweight, e1rm: true, bodyweight_loaded: true, aliases: [chest dip, dip, triceps dip]}
+  - {slug: overhead_press, name: Overhead Press, primary_muscle: shoulders, body_region: Shoulders, secondary_muscles: [triceps], movement_pattern: vertical_push, default_equipment: dumbbell, e1rm: true, aliases: [overhead press, shoulder press, seated overhead press]}
+  - {slug: lateral_raise, name: Lateral Raise, primary_muscle: shoulders, body_region: Shoulders, movement_pattern: shoulder_abduction, default_equipment: dumbbell, e1rm: true, aliases: [lateral raise]}
+  - {slug: front_raise, name: Front Raise, primary_muscle: shoulders, body_region: Shoulders, movement_pattern: shoulder_flexion, default_equipment: dumbbell, e1rm: true, aliases: [front raise]}
+  - {slug: triceps_extension, name: Triceps Extension, primary_muscle: triceps, body_region: Arms, movement_pattern: elbow_extension, default_equipment: cable, e1rm: true, aliases: [triceps extension, triceps pushdown, overhead triceps extension]}
+  - {slug: skullcrusher, name: Skullcrusher, primary_muscle: triceps, body_region: Arms, movement_pattern: elbow_extension, default_equipment: barbell, e1rm: true, aliases: [skullcrusher, lying triceps extension]}
+  - {slug: jm_press, name: JM Press, primary_muscle: triceps, body_region: Arms, secondary_muscles: [chest], movement_pattern: elbow_extension, default_equipment: smith, e1rm: true, aliases: [jm press]}
+  - {slug: handstand_hold, name: Handstand Hold, primary_muscle: shoulders, body_region: Shoulders, movement_pattern: isometric_inversion, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [handstand]}
 
   # ---------------------------------------------------------------- pull
-  - {slug: pull_up, name: Pull Up, primary_muscle: lats, secondary_muscles: [biceps, back], movement_pattern: vertical_pull, default_equipment: bodyweight, e1rm: true, bodyweight_loaded: true, aliases: [pull up, pull-up, chin up, chin-up]}
-  - {slug: lat_pulldown, name: Lat Pulldown, primary_muscle: lats, secondary_muscles: [biceps], movement_pattern: vertical_pull, default_equipment: cable, e1rm: true, aliases: [lat pulldown]}
-  - {slug: pullover, name: Pullover, primary_muscle: lats, movement_pattern: shoulder_extension, default_equipment: machine_stack, e1rm: true, aliases: [pullover, straight arm pulldown]}
-  - {slug: bent_over_row, name: Bent Over Row, primary_muscle: back, secondary_muscles: [lats, biceps, rear_delts], movement_pattern: horizontal_pull, default_equipment: barbell, e1rm: true, aliases: [bent over row, barbell row]}
-  - {slug: one_arm_row, name: One Arm Row, primary_muscle: back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: dumbbell, e1rm: true, aliases: [bent over one arm row, one arm row, dumbbell row]}
-  - {slug: seated_row, name: Seated Row, primary_muscle: back, secondary_muscles: [lats, biceps, rear_delts], movement_pattern: horizontal_pull, default_equipment: cable, e1rm: true, aliases: [seated row, seated wide-grip row, cable row]}
-  - {slug: machine_row, name: Machine Row, primary_muscle: back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: plate_loaded, e1rm: true, aliases: [iso-lateral row, chest supported row, machine row]}
-  - {slug: t_bar_row, name: T-Bar Row, primary_muscle: back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: plate_loaded, e1rm: true, aliases: [t bar row, t-bar row]}
-  - {slug: reverse_fly, name: Reverse Fly, primary_muscle: rear_delts, secondary_muscles: [back], movement_pattern: horizontal_abduction, default_equipment: cable, e1rm: true, aliases: [reverse fly, rear delt fly, face pull]}
-  - {slug: shrug, name: Shrug, primary_muscle: traps, movement_pattern: scapular_elevation, default_equipment: dumbbell, e1rm: true, aliases: [shrug]}
-  - {slug: biceps_curl, name: Biceps Curl, primary_muscle: biceps, movement_pattern: elbow_flexion, default_equipment: dumbbell, e1rm: true, aliases: [bicep curl, biceps curl, curl]}
-  - {slug: hammer_curl, name: Hammer Curl, primary_muscle: biceps, secondary_muscles: [forearms], movement_pattern: elbow_flexion, default_equipment: dumbbell, e1rm: true, aliases: [hammer curl]}
-  - {slug: preacher_curl, name: Preacher Curl, primary_muscle: biceps, movement_pattern: elbow_flexion, default_equipment: barbell, e1rm: true, aliases: [preacher curl]}
-  - {slug: wrist_curl, name: Wrist Curl, primary_muscle: forearms, movement_pattern: wrist_flexion, default_equipment: dumbbell, e1rm: true, aliases: [wrist curl, seated palms up wrist curl]}
-  - {slug: dead_hang, name: Dead Hang, primary_muscle: forearms, secondary_muscles: [lats], movement_pattern: isometric_hang, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [deadhang, dead hang]}
+  - {slug: pull_up, name: Pull Up, primary_muscle: lats, body_region: Back, secondary_muscles: [biceps, back], movement_pattern: vertical_pull, default_equipment: bodyweight, e1rm: true, bodyweight_loaded: true, aliases: [pull up, pull-up, chin up, chin-up]}
+  - {slug: lat_pulldown, name: Lat Pulldown, primary_muscle: lats, body_region: Back, secondary_muscles: [biceps], movement_pattern: vertical_pull, default_equipment: cable, e1rm: true, aliases: [lat pulldown]}
+  - {slug: pullover, name: Pullover, primary_muscle: lats, body_region: Back, movement_pattern: shoulder_extension, default_equipment: machine_stack, e1rm: true, aliases: [pullover, straight arm pulldown]}
+  - {slug: bent_over_row, name: Bent Over Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps, rear_delts], movement_pattern: horizontal_pull, default_equipment: barbell, e1rm: true, aliases: [bent over row, barbell row]}
+  - {slug: one_arm_row, name: One Arm Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: dumbbell, e1rm: true, aliases: [bent over one arm row, one arm row, dumbbell row]}
+  - {slug: seated_row, name: Seated Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps, rear_delts], movement_pattern: horizontal_pull, default_equipment: cable, e1rm: true, aliases: [seated row, seated wide-grip row, cable row]}
+  - {slug: machine_row, name: Machine Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: plate_loaded, e1rm: true, aliases: [iso-lateral row, chest supported row, machine row]}
+  - {slug: t_bar_row, name: T-Bar Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: plate_loaded, e1rm: true, aliases: [t bar row, t-bar row]}
+  - {slug: reverse_fly, name: Reverse Fly, primary_muscle: rear_delts, body_region: Shoulders, secondary_muscles: [back], movement_pattern: horizontal_abduction, default_equipment: cable, e1rm: true, aliases: [reverse fly, rear delt fly, face pull]}
+  - {slug: shrug, name: Shrug, primary_muscle: traps, body_region: Back, movement_pattern: scapular_elevation, default_equipment: dumbbell, e1rm: true, aliases: [shrug]}
+  - {slug: biceps_curl, name: Biceps Curl, primary_muscle: biceps, body_region: Arms, movement_pattern: elbow_flexion, default_equipment: dumbbell, e1rm: true, aliases: [bicep curl, biceps curl, curl]}
+  - {slug: hammer_curl, name: Hammer Curl, primary_muscle: biceps, body_region: Arms, secondary_muscles: [forearms], movement_pattern: elbow_flexion, default_equipment: dumbbell, e1rm: true, aliases: [hammer curl]}
+  - {slug: preacher_curl, name: Preacher Curl, primary_muscle: biceps, body_region: Arms, movement_pattern: elbow_flexion, default_equipment: barbell, e1rm: true, aliases: [preacher curl]}
+  - {slug: wrist_curl, name: Wrist Curl, primary_muscle: forearms, body_region: Arms, movement_pattern: wrist_flexion, default_equipment: dumbbell, e1rm: true, aliases: [wrist curl, seated palms up wrist curl]}
+  - {slug: dead_hang, name: Dead Hang, primary_muscle: forearms, body_region: Arms, secondary_muscles: [lats], movement_pattern: isometric_hang, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [deadhang, dead hang]}
 
   # ---------------------------------------------------------------- legs
-  - {slug: squat, name: Squat, primary_muscle: quads, secondary_muscles: [glutes, adductors], movement_pattern: squat, default_equipment: barbell, e1rm: true, aliases: [squat, back squat]}
-  - {slug: hack_squat, name: Hack Squat, primary_muscle: quads, secondary_muscles: [glutes], movement_pattern: squat, default_equipment: plate_loaded, e1rm: true, aliases: [hack squat]}
-  - {slug: leg_press, name: Leg Press, primary_muscle: quads, secondary_muscles: [glutes], movement_pattern: squat, default_equipment: plate_loaded, e1rm: true, aliases: [leg press]}
-  - {slug: sissy_squat, name: Sissy Squat, primary_muscle: quads, movement_pattern: knee_extension, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [sissy squat]}
-  - {slug: bulgarian_split_squat, name: Bulgarian Split Squat, primary_muscle: quads, secondary_muscles: [glutes], movement_pattern: lunge, default_equipment: dumbbell, e1rm: true, aliases: [bulgarian split squat, split squat]}
-  - {slug: leg_extension, name: Leg Extension, primary_muscle: quads, movement_pattern: knee_extension, default_equipment: machine_stack, e1rm: true, aliases: [leg extension]}
-  - {slug: leg_curl, name: Leg Curl, primary_muscle: hamstrings, movement_pattern: knee_flexion, default_equipment: machine_stack, e1rm: true, aliases: [lying leg curl, seated leg curl, leg curl]}
-  - {slug: romanian_deadlift, name: Romanian Deadlift, primary_muscle: hamstrings, secondary_muscles: [glutes, back], movement_pattern: hinge, default_equipment: barbell, e1rm: true, aliases: [romanian deadlift, rdl]}
-  - {slug: stiff_leg_deadlift, name: Stiff Leg Deadlift, primary_muscle: hamstrings, secondary_muscles: [glutes, back], movement_pattern: hinge, default_equipment: barbell, e1rm: true, aliases: [stiff leg deadlift]}
-  - {slug: hip_adduction, name: Hip Adduction, primary_muscle: adductors, movement_pattern: hip_adduction, default_equipment: machine_stack, e1rm: true, aliases: [hip adductor, hip adduction]}
-  - {slug: calf_raise, name: Calf Raise, primary_muscle: calves, movement_pattern: calf_raise, default_equipment: machine_stack, e1rm: true, aliases: [standing calf raise, calf press, calf press on seated leg press, seated calf raise]}
+  - {slug: squat, name: Squat, primary_muscle: quads, body_region: Legs, secondary_muscles: [glutes, adductors], movement_pattern: squat, default_equipment: barbell, e1rm: true, aliases: [squat, back squat]}
+  - {slug: hack_squat, name: Hack Squat, primary_muscle: quads, body_region: Legs, secondary_muscles: [glutes], movement_pattern: squat, default_equipment: plate_loaded, e1rm: true, aliases: [hack squat]}
+  - {slug: leg_press, name: Leg Press, primary_muscle: quads, body_region: Legs, secondary_muscles: [glutes], movement_pattern: squat, default_equipment: plate_loaded, e1rm: true, aliases: [leg press]}
+  - {slug: sissy_squat, name: Sissy Squat, primary_muscle: quads, body_region: Legs, movement_pattern: knee_extension, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [sissy squat]}
+  - {slug: bulgarian_split_squat, name: Bulgarian Split Squat, primary_muscle: quads, body_region: Legs, secondary_muscles: [glutes], movement_pattern: lunge, default_equipment: dumbbell, e1rm: true, aliases: [bulgarian split squat, split squat]}
+  - {slug: leg_extension, name: Leg Extension, primary_muscle: quads, body_region: Legs, movement_pattern: knee_extension, default_equipment: machine_stack, e1rm: true, aliases: [leg extension]}
+  - {slug: leg_curl, name: Leg Curl, primary_muscle: hamstrings, body_region: Legs, movement_pattern: knee_flexion, default_equipment: machine_stack, e1rm: true, aliases: [lying leg curl, seated leg curl, leg curl]}
+  - {slug: romanian_deadlift, name: Romanian Deadlift, primary_muscle: hamstrings, body_region: Legs, secondary_muscles: [glutes, back], movement_pattern: hinge, default_equipment: barbell, e1rm: true, aliases: [romanian deadlift, rdl]}
+  - {slug: stiff_leg_deadlift, name: Stiff Leg Deadlift, primary_muscle: hamstrings, body_region: Legs, secondary_muscles: [glutes, back], movement_pattern: hinge, default_equipment: barbell, e1rm: true, aliases: [stiff leg deadlift]}
+  - {slug: hip_adduction, name: Hip Adduction, primary_muscle: adductors, body_region: Legs, movement_pattern: hip_adduction, default_equipment: machine_stack, e1rm: true, aliases: [hip adductor, hip adduction]}
+  - {slug: calf_raise, name: Calf Raise, primary_muscle: calves, body_region: Legs, movement_pattern: calf_raise, default_equipment: machine_stack, e1rm: true, aliases: [standing calf raise, calf press, calf press on seated leg press, seated calf raise]}
 
   # ---------------------------------------------------------------- core
-  - {slug: crunch, name: Crunch, primary_muscle: abs, movement_pattern: trunk_flexion, default_equipment: bodyweight, e1rm: true, aliases: [crunch, cable crunch, decline crunch]}
-  - {slug: hanging_leg_raise, name: Hanging Leg Raise, primary_muscle: abs, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [hanging leg raise]}
-  - {slug: knee_raise, name: Knee Raise, primary_muscle: abs, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [knee raise, captain's chair]}
-  - {slug: l_sit, name: L-Sit, primary_muscle: abs, movement_pattern: isometric_core, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [l-sit, l sit]}
-  - {slug: plank, name: Plank, primary_muscle: abs, movement_pattern: isometric_core, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [plank]}
+  - {slug: crunch, name: Crunch, primary_muscle: abs, body_region: Core, movement_pattern: trunk_flexion, default_equipment: bodyweight, e1rm: true, aliases: [crunch, cable crunch, decline crunch]}
+  - {slug: hanging_leg_raise, name: Hanging Leg Raise, primary_muscle: abs, body_region: Core, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [hanging leg raise]}
+  - {slug: knee_raise, name: Knee Raise, primary_muscle: abs, body_region: Core, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [knee raise, captain's chair]}
+  - {slug: l_sit, name: L-Sit, primary_muscle: abs, body_region: Core, movement_pattern: isometric_core, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [l-sit, l sit]}
+  - {slug: plank, name: Plank, primary_muscle: abs, body_region: Core, movement_pattern: isometric_core, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [plank]}
 
   # ---------------------------------------------------------------- cardio (Strong cardio rows)
-  - {slug: cardio, name: Cardio (generic), primary_muscle: full_body, movement_pattern: cardio, default_equipment: other, e1rm: false, timed: true, aliases: [running, cycling, rowing, elliptical, walking]}
+  - {slug: cardio, name: Cardio (generic), primary_muscle: full_body, body_region: Other, movement_pattern: cardio, default_equipment: other, e1rm: false, timed: true, aliases: [running, cycling, rowing, elliptical, walking]}

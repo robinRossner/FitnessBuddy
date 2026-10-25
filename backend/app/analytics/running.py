@@ -13,7 +13,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.analytics import common
+from app.analytics import common, planned
 from app.analytics.common import num
 from app.analytics.zones import ZONES5, time_in_zones
 from app.db.models import PlannedSession, Run
@@ -26,6 +26,15 @@ from app.engine.pace import VdotPaceModel, make_pace_model
 from app.settings import get_settings
 
 PLANNED_TYPES = {"easy_run": "easy", "long_run": "long", "intervals": "intervals"}
+RUN_TYPE_KEYS = (
+    "easy",
+    "intervals",
+    "long",
+    "other",
+)  # `other`: reserved, classify() never yields it
+KPI_WINDOW_DAYS = 28
+EFFICIENCY_RUNS = 3  # runs averaged per efficiency KPI
+EFFICIENCY_TOLERANCE_DAYS = 14  # the "4 weeks ago" runs may be this far from that date
 
 
 @dataclass
@@ -115,11 +124,73 @@ def evaluate_interval_run(ctx: Ctx, run: R.RunData):
     return split, ev
 
 
+def _efficiency(r: R.RunData) -> float | None:
+    return R.efficiency(r.distance_m, r.duration_s, r.avg_hr)
+
+
+def _efficiency_kpis(ctx: Ctx, today: date) -> dict:
+    """Mean efficiency of the last 3 easy / long runs vs the 3 closest to 28 days earlier (not
+    the same runs, within +-14 days of that date). None when there are fewer than 3 of either."""
+    eff = [
+        (r, e)
+        for r in ctx.runs
+        if r.day <= today and classify(r, ctx) in ("easy", "long") and (e := _efficiency(r))
+    ]  # oldest first
+    current = eff[-EFFICIENCY_RUNS:]
+    target = today - timedelta(days=KPI_WINDOW_DAYS)
+    taken = {r.id for r, _ in current}
+    pool = [
+        (r, e)
+        for r, e in eff
+        if r.id not in taken and abs((r.day - target).days) <= EFFICIENCY_TOLERANCE_DAYS
+    ]
+    pool.sort(key=lambda p: (abs((p[0].day - target).days), p[0].day))
+    before = pool[:EFFICIENCY_RUNS]
+    cur = common.mean([e for _, e in current]) if len(current) == EFFICIENCY_RUNS else None
+    ago = common.mean([e for _, e in before]) if len(before) == EFFICIENCY_RUNS else None
+    change = (cur - ago) / ago * 100 if cur is not None and ago else None
+    return {
+        "efficiency_current": num(cur, 4),
+        "efficiency_4w_ago": num(ago, 4),
+        "efficiency_change_pct": num(change),
+    }
+
+
+def _vdot_at(ctx: Ctx, day: date) -> float | None:
+    """The fitted VDOT on `day`; None while it is still only the seed race (no hard effort)."""
+    model = model_at(ctx, day)
+    return model.vdot if model.efforts_used else None
+
+
+def running_kpis(ctx: Ctx, today: date, week_runs: list[R.RunData], planned_runs: int) -> dict:
+    cur, ago = _vdot_at(ctx, today), _vdot_at(ctx, today - timedelta(days=KPI_WINDOW_DAYS))
+    since = today - timedelta(days=KPI_WINDOW_DAYS - 1)
+    drift = [
+        r
+        for r in ctx.runs
+        if since <= r.day <= today
+        and classify(r, ctx) == "easy"
+        and (d := R.decoupling_pct(r.laps)) is not None
+        and d > ctx.rc.easy.decoupling_flag_pct
+    ]
+    return {
+        "vdot_current": num(cur, 1),
+        "vdot_4w_ago": num(ago, 1),
+        "vdot_change": num(cur - ago, 1) if cur is not None and ago is not None else None,
+        **_efficiency_kpis(ctx, today),
+        "easy_hr_drift_flags_4w": len(drift),
+        "runs_this_week": len(week_runs),
+        "runs_planned_this_week": planned_runs,
+        "km_this_week": num(sum(r.km for r in week_runs)),
+    }
+
+
 def running_stats(db: Session, weeks: int) -> dict:
     today = common.today()
     starts = common.week_starts(weeks, today)
     first = starts[0]
-    ctx = load_ctx(db, first, today)
+    # the KPIs need 4 weeks (+ the VDOT lookback) of history even for a 1-week chart
+    ctx = load_ctx(db, min(first, today - timedelta(days=KPI_WINDOW_DAYS)), today)
     window = [r for r in ctx.runs if r.day >= first]
 
     weekly = {
@@ -128,6 +199,8 @@ def running_stats(db: Session, weeks: int) -> dict:
             "km": 0.0,
             "time_s": 0.0,
             "runs": 0,
+            "detail": [],
+            "by_type": dict.fromkeys(RUN_TYPE_KEYS, 0),
             "z": dict.fromkeys(ZONES5, 0),
         }
         for w in starts
@@ -142,6 +215,10 @@ def running_stats(db: Session, weeks: int) -> dict:
         for z, s in secs.items():
             b["z"][z] += s
         typ = classify(r, ctx)
+        b["by_type"][typ] += 1
+        b["detail"].append(
+            {"run_id": r.id, "date": r.day.isoformat(), "type": typ, "km": num(r.km)}
+        )
         if typ in ("easy", "long"):
             efficiency.append(
                 {
@@ -178,8 +255,12 @@ def running_stats(db: Session, weeks: int) -> dict:
         {"date": d.isoformat(), "value": num(model_at(ctx, d).vdot, 1)}
         for d in sorted({r.day for r in window})
     ]
+    this_week = common.week_start(today)
+    planned_runs = planned.planned_counts(db, [this_week])[this_week][1]
+    kpis = running_kpis(ctx, today, [r for r in window if r.day >= this_week], planned_runs)
     return {
         "generated_at": common.generated_at(),
+        "kpis": kpis,
         "weekly": [
             {
                 "week_start": b["week_start"],
@@ -187,6 +268,8 @@ def running_stats(db: Session, weeks: int) -> dict:
                 "time_s": round(b["time_s"]),
                 "runs": b["runs"],
                 "time_in_zones_s": b["z"],
+                "runs_detail": b["detail"],
+                "runs_by_type": b["by_type"],
             }
             for b in weekly.values()
         ],

@@ -266,6 +266,8 @@ final class SyncState {
     var configData: Data?
     var readinessData: Data?
     var readinessDate: String?
+    /// Re-encoded `ReadinessTodayDTO` of `readinessDate` (headline, metrics, details).
+    var readinessTodayData: Data?
 
     init(deviceId: String = UUID().uuidString.lowercased()) {
         self.key = "singleton"
@@ -305,5 +307,6 @@ extension CachedPlannedSession {
 
 extension SyncState {
     var config: ConfigDTO? { configData.flatMap { try? APICoding.makeDecoder().decode(ConfigDTO.self, from: $0) } }
+    var readinessToday: ReadinessTodayDTO? { readinessTodayData.flatMap { try? APICoding.makeDecoder().decode(ReadinessTodayDTO.self, from: $0) } }
     var readiness: ReadinessDTO? { readinessData.flatMap { try? APICoding.makeDecoder().decode(ReadinessDTO.self, from: $0) } }
 }

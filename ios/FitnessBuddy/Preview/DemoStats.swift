@@ -24,7 +24,8 @@ enum DemoStats {
     private static let quirkKeys = [
         "hrv7D": "hrv_7d", "hrv28D": "hrv_28d", "rhr7D": "rhr_7d", "rhr28D": "rhr_28d", "sleep7DS": "sleep_7d_s",
         "sleep28DS": "sleep_28d_s", "bodyweightChange4WPct": "bodyweight_change_4w_pct", "trend4WPct": "trend_4w_pct",
-        "bestE1Rm": "best_e1rm", "latestE1Rm": "latest_e1rm",
+        "bestE1Rm": "best_e1rm", "latestE1Rm": "latest_e1rm", "steps7DAvg": "steps_7d_avg", "days10KLast7": "days_10k_last_7",
+        "vdot4WAgo": "vdot_4w_ago", "efficiency4WAgo": "efficiency_4w_ago", "easyHrDriftFlags4W": "easy_hr_drift_flags_4w",
     ]
 
     private static func encode<T: Encodable>(_ v: T) -> Data? {
@@ -97,7 +98,8 @@ enum DemoStats {
         return LiftSummaryDTO(variantId: c.id, name: c.name, exerciseId: c.id, muscleGroup: c.group, gymId: 3, gymName: c.gym,
                               active: idx != 7, sessions: pts.count, firstDate: pts.first?.date, lastDate: pts.last?.date,
                               bestE1rm: best, latestE1rm: latest, trend4wPct: trend.map { ($0 * 10).rounded() / 10 },
-                              lastPrDate: idx == 0 || idx == 4 ? day(9) : day(60), stalled: idx == 3)
+                              lastPrDate: idx == 0 || idx == 4 ? day(9) : day(60), stalled: idx == 3,
+                              bodyRegion: idx % 2 == 0 ? BodyRegion(muscleGroup: c.group).rawValue : nil, inProgram: idx != 7)
     }
 
     static func lifts() -> LiftsStatsDTO { LiftsStatsDTO(generatedAt: .now, lifts: catalog.indices.map(summary)) }
@@ -117,12 +119,14 @@ enum DemoStats {
     }
 
     static func volume() -> WeeklyVolumeDTO {
-        let weeks = (0..<26).reversed().map { w -> WeekVolumeDTO in
+        let weeks = (0..<53).reversed().map { w -> WeekVolumeDTO in
             let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: .now))
             let sets = 30 + Int(noise(3, w) * 8) + (w == 0 ? -14 : 0)
+            let sessions = w == 0 ? 2 : (noise(5, w) < -0.7 ? 2 : 3)
+            let prs = noise(6, w) > 0.55 ? 1 + (noise(7, w) > 0.8 ? 1 : 0) : 0
             return WeekVolumeDTO(weekStart: start, liftingVolumeKg: Double(sets) * 410 + noise(4, w) * 800, liftingSets: sets,
-                                 liftingSessions: 3, setsByMuscleGroup: ["chest": sets / 4, "back": sets / 4, "legs": sets / 3, "shoulders": sets / 8, "arms": sets / 8],
-                                 runningKm: nil, runningTimeS: nil, runs: nil)
+                                 liftingSessions: sessions, setsByMuscleGroup: ["chest": sets / 4, "back": sets / 4, "legs": sets / 3, "shoulders": sets / 8, "arms": sets / 8],
+                                 runningKm: nil, runningTimeS: nil, runs: nil, prs: prs, prLifts: FlexCount(prs), plannedLiftingSessions: 3)
         }
         return WeeklyVolumeDTO(generatedAt: .now, weeks: weeks)
     }
@@ -134,8 +138,18 @@ enum DemoStats {
             let km = 18 + Double(8 - w) * 2.2 + noise(8, w) * 3
             let t = km * 340
             let zones = ["z1": t * 0.08, "z2": t * 0.55, "z3": t * 0.2, "z4": t * 0.13, "z5": t * 0.04]
-            return RunWeekDTO(weekStart: DayKey.weekStart(DayKey.daysAgo(w * 7, from: .now)), km: (km * 10).rounded() / 10, timeS: t,
-                              runs: 3, timeInZonesS: zones)
+            let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: .now))
+            let startDate = DayKey.date(start) ?? .now
+            let easy1 = (km * 0.28 * 10).rounded() / 10, interval = (km * 0.24 * 10).rounded() / 10
+            let long = ((km - easy1 - interval) * 10).rounded() / 10
+            let when = { (offset: Int) in DayKey.string(Calendar.current.date(byAdding: .day, value: offset, to: startDate) ?? startDate) }
+            var detail = [RunDetailDTO(runId: "run-e\(w)", date: when(1), type: .easy, km: easy1),
+                          RunDetailDTO(runId: "run-i\(w)", date: when(3), type: .intervals, km: interval),
+                          RunDetailDTO(runId: "run-l\(w)", date: when(6), type: .long, km: long)]
+            if w == 0 { detail = Array(detail.prefix(2)) }
+            return RunWeekDTO(weekStart: start, km: (km * 10).rounded() / 10, timeS: t,
+                              runs: detail.count, timeInZonesS: zones, runsDetail: detail,
+                              runsByType: RunTypeCountsDTO(easy: 1, intervals: 1, long: w == 0 ? 0 : 1, other: 0))
         }
         var eff: [EfficiencyPointDTO] = []
         for i in 0..<14 {
@@ -151,7 +165,10 @@ enum DemoStats {
             IntervalSessionDTO(date: day(5 + i * 14), runId: "run-i\(i)", reps: 5 + i % 2, targetPaceSPerKm: 262, avgWorkPaceSPerKm: 262 + (i % 3 == 1 ? 8 : -2),
                                avgWorkHr: 168 + Double(i), targetHrLow: 164, targetHrHigh: 174, hrInRange: i != 3, recoveryOk: i != 2, passed: i == 3 ? false : (i % 3 == 1 ? false : true))
         }
-        return RunningStatsDTO(generatedAt: .now, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals)
+        let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: eff.last?.efficiency, efficiency4wAgo: 1.24,
+                              efficiencyChangePct: 4.6, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: 2, runsPlannedThisWeek: 3,
+                              kmThisWeek: weekly.last?.km)
+        return RunningStatsDTO(generatedAt: .now, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals, kpis: kpis)
     }
 
     static func recentRuns() -> [RunSummaryDTO] {
@@ -196,12 +213,19 @@ enum DemoStats {
             return HealthDayDTO(date: day(off), hrvMs: (hrv * 10).rounded() / 10, hrvBaselineMs: 63, rhr: (51 + noise(15, i) * 3 + (off < 5 ? 3 : 0)).rounded(),
                                 rhrBaseline: 51, sleepS: sleep * 3600, sleepScore: (78 + noise(16, i) * 14).rounded(), bodyBatteryHigh: high.rounded(),
                                 bodyBatteryLow: (high - 55 + noise(17, i) * 12).rounded(), stressAvg: 28, steps: (8500 + noise(18, i) * 3500).rounded(),
-                                readiness: DayReadinessDTO(level: level, reason: level == "green" ? "HRV, resting heart rate and sleep are all normal." : "HRV is 12 % below baseline."))
+                                readiness: DayReadinessDTO(level: level, reason: level == "green" ? "HRV, resting heart rate and sleep are all normal." : "HRV is 12 % below baseline."),
+                                steps7dAvg: nil)
         }
         let weights = (0..<8).map { i in BodyweightPointDTO(date: day(84 - i * 11), weightKg: (80.6 - Double(i) * 0.12 + noise(19, i) * 0.3 * 10).rounded() / 10 * 1, source: "garmin") }
         let summary = HealthSummaryDTO(hrv7d: 57, hrv28d: 62, rhr7d: 53, rhr28d: 51.5, sleep7dS: 6.8 * 3600, sleep28dS: 7.2 * 3600,
                                        bodyweightLatest: weights.last?.weightKg, bodyweightChange4wPct: -0.6)
-        return HealthStatsDTO(generatedAt: .now, days: days, bodyweight: weights.reversed(), summary: summary)
+        let readiness = ReadinessTodayDTO(
+            level: "yellow", headline: "Take it easier",
+            metrics: [ReadinessMetricDTO(key: "hrv", label: "HRV", value: 57, unit: "ms", baseline: 63, deltaPct: -9.5, status: .warn),
+                      ReadinessMetricDTO(key: "rhr", label: "Resting HR", value: 54, unit: "bpm", baseline: 51, deltaPct: 5.9, status: .warn),
+                      ReadinessMetricDTO(key: "sleep", label: "Sleep", value: 6.8, unit: "h", baseline: 7.2, deltaPct: -5.6, status: .ok)],
+            details: ["HRV is 10 % below your baseline.", "Resting heart rate is 3 bpm above baseline.", "Sleep was slightly short."])
+        return HealthStatsDTO(generatedAt: .now, days: days, bodyweight: weights.reversed(), summary: summary, readinessToday: readiness)
     }
 
     static func correlations() -> CorrelationsDTO {
@@ -212,9 +236,11 @@ enum DemoStats {
         let few = (0..<2).map { CorrelationPointDTO(date: day($0), x: 1, y: 2) }
         return CorrelationsDTO(generatedAt: .now, items: [
             CorrelationDTO(id: "sleep_hrv", title: "Sleep vs next-morning HRV", xLabel: "Sleep (h)", yLabel: "HRV (ms)", points: pts, r: 0.52, n: 40,
-                           note: "On nights with more sleep your HRV tends to be higher the next morning."),
+                           note: "On nights with more sleep your HRV tends to be higher the next morning.", category: .recovery,
+                           insight: "More sleep tends to go with a higher HRV the next morning (r=0.52, n=40)"),
             CorrelationDTO(id: "volume_rhr", title: "Weekly lifting volume vs resting HR", xLabel: "Sets", yLabel: "RHR (bpm)", points: few, r: nil, n: 2,
-                           note: "Needs at least three weeks of data."),
+                           note: "Needs at least three weeks of data.", category: .hybrid,
+                           insight: "Needs at least three weeks of data."),
         ])
     }
 }

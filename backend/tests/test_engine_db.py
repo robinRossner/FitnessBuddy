@@ -541,6 +541,11 @@ def test_api_requires_the_bearer_token(client):
 def test_plan_today_and_week_preview_then_stored(client, db, program, settings):
     today = client.get("/api/v1/plan/today").json()
     assert today["date"] == "2026-10-26" and today["readiness"]["color"] == "green"
+    rt = today["readiness_today"]  # compact view of the same score, for the Today screen
+    assert (rt["level"], rt["headline"]) == ("green", "Ready")
+    assert set(rt) == {"level", "headline", "metrics", "details"} and rt["details"]
+    assert {m["key"] for m in rt["metrics"]} <= {"hrv", "rhr", "sleep"}
+    assert all(m["status"] in {"ok", "warn", "bad"} for m in rt["metrics"])
     [s] = today["sessions"]
     assert s["status"] == "preview" and s["id"] is None and s["kind"] == "upper"
     assert s["session"]["exercises"][0]["sets"][0]["target_reps"] == 12  # last 11/10/9 + 1

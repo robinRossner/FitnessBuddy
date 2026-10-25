@@ -13,6 +13,18 @@ enum ChartPalette {
     static let battery = Color.mint
     static let steps = Color.green
     static let weight = Color.blue
+    /// Personal records: a warm gold that stays readable on light and dark backgrounds.
+    static let pr = Color(red: 0.93, green: 0.68, blue: 0.0)
+
+    /// Run types in the weekly distance chart.
+    static func runType(_ type: RunType) -> Color {
+        switch type {
+        case .easy: .green
+        case .intervals: .orange
+        case .long: .blue
+        case .other: .gray
+        }
+    }
 
     static func lapKind(_ kind: LapKind) -> Color {
         switch kind {

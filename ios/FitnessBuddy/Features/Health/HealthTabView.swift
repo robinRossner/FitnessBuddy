@@ -7,22 +7,30 @@ struct HealthTabView: View {
     @State private var range: HealthRange = .thirty
     @State private var showWeightSheet = false
 
-    #if DEBUG
-    /// `-uiSheet weight` opens the log sheet at launch (screenshots).
-    init() { _showWeightSheet = State(initialValue: UserDefaults.standard.string(forKey: "uiSheet") == "weight") }
-    #endif
+    private let openSheet: String?
+
+    /// `-uiSheet weight|readiness` opens that sheet at launch (screenshots, DEBUG only).
+    init() {
+        #if DEBUG
+        let d = UserDefaults.standard.string(forKey: "uiSheet")
+        openSheet = d
+        _showWeightSheet = State(initialValue: d == "weight")
+        #else
+        openSheet = nil
+        #endif
+    }
 
     private var health: StatsResource<HealthStatsDTO> { env.stats.resource(StatsEndpoints.health()) }
-    private var correlations: StatsResource<CorrelationsDTO> { env.stats.resource(StatsEndpoints.correlations()) }
 
     var body: some View {
-        let health = health, correlations = correlations
+        let health = health
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     if let data = health.value {
                         let days = HealthTransforms.window(data.days, range: range)
-                        HealthHeader(days: data.days, summary: data.summary)
+                        HealthHeader(days: data.days, summary: data.summary, readinessToday: data.readinessToday,
+                                     openReadiness: openSheet == "readiness")
                         Picker("Range", selection: $range) {
                             ForEach(HealthRange.allCases) { Text($0.label).tag($0) }
                         }
@@ -30,9 +38,7 @@ struct HealthTabView: View {
                         HRVCard(days: days)
                         RHRCard(days: days)
                         SleepCard(days: days)
-                        BodyBatteryCard(days: days)
-                        StepsCard(days: days)
-                        ReadinessCalendarCard(days: data.days, count: range.rawValue)
+                        StepsCard(series: HealthTransforms.stepSeries(data.days), range: range, summary: data.summary, days: data.days)
                         BodyweightCard(server: data.bodyweight, summary: data.summary, measurements: measurements,
                                        range: range, logWeight: { showWeightSheet = true })
                     } else {
@@ -40,7 +46,6 @@ struct HealthTabView: View {
                         BodyweightCard(server: [], summary: nil, measurements: measurements, range: range,
                                        logWeight: { showWeightSheet = true })
                     }
-                    CorrelationsSection(resource: correlations)
                     FreshnessLabel(resource: health)
                 }
                 .padding(.horizontal, 16)
@@ -49,8 +54,8 @@ struct HealthTabView: View {
             .background(Color.screenBackground)
             .navigationTitle("Health")
             .toolbar { ToolbarItem(placement: .topBarLeading) { SyncStatusBadge() } }
-            .refreshable { await refreshStats(env, [health, correlations]) }
-            .loadsStats([health, correlations])
+            .refreshable { await refreshStats(env, [health]) }
+            .loadsStats([health])
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet(lastWeight: lastWeight)
             }
@@ -68,16 +73,16 @@ struct HealthTabView: View {
 private struct HealthHeader: View {
     let days: [HealthDayDTO]
     let summary: HealthSummaryDTO?
+    let readinessToday: ReadinessTodayDTO?
+    let openReadiness: Bool
 
-    private var readiness: ReadinessDTO? {
-        guard let day = HealthTransforms.latestReadinessDay(days), let r = day.readiness else { return nil }
-        let level = r.readinessLevel
-        return ReadinessDTO(date: day.date, color: level == .unknown ? nil : level.rawValue, known: level != .unknown, reason: r.reason)
+    private var readiness: ReadinessSummary? {
+        ReadinessSummary.make(today: readinessToday, legacy: nil, day: HealthTransforms.latestReadinessDay(days))
     }
 
     var body: some View {
         VStack(spacing: 16) {
-            ReadinessCard(readiness: readiness)
+            ReadinessCard(summary: readiness, startOpen: openReadiness)
             Card {
                 SectionLabel(title: "7 days vs 28 days", symbol: "heart.fill", color: Domain.recovery.color)
                 HStack(alignment: .top, spacing: 12) {

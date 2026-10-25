@@ -45,9 +45,11 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
       "name": "Triceps Extension (Cable)",
       "exercise_id": 9,
       "muscle_group": "triceps",
+      "body_region": "Arms",
       "gym_id": 4,
       "gym_name": "Gym 3",
       "active": true,
+      "in_program": true,
       "sessions": 9,
       "first_date": "2026-08-17",
       "last_date": "2026-10-23",
@@ -63,6 +65,16 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 
 - `name`: the variant name without the gym suffix (the gym is in `gym_name`; `null` = generic
   variant that is the same in every gym). `muscle_group` is the exercise's primary muscle.
+- `body_region`: coarse region for dashboards, one of `Chest` | `Back` | `Shoulders` | `Arms` |
+  `Legs` | `Core` | `Other`. It is stored per exercise in `data/catalog/exercises.yaml`
+  (`body_region`); rear delts count as Shoulders, lats and traps as Back, biceps / triceps /
+  forearms as Arms, glutes / hamstrings / quads / calves / adductors as Legs, abs as Core,
+  anything else (e.g. cardio) as Other. Exercises that are not in the catalog derive it from
+  `muscle_group` by the same table.
+- `in_program`: `true` when the variant is one the active exercises of `data/program/program.yaml`
+  resolve to at the current gym (the generic variant or the one bound to that gym, exactly as the
+  planner picks it). `false` for variants of other gyms, exercises not in the program and when
+  there is no program file.
 - `active`: `false` = the user no longer does it (history is kept).
 - `best_e1rm` / `latest_e1rm`: best set e1RM ever / in the newest session that has one. e1RM is
   the engine's bodyweight-aware value (Epley; bodyweight + added weight for pull-ups and dips,
@@ -174,6 +186,9 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
       "lifting_volume_kg": 19893.0,
       "lifting_sets": 39,
       "lifting_sessions": 2,
+      "planned_lifting_sessions": 3,
+      "prs": 0,
+      "pr_lifts": 0,
       "sets_by_muscle_group": {
         "abs": 4,
         "adductors": 2,
@@ -198,6 +213,14 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 - `lifting_volume_kg`: sum of the lift `volume_kg` over all variants (per-dumbbell lifts count
   one dumbbell). `lifting_sets`: non-warm-up sets = the sum of `sets_by_muscle_group`.
 - `sets_by_muscle_group`: working sets by the exercise's primary muscle; only groups trained.
+- `prs`: number of **sessions** that week with at least one e1RM or weight PR on an `active`
+  lift (PRs on retired lifts are ignored). `pr_lifts`: number of **distinct lifts** (variants)
+  with such a PR that week. Rep PRs do not count.
+- `planned_lifting_sessions`: upper / lower sessions in `planned_sessions` for that week
+  (soft-deleted ones ignored) when the week is fully planned (a row for every day of the
+  engine's weekly template, rest days included, which is how the planner stores it). Otherwise,
+  including a week with only a carried-over Sunday plan, the template count, 3 (`upper`,
+  `lower`, `upper`).
 - `running_*`: running activities only (hiking etc. excluded), by local start day.
 
 ## GET /stats/running?weeks=26
@@ -205,6 +228,18 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 ```json
 {
   "generated_at": "2026-10-25T11:24:36.071Z",
+  "kpis": {
+    "vdot_current": 41.0,
+    "vdot_4w_ago": 41.0,
+    "vdot_change": 0.0,
+    "efficiency_current": 1.2656,
+    "efficiency_4w_ago": 1.2982,
+    "efficiency_change_pct": -2.51,
+    "easy_hr_drift_flags_4w": 0,
+    "runs_this_week": 1,
+    "runs_planned_this_week": 3,
+    "km_this_week": 8.13
+  },
   "weekly": [
     {
       "week_start": "2026-10-19",
@@ -217,7 +252,11 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
         "z3": 108,
         "z4": 96,
         "z5": 24
-      }
+      },
+      "runs_detail": [
+        {"run_id": "0e7a552a-043e-5034-b515-f4b63639274b", "date": "2026-10-22", "type": "long", "km": 8.13}
+      ],
+      "runs_by_type": {"easy": 0, "intervals": 0, "long": 1, "other": 0}
     }
   ],
   "efficiency": [
@@ -262,6 +301,25 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 
 (each array shortened here; `weekly` has an entry for every week, oldest first, zeros when idle.)
 
+- `kpis` (top level): headline numbers for the running dashboard, always relative to today and
+  independent of `weeks` (they look back 4 weeks plus the VDOT lookback even for `weeks=1`).
+  `null` means there is not enough data:
+  - `vdot_current`, `vdot_4w_ago` (the estimate as the planner would have fitted it 28 days ago),
+    `vdot_change` (difference). `null` while the estimate is still only the seed race, i.e. no
+    hard effort (>= `vdot.min_effort_km`, HR high enough) in the lookback window.
+  - `efficiency_current`: mean `efficiency` of the last 3 easy or long runs. `efficiency_4w_ago`:
+    mean of the 3 such runs closest to 28 days before today, other than the current 3 and
+    within 14 days of that date. `efficiency_change_pct`: (current - 4w ago) / 4w ago in %.
+    Each is `null` with fewer than 3 runs.
+  - `easy_hr_drift_flags_4w`: easy runs in the last 28 days whose `decoupling_pct` is above the
+    engine's flag (`running.easy.decoupling_flag_pct`, 5 %). Always a number (0 when none).
+  - `runs_this_week`, `km_this_week`: runs and kilometres since this week's Monday (0 when none).
+    `runs_planned_this_week`: easy / long / interval runs planned this week, with the same
+    full-week-or-template rule as `planned_lifting_sessions` (template: 3 runs).
+- `weekly.runs_detail`: the week's runs, oldest first: `run_id` (use with `/runs/{id}/analysis`),
+  `date`, `km`, and `type` = `easy` | `intervals` | `long` | `other`, the same classification as
+  `efficiency[].type` below. `weekly.runs_by_type`: count of runs per type (sums to `runs`).
+  `other` is reserved and is 0 for now: every run is classified into one of the three.
 - `weekly.time_in_zones_s`: seconds in HR zones **z1..z5**, using the zones of the *active engine
   config* (derived from LTHR, never stored). The engine has Friel's 7 running zones
   (`z1, z2, z3, z4, z5a, z5b, z5c`); they are collapsed into five:
@@ -414,6 +472,7 @@ readiness `unknown` when Garmin has nothing).
       "body_battery_low": 27.0,
       "stress_avg": 12.0,
       "steps": 35,
+      "steps_7d_avg": 10871.0,
       "readiness": {
         "level": "green",
         "reason": "all signals normal: HRV 66 ms (-6% vs 70 baseline), resting HR 53 (+1 vs 52), sleep 7.4 h, score 84"
@@ -439,8 +498,25 @@ readiness `unknown` when Garmin has nothing).
     "rhr_28d": 54.4,
     "sleep_7d_s": 30320.0,
     "sleep_28d_s": 29122.0,
+    "steps_7d_avg": 10871.0,
+    "days_10k_last_7": 4,
     "bodyweight_latest": 82.0,
     "bodyweight_change_4w_pct": null
+  },
+  "readiness_today": {
+    "level": "green",
+    "headline": "Ready",
+    "metrics": [
+      {"key": "hrv", "label": "HRV", "value": 66.0, "unit": "ms", "baseline": 70.0, "delta_pct": -5.7, "status": "ok"},
+      {"key": "rhr", "label": "Resting HR", "value": 53.0, "unit": "bpm", "baseline": 52.0, "delta_pct": 1.9, "status": "ok"},
+      {"key": "sleep", "label": "Sleep", "value": 7.4, "unit": "h", "baseline": 7.6, "delta_pct": -2.6, "status": "ok"}
+    ],
+    "details": [
+      "All signals normal",
+      "HRV 66 ms (-6% vs 70 baseline)",
+      "Resting HR 53 (+1 vs 52)",
+      "Sleep 7.4 h, score 84"
+    ]
   }
 }
 ```
@@ -450,21 +526,48 @@ readiness `unknown` when Garmin has nothing).
 - `hrv_baseline_ms` / `rhr_baseline`: the mean of the previous 7 days the engine compares with
   (HRV falls back to Garmin's weekly average when fewer than 3 days exist).
 - `body_battery_high/low`: the day's max / min body battery.
+- `steps_7d_avg`: mean of the days with step data among the 7 days ending that day (rounded to
+  whole steps), `null` if none of them has any.
 - `bodyweight`: weigh-ins in the window (manual, Garmin, ...), oldest first.
 - `summary`: `*_7d` / `*_28d` = mean of the days with data in the last 7 / 28 days (ending today),
   `null` if none. `bodyweight_latest`: latest weigh-in ever. `bodyweight_change_4w_pct`: latest vs
   the weigh-in closest to 28 days before it, accepted only within 14 days of that mark (else
-  `null`), in %.
+  `null`), in %. `steps_7d_avg`: the same 7-day mean for the last 7 days; `days_10k_last_7`: days
+  among them with at least 10 000 steps (`null` when none has step data).
+- `readiness_today`: today's readiness as a compact card (also returned by `GET /plan/today`, see
+  below). Same engine score as `days[-1].readiness`.
+  - `level`: `green` | `yellow` | `red` | `unknown`. `headline`: short text for it, `"Ready"`,
+    `"Take it easier"`, `"Recover"` or `"No data"`.
+  - `metrics`: one entry per signal the engine could score today, in the order `hrv`, `rhr`,
+    `sleep` (empty with no data): `key`, `label`, `value` and `unit` (`ms`, `bpm`, `h`),
+    `baseline` (the mean of the previous 7 days the engine compares with; for sleep the mean
+    sleep hours of the previous 7 nights, `null` with fewer than 3), `delta_pct` (value vs
+    baseline, `null` without baseline) and `status`: `ok` | `warn` | `bad` (the signal's green /
+    yellow / red).
+  - `details`: the full explanation, one line per item (the lines that `days[].readiness.reason`
+    joins with `;`, with the engine's notes such as "Short night alone: yellow"). With no data:
+    `["No data"]`.
 
 ## GET /stats/correlations?days=120
 
-Three items, always present (empty `points` when there is no data):
+Five items, always present and in this order (empty `points` when there is no data). `category`
+is `recovery` (how the body's state goes with training performance) or `hybrid` (running vs
+lifting interference, relevant for an athlete who does both).
 
-| `id` | x | y |
-|---|---|---|
-| `sleep_vs_lifting` | hours slept the night before the session | the session's best e1RM per lift as % of that lift's best in the previous 8 weeks (100 = matched it, above = PR), averaged over the day's lifts |
-| `hrv_vs_easy_efficiency` | overnight HRV (ms) on the day | efficiency (m/min per bpm) of the day's easy run |
-| `sleep_score_vs_readiness` | sleep score of the night ending that morning | that day's engine readiness as a number (red 0, yellow 1, green 2) |
+| `id` | `category` | x | y |
+|---|---|---|---|
+| `sleep_vs_lifting` | recovery | hours slept the night before the session | lifting performance (below) |
+| `hrv_vs_lift_performance` | recovery | that morning's overnight HRV (ms) | lifting performance on that day |
+| `hrv_vs_easy_efficiency` | recovery | overnight HRV (ms) on the day | efficiency (m/min per bpm) of the day's easy run |
+| `rhr_vs_easy_efficiency` | recovery | resting HR (bpm) on the day | efficiency of the day's easy run |
+| `run_load_vs_lift_performance` | hybrid | running km in the 48 h before the first lifting session of the day (0 if none) | lifting performance on that day |
+
+*Lifting performance* (the same metric in all three lifting items): each lift's best e1RM that
+day as % of that lift's best in the previous 8 weeks (100 = matched it, above = PR), averaged over
+the day's lifts. A lift's first appearance has no history and is skipped.
+
+The old `sleep_score_vs_readiness` item was removed: readiness already includes sleep, so it
+was trivially correlated.
 
 ```json
 {
@@ -472,6 +575,7 @@ Three items, always present (empty `points` when there is no data):
   "items": [
     {
       "id": "hrv_vs_easy_efficiency",
+      "category": "recovery",
       "title": "HRV vs easy-run efficiency",
       "x_label": "Overnight HRV (ms)",
       "y_label": "Efficiency (m/min per bpm)",
@@ -489,7 +593,8 @@ Three items, always present (empty `points` when there is no data):
       ],
       "r": 0.661,
       "n": 6,
-      "note": "n=6, strong positive, not conclusive. Easy runs only; efficiency is speed per heartbeat, so pace differences cancel out."
+      "note": "n=6, strong positive, not conclusive. Easy runs only; efficiency is speed per heartbeat, so pace differences cancel out.",
+      "insight": "Higher HRV tends to go with more efficient easy runs (r=0.66, n=6, early read)"
     }
   ]
 }
@@ -498,6 +603,21 @@ Three items, always present (empty `points` when there is no data):
 - `r`: Pearson correlation, `null` when `n` < 5 (or one axis is constant). `n` = number of points.
 - `note`: plain English, e.g. `n=7, weak positive, not conclusive` (strength from |r|: <0.2
   negligible, <0.4 weak, <0.6 moderate, else strong; "not conclusive" below 30 points), followed by a
-  caveat. Show it next to the chart. Garmin files a night's sleep under the day you woke up,
-  so "sleep that day" is the previous night. Readiness already includes sleep, so the third item
-  has some built-in correlation.
+  caveat. Show it next to the chart. Garmin files a night's sleep (and HRV / resting HR) under the
+  day you woke up, so "sleep that day" is the previous night.
+- `insight`: one cautious sentence generated from `r` and `n`, for the card headline:
+  - `n` < 5 or `r` null: `Not enough data yet (n=4)`.
+  - |r| < 0.2: `No clear link between sleep and lifting performance (r=0.05, n=31)`.
+  - 0.2 <= |r| < 0.4: `Weak hint that more sleep goes with better lifting days (r=0.25, n=31)`.
+  - |r| >= 0.4: `More sleep tends to go with better lifting days (r=0.42, n=31)`.
+  - `n` < 15 adds `, early read` inside the brackets. Correlation is never presented as cause.
+- `run_load_vs_lift_performance` is the interference effect: a negative `r` would mean lifting
+  days are weaker after more running. Runs count when they start up to 48 h before the session
+  start (running activities only, deleted ones excluded).
+
+## GET /plan/today: `readiness_today`
+
+`GET /api/v1/plan/today` (see [sync.md](sync.md#plan-json-plantoday-planweek-and-planned_sessions-in-pull))
+carries the same `readiness_today` object as `/stats/health` (additive; the existing `readiness`
+object is unchanged), so the Today screen needs no second request. Example:
+`examples/plan_today.json` (a day without Garmin data: level `unknown`, headline `No data`).

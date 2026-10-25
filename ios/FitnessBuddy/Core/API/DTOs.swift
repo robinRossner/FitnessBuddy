@@ -234,6 +234,20 @@ struct PlanTodayDTO: Codable, Sendable, Equatable {
     var date: String
     var readiness: ReadinessDTO?
     var sessions: [PlanItemDTO]
+    /// Headline + compact metrics + detail lines (newer backends only).
+    var readinessToday: ReadinessTodayDTO?
+
+    init(date: String, readiness: ReadinessDTO? = nil, sessions: [PlanItemDTO], readinessToday: ReadinessTodayDTO? = nil) {
+        self.date = date; self.readiness = readiness; self.sessions = sessions; self.readinessToday = readinessToday
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        date = try c.decode(String.self, forKey: .date)
+        readiness = try c.decodeIfPresent(ReadinessDTO.self, forKey: .readiness)
+        sessions = try c.decode([PlanItemDTO].self, forKey: .sessions)
+        // Additive block: a shape change there must not hide today's plan.
+        readinessToday = (try? c.decodeIfPresent(ReadinessTodayDTO.self, forKey: .readinessToday)) ?? nil
+    }
 }
 
 // MARK: - Reference data

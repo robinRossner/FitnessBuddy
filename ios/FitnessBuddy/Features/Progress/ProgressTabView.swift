@@ -19,6 +19,7 @@ struct ProgressTabView: View {
         var p = NavigationPath()
         if let id = d.string(forKey: "uiLift").flatMap(Int.init) { p.append(LiftSummaryDTO(variantId: id, name: "Lift")) }
         if let id = d.string(forKey: "uiRun") { p.append(RunRoute(id: id)) }
+        if d.string(forKey: "uiSheet") == "insights" { p.append(InsightsRoute()) }
         _path = State(initialValue: p)
     }
     #endif
@@ -35,6 +36,10 @@ struct ProgressTabView: View {
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: InsightsRoute()) { Image(systemName: "lightbulb") }
+                        .accessibilityLabel("Insights")
+                }
                 ToolbarItem(placement: .principal) {
                     Picker("Section", selection: $segment) {
                         ForEach(Segment.allCases) { Text($0.rawValue).tag($0) }
@@ -44,6 +49,7 @@ struct ProgressTabView: View {
                 }
             }
             .navigationDestination(for: LiftSummaryDTO.self) { LiftDetailView(lift: $0) }
+            .navigationDestination(for: InsightsRoute.self) { _ in InsightsView() }
             .navigationDestination(for: RunRoute.self) { RunAnalysisView(runId: $0.id) }
             .navigationDestination(item: $openRun) { RunAnalysisView(runId: $0.id) }
         }

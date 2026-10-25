@@ -207,7 +207,9 @@ added weight; null when not meaningful). All set types are listed in set order; 
 ## Plan JSON (`/plan/today`, `/plan/week`, and `planned_sessions` in pull)
 
 `GET /api/v1/plan/today` (`examples/plan_today.json`) =
-`{"date", "readiness": {...}, "sessions": [PlanItem...]}`;
+`{"date", "readiness": {...}, "readiness_today": {...}, "sessions": [PlanItem...]}`
+(`readiness_today` is the compact card also in `/stats/health`, see [stats.md](stats.md);
+`readiness` is the engine's full score);
 `GET /api/v1/plan/week?start=<any date>` (`examples/plan_week.json`) =
 `{"start": "2026-10-26", "days": [{"date", "sessions": [PlanItem...]}] x7}`. Days with nothing
 stored get a computed item with `"id": null, "status": "preview"` (not in `planned_sessions`).

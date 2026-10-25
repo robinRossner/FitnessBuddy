@@ -64,7 +64,7 @@ struct ChartTransformTests {
         #expect(Fmt.sleep(25_500) == "7 h 05 min")
     }
 
-    @Test func healthWindowAndReadinessStrip() {
+    @Test func healthWindowAndLatestReadinessDay() {
         let days = (0..<100).map { off -> HealthDayDTO in
             HealthDayDTO(date: DayKey.string(DayKey.daysAgo(off, from: now)),
                          readiness: DayReadinessDTO(level: off == 0 ? "green" : (off == 2 ? "red" : "yellow"), reason: nil))
@@ -72,10 +72,7 @@ struct ChartTransformTests {
         #expect(HealthTransforms.window(days, range: .thirty, now: now).count == 30)
         #expect(HealthTransforms.window(days, range: .ninety, now: now).count == 90)
         #expect(HealthTransforms.window(days, range: .thirty, now: now).first?.date == "2026-09-26")
-        let strip = HealthTransforms.readinessStrip(Array(days.prefix(3)), count: 5, now: now)
-        #expect(strip.count == 5)
-        #expect(strip.map(\.level) == [.unknown, .unknown, .red, .yellow, .green])   // oldest first, gaps unknown
-        #expect(strip.last?.date == "2026-10-25")
+        #expect(HealthTransforms.latestReadinessDay(days)?.date == "2026-10-25")
         #expect(HealthTransforms.deltaPct(short: 57, long: 60) == -5)
         #expect(HealthTransforms.deltaPct(short: nil, long: 60) == nil)
         #expect(HealthTransforms.deltaPct(short: 5, long: 0) == nil)

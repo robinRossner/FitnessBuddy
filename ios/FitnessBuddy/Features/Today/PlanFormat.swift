@@ -57,7 +57,7 @@ enum PlanFormat {
 
     static func symbol(forKind kind: String) -> String {
         switch kind {
-        case "upper": "dumbbell.fill"
+        case "upper", "full", "other": "dumbbell.fill"
         case "lower": "figure.strengthtraining.functional"
         case "easy_run": "figure.run"
         case "intervals": "speedometer"
@@ -69,6 +69,7 @@ enum PlanFormat {
     static func shortName(forKind kind: String) -> String {
         switch kind {
         case "upper": "Upper"
+        case "full", "other": "Lift"
         case "lower": "Lower"
         case "easy_run": "Easy"
         case "intervals": "Intervals"

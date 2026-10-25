@@ -7,13 +7,16 @@ import json
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
-from app.analytics import cache, common
-from app.analytics.health import bodyweight_change_pct
+from app.analytics import cache, common, correlations
+from app.analytics.health import bodyweight_change_pct, readiness_view
 from app.analytics.zones import collapse, time_in_zones
 from app.api.auth import get_api_token
 from app.api.routes import get_db
+from app.db.catalog import BODY_REGIONS, load_catalog, region_of_muscle
 from app.db.models import (
     BodyMeasurement,
     DailyHealth,
@@ -28,8 +31,11 @@ from app.db.models import (
 )
 from app.db.types import Source
 from app.engine import running as R
+from app.engine import service
 from app.engine.config import load_engine_config
 from app.engine.hr import zones_from_config
+from app.engine.program import Program, ProgramExercise
+from app.engine.readiness import Readiness, Signal
 from app.main import app
 from app.settings import BACKEND_DIR
 from app.stats import rebuild_stats
@@ -38,6 +44,18 @@ TODAY = date(2026, 10, 25)  # a Sunday: the current week starts Monday 2026-10-1
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 CFG_PATH = BACKEND_DIR / "config" / "engine.v3.yaml"
+
+NULL_KPIS = (
+    "vdot_current", "vdot_4w_ago", "vdot_change", "efficiency_current", "efficiency_4w_ago",
+    "efficiency_change_pct",
+)  # fmt: skip
+CORRELATION_IDS = [
+    "sleep_vs_lifting",
+    "hrv_vs_lift_performance",
+    "hrv_vs_easy_efficiency",
+    "rhr_vs_easy_efficiency",
+    "run_load_vs_lift_performance",
+]
 
 ALL_PATHS = [
     "/api/v1/stats/lifts",
@@ -317,10 +335,22 @@ def test_empty_database_gives_empty_but_well_formed_responses(empty):
     assert [w["week_start"] for w in weeks] == ["2026-10-05", "2026-10-12", "2026-10-19"]
     assert all(w["lifting_sets"] == 0 and w["running_km"] == 0 for w in weeks)
     assert all(w["sets_by_muscle_group"] == {} for w in weeks)
+    assert all(w["prs"] == 0 and w["pr_lifts"] == 0 for w in weeks)
+    assert all(w["planned_lifting_sessions"] == 3 for w in weeks)  # template count
 
     running = empty.get("/api/v1/stats/running?weeks=2").json()
     assert len(running["weekly"]) == 2 and running["efficiency"] == []
     assert running["vdot"] == [] and running["intervals"] == []
+    assert all(
+        w["runs_detail"] == [] and sum(w["runs_by_type"].values()) == 0 for w in running["weekly"]
+    )
+    assert running["kpis"] == {
+        **dict.fromkeys(NULL_KPIS),
+        "easy_hr_drift_flags_4w": 0,
+        "runs_this_week": 0,
+        "runs_planned_this_week": 3,  # template
+        "km_this_week": 0.0,
+    }
 
     health = empty.get("/api/v1/stats/health?days=7").json()
     assert len(health["days"]) == 7
@@ -328,14 +358,18 @@ def test_empty_database_gives_empty_but_well_formed_responses(empty):
     assert all(d["hrv_ms"] is None for d in health["days"])
     assert health["bodyweight"] == []
     assert set(health["summary"].values()) == {None}
+    assert all(d["steps_7d_avg"] is None for d in health["days"])
+    assert health["readiness_today"] == {
+        "level": "unknown",
+        "headline": "No data",
+        "metrics": [],
+        "details": ["No data"],
+    }
 
     items = empty.get("/api/v1/stats/correlations").json()["items"]
-    assert [i["id"] for i in items] == [
-        "sleep_vs_lifting",
-        "hrv_vs_easy_efficiency",
-        "sleep_score_vs_readiness",
-    ]
+    assert [i["id"] for i in items] == CORRELATION_IDS
     assert all(i["points"] == [] and i["r"] is None and i["n"] == 0 for i in items)
+    assert all(i["insight"] == "Not enough data yet (n=0)" for i in items)
 
     assert empty.get("/api/v1/stats/lifts/1").status_code == 404
     assert empty.get("/api/v1/runs/missing/analysis").status_code == 404
@@ -357,7 +391,7 @@ def test_lifts_summary_shape_filtering_sort_and_stall(client, world):
     keys = {
         "variant_id", "name", "exercise_id", "muscle_group", "gym_id", "gym_name", "active",
         "sessions", "first_date", "last_date", "best_e1rm", "latest_e1rm", "trend_4w_pct",
-        "last_pr_date", "stalled",
+        "last_pr_date", "stalled", "body_region", "in_program",
     }  # fmt: skip
     assert all(set(x) == keys for x in lifts)
 
@@ -670,7 +704,7 @@ def test_health_days_readiness_and_summary(client, world):
     by = {d["date"]: d for d in days}
     keys = {
         "date", "hrv_ms", "hrv_baseline_ms", "rhr", "rhr_baseline", "sleep_s", "sleep_score",
-        "body_battery_high", "body_battery_low", "stress_avg", "steps", "readiness",
+        "body_battery_high", "body_battery_low", "stress_avg", "steps", "steps_7d_avg", "readiness",
     }  # fmt: skip
     assert all(set(d) == keys for d in days)
     red = by[days_ago(3).isoformat()]
@@ -687,7 +721,7 @@ def test_health_days_readiness_and_summary(client, world):
     s = body["summary"]
     assert set(s) == {
         "hrv_7d", "hrv_28d", "rhr_7d", "rhr_28d", "sleep_7d_s", "sleep_28d_s",
-        "bodyweight_latest", "bodyweight_change_4w_pct",
+        "bodyweight_latest", "bodyweight_change_4w_pct", "steps_7d_avg", "days_10k_last_7",
     }  # fmt: skip
     hrv7 = [52 if i == 3 else 68 + i % 5 for i in range(7) if i != 5]
     assert s["hrv_7d"] == pytest.approx(sum(hrv7) / len(hrv7), abs=0.1)
@@ -737,14 +771,24 @@ def test_pearson_needs_five_points_and_variance():
 
 def test_correlation_items_shape_r_and_notes(client, world):
     body = strict_json(client.get("/api/v1/stats/correlations?days=120"))
+    assert [i["id"] for i in body["items"]] == CORRELATION_IDS  # no sleep-score-vs-readiness
     items = {i["id"]: i for i in body["items"]}
-    assert set(items) == {"sleep_vs_lifting", "hrv_vs_easy_efficiency", "sleep_score_vs_readiness"}
     for item in items.values():
-        assert set(item) == {"id", "title", "x_label", "y_label", "points", "r", "n", "note"}
+        assert set(item) == {
+            "id", "category", "title", "x_label", "y_label", "points", "r", "n", "note", "insight",
+        }  # fmt: skip
         assert item["n"] == len(item["points"])
         assert all(set(p) == {"date", "x", "y"} for p in item["points"])
         assert item["note"].startswith(f"n={item['n']}")
         assert item["r"] is None or -1 <= item["r"] <= 1
+        assert item["insight"].endswith(")") and f"n={item['n']}" in item["insight"]
+    assert {i["id"]: i["category"] for i in items.values()} == {
+        "sleep_vs_lifting": "recovery",
+        "hrv_vs_lift_performance": "recovery",
+        "hrv_vs_easy_efficiency": "recovery",
+        "rhr_vs_easy_efficiency": "recovery",
+        "run_load_vs_lift_performance": "hybrid",
+    }
 
     lifting = items[
         "sleep_vs_lifting"
@@ -757,12 +801,64 @@ def test_correlation_items_shape_r_and_notes(client, world):
     assert p["y"] == pytest.approx(62.5 / 60 * 100, abs=0.1)
     assert p["x"] == (7 + 42 % 3)
 
+    # same performance metric, x = that morning's overnight HRV
+    hrv_lift = {p["date"]: p for p in items["hrv_vs_lift_performance"]["points"]}
+    assert set(hrv_lift) == set(by_day)
+    assert {d: p["y"] for d, p in hrv_lift.items()} == {d: p["y"] for d, p in by_day.items()}
+    assert hrv_lift[days_ago(42).isoformat()]["x"] == 68 + 42 % 5
+
     hrv = items[
         "hrv_vs_easy_efficiency"
     ]  # easy runs only (the 5 easy + hot ones, not long / intervals)
     assert hrv["n"] == 5 and hrv["r"] is not None
-    ready = items["sleep_score_vs_readiness"]
-    assert {p["y"] for p in ready["points"]} <= {0, 1, 2} and 0 in {p["y"] for p in ready["points"]}
+    rhr = items["rhr_vs_easy_efficiency"]
+    assert rhr["n"] == 5 and {p["x"] for p in rhr["points"]} == {53, 62}  # 62 on the red day
+    assert rhr["r"] is not None and rhr["insight"].endswith("n=5, early read)")
+
+
+def test_run_load_vs_lift_performance_counts_km_in_the_48h_before_the_session(client, db, world):
+    # bench PR-day sessions are at 18:00. Runs are at 07:00: a run 1 day before (35 h) counts, a
+    # run 3 days before (and one on the same morning, 11 h before) per the 48 h window.
+    day = days_ago(28)  # bench session, flat 65 kg
+    world.run(day - timedelta(days=1), easy_laps(5), "Day before")  # 35 h before: 5 km
+    world.run(day, easy_laps(3), "Same morning")  # 11 h before: 3 km
+    world.run(day - timedelta(days=2), easy_laps(4), "Too early")  # 59 h before: not counted
+    world.run(day, easy_laps(2), "Deleted", deleted_at=utc(datetime(2026, 10, 1)))  # ignored
+    db.commit()
+    cache.invalidate()
+    item = {i["id"]: i for i in client.get("/api/v1/stats/correlations?days=120").json()["items"]}[
+        "run_load_vs_lift_performance"
+    ]
+    by_day = {p["date"]: p for p in item["points"]}
+    assert by_day[day.isoformat()]["x"] == pytest.approx(8.0)
+    assert by_day[days_ago(21).isoformat()]["x"] == 0.0  # no running before this session
+    assert item["x_label"].startswith("Running") and item["category"] == "hybrid"
+    assert item["n"] >= 5 and item["r"] is not None
+
+
+def test_insight_wording_from_r_and_n():
+    w = correlations.Wording(
+        "sleep and lifting", "more sleep", "better lifting days", "weaker days"
+    )
+    assert correlations.insight(w, None, 4) == "Not enough data yet (n=4)"
+    assert correlations.insight(w, 0.9, 3) == "Not enough data yet (n=3)"  # n below the minimum
+    assert (
+        correlations.insight(w, 0.42, 31)
+        == "More sleep tends to go with better lifting days (r=0.42, n=31)"
+    )
+    assert (
+        correlations.insight(w, -0.5, 31)
+        == "More sleep tends to go with weaker days (r=-0.50, n=31)"
+    )
+    assert (
+        correlations.insight(w, 0.25, 31)
+        == "Weak hint that more sleep goes with better lifting days (r=0.25, n=31)"
+    )
+    assert (
+        correlations.insight(w, -0.05, 31)
+        == "No clear link between sleep and lifting (r=-0.05, n=31)"
+    )
+    assert correlations.insight(w, 0.6, 9).endswith("(r=0.60, n=9, early read)")
 
 
 def test_correlation_with_fewer_than_five_points_has_no_r(client, world):
@@ -771,6 +867,7 @@ def test_correlation_with_fewer_than_five_points_has_no_r(client, world):
     ]
     assert item["n"] < 5 and item["r"] is None
     assert item["note"].startswith(f"n={item['n']}, too few points")
+    assert item["insight"] == f"Not enough data yet (n={item['n']})"
 
 
 # --------------------------------------------------------------------------- cache
@@ -787,3 +884,365 @@ def test_cache_serves_repeats_and_follows_new_data(client, db, world):
     assert bench["sessions"] == 8 and bench["last_pr_date"] == days_ago(1).isoformat()
     cache.invalidate()
     assert client.get("/api/v1/stats/lifts").json()["generated_at"] >= second["generated_at"]
+
+
+# --------------------------------------------------------------------------- dashboard rework
+
+PROGRAM = Program(
+    days={
+        "upper": [
+            ProgramExercise("bench_press", "Bench Press (Barbell)"),
+            ProgramExercise("row", "Row (Barbell)", active=False),  # inactive -> not in the program
+            ProgramExercise("nothing", "No Such Variant"),
+        ],
+        "lower": [ProgramExercise("squat", "Squat (Barbell)")],  # resolves to the "@ Gym One" one
+    }
+)
+
+
+def test_lifts_body_region_and_in_program(client, world, monkeypatch):
+    monkeypatch.setattr(service, "get_program", lambda settings=None: PROGRAM)
+    lifts = {x["name"]: x for x in client.get("/api/v1/stats/lifts").json()["lifts"]}
+    assert lifts["Bench Press (Barbell)"]["body_region"] == "Chest"
+    assert lifts["Squat (Barbell)"]["body_region"] == "Legs"
+    assert lifts["Row (Barbell)"]["body_region"] == "Back"  # not in the catalog: from the muscle
+    assert {n: x["in_program"] for n, x in lifts.items()} == {
+        "Bench Press (Barbell)": True,
+        "Squat (Barbell)": True,
+        "Row (Barbell)": False,
+    }
+    detail = client.get(f"/api/v1/stats/lifts/{world.bench.id}").json()["lift"]
+    assert detail["body_region"] == "Chest" and detail["in_program"] is True
+
+
+def test_in_program_is_false_without_a_program_file(client, world, monkeypatch):
+    def missing(settings=None):
+        raise FileNotFoundError("no program")
+
+    monkeypatch.setattr(service, "get_program", missing)
+    lifts = client.get("/api/v1/stats/lifts").json()["lifts"]
+    assert lifts and all(x["in_program"] is False for x in lifts)
+
+
+def test_in_program_needs_the_variant_of_the_current_gym(client, db, world, monkeypatch):
+    """A gym-bound variant of another gym is not 'in the program' for the current gym."""
+    other = Gym(key="g2", name="Gym Two")
+    db.add(other)
+    db.flush()
+    other_squat = ExerciseVariant(
+        exercise_id=world.squat.exercise_id,
+        gym_id=other.id,
+        key="sq2",
+        name="Squat (Barbell) @ Gym Two",
+        equipment_type="barbell",
+        load_convention="total",
+    )
+    db.add(other_squat)
+    db.flush()
+    world.lift_session(days_ago(2), other_squat, 100, [5, 5])  # in the (current) Gym One
+    rebuild_stats(db, bodyweight_kg=82)
+    db.commit()
+    monkeypatch.setattr(service, "get_program", lambda settings=None: PROGRAM)
+    lifts = {x["variant_id"]: x for x in client.get("/api/v1/stats/lifts").json()["lifts"]}
+    assert lifts[world.squat.id]["in_program"] is True
+    assert lifts[other_squat.id]["gym_name"] == "Gym Two"
+    assert lifts[other_squat.id]["in_program"] is False
+
+
+def test_catalog_has_a_valid_coarse_body_region_for_every_exercise():
+    catalog = load_catalog(BACKEND_DIR / "data" / "catalog" / "exercises.yaml")
+    assert catalog and all(c.body_region in BODY_REGIONS for c in catalog.values())
+    region = {slug: c.body_region for slug, c in catalog.items()}
+    assert region["bench_press"] == "Chest" and region["reverse_fly"] == "Shoulders"  # rear delts
+    assert region["shrug"] == "Back" and region["pull_up"] == "Back"  # traps, lats
+    assert region["biceps_curl"] == region["triceps_extension"] == region["wrist_curl"] == "Arms"
+    assert {region[s] for s in ("squat", "leg_curl", "hip_adduction", "calf_raise")} == {"Legs"}
+    assert region["plank"] == "Core" and region["cardio"] == "Other"
+    for c in catalog.values():  # the explicit value agrees with the muscle mapping
+        assert c.body_region == region_of_muscle(c.primary_muscle), c.slug
+    raw = yaml.safe_load((BACKEND_DIR / "data" / "catalog" / "exercises.yaml").read_text())
+    assert all("body_region" in e for e in raw["exercises"])
+
+
+def test_unknown_body_region_in_the_catalog_is_rejected(tmp_path):
+    p = tmp_path / "ex.yaml"
+    p.write_text(
+        "exercises:\n  - {slug: a, name: A, primary_muscle: chest, body_region: Torso,"
+        " movement_pattern: x, default_equipment: barbell}\n"
+    )
+    with pytest.raises(ValueError, match="body_region"):
+        load_catalog(p)
+
+
+def test_weekly_prs_pr_lifts_and_planned_sessions(client, db, world):
+    # week of 19 Oct: two sessions with PRs on bench (same lift twice) and one on the row
+    world.lift_session(days_ago(3), world.bench, 70, [5, 5, 5])  # Thu
+    world.lift_session(days_ago(2), world.bench, 72.5, [5, 5, 5])  # Fri
+    world.lift_session(days_ago(1), world.row, 60, [5, 5])  # Sat
+    world.lift_session(days_ago(1), world.squat, 100, [5, 5])  # no PR: same as -40 / -33
+    # a PR on a retired lift does not count
+    retired = ExerciseVariant(
+        exercise_id=world.row.exercise_id,
+        key="old",
+        name="Row (Old)",
+        equipment_type="barbell",
+        load_convention="total",
+        active=False,
+    )
+    db.add(retired)
+    db.flush()
+    world.lift_session(days_ago(1), retired, 40, [5, 5])
+    # planned lifting: a complete stored week (12 Oct) has 2 upper/lower sessions (+1 soft-deleted)
+    gone = utc(datetime(2026, 10, 1))
+    full_week = ("upper", "lower", "easy_run", "upper", "intervals", "rest", "long_run")
+    for i, kind in enumerate(full_week):  # Mon 12 Oct .. Sun 18 Oct, the 2nd upper soft-deleted
+        db.add(
+            PlannedSession(
+                day=date(2026, 10, 12) + timedelta(days=i),
+                kind=kind,
+                status="proposed",
+                deleted_at=gone if i == 3 else None,
+            )
+        )
+    rebuild_stats(db, bodyweight_kg=82)
+    db.commit()
+    cache.invalidate()
+
+    weeks = strict_json(client.get("/api/v1/stats/volume/weekly?weeks=8"))["weeks"]
+    assert all(
+        {"prs", "pr_lifts", "planned_lifting_sessions"} <= set(w) for w in weeks
+    )  # additive: the old fields stay
+    by = {w["week_start"]: w for w in weeks}
+    cur = by["2026-10-19"]
+    assert cur["lifting_sessions"] == 5
+    assert cur["prs"] == 3  # 2 bench sessions + the row session
+    assert cur["pr_lifts"] == 2  # bench, row
+    # a partial plan (only the intervals run is stored) is not trusted: the template count
+    assert cur["planned_lifting_sessions"] == 3
+    assert (
+        by["2026-10-12"]["planned_lifting_sessions"] == 2
+    )  # complete week: stored, deleted ignored
+    # the older bench PRs (-42, -35 and the squat's -33) land in their own weeks
+    assert by["2026-09-14"]["prs"] >= 1
+    assert by["2026-10-05"]["planned_lifting_sessions"] == 3  # no plans: the template (3)
+    assert by["2026-10-05"]["prs"] == 0 and by["2026-10-05"]["pr_lifts"] == 0
+
+
+def test_weekly_runs_detail_and_runs_by_type(client, world):
+    weekly = strict_json(client.get("/api/v1/stats/running?weeks=4"))["weekly"]
+    cur = weekly[-1]
+    assert cur["runs_detail"] == [
+        {
+            "run_id": world.interval.id,
+            "date": days_ago(5).isoformat(),
+            "type": "intervals",
+            "km": 7.6,
+        },
+        {"run_id": world.easy.id, "date": days_ago(3).isoformat(), "type": "easy", "km": 6.0},
+    ]
+    assert cur["runs_by_type"] == {"easy": 1, "intervals": 1, "long": 0, "other": 0}
+    wk = {w["week_start"]: w for w in weekly}["2026-10-12"]  # long run -10, bad intervals -12
+    assert wk["runs_by_type"] == {"easy": 0, "intervals": 1, "long": 1, "other": 0}
+    assert {d["type"] for d in wk["runs_detail"]} == {"intervals", "long"}
+    for w in weekly:
+        assert sum(w["runs_by_type"].values()) == w["runs"] == len(w["runs_detail"])
+        assert set(w["runs_by_type"]) == {"easy", "intervals", "long", "other"}
+
+
+def _eff(km: float, pace: float, hr: float) -> float:
+    return (km * 1000 / (km * pace / 60)) / hr
+
+
+def test_running_kpis_this_week_and_efficiency(client, db, world):
+    # the whole current week planned (Mon 19 .. Sun 25): the world's own intervals plan sits on
+    # Tue 20, add 3 lifting, 2 more runs and a rest day
+    others = {19: "upper", 21: "easy_run", 22: "upper", 23: "lower", 24: "rest", 25: "long_run"}
+    for d, kind in others.items():
+        db.add(PlannedSession(day=date(2026, 10, d), kind=kind, status="proposed"))
+    db.commit()
+    cache.invalidate()
+    k = strict_json(client.get("/api/v1/stats/running?weeks=4"))["kpis"]
+    assert set(k) == {
+        *NULL_KPIS, "easy_hr_drift_flags_4w", "runs_this_week", "runs_planned_this_week",
+        "km_this_week",
+    }  # fmt: skip
+    assert k["runs_this_week"] == 2 and k["km_this_week"] == pytest.approx(13.6)
+    assert (
+        k["runs_planned_this_week"] == 3
+    )  # intervals (world) + easy + long; the upper is not a run
+    # last 3 easy / long runs: easy -3 (142), long -10 (146), hot easy -17 (165)
+    cur = (_eff(6, 330, 142) + _eff(10, 330, 146) + _eff(6, 330, 165)) / 3
+    # 3 closest to 28 days ago (not the same runs): -31, -24, -38 (HR 143 + d % 4)
+    ago = (_eff(5, 330, 146) + _eff(5, 330, 143) + _eff(5, 330, 145)) / 3
+    assert k["efficiency_current"] == pytest.approx(cur, abs=1e-4)
+    assert k["efficiency_4w_ago"] == pytest.approx(ago, abs=1e-4)
+    assert k["efficiency_change_pct"] == pytest.approx((cur - ago) / ago * 100, abs=0.01)
+    assert k["easy_hr_drift_flags_4w"] == 0
+    # no hard effort before 28 days ago (the HR-165 run is later): the old VDOT is unknown
+    assert k["vdot_current"] is not None and k["vdot_4w_ago"] is None and k["vdot_change"] is None
+
+
+def test_running_kpis_do_not_depend_on_the_chart_window(client, world):
+    short = client.get("/api/v1/stats/running?weeks=1").json()["kpis"]
+    long = client.get("/api/v1/stats/running?weeks=26").json()["kpis"]
+    assert short == long and short["efficiency_4w_ago"] is not None
+
+
+def test_vdot_change_and_hr_drift_flags(client, db, world):
+    # hard 5 km efforts (HR above 0.88 x LTHR): 35 days ago slower, 2 days ago faster
+    world.run(days_ago(35), [(1000, 240, 168, None)] * 5, "Hard 5k old")
+    world.run(days_ago(2), [(1000, 225, 168, None)] * 5, "Hard 5k new")
+    drift = [(1000, 330, 140, None)] * 3 + [(1000, 330, 156, None)] * 3  # ~10 % decoupling
+    world.run(days_ago(1), drift, "Drifting easy run")
+    world.run(days_ago(40), drift, "Old drift, outside 4 weeks")
+    world.run(
+        days_ago(4),
+        [(1000, 330, 140, None)] * 4 + [(1000, 330, 156, None)] * 4 + [(1000, 330, 156, None)] * 2,
+        "Drifting long run",
+    )  # 'long' is not an easy run: not flagged
+    db.commit()
+    cache.invalidate()
+    k = client.get("/api/v1/stats/running?weeks=4").json()["kpis"]
+    assert k["easy_hr_drift_flags_4w"] == 1
+    assert k["vdot_4w_ago"] is not None and k["vdot_current"] > k["vdot_4w_ago"]
+    assert k["vdot_change"] == pytest.approx(k["vdot_current"] - k["vdot_4w_ago"], abs=0.11)
+    assert k["vdot_change"] > 0
+
+
+def test_running_kpis_are_null_without_enough_runs(db, monkeypatch):
+    from app.engine import config_service as cs
+
+    cs.ensure_seeded(db, CFG_PATH)
+    w = World(db)
+    for d in (2, 5, 8):  # only three easy runs: no "4 weeks ago" set to compare with
+        w.run(days_ago(d), easy_laps(5), "Easy run")
+    db.commit()
+    app.dependency_overrides.clear()
+    client = _client(db, monkeypatch)
+    try:
+        k = client.get("/api/v1/stats/running").json()["kpis"]
+    finally:
+        app.dependency_overrides.clear()
+    assert k["efficiency_current"] == pytest.approx(_eff(5, 330, 140), abs=1e-4)
+    assert k["efficiency_4w_ago"] is None and k["efficiency_change_pct"] is None
+    assert k["vdot_current"] is None  # no hard effort: only the seed race
+    assert k["runs_this_week"] == 2 and k["km_this_week"] == 10.0
+
+
+def _set_steps(db, values: dict[int, int | None]):
+    for i, v in values.items():
+        row = db.scalar(select(DailyHealth).where(DailyHealth.day == days_ago(i)))
+        if row is not None:  # day -5 has no row
+            row.steps = v
+    db.commit()
+    cache.invalidate()
+
+
+def test_steps_7d_avg_and_days_over_10k(client, db, world):
+    # today 12000, -1 10000 (exactly the goal), -2 9999, -3 3000, -4 15000, -5 no row, -6 11000
+    _set_steps(db, {0: 12000, 1: 10000, 2: 9999, 3: 3000, 4: 15000, 6: 11000, 7: None})
+    body = strict_json(client.get("/api/v1/stats/health?days=30"))
+    s = body["summary"]
+    assert s["steps_7d_avg"] == pytest.approx(
+        (12000 + 10000 + 9999 + 3000 + 15000 + 11000) / 6, abs=1
+    )
+    assert s["days_10k_last_7"] == 4
+    by = {d["date"]: d for d in body["days"]}
+    assert by[TODAY.isoformat()]["steps_7d_avg"] == s["steps_7d_avg"]
+    assert by[days_ago(15).isoformat()]["steps_7d_avg"] == 9000  # untouched days: constant 9000
+    # a day whose whole 7-day window has no steps is null; the window never looks past the day
+    _set_steps(db, {i: None for i in range(20, 40)})
+    by = {d["date"]: d for d in client.get("/api/v1/stats/health?days=30").json()["days"]}
+    assert by[days_ago(25).isoformat()]["steps_7d_avg"] is None
+    assert by[days_ago(19).isoformat()]["steps_7d_avg"] == 9000  # windows 19..13 have data
+    assert by[days_ago(14).isoformat()]["steps_7d_avg"] == 9000
+
+
+def test_steps_summary_is_null_without_step_data(client, db, world):
+    _set_steps(db, {i: None for i in range(0, 8)})
+    s = client.get("/api/v1/stats/health?days=14").json()["summary"]
+    assert s["steps_7d_avg"] is None and s["days_10k_last_7"] is None
+
+
+def test_readiness_today_metrics_baselines_and_details(client, world):
+    ready = strict_json(client.get("/api/v1/stats/health?days=30"))["readiness_today"]
+    assert set(ready) == {"level", "headline", "metrics", "details"}
+    assert ready["level"] in {"green", "yellow"} and ready["headline"] in {
+        "Ready",
+        "Take it easier",
+    }
+    m = {x["key"]: x for x in ready["metrics"]}
+    assert [x["key"] for x in ready["metrics"]] == ["hrv", "rhr", "sleep"]
+    assert all(
+        set(x) == {"key", "label", "value", "unit", "baseline", "delta_pct", "status"}
+        for x in ready["metrics"]
+    )
+    assert (m["hrv"]["label"], m["hrv"]["unit"], m["hrv"]["value"]) == ("HRV", "ms", 68)
+    hrv_base = (
+        sum(68 + i % 5 if i != 3 else 52 for i in (1, 2, 3, 4, 6, 7)) / 6
+    )  # day -5 is missing
+    assert m["hrv"]["baseline"] == pytest.approx(hrv_base, abs=0.1)
+    assert m["hrv"]["delta_pct"] == pytest.approx((68 - hrv_base) / hrv_base * 100, abs=0.1)
+    assert (m["rhr"]["unit"], m["rhr"]["value"]) == ("bpm", 53)
+    assert m["rhr"]["baseline"] == pytest.approx((53 * 5 + 62) / 6, abs=0.1)
+    sleep_base = sum(7 + i % 3 for i in (1, 2, 3, 4, 6, 7)) / 6
+    assert (m["sleep"]["unit"], m["sleep"]["value"]) == ("h", 7.0)
+    assert m["sleep"]["baseline"] == pytest.approx(sleep_base, abs=0.1)
+    assert m["sleep"]["delta_pct"] == pytest.approx((7 - sleep_base) / sleep_base * 100, abs=0.1)
+    assert all(x["status"] in {"ok", "warn", "bad"} for x in ready["metrics"])
+    assert m["hrv"]["status"] == "ok" and m["rhr"]["status"] == "ok"
+    assert ready["details"] and all(isinstance(x, str) and x[0].isupper() for x in ready["details"])
+    # the day entry keeps the old long reason
+    today = client.get("/api/v1/stats/health?days=3").json()["days"][-1]["readiness"]
+    assert set(today) == {"level", "reason"}
+
+
+def test_readiness_today_red_day(client, db, world):
+    row = db.scalar(select(DailyHealth).where(DailyHealth.day == TODAY))
+    row.hrv_overnight_ms, row.resting_hr = 48, 63  # HRV ~-30 %, RHR +9
+    db.commit()
+    cache.invalidate()
+    ready = client.get("/api/v1/stats/health?days=7").json()["readiness_today"]
+    assert (ready["level"], ready["headline"]) == ("red", "Recover")
+    m = {x["key"]: x for x in ready["metrics"]}
+    assert m["hrv"]["status"] == "bad" and m["rhr"]["status"] == "bad"
+    assert m["hrv"]["delta_pct"] < -20 and m["rhr"]["delta_pct"] > 0
+    assert any(x.startswith("HRV 48 ms") for x in ready["details"])
+    assert any(x.startswith("Resting HR 63") for x in ready["details"])
+    assert len(ready["headline"]) <= 15
+
+
+def test_readiness_view_headlines_status_and_details():
+    d = TODAY
+    hrv = Signal("hrv", "yellow", "HRV 61 ms (-12% vs 70 baseline)", 61, 70)
+    rhr = Signal("rhr", "yellow", "resting HR 50 (+5 vs 45)", 50, 45)
+    sleep = Signal("sleep", "green", "sleep 8.0 h, score 85", 8.0)
+    ok = Readiness(d, "green", True, "all signals normal: ...", [sleep])
+    assert readiness_view(ok, None)["details"][0] == "All signals normal"
+    assert readiness_view(ok, None)["metrics"][0]["baseline"] is None  # no sleep baseline yet
+    assert readiness_view(ok, None)["metrics"][0]["delta_pct"] is None
+
+    yellow = readiness_view(Readiness(d, "yellow", True, "x", [hrv, rhr, sleep]), 8.0)
+    assert (yellow["level"], yellow["headline"]) == ("yellow", "Take it easier")
+    assert [m["status"] for m in yellow["metrics"]] == ["warn", "warn", "ok"]
+    assert yellow["details"] == ["HRV 61 ms (-12% vs 70 baseline)", "Resting HR 50 (+5 vs 45)"]
+    assert yellow["metrics"][2]["delta_pct"] == 0.0
+
+    minor = readiness_view(Readiness(d, "green", True, "x", [hrv, sleep]), None)
+    assert minor["headline"] == "Ready" and minor["details"][-1].startswith("Only a minor flag")
+
+    short_night = Signal("sleep", "red", "sleep 4.0 h", 4.0)
+    sn = readiness_view(Readiness(d, "yellow", True, "x", [short_night]), 7.0)
+    assert sn["metrics"][0]["status"] == "bad" and sn["details"][-1] == "Short night alone: yellow"
+
+    red = readiness_view(
+        Readiness(d, "red", True, "x", [Signal("hrv", "red", "HRV low", 44, 70)]), None
+    )
+    assert (red["headline"], red["metrics"][0]["status"]) == ("Recover", "bad")
+    none = readiness_view(Readiness(d, "green", False, "no data"), None)
+    assert none == {
+        "level": "unknown",
+        "headline": "No data",
+        "metrics": [],
+        "details": ["No data"],
+    }

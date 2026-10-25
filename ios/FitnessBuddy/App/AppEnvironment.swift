@@ -33,6 +33,8 @@ final class AppEnvironment {
     var selectedTab: AppTab = .today
     #endif
     var finishedSummary: WorkoutSummary?
+    /// The "Start workout" chooser (planned sessions / empty).
+    var showWorkoutChooser = false
 
     static var isRunningTests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
@@ -135,6 +137,29 @@ final class AppEnvironment {
             _ = workout.startEmpty(gymId: settings.currentGymId)
         }
         selectedTab = .workout
+    }
+
+    /// "Start workout" everywhere: resumes the running workout, otherwise opens the chooser (or starts an empty workout
+    /// right away when there is nothing to choose from).
+    func beginWorkout() {
+        if workout.activeSession() != nil { selectedTab = .workout; return }
+        let choices = WorkoutChooserLogic.choices(in: context)
+        if choices.count > 1 { showWorkoutChooser = true } else { startWorkout(from: nil) }
+    }
+
+    /// Starts what the chooser picked: a planned session (prefilled, linked), a finished one as template, or empty.
+    func startWorkout(_ choice: WorkoutChoice) {
+        switch choice.source {
+        case .planned(let id):
+            let row = try? context.fetch(FetchDescriptor<CachedPlannedSession>(predicate: #Predicate { $0.id == id })).first
+            startWorkout(from: row)
+        case .template(let id):
+            let template = try? context.fetch(FetchDescriptor<LocalSession>(predicate: #Predicate { $0.id == id })).first
+            if let template, workout.start(fromTemplate: template, gymId: settings.currentGymId) != nil { selectedTab = .workout }
+            else { startWorkout(from: nil) }
+        case .empty:
+            startWorkout(from: nil)
+        }
     }
 
     func finishWorkout(_ session: LocalSession) {

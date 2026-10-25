@@ -6,7 +6,7 @@ GET /api/v1/stats/volume/weekly         lifting + running load per week
 GET /api/v1/stats/running               weekly km / zones, efficiency, VDOT, interval sessions
 GET /api/v1/runs/{run_id}/analysis      one run: laps vs plan + the engine's verdict
 GET /api/v1/stats/health                daily health + readiness, bodyweight, summaries
-GET /api/v1/stats/correlations          three scatter plots with Pearson r
+GET /api/v1/stats/correlations          scatter plots with Pearson r + insight
 """
 
 from __future__ import annotations

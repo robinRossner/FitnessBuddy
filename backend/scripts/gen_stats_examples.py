@@ -127,7 +127,10 @@ def main() -> None:
         dump("stats_health.json", trim(get("/api/v1/stats/health?days=90"), [("days",)]))
         dump(
             "stats_correlations.json",
-            trim(get("/api/v1/stats/correlations?days=120"), [("items", 2, "points")]),
+            trim(
+                get("/api/v1/stats/correlations?days=120"),
+                [("items", i, "points") for i in range(5)],
+            ),
         )
     app.dependency_overrides.clear()
     shutil.rmtree(tmp.parent, ignore_errors=True)

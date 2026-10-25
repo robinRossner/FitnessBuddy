@@ -68,6 +68,7 @@ enum BackendReset {
         state.cursor = nil
         state.readinessData = nil
         state.readinessDate = nil
+        state.readinessTodayData = nil
         state.configData = nil
         state.lastSyncAt = nil
         state.lastError = nil

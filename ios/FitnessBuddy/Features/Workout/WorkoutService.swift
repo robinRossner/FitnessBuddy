@@ -103,6 +103,34 @@ struct WorkoutService {
         return s
     }
 
+    /// Starts a workout from a finished one of the same kind: same exercises, set count, last weights and reps
+    /// (uncompleted, nothing is logged until ticked). Used when no planned lifting session is cached.
+    @discardableResult
+    func start(fromTemplate template: LocalSession, gymId: Int?) -> LocalSession? {
+        if let active = activeSession() { return active }
+        let old = sets(of: template)
+        guard !old.isEmpty else { return nil }
+        let s = LocalSession(gymId: gymId ?? template.gymId, kind: template.kind, name: template.name.isEmpty ? "Workout" : template.name)
+        let demo = demoMode
+        s.isDemo = demo
+        context.insert(s)
+        let orders = Array(Set(old.map(\.exerciseOrder))).sorted()
+        for (i, order) in orders.enumerated() {
+            let group = old.filter { $0.exerciseOrder == order }.sorted { $0.setOrder < $1.setOrder }
+            for (j, o) in group.enumerated() {
+                let set = LocalSet(sessionId: s.id, variantId: o.variantId, variantName: o.variantName, exerciseOrder: i + 1,
+                                   setOrder: j + 1, setType: o.setType, weightKg: o.weightKg, reps: o.reps, durationS: o.durationS)
+                set.isDemo = demo
+                set.prevWeightKg = o.weightKg
+                set.prevReps = o.reps
+                set.prevDurationS = o.durationS
+                context.insert(set)
+            }
+        }
+        save()
+        return s
+    }
+
     // MARK: Exercises
 
     func addExercise(_ variant: CachedVariant, to session: LocalSession, setCount: Int = 3) {

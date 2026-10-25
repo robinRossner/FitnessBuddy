@@ -13,5 +13,6 @@ struct RootView: View {
             Tab("Coach", systemImage: "bubble.left.and.text.bubble.right.fill", value: AppTab.coach) { CoachPlaceholderView() }
         }
         .tint(Domain.lifting.color)
+        .sheet(isPresented: $env.showWorkoutChooser) { WorkoutChooserSheet() }
     }
 }

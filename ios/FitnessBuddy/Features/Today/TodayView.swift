@@ -8,32 +8,47 @@ struct TodayView: View {
     @Query(filter: #Predicate<LocalSession> { $0.deletedAt == nil }, sort: \LocalSession.startedAt, order: .reverse)
     private var sessions: [LocalSession]
     @State private var showSettings = false
+    private let openSheet: String?
+
+    init() {
+        #if DEBUG
+        openSheet = UserDefaults.standard.string(forKey: "uiSheet")
+        #else
+        openSheet = nil
+        #endif
+    }
 
     private var today: String { AppClock.todayString }
     private var todayItems: [CachedPlannedSession] { planned.filter { $0.date == today } }
     private var activeSession: LocalSession? { sessions.first { $0.isActive } }
 
-    private var readiness: ReadinessDTO? {
-        if let state = states.first, state.readinessDate == today, let r = state.readiness { return r }
-        return todayItems.compactMap { $0.item?.readiness }.first { $0.color != nil }
+    private var readinessSummary: ReadinessSummary? {
+        let state = states.first.flatMap { $0.readinessDate == today ? $0 : nil }
+        let legacy = state?.readiness ?? todayItems.compactMap { $0.item?.readiness }.first { $0.color != nil }
+        return ReadinessSummary.make(today: state?.readinessToday, legacy: legacy, day: nil)
     }
+
+    private var runDays: Set<String> { Set((env.stats.resource(StatsEndpoints.recentRuns()).value ?? []).compactMap(\.day)) }
+
+    private var hasLiftingToday: Bool { todayItems.contains { Domain.forKind($0.kind) == .lifting } }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    ReadinessCard(readiness: readiness)
+                    ReadinessCard(summary: readinessSummary, startOpen: openSheet == "readiness")
                     if todayItems.isEmpty {
                         EmptyPlanCard(isConfigured: env.settings.isConfigured) { showSettings = true }
                     } else {
                         ForEach(todayItems, id: \.id) { row in
                             if let item = row.item {
                                 SessionCard(row: row, item: item, activeSession: activeSession,
-                                            completed: completedSession(for: row))
+                                            completed: completedSession(for: row), openDetail: openSheet == "run")
                             }
                         }
                     }
-                    WeekStrip(planned: planned, sessions: sessions, today: today)
+                    if !hasLiftingToday { QuickStartCard(hasActive: activeSession != nil) }
+                    WeekStrip(planned: planned, sessions: sessions, runDays: runDays, today: today)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -48,46 +63,13 @@ struct TodayView: View {
                 }
             }
             .refreshable { await env.sync.sync(.pullToRefresh) }
+            .loadsStats([env.stats.resource(StatsEndpoints.recentRuns())])
             .sheet(isPresented: $showSettings) { SettingsView() }
         }
     }
 
     private func completedSession(for row: CachedPlannedSession) -> LocalSession? {
         sessions.first { $0.endedAt != nil && ($0.plannedSessionId == row.id) }
-    }
-}
-
-// MARK: - Readiness
-
-struct ReadinessCard: View {
-    let readiness: ReadinessDTO?
-
-    private var level: ReadinessLevel { readiness?.level ?? .unknown }
-
-    var body: some View {
-        Card {
-            HStack(spacing: 16) {
-                Ring(color: level.color, lineWidth: 9, dashed: level == .unknown) {
-                    Image(systemName: level.symbol)
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(level.color)
-                }
-                .frame(width: 68, height: 68)
-                .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    SectionLabel(title: "Readiness", color: Domain.recovery.color)
-                    Text(level.title).font(.title3.weight(.semibold))
-                    Text(readiness?.reason ?? "Readiness shows up once your watch data has synced.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Readiness \(level.rawValue). \(readiness?.reason ?? "")")
     }
 }
 
@@ -117,11 +99,30 @@ struct SessionCard: View {
     let item: PlanItemDTO
     let activeSession: LocalSession?
     let completed: LocalSession?
+    @State private var showRunDetail: Bool
+
+    init(row: CachedPlannedSession, item: PlanItemDTO, activeSession: LocalSession?, completed: LocalSession?, openDetail: Bool = false) {
+        self.row = row; self.item = item; self.activeSession = activeSession; self.completed = completed
+        _showRunDetail = State(initialValue: openDetail && ["easy_run", "long_run", "intervals"].contains(item.session?.type ?? item.kind))
+    }
+
+    private var isRun: Bool { ["easy_run", "long_run", "intervals"].contains(type) }
 
     private var domain: Domain { Domain.forKind(item.kind) }
     private var type: String { item.session?.type ?? item.kind }
 
     var body: some View {
+        if isRun {
+            Button { showRunDetail = true } label: { card }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows the full session")
+                .sheet(isPresented: $showRunDetail) { RunDetailSheet(item: item) }
+        } else {
+            card
+        }
+    }
+
+    private var card: some View {
         Card(tint: domain.color) {
             header
             if !item.adjustments.isEmpty { AdjustmentNote(lines: item.adjustments, level: item.readiness?.level ?? .unknown) }
@@ -143,9 +144,14 @@ struct SessionCard: View {
             Image(systemName: PlanFormat.symbol(forKind: item.kind)).foregroundStyle(domain.color)
                 .accessibilityHidden(true)
             Text(item.title ?? PlanFormat.runTitle(type)).font(.title3.weight(.semibold))
-            Spacer()
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
             if let gym = item.session?.gym, type == "lifting" { Chip(text: gym, color: domain.color) }
             if item.session?.deload?.active == true { Chip(text: "Deload", color: .purple) }
+            if isRun {
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
         }
     }
 
@@ -166,6 +172,33 @@ struct SessionCard: View {
             .buttonStyle(.borderedProminent).tint(domain.color)
             .disabled((item.session?.exercises ?? []).allSatisfy { $0.variantId == nil })
         }
+    }
+}
+
+/// Shown on days without a planned lifting session: opens the chooser (next planned sessions / empty).
+struct QuickStartCard: View {
+    @Environment(AppEnvironment.self) private var env
+    let hasActive: Bool
+
+    var body: some View {
+        Button { env.beginWorkout() } label: {
+            Card {
+                HStack(spacing: 12) {
+                    Image(systemName: hasActive ? "play.fill" : "dumbbell.fill")
+                        .font(.title3).foregroundStyle(Domain.lifting.color).accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(hasActive ? "Resume workout" : "Start workout").font(.headline)
+                        Text(hasActive ? "Your workout is still running." : "Pick the next planned session or go empty.")
+                            .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -214,49 +247,6 @@ struct LiftingBody: View {
     }
 }
 
-struct EasyRunBody: View {
-    let session: PrescriptionDTO?
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            if let km = session?.distanceKm { StatTile(title: "Distance", value: Fmt.km(km), unit: "km", color: Domain.running.color) }
-            if let hr = PlanFormat.hr(session?.hr) { StatTile(title: "Heart rate", value: hr, unit: "bpm") }
-            if let pace = PlanFormat.pace(session?.pace) { StatTile(title: "Pace", value: pace, unit: "/km") }
-        }
-        if let note = session?.pace?.note { Text(note).font(.footnote).foregroundStyle(.secondary) }
-    }
-}
-
-struct IntervalsBody: View {
-    let session: PrescriptionDTO?
-
-    var body: some View {
-        if let st = session?.structure, let work = st.work {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(work.reps ?? 0) × \(Fmt.number(work.distanceM ?? 0, maxFraction: 0)) m")
-                        .metricStyle(.title).foregroundStyle(Domain.running.color)
-                    if let label = work.paceLabel {
-                        Text("@ \(label) /km").font(.title3.weight(.semibold).monospacedDigit())
-                    }
-                }
-                .minimumScaleFactor(0.7).lineLimit(1)
-                HStack(alignment: .top, spacing: 16) {
-                    if let hr = PlanFormat.hr(work.hr) { StatTile(title: "Work HR", value: hr, unit: "bpm") }
-                    if let rec = st.recovery?.distanceM {
-                        StatTile(title: "Recovery", value: Fmt.number(rec, maxFraction: 0), unit: "m jog")
-                    }
-                    if let total = session?.totalKm { StatTile(title: "Total", value: Fmt.km(total), unit: "km") }
-                }
-                if let wu = st.warmup?.distanceKm, let cd = st.cooldown?.distanceKm {
-                    Text("Warm-up \(Fmt.km(wu)) km · Cool-down \(Fmt.km(cd)) km easy")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-}
-
 struct RestBody: View {
     let notes: [String]
     let optional: Bool
@@ -275,67 +265,86 @@ struct RestBody: View {
 struct WeekStrip: View {
     let planned: [CachedPlannedSession]
     let sessions: [LocalSession]
+    let runDays: Set<String>
     let today: String
 
     var body: some View {
         let days = AppClock.weekDays(containing: AppClock.now)
+        let cells = WeekStripModel.cells(
+            days: days,
+            planned: planned.map { PlannedDayRef(id: $0.id, date: $0.date, kind: $0.kind, status: $0.status) },
+            finished: sessions.filter { $0.endedAt != nil && $0.deletedAt == nil }
+                .map { FinishedDayRef(plannedId: $0.plannedSessionId, day: AppClock.dayString($0.startedAt), kind: $0.kind) },
+            runDays: runDays, today: today)
         Card {
             SectionLabel(title: "This week", symbol: "calendar")
             HStack(spacing: 4) {
-                ForEach(days, id: \.self) { day in
-                    DayCell(day: day, rows: planned.filter { $0.date == day }, isToday: day == today,
-                            isDone: { isDone($0) })
-                }
+                ForEach(cells) { DayCell(cell: $0, isToday: $0.day == today) }
             }
+            Text("Faint days are your usual pattern where nothing is planned yet.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private func isDone(_ row: CachedPlannedSession) -> Bool {
-        if row.status == "done" { return true }
-        return sessions.contains { $0.endedAt != nil && $0.plannedSessionId == row.id }
     }
 }
 
 private struct DayCell: View {
-    let day: String
-    let rows: [CachedPlannedSession]
+    let cell: WeekCellModel
     let isToday: Bool
-    let isDone: (CachedPlannedSession) -> Bool
 
     private var weekday: String {
-        guard let d = AppClock.date(fromDay: day) else { return "" }
+        guard let d = AppClock.date(fromDay: cell.day) else { return "" }
         return d.formatted(.dateTime.weekday(.narrow))
     }
-    private var dayNumber: String { String(day.suffix(2)) }
-    private var first: CachedPlannedSession? { rows.first }
+    private var color: Color { cell.state == .rest ? .gray : Domain.forKind(cell.kind).color }
+    private var faint: Bool { cell.state == .expected }
+    private var stateWord: String {
+        switch cell.state {
+        case .done: "done"
+        case .planned: "planned"
+        case .missed: "missed"
+        case .expected: "usual pattern, not planned yet"
+        case .rest: "rest"
+        }
+    }
 
     var body: some View {
         VStack(spacing: 6) {
             Text(weekday).font(.caption2.weight(.semibold)).foregroundStyle(isToday ? Color.white : .secondary)
             ZStack(alignment: .bottomTrailing) {
-                Image(systemName: PlanFormat.symbol(forKind: first?.kind ?? "rest"))
+                Image(systemName: PlanFormat.symbol(forKind: cell.kind))
                     .font(.body)
-                    .foregroundStyle(isToday ? Color.white : (first.map { Domain.forKind($0.kind).color } ?? Color.secondary.opacity(0.5)))
+                    .foregroundStyle(isToday ? Color.white : (cell.state == .rest ? Color.secondary.opacity(0.5) : color))
                     .frame(width: 32, height: 32)
-                    .background(isToday ? Color.white.opacity(0.25)
-                                        : (first.map { Domain.forKind($0.kind).color } ?? .gray).opacity(0.14), in: Circle())
-                if let first, isDone(first) {
+                    .background(isToday ? Color.white.opacity(0.25) : color.opacity(cell.state == .rest ? 0.14 : (faint ? 0.05 : 0.14)), in: Circle())
+                    .overlay {
+                        if faint || cell.state == .missed {
+                            Circle().strokeBorder(isToday ? Color.white.opacity(0.7) : (cell.state == .missed ? Color.orange.opacity(0.7) : color.opacity(0.45)),
+                                                  style: StrokeStyle(lineWidth: 1, dash: cell.state == .missed ? [] : [3, 3]))
+                        }
+                    }
+                if cell.state == .done {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption)
                         .foregroundStyle(.white, .green)
                         .offset(x: 4, y: 4)
+                } else if cell.state == .missed {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white, Color.orange.opacity(0.8))
+                        .offset(x: 4, y: 4)
                 }
             }
-            Text(PlanFormat.shortName(forKind: first?.kind ?? "rest"))
+            Text(PlanFormat.shortName(forKind: cell.kind))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(isToday ? Color.white : .secondary)
                 .lineLimit(1).minimumScaleFactor(0.7)
         }
+        .opacity(faint && !isToday ? 0.7 : 1)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
         .background(isToday ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(day), \(first.map { PlanFormat.shortName(forKind: $0.kind) } ?? "no plan")\((first.map(isDone) ?? false) ? ", done" : "")")
+        .accessibilityLabel("\(cell.day), \(PlanFormat.shortName(forKind: cell.kind)), \(stateWord)")
     }
 }
 
