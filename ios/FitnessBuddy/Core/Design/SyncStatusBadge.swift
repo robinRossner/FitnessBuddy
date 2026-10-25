@@ -24,6 +24,8 @@ struct SyncStatusBadge: View {
                 Image(systemName: "exclamationmark.icloud")
             case .notConfigured:
                 Image(systemName: "icloud.slash")
+            case .demo:
+                Image(systemName: "testtube.2")
             case .idle:
                 Image(systemName: pending > 0 ? "icloud.and.arrow.up" : "checkmark.icloud")
             }
@@ -49,6 +51,7 @@ struct SyncStatusBadge: View {
         case .syncing: "Syncing"
         case .offline: "Offline. \(pending) changes waiting to sync"
         case .notConfigured: "Backend not configured"
+        case .demo: "Demo data loaded, sync paused"
         case .failed(let message): "Sync failed: \(message)"
         }
     }

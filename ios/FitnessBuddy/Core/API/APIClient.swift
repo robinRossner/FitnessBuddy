@@ -7,14 +7,68 @@ enum APIError: LocalizedError {
     case transport(Error)
     case decoding(Error)
 
+    /// Human-readable, shown in Settings and the "Test connection" result.
     var errorDescription: String? {
         switch self {
         case .notConfigured: "Backend URL or token not set"
-        case .unauthorized: "Token rejected (401)"
-        case .http(let code, let body): "Server error \(code)" + (body.map { ": \($0.prefix(120))" } ?? "")
-        case .transport(let e): (e as? URLError)?.localizedDescription ?? e.localizedDescription
-        case .decoding(let e): "Unexpected response: \(e.localizedDescription)"
+        case .unauthorized: "Unauthorized: check the token"
+        case .http(404, _): "Not found (404): check the backend URL"
+        case .http(let code, let body): "Server error \(code)" + (body.flatMap { Self.snippet($0) }.map { ": \($0)" } ?? "")
+        case .transport(let e): Self.describe(transport: e)
+        case .decoding(let e): "Unexpected response (decoding): \(Self.describe(decoding: e))"
         }
+    }
+
+    /// Message for any error thrown while syncing / testing.
+    static func message(for error: Error) -> String {
+        if let api = error as? APIError { return api.errorDescription ?? "Unknown error" }
+        return describe(transport: error)
+    }
+
+    static func describe(transport error: Error) -> String {
+        guard let url = error as? URLError else { return error.localizedDescription }
+        switch url.code {
+        case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost, .timedOut,
+             .dnsLookupFailed, .internationalRoamingOff, .dataNotAllowed:
+            return "Can't reach server"
+        case .appTransportSecurityRequiresSecureConnection:
+            return "Insecure http:// connection blocked: use https://"
+        case .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
+             .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid, .clientCertificateRejected:
+            return "Secure connection failed (certificate or TLS)"
+        case .cancelled: return "Cancelled"
+        default: return "Network error: \(url.localizedDescription)"
+        }
+    }
+
+    /// Names the offending field: `sessions[3].updated_at: Unparseable date`.
+    static func describe(decoding error: Error) -> String {
+        func path(_ ctx: DecodingError.Context, adding key: CodingKey? = nil) -> String {
+            var parts = ctx.codingPath
+            if let key { parts.append(key) }
+            var out = ""
+            for k in parts {
+                if let i = k.intValue { out += "[\(i)]" } else { out += (out.isEmpty ? "" : ".") + k.stringValue }
+            }
+            return out.isEmpty ? "(root)" : out
+        }
+        switch error {
+        case let DecodingError.keyNotFound(key, ctx): return "\(path(ctx, adding: key)) missing"
+        case let DecodingError.valueNotFound(_, ctx): return "\(path(ctx)) is null"
+        case let DecodingError.typeMismatch(_, ctx): return "\(path(ctx)) has the wrong type"
+        case let DecodingError.dataCorrupted(ctx): return "\(path(ctx)): \(ctx.debugDescription)"
+        default: return error.localizedDescription
+        }
+    }
+
+    private static func snippet(_ body: String) -> String? {
+        let t = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : String(t.prefix(120))
+    }
+
+    var isCancellation: Bool {
+        if case .transport(let e) = self { return (e as? URLError)?.code == .cancelled || e is CancellationError }
+        return false
     }
 
     /// True for failures a later retry could fix (network, 5xx); false for config / auth / contract errors.

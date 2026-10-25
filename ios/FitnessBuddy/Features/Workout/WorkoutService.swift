@@ -7,6 +7,9 @@ import SwiftData
 struct WorkoutService {
     let context: ModelContext
 
+    /// While demo data is loaded, everything logged is demo too and can never be pushed.
+    private var demoMode: Bool { SyncState.current(in: context).demoActive }
+
     // MARK: Queries
 
     func activeSession() -> LocalSession? {
@@ -55,6 +58,7 @@ struct WorkoutService {
     func startEmpty(gymId: Int?) -> LocalSession {
         if let active = activeSession() { return active }
         let s = LocalSession(gymId: gymId, kind: "other", name: "Workout")
+        s.isDemo = demoMode
         context.insert(s)
         save()
         return s
@@ -70,6 +74,8 @@ struct WorkoutService {
         let resolvedGym = gymId ?? item.session?.gym.flatMap(gymId(named:))
         let s = LocalSession(plannedSessionId: planned.isPreview ? nil : planned.id, gymId: resolvedGym, kind: kind,
                              name: item.title ?? item.kind.capitalized)
+        let demo = demoMode
+        s.isDemo = demo
         context.insert(s)
         var order = 0
         for ex in exercises {
@@ -83,6 +89,7 @@ struct WorkoutService {
                                    weightKg: ps.targetWeight ?? prev?.weight,
                                    reps: ps.targetReps ?? ex.repRange?.last,
                                    durationS: ps.targetDurationS)
+                set.isDemo = demo
                 set.targetWeightKg = ps.targetWeight
                 set.targetReps = ps.targetReps
                 set.targetDurationS = ps.targetDurationS
@@ -107,6 +114,7 @@ struct WorkoutService {
             let set = LocalSet(sessionId: session.id, variantId: variant.id, variantName: variant.name, exerciseOrder: order,
                                setOrder: i + 1, weightKg: p?.weight, reps: p?.reps ?? variant.repRangeHigh,
                                durationS: p?.durationS)
+            set.isDemo = session.isDemo
             set.prevWeightKg = p?.weight
             set.prevReps = p?.reps
             set.prevDurationS = p?.durationS
@@ -170,6 +178,7 @@ struct WorkoutService {
         let set = LocalSet(sessionId: session.id, variantId: last.variantId, variantName: last.variantName,
                            exerciseOrder: order, setOrder: last.setOrder + 1, weightKg: last.weightKg, reps: last.reps,
                            durationS: last.durationS)
+        set.isDemo = session.isDemo
         set.prevWeightKg = last.prevWeightKg
         set.prevReps = last.prevReps
         set.prevDurationS = last.prevDurationS

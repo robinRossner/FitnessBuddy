@@ -12,13 +12,15 @@ enum SyncReason: String, Sendable {
 @Observable
 final class SyncCoordinator {
     enum Status: Equatable {
-        case idle, syncing, offline, notConfigured
+        case idle, syncing, offline, notConfigured, demo
         case failed(String)
     }
 
     private(set) var status: Status = .idle
     private(set) var lastSyncAt: Date?
     private(set) var lastReport: SyncReport?
+    /// Bumped whenever a sync finished (success or failure) or local data was reset, so views can refresh.
+    private(set) var generation = 0
 
     @ObservationIgnored private let engine: SyncEngine
     @ObservationIgnored private let container: ModelContainer
@@ -51,11 +53,16 @@ final class SyncCoordinator {
             await inFlight.value
             return
         }
+        if SyncState.current(in: ModelContext(container)).demoActive {
+            status = .demo
+            return
+        }
         guard let client = settings.makeClient(), settings.isConfigured else {
             status = .notConfigured
             return
         }
-        let manual = reason == .manual || reason == .pullToRefresh
+        // `.settings` follows an explicit user action (saved / left Settings): never skip it on a stale offline flag.
+        let manual = reason == .manual || reason == .pullToRefresh || reason == .settings
         if !network.isConnected && !manual {
             status = .offline
             return
@@ -68,8 +75,12 @@ final class SyncCoordinator {
                 let report = try await engine.sync(using: client)
                 self?.finish(.success(report))
             } catch {
-                let message = (error as? APIError)?.errorDescription ?? error.localizedDescription
-                await engine.recordFailure(message)
+                if Task.isCancelled || (error as? URLError)?.code == .cancelled || (error as? APIError)?.isCancellation == true
+                    || error is CancellationError {
+                    self?.finishCancelled()
+                    return
+                }
+                await engine.recordFailure(APIError.message(for: error))
                 self?.finish(.failure(error))
             }
         }
@@ -77,8 +88,36 @@ final class SyncCoordinator {
         await task.value
     }
 
+    /// Stops a running sync and waits until it is really gone (before wiping the data it would write into).
+    func cancelAndWait() async {
+        retryTask?.cancel()
+        retryTask = nil
+        rerunRequested = false
+        failures = 0
+        if let task = inFlight {
+            task.cancel()
+            await task.value
+        }
+    }
+
+    /// Called after the local data was wiped so the status and views start from a clean slate.
+    func didResetData() {
+        lastSyncAt = nil
+        lastReport = nil
+        if SyncState.current(in: ModelContext(container)).demoActive { status = .demo }
+        else { status = settings.isConfigured ? .idle : .notConfigured }
+        generation += 1
+    }
+
+    private func finishCancelled() {
+        inFlight = nil
+        if status == .syncing { status = .idle }
+        generation += 1
+    }
+
     private func finish(_ result: Result<SyncReport, Error>) {
         inFlight = nil
+        generation += 1
         switch result {
         case .success(let report):
             failures = 0
@@ -90,7 +129,7 @@ final class SyncCoordinator {
             if let api = error as? APIError, case .transport = api, !network.isConnected {
                 status = .offline
             } else {
-                status = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+                status = .failed(APIError.message(for: error))
             }
             if (error as? APIError)?.isTransient ?? true { scheduleRetry() }
         }

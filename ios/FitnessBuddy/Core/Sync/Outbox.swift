@@ -30,12 +30,13 @@ enum Outbox {
         }
     }
 
+    /// Demo rows (`isDemo`) are never collected: they must not reach a real server.
     static func collect(in ctx: ModelContext, limit: Int = 300) throws -> OutboxBatch {
         var batch = OutboxBatch()
 
         // Sets: only ones that were performed (or that the server already knows about / were deleted).
         let dirtySets = try ctx.fetch(FetchDescriptor<LocalSet>(
-            predicate: #Predicate { $0.dirty && $0.rejectedReason == nil },
+            predicate: #Predicate { $0.dirty && $0.rejectedReason == nil && !$0.isDemo },
             sortBy: [SortDescriptor(\.updatedAt)]))
             .filter { $0.completedAt != nil || $0.deletedAt != nil || $0.hasBeenPushed }
         let sets = Array(dirtySets.prefix(limit))
@@ -43,7 +44,7 @@ enum Outbox {
 
         // Sessions: finished / deleted / known to the server / has a performed set. Empty in-progress ones stay local.
         let dirtySessions = try ctx.fetch(FetchDescriptor<LocalSession>(
-            predicate: #Predicate { $0.dirty && $0.rejectedReason == nil },
+            predicate: #Predicate { $0.dirty && $0.rejectedReason == nil && !$0.isDemo },
             sortBy: [SortDescriptor(\.updatedAt)]))
             .filter { $0.endedAt != nil || $0.deletedAt != nil || $0.hasBeenPushed || setSessionIds.contains($0.id) }
         let sessions = Array(dirtySessions.prefix(limit))
@@ -64,7 +65,7 @@ enum Outbox {
             batch.stamps[OutboxBatch.key(setEntity, dto.id)] = s.updatedAt
         }
         let bodies = try ctx.fetch(FetchDescriptor<LocalBodyMeasurement>(
-            predicate: #Predicate { $0.dirty && $0.rejectedReason == nil },
+            predicate: #Predicate { $0.dirty && $0.rejectedReason == nil && !$0.isDemo },
             sortBy: [SortDescriptor(\.updatedAt)]))
         for b in bodies.prefix(limit) {
             let dto = SyncBodyDTO(id: b.id.uuidString.lowercased(), measuredAt: b.measuredAt, weightKg: b.weightKg,

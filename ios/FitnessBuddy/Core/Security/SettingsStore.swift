@@ -7,6 +7,9 @@ import Observation
 final class SettingsStore {
     private static let tokenAccount = "api-token"
     private let defaults: UserDefaults
+    private let persistToken: Bool
+    /// False when the last Keychain write failed (the token then only lives in memory until the app quits).
+    private(set) var tokenStored = true
 
     var backendURL: String {
         didSet { defaults.set(backendURL, forKey: "backendURL") }
@@ -18,11 +21,12 @@ final class SettingsStore {
         didSet { defaults.set(restSeconds, forKey: "restSeconds") }
     }
     var apiToken: String {
-        didSet { Keychain.set(apiToken, for: Self.tokenAccount) }
+        didSet { if persistToken { tokenStored = Keychain.set(apiToken, for: Self.tokenAccount) } }
     }
 
     init(defaults: UserDefaults = .standard, loadToken: Bool = true) {
         self.defaults = defaults
+        self.persistToken = loadToken
         backendURL = defaults.string(forKey: "backendURL") ?? ""
         currentGymId = defaults.object(forKey: "currentGymId") as? Int
         let stored = defaults.integer(forKey: "restSeconds")
@@ -35,10 +39,23 @@ final class SettingsStore {
         #endif
     }
 
+    /// Applies the backend fields typed in Settings (whitespace / newlines from pasting are stripped).
+    /// Returns false if the token could not be written to the Keychain.
+    @discardableResult
+    func update(url: String, token: String) -> Bool {
+        backendURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        apiToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        return tokenStored
+    }
+
+    /// Identifies the backend + token the local cache belongs to.
+    var fingerprint: String? { BackendReset.fingerprint(url: backendURL, token: apiToken) }
+
     var isConfigured: Bool { APIClient.normalizedBaseURL(backendURL) != nil && !apiToken.isEmpty }
 
     func makeClient() -> APIClient? {
         guard let url = APIClient.normalizedBaseURL(backendURL) else { return nil }
-        return APIClient(baseURL: url, token: apiToken.isEmpty ? nil : apiToken)
+        let token = apiToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        return APIClient(baseURL: url, token: token.isEmpty ? nil : token)
     }
 }

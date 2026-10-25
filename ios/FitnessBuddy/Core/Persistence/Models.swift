@@ -26,6 +26,8 @@ final class LocalSession {
     /// True for workouts logged on this device. Server-written rows (history imports) can have no
     /// `ended_at`; they must never show up as an in-progress workout.
     var startedHere: Bool
+    /// Created by the DEBUG demo mode. Never pushed (see `Outbox.collect`), wiped when a backend is configured.
+    var isDemo: Bool = false
 
     init(id: UUID = UUID(), plannedSessionId: String? = nil, gymId: Int? = nil, kind: String = "other",
          name: String, startedAt: Date = .now, endedAt: Date? = nil, notes: String? = nil,
@@ -74,6 +76,8 @@ final class LocalSet {
     var dirty: Bool
     var rejectedReason: String?
     var hasBeenPushed: Bool
+    /// See `LocalSession.isDemo`.
+    var isDemo: Bool = false
 
     // Local-only presentation data (never synced)
     var variantName: String
@@ -128,6 +132,8 @@ final class LocalBodyMeasurement {
     var dirty: Bool
     var rejectedReason: String?
     var hasBeenPushed: Bool
+    /// See `LocalSession.isDemo`.
+    var isDemo: Bool = false
 
     init(id: UUID = UUID(), measuredAt: Date = .now, weightKg: Double, note: String? = nil,
          updatedAt: Date = .now, deletedAt: Date? = nil, dirty: Bool = true) {
@@ -245,8 +251,18 @@ final class SyncState {
     @Attribute(.unique) var key: String
     var deviceId: String
     var cursor: String?
+    /// Last successful sync.
     var lastSyncAt: Date?
+    /// Message of the last failed attempt; nil after a success.
     var lastError: String?
+    /// When the last sync attempt (success or failure) finished.
+    var lastAttemptAt: Date?
+    /// Short result of the last successful sync ("Pushed 2, pulled 1 page").
+    var lastSummary: String?
+    /// Identifies the backend (URL + token) the cached data belongs to; see `BackendReset`.
+    var backendFingerprint: String?
+    /// True while the DEBUG demo data is loaded: sync is paused and nothing may be pushed.
+    var demoActive: Bool = false
     var configData: Data?
     var readinessData: Data?
     var readinessDate: String?

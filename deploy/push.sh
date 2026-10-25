@@ -93,7 +93,7 @@ rsync -az --delete --no-owner --no-group -e "$RSYNC_SSH" \
 # ---------- env ----------
 if [[ $WITH_ENV -eq 1 ]]; then
   info "uploading backend/.env.production (mode 600)"
-  rsync -t --chmod=F600 --no-owner --no-group -e "$RSYNC_SSH" "$LOCAL_ENV" "$HOST:$REMOTE_DIR/backend/.env.production"
+  rsync -t --no-owner --no-group -e "$RSYNC_SSH" "$LOCAL_ENV" "$HOST:$REMOTE_DIR/backend/.env.production"
 fi
 rssh "test -s $REMOTE_DIR/backend/.env.production" \
   || die "no backend/.env.production on the server: run deploy/make-prod-env.sh, then push with --with-env"
@@ -174,10 +174,12 @@ REMOTE
     fi
   done
   if [[ -f "$ROOT/backend/var/garmin_token.json" ]]; then
-    rsync -t --chmod=F600 --no-owner --no-group -e "$RSYNC_SSH" \
+    rsync -t --no-owner --no-group -e "$RSYNC_SSH" \
       "$ROOT/backend/var/garmin_token.json" "$HOST:$REMOTE_DIR/deploy/data/garmin_token.json"
   fi
 fi
+
+rssh "chmod 600 $REMOTE_DIR/deploy/data/garmin_token.json 2>/dev/null || true"
 
 # Container runs as the ssh user's uid/gid (APP_UID/APP_GID); repair anything root-owned.
 rssh "sudo -n chown -R \$(id -u):\$(id -g) $REMOTE_DIR/deploy/data $REMOTE_DIR/deploy/backups" \

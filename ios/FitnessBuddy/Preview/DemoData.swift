@@ -21,9 +21,18 @@ enum DemoData {
     /// The sample week is re-dated to the current week; "today" is pinned to its Monday (an Upper day, yellow readiness).
     @MainActor
     static func load(into ctx: ModelContext, settings: SettingsStore?) {
+        // Demo is a separate mode: rows it creates are flagged `isDemo` (never pushed, wiped as soon as a real
+        // backend is saved) and sync is paused (`SyncState.demoActive`).
+        let knownSessions = Set(((try? ctx.fetch(FetchDescriptor<LocalSession>())) ?? []).map(\.id))
+        let knownSets = Set(((try? ctx.fetch(FetchDescriptor<LocalSet>())) ?? []).map(\.id))
+        let knownBodies = Set(((try? ctx.fetch(FetchDescriptor<LocalBodyMeasurement>())) ?? []).map(\.id))
         var pull = Samples.decode(PullResponse.self, "sync_pull")
         pull.plannedSessions = []
         _ = try? SyncMerge.apply(pull, in: ctx)
+        for s in (try? ctx.fetch(FetchDescriptor<LocalSession>())) ?? [] where !knownSessions.contains(s.id) { s.isDemo = true; s.dirty = false }
+        for s in (try? ctx.fetch(FetchDescriptor<LocalSet>())) ?? [] where !knownSets.contains(s.id) { s.isDemo = true; s.dirty = false }
+        for b in (try? ctx.fetch(FetchDescriptor<LocalBodyMeasurement>())) ?? [] where !knownBodies.contains(b.id) { b.isDemo = true; b.dirty = false }
+        SyncState.current(in: ctx).demoActive = true
 
         let days = AppClock.weekDays(containing: Date())
         var week = Samples.decode(PlanWeekDTO.self, "plan_week")
@@ -46,21 +55,10 @@ enum DemoData {
         try? ctx.save()
     }
 
+    /// Removes the demo rows and caches (real unsynced records stay), ends demo mode.
     @MainActor
     static func clear(in ctx: ModelContext) {
-        try? ctx.delete(model: LocalSet.self)
-        try? ctx.delete(model: LocalSession.self)
-        try? ctx.delete(model: LocalBodyMeasurement.self)
-        try? ctx.delete(model: CachedPlannedSession.self)
-        try? ctx.delete(model: CachedVariant.self)
-        try? ctx.delete(model: CachedExercise.self)
-        try? ctx.delete(model: CachedGym.self)
-        let state = SyncState.current(in: ctx)
-        state.cursor = nil
-        state.readinessData = nil
-        state.configData = nil
-        UserDefaults.standard.removeObject(forKey: AppClock.overrideKey)
-        try? ctx.save()
+        BackendReset.reset(in: ctx, fingerprint: SyncState.current(in: ctx).backendFingerprint)
     }
 }
 
