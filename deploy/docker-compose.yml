@@ -6,26 +6,30 @@ services:
     build:
       context: ../backend
     restart: unless-stopped
+    # run as the host user (push.sh writes APP_UID/APP_GID to deploy/.env) so ./data is writable
+    # for the app and readable for the host-side backup cron (WAL needs write access).
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
     env_file:
-      - ../backend/.env
+      - ../backend/.env.production         # created by deploy/make-prod-env.sh (gitignored)
     environment:
       DATABASE_URL: sqlite:////app/var/fitness.db
     volumes:
       - ./data:/app/var
-      - ./imports:/app/imports:ro          # optional: Strong exports for one-off imports
     expose:
       - "8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 40s
 
   caddy:
     image: caddy:2.10
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"

@@ -7,7 +7,7 @@ Garmin sync, training engine + plans; step 4 adds the sync API for the iOS app.
 ```
 backend/   FastAPI app, SQLAlchemy models, Alembic, Strong importer, tests
 ios/       SwiftUI app (placeholder)
-deploy/    docker-compose + Caddy + nightly SQLite backup
+deploy/    docker-compose + Caddy + nightly SQLite backup, push/bootstrap scripts (see deploy/README.md)
 docs/      spec & decisions (docs/spec/decisions.md)
 imports/   your raw exports + import reports (gitignored)
 ```
