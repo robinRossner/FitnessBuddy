@@ -5,7 +5,11 @@ description = "FitnessBuddy backend: training data store, Strong importer, progr
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.1",
+    "apscheduler>=3.10,<4",
     "fastapi>=0.162.0",
+    "fitdecode>=0.11.0",
+    "garminconnect>=0.3.20",
+    "httpx>=0.28.1",
     "pydantic-settings>=2.16.1",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2.0",
@@ -17,6 +21,7 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "pytest>=9.1.1",
+    "respx>=0.23.1",
     "ruff>=0.17.2",
 ]
 

@@ -29,18 +29,23 @@ Mystery Exercise,,,,,unmapped,
 
 
 @pytest.fixture
-def db(tmp_path: Path):
+def session_factory(tmp_path: Path):
+    """sessionmaker bound to a fresh, fully migrated SQLite database."""
     url = f"sqlite:///{tmp_path / 'test.db'}"
     cfg = Config(str(BACKEND_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
     cfg.attributes["url"] = url
     command.upgrade(cfg, "head")
     engine = make_engine(url)
-    factory = sessionmaker(bind=engine, expire_on_commit=False)
-    session: Session = factory()
+    yield sessionmaker(bind=engine, expire_on_commit=False)
+    engine.dispose()
+
+
+@pytest.fixture
+def db(session_factory):
+    session: Session = session_factory()
     yield session
     session.close()
-    engine.dispose()
 
 
 @pytest.fixture

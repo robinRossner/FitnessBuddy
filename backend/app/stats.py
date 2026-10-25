@@ -58,10 +58,11 @@ def set_e1rm(
     """(e1rm, basis) for one set, basis = 'total' | 'added_weight'; None if not meaningful.
 
     Bodyweight-loaded variants (pull-up, dip, chest-to-bar): load = bodyweight + added weight.
-    Assistance variants (assisted machine / band): load = bodyweight - assistance; a band with
-    assistance 0 is "unknown strength" and skipped. With unknown bodyweight, bodyweight variants
-    only get an e1RM on a positive added weight (basis='added_weight', comparable only within
-    the variant) and assistance variants none.
+    Assisted machine variants: load = bodyweight - assistance. Band variants (assistance
+    convention on bodyweight equipment) never get an e1RM: their value is a band level (0-5),
+    not a weight. With unknown bodyweight, bodyweight variants only get an e1RM on a positive
+    added weight (basis='added_weight', comparable only within the variant) and assistance
+    variants none.
     """
     if not ctx.e1rm_meaningful or reps is None or weight is None:
         return None
@@ -70,10 +71,9 @@ def set_e1rm(
     load, basis = weight, "total"
     bw = ctx.bodyweight_kg
     if ctx.load_convention == LoadConvention.ASSISTANCE:
-        if bw is None:
+        if bw is None or ctx.equipment_type == EquipmentType.BODYWEIGHT:
+            # Band pull-ups: the logged 0-5 is a band *level*, not kilograms -> no e1RM at all.
             return None
-        if ctx.equipment_type == EquipmentType.BODYWEIGHT and weight <= 0:
-            return None  # band assistance unknown
         load = bw - weight
     elif ctx.equipment_type == EquipmentType.BODYWEIGHT:
         if ctx.bodyweight_loaded and bw is not None:
@@ -259,3 +259,17 @@ def rebuild_stats(
             count += 1
     db.flush()
     return count
+
+
+def rebuild_with_config(db: Session) -> int:
+    """`rebuild_stats` with the active engine config (bodyweight fallback, e1RM rep limits)."""
+    from app.engine.config import load_engine_config
+    from app.settings import get_settings
+
+    cfg = load_engine_config(get_settings().engine_config_path)
+    return rebuild_stats(
+        db,
+        bodyweight_kg=cfg.user.bodyweight_kg,
+        max_reps=cfg.strength.e1rm.max_reps,
+        min_reps=cfg.strength.e1rm.min_reps,
+    )

@@ -60,6 +60,34 @@ uv run python -m app.cli stats rebuild                             # after chang
 
 Fallback when the log is empty: `user.bodyweight_kg` in `config/engine.v2.yaml`.
 
+## Garmin sync (read-only towards Garmin)
+
+Official Personal API (pull-only). Create a key at
+https://connect.garmin.com/app/settings/personalApiToken (valid 30 days to 1 year), put it into
+`backend/.env` as `GARMIN_PERSONAL_API_KEY=...` (never commit it). Facts, windows and quirks:
+`docs/garmin-personal-api.md`.
+
+```sh
+cd backend
+uv run alembic upgrade head
+uv run python -m app.cli garmin check                    # token exchange + one probe per data kind
+uv run python -m app.cli garmin backfill [--since 2023-01-01] [--kinds activities,sleep]
+uv run python -m app.cli garmin sync                     # incremental (cursor - 3 days overlap)
+uv run python -m app.cli garmin reparse                  # re-run parsers over stored raw JSON
+```
+
+- `GARMIN_SOURCE=personal_api|garminconnect|auto` (default `auto`): Personal API first; the
+  python-garminconnect fallback (needs `GARMIN_EMAIL`/`GARMIN_PASSWORD`, logs in at most once per
+  process) is used only if the key is dead or a recent window comes back empty.
+  `garmin backfill --source garminconnect` pulls old history from the fallback deliberately.
+- Backfill is chunked per kind window and resumable (`sync_state` cursors); a persistent 429 is
+  waited out (1, 3, 10 min) and then the run stops with the cursor intact, so just re-run it.
+- Stored: all activities in `runs` (`activity_type` = Garmin typeKey) + `laps`, `daily_health`,
+  Garmin weights in `body_measurements` (source `garmin`), `athlete_metrics` (max HR, LTHR, zone
+  floors), `garmin_raw` (raw JSON), originals in `backend/var/fit/` (all gitignored).
+- Scheduler: `SCHEDULER_ENABLED=true` starts APScheduler with the API (nightly 03:30 full sync,
+  four lighter runs at `SYNC_DAY_TIMES`, timezone Europe/Vienna). Off by default.
+
 ## API (skeleton)
 
 ```sh
@@ -68,4 +96,6 @@ cd backend && uv run uvicorn app.main:app --reload
 # bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
 # GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),
 # DELETE /api/v1/bodyweight/{id} (tombstone)
+# Garmin data (same bearer token): GET /api/v1/runs?from=&to=&activity_type=&include_other=,
+# GET /api/v1/runs/{id} (with laps), GET /api/v1/health/daily?from=&to=
 ```

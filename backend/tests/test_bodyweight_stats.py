@@ -83,8 +83,14 @@ def test_e1rm_follows_the_bodyweight_log_by_date(imported):
     assert pull["2025-01-10"] == pytest.approx(92 * (1 + 5 / 30), abs=0.01)
     assert _best(db, "Pull Up (Assisted)") == {"2024-01-10": pytest.approx(60 * (1 + 8 / 30))}
     band = _best(db, "Pull Up (Band)")
-    assert band["2024-01-10"] is None  # band assistance 0 = unknown
-    assert band["2025-01-10"] == pytest.approx(77 * (1 + 10 / 30), abs=0.01)
+    # band values are band levels (0-5), not kilograms: never an e1RM, whatever the level
+    assert band == {"2024-01-10": None, "2025-01-10": None}
+    stats = db.scalars(
+        select(ExerciseSessionStats)
+        .join(ExerciseVariant)
+        .where(ExerciseVariant.name == "Pull Up (Band)")
+    ).all()
+    assert stats and not any(x.is_e1rm_pr or x.is_weight_pr or x.best_e1rm_kg for x in stats)
 
 
 def test_non_bodyweight_loaded_exercise_uses_added_weight_only(imported):

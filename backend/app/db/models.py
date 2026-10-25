@@ -283,6 +283,10 @@ class BodyMeasurement(Syncable, Base):
 
 
 class Run(Syncable, Base):
+    """A recorded endurance/other activity (Garmin). Despite the name it holds *every* Garmin
+    activity (running, hiking, strength, cycling, ...); `activity_type` is Garmin's typeKey and
+    run-only consumers filter on `app.sources.garmin.mapping.RUN_TYPES`."""
+
     __tablename__ = "runs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     source: Mapped[Source] = mapped_column(str_enum(Source, "source"))
@@ -291,14 +295,28 @@ class Run(Syncable, Base):
     started_at_local: Mapped[datetime | None] = mapped_column(DateTime)
     tz: Mapped[str | None] = mapped_column(String(64))
     run_type: Mapped[str | None] = mapped_column(String(24))  # easy | long | intervals | ...
+    activity_type: Mapped[str | None] = mapped_column(String(40), index=True)  # Garmin typeKey
+    title: Mapped[str | None] = mapped_column(String(200))
     duration_s: Mapped[float | None] = mapped_column(Float)
+    moving_time_s: Mapped[float | None] = mapped_column(Float)
+    avg_pace_s_per_km: Mapped[float | None] = mapped_column(Float)  # duration / distance
     distance_m: Mapped[float | None] = mapped_column(Float)
     avg_hr: Mapped[float | None] = mapped_column(Float)
     max_hr: Mapped[float | None] = mapped_column(Float)
     elevation_gain_m: Mapped[float | None] = mapped_column(Float)
     avg_cadence: Mapped[float | None] = mapped_column(Float)
     training_load: Mapped[float | None] = mapped_column(Float)
+    # Garmin's own HR zones (z1..z5 -> seconds); the zone limits are in athlete_metrics.
     time_in_zones_s: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # Nullable everywhere: not every watch / activity reports these.
+    training_effect_aerobic: Mapped[float | None] = mapped_column(Float)
+    training_effect_anaerobic: Mapped[float | None] = mapped_column(Float)
+    vo2max: Mapped[float | None] = mapped_column(Float)
+    avg_power_w: Mapped[float | None] = mapped_column(Float)
+    calories: Mapped[float | None] = mapped_column(Float)
+    # Laps / original .FIT fetched (NULL = still to do); fit_path relative to GARMIN_FIT_DIR.
+    detail_synced_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    fit_path: Mapped[str | None] = mapped_column(String(255))
     fidelity: Mapped[Fidelity] = mapped_column(str_enum(Fidelity, "fidelity"), default="high")
     planned_session_id: Mapped[str | None] = mapped_column(ForeignKey("planned_sessions.id"))
     raw: Mapped[dict[str, Any] | None] = mapped_column(JSON)
@@ -337,6 +355,16 @@ class DailyHealth(Timestamps, Base):
     hrv_status: Mapped[str | None] = mapped_column(String(24))
     sleep_s: Mapped[int | None] = mapped_column(Integer)
     sleep_score: Mapped[float | None] = mapped_column(Float)
+    sleep_deep_s: Mapped[int | None] = mapped_column(Integer)
+    sleep_light_s: Mapped[int | None] = mapped_column(Integer)
+    sleep_rem_s: Mapped[int | None] = mapped_column(Integer)
+    sleep_awake_s: Mapped[int | None] = mapped_column(Integer)
+    hrv_weekly_avg_ms: Mapped[float | None] = mapped_column(Float)
+    hrv_baseline_low_ms: Mapped[float | None] = mapped_column(Float)  # "balanced" range
+    hrv_baseline_high_ms: Mapped[float | None] = mapped_column(Float)
+    body_battery_charged: Mapped[float | None] = mapped_column(Float)
+    body_battery_drained: Mapped[float | None] = mapped_column(Float)
+    steps: Mapped[int | None] = mapped_column(Integer)
     body_battery_max: Mapped[float | None] = mapped_column(Float)
     body_battery_min: Mapped[float | None] = mapped_column(Float)
     stress_avg: Mapped[float | None] = mapped_column(Float)
@@ -344,6 +372,50 @@ class DailyHealth(Timestamps, Base):
     body_weight_kg: Mapped[float | None] = mapped_column(Float)
     readiness_color: Mapped[str | None] = mapped_column(String(8))  # green|yellow|red (engine)
     raw: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+class AthleteMetric(Timestamps, Base):
+    """Garmin-reported athlete parameters over time (max_hr, lthr, vo2max, hr zone floors, ...).
+
+    The engine may later *propose* updating the engine config from these; nothing is applied
+    automatically. A new row is written only when the value changed.
+    """
+
+    __tablename__ = "athlete_metrics"
+    __table_args__ = (UniqueConstraint("day", "metric", "source", name="day_metric_source"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
+    metric: Mapped[str] = mapped_column(String(40), index=True)
+    value: Mapped[float] = mapped_column(Float)
+    source: Mapped[str] = mapped_column(String(32), default="garmin")
+
+
+class GarminRaw(Base):
+    """Raw Garmin JSON per (kind, key) so parsers can be re-run without refetching."""
+
+    __tablename__ = "garmin_raw"
+    __table_args__ = (UniqueConstraint("kind", "key", name="kind_key"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(24))  # activity | daily_summary | sleep | hrv | ...
+    key: Mapped[str] = mapped_column(String(64))  # activity id or ISO date
+    payload: Mapped[Any] = mapped_column(JSON)
+    fetched_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
+
+
+class SyncState(Base):
+    """Per (source, kind) sync cursor so backfill is resumable and sync incremental."""
+
+    __tablename__ = "sync_state"
+    __table_args__ = (UniqueConstraint("source", "kind", name="source_kind"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source: Mapped[str] = mapped_column(String(32))  # "garmin"
+    kind: Mapped[str] = mapped_column(String(24))
+    cursor_date: Mapped[date | None] = mapped_column(Date)  # data complete up to and incl. this day
+    last_run_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    last_success_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_error_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    rows_last: Mapped[int] = mapped_column(Integer, default=0)
 
 
 # --------------------------------------------------------------------------- planning + audit

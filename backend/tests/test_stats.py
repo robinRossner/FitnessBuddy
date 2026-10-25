@@ -45,6 +45,9 @@ def test_set_e1rm_bodyweight_and_assistance():
     assert set_e1rm(20, 8, "working", assisted) is None
     assisted_bw = E1RMContext("machine_stack", "assistance", True, bodyweight_kg=80)
     assert set_e1rm(20, 8, "working", assisted_bw)[0] == pytest.approx(76.0)
+    band = E1RMContext("bodyweight", "assistance", True, bodyweight_kg=80)
+    assert set_e1rm(3, 10, "working", band) is None  # band level 3, not 3 kg of help
+    assert set_e1rm(0, 10, "working", band) is None
 
 
 def _agg(day, sets):
@@ -97,9 +100,6 @@ def test_assistance_is_bodyweight_minus_assistance():
     assert set_e1rm(0, 8, "working", machine) is not None  # no help = full bodyweight
     assert set_e1rm(75, 8, "working", machine) is None  # more help than bodyweight
     band = E1RMContext("bodyweight", "assistance", True, bodyweight_kg=82)
-    assert set_e1rm(5, 10, "working", band) == (
-        pytest.approx(70 * (1 + 10 / 30), abs=0.01),
-        "total",
-    )
-    assert set_e1rm(0, 10, "working", band) is None  # band assistance unknown: skipped
+    assert set_e1rm(5, 10, "working", band) is None  # band level 5, not 5 kg: no e1RM
+    assert set_e1rm(0, 10, "working", band) is None
     assert set_e1rm(5, 10, "working", E1RMContext("bodyweight", "assistance", True)) is None
