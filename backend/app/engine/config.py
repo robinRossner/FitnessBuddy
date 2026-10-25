@@ -171,6 +171,10 @@ class LongRunConfig(_Model):
 
 class RunningConfig(_Model):
     pace_model: str = "vdot"
+    # Interval reps count as "on pace" unless slower than the target by more than this many %
+    # (running faster is fine); reps this many % faster than the target get a verdict note.
+    interval_pace_tolerance_pct: float = 3
+    interval_fast_flag_pct: float = 5
     weekly_volume_cap_pct: float = 10
     weekly_volume_floor_km: float = 0
     stagnation_weeks: int = 4

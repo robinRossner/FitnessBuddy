@@ -3,7 +3,7 @@ import Observation
 import SwiftData
 
 enum SyncReason: String, Sendable {
-    case launch, foreground, network, workoutFinished, pullToRefresh, manual, retry, settings
+    case launch, foreground, network, workoutFinished, bodyLogged, pullToRefresh, manual, retry, settings
 }
 
 /// UI-facing owner of sync: triggers, de-duplication, exponential backoff and a status for the badge.

@@ -172,18 +172,27 @@ struct APIClient: Sendable {
         return req
     }
 
-    private func send<T: Decodable>(path: String, query: [URLQueryItem] = [], method: String = "GET",
-                                    authorized: Bool = true, body: Data? = nil) async throws -> T {
+    /// Authorised GET returning the raw body (the stats cache stores raw JSON).
+    func get(path: String, query: [URLQueryItem] = []) async throws -> Data {
+        try await raw(path: path, query: query, method: "GET", authorized: true, body: nil)
+    }
+
+    private func raw(path: String, query: [URLQueryItem], method: String, authorized: Bool, body: Data?) async throws -> Data {
         let req = try makeRequest(path: path, query: query, method: method, authorized: authorized, body: body)
         let (respData, response): (Data, URLResponse)
         do { (respData, response) = try await session.data(for: req) }
         catch { throw APIError.transport(error) }
         guard let http = response as? HTTPURLResponse else { throw APIError.http(-1, nil) }
         switch http.statusCode {
-        case 200..<300: break
+        case 200..<300: return respData
         case 401, 403: throw APIError.unauthorized
         default: throw APIError.http(http.statusCode, String(data: respData, encoding: .utf8))
         }
+    }
+
+    private func send<T: Decodable>(path: String, query: [URLQueryItem] = [], method: String = "GET",
+                                    authorized: Bool = true, body: Data? = nil) async throws -> T {
+        let respData = try await raw(path: path, query: query, method: method, authorized: authorized, body: body)
         do { return try APICoding.makeDecoder().decode(T.self, from: respData) }
         catch { throw APIError.decoding(error) }
     }

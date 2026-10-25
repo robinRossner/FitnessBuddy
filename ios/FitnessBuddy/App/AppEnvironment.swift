@@ -16,8 +16,22 @@ final class AppEnvironment {
     let network: NetworkMonitor
     let sync: SyncCoordinator
     let restTimer: RestTimer
+    let stats: StatsRepository
 
+    #if DEBUG
+    /// `-uiTab progress|health|...` selects the tab at launch (screenshots).
+    var selectedTab: AppTab = {
+        switch UserDefaults.standard.string(forKey: "uiTab") {
+        case "workout": .workout
+        case "progress": .progress
+        case "health": .health
+        case "coach": .coach
+        default: .today
+        }
+    }()
+    #else
     var selectedTab: AppTab = .today
+    #endif
     var finishedSummary: WorkoutSummary?
 
     static var isRunningTests: Bool {
@@ -35,8 +49,13 @@ final class AppEnvironment {
         self.settings = settings
         self.network = network
         self.restTimer = RestTimer()
+        self.stats = StatsRepository(settings: settings, store: testing ? MemoryStatsCache() : DiskStatsCache(),
+                                     isDemo: { SyncState.current(in: container.mainContext).demoActive })
         self.sync = SyncCoordinator(container: container, settings: settings, network: network)
         self.sync.enabled = !testing
+        #if DEBUG
+        self.stats.demoTransport = DemoStats.transport
+        #endif
         network.onBecameConnected = { [weak self] in self?.sync.request(.network) }
         // The cache must belong to the configured backend before anything syncs (also covers launch-argument
         // overrides, URL/token changed outside the Settings screen, and caches from older app versions).

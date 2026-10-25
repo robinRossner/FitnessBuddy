@@ -18,6 +18,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.analytics import cache as stats_cache
 from app.bodyweight import local_day
 from app.db.models import (
     BodyMeasurement,
@@ -246,3 +247,4 @@ def finish_push(db: Session, out: PushOutcome) -> None:
             refresh_stats(db, out)
     except Exception:
         log.exception("post-push planned-session linking / stats refresh failed")
+    stats_cache.invalidate()

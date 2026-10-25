@@ -6,6 +6,7 @@ import logging
 import threading
 from collections.abc import Callable
 
+from app.analytics import cache as stats_cache
 from app.db.session import get_session_factory, session_scope
 from app.garmin_sync import GarminSync, SyncReport
 from app.settings import Settings, get_settings
@@ -23,6 +24,7 @@ def on_new_data(report: SyncReport) -> None:
     """Hook: after new Garmin data, (1) auto-update max HR / LTHR in the engine config if Garmin
     reports different values (new config version, author=engine), then (2) re-run the engine
     (reconcile + plan current and next week). Never raises: a sync must not fail because of it."""
+    stats_cache.invalidate()
     log.info(
         "new Garmin data (%d kinds updated); running the engine",
         sum(1 for r in report.results if r.rows),
