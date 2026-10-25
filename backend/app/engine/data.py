@@ -33,7 +33,7 @@ from app.engine.config import EngineConfig
 from app.engine.planner import LiftContext, PlanInputs, VariantInfo
 from app.engine.program import Program, apply_overrides
 from app.engine.readiness import HealthDay
-from app.engine.scheduling import WEEKDAYS
+from app.engine.scheduling import WEEKDAYS, SlotLock
 from app.sources.garmin.mapping import RUN_TYPES
 
 PLAN_NS = uuid.UUID("5f0c3b52-71f1-4a6e-9c3e-3d1d0a7b9e11")
@@ -293,6 +293,44 @@ def frozen_slots(db: Session, week_start: date, template: dict[str, str]) -> set
     return out
 
 
+_KIND_ALIASES_FINAL = {"upper", "lower", "easy_run", "intervals", "long_run", "rest"}
+
+
+def lock_from_row(row: PlannedSession) -> SlotLock | None:
+    """The stored placement of a planned session (None if it follows the template)."""
+    raw = row.schedule_lock
+    if not raw:
+        return None
+    return SlotLock(
+        day=date.fromisoformat(raw["day"]) if raw.get("day") else row.day,
+        kind=raw.get("kind") if raw.get("kind") in _KIND_ALIASES_FINAL else None,
+        distance_km=raw.get("distance_km"),
+        moved_from=row.moved_from,
+        reason=row.change_reason,
+        source=row.changed_by or raw.get("source") or "engine",
+    )
+
+
+def slot_placements(
+    db: Session, week_start: date, template: dict[str, str]
+) -> tuple[dict[str, SlotLock], set[str]]:
+    """(locks, excluded slots) of a week from the stored planned sessions. A skipped or deleted
+    session carries no training load, so it is left out of the recovery-rule maths."""
+    locks: dict[str, SlotLock] = {}
+    excluded: set[str] = set()
+    for slot in template_slot_ids(template):
+        row = db.get(PlannedSession, planned_id(week_start, slot))
+        if row is None:
+            continue
+        if row.deleted_at is not None or row.status == "skipped":
+            excluded.add(slot)
+            continue
+        lk = lock_from_row(row)
+        if lk is not None:
+            locks[slot] = lk
+    return locks, excluded
+
+
 def load_inputs(
     db: Session,
     *,
@@ -307,6 +345,7 @@ def load_inputs(
     program = apply_overrides(program, cfg.exercise_overrides)
     lookback = max(cfg.running_cfg.vdot.lookback_weeks, 8) + 4
     runs = load_runs(db, today - timedelta(weeks=lookback), today)
+    locks, excluded = slot_placements(db, week_start, cfg.weekly_template)
     return PlanInputs(
         today=today,
         week_start=week_start,
@@ -318,6 +357,8 @@ def load_inputs(
         runs=runs,
         actual_lower_days=lower_days(db, week_start - timedelta(days=3), today),
         frozen_slots=frozen_slots(db, week_start, cfg.weekly_template),
+        slot_locks=locks,
+        excluded_slots=excluded,
         gym_name=gym.name if gym else None,
     )
 

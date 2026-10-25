@@ -77,4 +77,18 @@ enum PlanFormat {
         default: "Rest"
         }
     }
+
+    /// "last_run" -> "Your last run"; unknown keys are humanised ("weekly_volume" style).
+    static func adaptsOnLabel(_ key: String) -> String {
+        switch key.lowercased() {
+        case "last_run", "last_runs": return "Your last run"
+        case "readiness": return "Your readiness"
+        case "weekly_volume", "volume": return "Your weekly volume"
+        case "hrv": return "Your HRV"
+        case "sleep": return "Your sleep"
+        default:
+            let words = key.replacingOccurrences(of: "_", with: " ").trimmingCharacters(in: .whitespaces)
+            return words.isEmpty ? key : words.prefix(1).uppercased() + words.dropFirst()
+        }
+    }
 }

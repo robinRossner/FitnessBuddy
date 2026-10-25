@@ -17,6 +17,8 @@ import uuid
 from pathlib import Path
 from unittest.mock import patch
 
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 
 from app.api.auth import get_api_token
@@ -61,7 +63,12 @@ def main() -> None:
 
     tmp = Path(tempfile.mkdtemp()) / "copy.db"
     shutil.copy(args.db, tmp)
-    engine = make_engine(f"sqlite:///{tmp}")
+    url = f"sqlite:///{tmp}"
+    alembic_cfg = Config(str(BACKEND_DIR / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    alembic_cfg.attributes["url"] = url
+    command.upgrade(alembic_cfg, "head")  # the copy gets the newest schema
+    engine = make_engine(url)
     from sqlalchemy.orm import sessionmaker
 
     factory = sessionmaker(bind=engine, expire_on_commit=False)

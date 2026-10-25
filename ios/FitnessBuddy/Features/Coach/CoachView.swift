@@ -210,7 +210,7 @@ struct CoachHeaderCard: View {
 
 struct PendingProposalCard: View {
     let proposal: CoachProposalDTO
-    private var validChanges: Int { proposal.changes.filter(CoachLogic.isSelectable).count }
+    private var validChanges: Int { CoachLogic.selectableCount(proposal) }
 
     var body: some View {
         Card(tint: CoachStyle.color) {

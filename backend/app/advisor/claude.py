@@ -1,4 +1,7 @@
-"""The one place that talks to the Claude API (official `anthropic` SDK, non-streaming).
+"""The one place that talks to Claude: the Messages API here (official `anthropic` SDK,
+non-streaming) or, with a subscription token, headless Claude Code (providers/claude_code.py).
+Provider choice: ADVISOR_PROVIDER=api|claude_code|auto (settings.advisor_provider_resolved);
+`provider_status(settings)` is the dict for the coach settings response.
 
 Request shape (Claude Opus 5.5; see the SDK docs):
 - `thinking: {type: "adaptive"}` and `output_config.effort: "high"` (the default would be medium)
@@ -17,13 +20,14 @@ Request shape (Claude Opus 5.5; see the SDK docs):
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
 from typing import Any
 
 import anthropic
 from pydantic import ValidationError
 
 from app.advisor.prompt import SYSTEM_PROMPT
+from app.advisor.providers import provider_status as provider_status
+from app.advisor.providers.base import AdvisorCallError, ClaudeResult
 from app.advisor.schema import AdvisorOutput
 from app.settings import Settings
 from app.sources.garmin.redact import install_log_redaction, redact, register_secret
@@ -33,31 +37,9 @@ log = logging.getLogger(__name__)
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 
-class AdvisorCallError(Exception):
-    """A failed call; `kind` is rate_limit | api_status | connection | invalid_output."""
-
-    def __init__(self, kind: str, message: str, status_code: int | None = None):
-        super().__init__(message)
-        self.kind = kind
-        self.message = message
-        self.status_code = status_code
-
-
-@dataclass
-class ClaudeResult:
-    outcome: str  # ok | refusal | max_tokens | empty | unexpected_stop
-    output: AdvisorOutput | None = None
-    stop_reason: str | None = None
-    stop_details: dict[str, Any] | None = None
-    usage: dict[str, int] = field(default_factory=dict)
-    request_id: str | None = None
-    model: str | None = None
-    fell_back: bool = False
-
-
 def make_client(settings: Settings) -> anthropic.Anthropic:
     """Client with the SDK's own retries / backoff. Raises AdvisorCallError without a key."""
-    key = settings.advisor_key
+    key = settings.advisor_api_key
     if key is None:
         raise AdvisorCallError("no_key", "ANTHROPIC_API_KEY is not configured")
     install_log_redaction()
@@ -110,7 +92,16 @@ def _stop_details(resp: Any) -> dict[str, Any] | None:
 
 
 def consult(settings: Settings, user_text: str, *, client: Any | None = None) -> ClaudeResult:
-    """One non-streaming call. Never returns content of a refused / truncated response."""
+    """One non-streaming call. Never returns content of a refused / truncated response.
+
+    The provider is `settings.advisor_provider_resolved`: `claude_code` runs headless Claude Code
+    on the subscription token (providers/claude_code.py); otherwise the Messages API below. An
+    explicit `client` (tests) always means the API path.
+    """
+    if client is None and settings.advisor_provider_resolved == "claude_code":
+        from app.advisor.providers.claude_code import ClaudeCodeProvider
+
+        return ClaudeCodeProvider(settings).consult(user_text)
     client = client or make_client(settings)
     try:
         resp = client.beta.messages.parse(**request_kwargs(settings, user_text))

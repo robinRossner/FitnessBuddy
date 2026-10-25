@@ -91,6 +91,38 @@ deploy/make-prod-env.sh && deploy/push.sh ubuntu@HOST --with-env
 
 (`make-prod-env.sh` re-syncs all keys from `backend/.env` and keeps the production token.)
 
+## 8. Claude advisor on your subscription (instead of an API key)
+
+The advisor can run on your Claude Pro/Max subscription instead of a pay-per-token API key: the
+backend image contains the Claude Code CLI (pinned version, SHA-256 checked at build time) and runs
+it headless (`claude -p`, no tools, one turn, empty temp directory) with a long-lived OAuth token.
+
+1. On your Mac, once (interactive browser login, you must do this yourself):
+   ```sh
+   claude setup-token        # prints a token; it is not saved anywhere
+   ```
+2. Put it into `backend/.env` (or `backend/.env.production`), never into git or chat:
+   ```
+   CLAUDE_CODE_OAUTH_TOKEN=<the token>
+   ```
+   `make-prod-env.sh` copies it from `backend/.env`; skip that script if you edit
+   `.env.production` directly.
+3. Deploy the env file and rebuild: `bash deploy/push.sh ubuntu@HOST --with-env`.
+4. Check: `GET /api/v1/coach/settings` reports the key as configured; ask the coach a question.
+
+Notes:
+- `ADVISOR_PROVIDER=auto` (default) uses the token if set, else `ANTHROPIC_API_KEY`, else the
+  consultation waits as `awaiting_key`. Force one with `ADVISOR_PROVIDER=claude_code|api`.
+- The process never receives `ANTHROPIC_API_KEY` (it would outrank the token and bill the API).
+- The token is valid for about one year; when it expires or is revoked, consultations wait as
+  `awaiting_key` with a message to run `claude setup-token` again.
+- Usage counts against your subscription's limits, shared with your own Claude and Claude Code use
+  (a weekly review is one request). Hitting the limit fails the consultation with "Subscription
+  usage limit reached, retry later"; the next daily run tries again.
+- The stored cost of a consultation is only an API-price estimate: you pay nothing extra per token.
+- Upgrading the CLI: bump `CLAUDE_CODE_VERSION` and both checksums in `backend/Dockerfile`
+  (`https://downloads.claude.ai/claude-code-releases/<version>/manifest.json`).
+
 ## Notes
 
 - Container runs as the ssh user's uid (`APP_UID`/`APP_GID` in `deploy/.env`, written by

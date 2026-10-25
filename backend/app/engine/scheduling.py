@@ -32,6 +32,19 @@ HARD_RUNS = ("intervals",)
 SWAPPABLE = ("rest", "easy_run")
 
 
+@dataclass(frozen=True)
+class SlotLock:
+    """A placement decided outside the template (an engine make-up or an approved coach change),
+    stored on the planned session. The planner puts the slot there and never moves it again."""
+
+    day: date
+    kind: str | None = None  # final kind (upper | lower | easy_run | ...); None = template kind
+    distance_km: float | None = None  # run cap set by a `shorten`
+    moved_from: date | None = None
+    reason: str | None = None
+    source: str = "engine"  # engine | advisor
+
+
 @dataclass
 class Slot:
     id: str  # template identity, e.g. "thu_upper"
@@ -39,6 +52,23 @@ class Slot:
     template_day: date
     day: date
     notes: list[str] = field(default_factory=list)
+    moved_from: date | None = None
+    change_reason: str | None = None
+    changed_by: str | None = None
+    distance_cap_km: float | None = None
+
+
+def apply_locks(slots: list[Slot], locks: dict[str, SlotLock]) -> None:
+    """Put locked slots where their lock says (day / kind / distance cap / reason)."""
+    for s in slots:
+        lk = locks.get(s.id)
+        if lk is None:
+            continue
+        s.day = lk.day
+        if lk.kind:
+            s.kind = lk.kind
+        s.distance_cap_km = lk.distance_km
+        s.moved_from, s.change_reason, s.changed_by = lk.moved_from, lk.reason, lk.source
 
 
 @dataclass
@@ -91,16 +121,18 @@ def apply_recovery_rules(
     today: date,
     actual_lower_days: Iterable[date],
     hard_after_heavy_lower_h: float = 24,
+    locked: Iterable[str] = (),
 ) -> tuple[list[Slot], list[ScheduleEvent]]:
     gap = min_gap_days(hard_after_heavy_lower_h)
     events: list[ScheduleEvent] = []
+    locked = set(locked)  # placed by a make-up / coach change: never swapped by this rule
 
     def heavy_days() -> list[date]:
         planned = [s.day for s in slots if s.kind == "lower" and s.day >= today]
         return sorted({*planned, *actual_lower_days})
 
     for slot in sorted((s for s in slots if s.kind in HARD_RUNS), key=lambda s: s.day):
-        if slot.day < today:
+        if slot.day < today or slot.id in locked:
             continue
         culprit = _violates(slot.day, heavy_days(), gap)
         if culprit is None:
@@ -111,6 +143,7 @@ def apply_recovery_rules(
             if s.day > slot.day
             and s.day >= today
             and s.kind in SWAPPABLE
+            and s.id not in locked
             and _violates(s.day, heavy_days(), gap) is None
         ]
         long_days = {s.day for s in slots if s.kind == "long_run"}
@@ -124,9 +157,13 @@ def apply_recovery_rules(
         if candidates:
             other = candidates[0]
             old_day = slot.day
+            other_old = other.day
             slot.day, other.day = other.day, old_day
             slot.notes.append(f"moved from {old_day} to {slot.day}: lower-body day {culprit}")
             other.notes.append(f"moved from {slot.day} to {old_day}")
+            slot.moved_from, slot.change_reason, slot.changed_by = old_day, why, "engine"
+            other.moved_from, other.changed_by = other_old, "engine"
+            other.change_reason = f"swapped with {slot.kind} ({why})"
             events.append(
                 ScheduleEvent("swap", slot.id, old_day, slot.day, why, swapped_with=other.id)
             )

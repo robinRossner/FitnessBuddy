@@ -172,7 +172,10 @@ enum DemoStats {
     }
 
     static func recentRuns() -> [RunSummaryDTO] {
-        (0..<10).map { i in
+        // The sample week's Wednesday easy run, so Today's "This week's running" shows a matched run.
+        let wed = RunSummaryDTO(id: "run-demo-wed", activityType: "running", title: "Easy run", startedAtLocal: "\(AppClock.weekDays(containing: Date())[2])T07:05:00",
+                                startedAtUtc: nil, durationS: 2900, distanceM: 8400, avgHr: 142, maxHr: 158, avgPaceSPerKm: 345, trainingEffectAerobic: 2.8)
+        return [wed] + (0..<10).map { i in
             let isInterval = i % 3 == 1
             return RunSummaryDTO(id: isInterval ? "run-i\(i / 3)" : "run-e\(i)", activityType: "running", title: isInterval ? "Intervals 5×1000" : (i % 3 == 2 ? "Long run" : "Easy run"),
                                  startedAtLocal: "\(day(2 + i * 3))T07:15:00", startedAtUtc: nil, durationS: 2700 + Double(i) * 120, distanceM: 8000 + Double(i % 4) * 1500,

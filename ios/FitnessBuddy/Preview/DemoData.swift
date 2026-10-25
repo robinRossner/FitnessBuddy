@@ -43,6 +43,9 @@ enum DemoData {
             return d
         }
         week.start = days[0]
+        // `-uiTodayOffset N` (0...6) pins "today" to that weekday of the sample week (screenshots).
+        let offset = min(6, max(0, UserDefaults.standard.integer(forKey: "uiTodayOffset")))
+        applyAdaptiveSamples(to: &week, days: days, todayIndex: offset)
         PlanCache.store(week: week, in: ctx)
 
         var today = Samples.decode(PlanTodayDTO.self, "plan_today")
@@ -53,9 +56,26 @@ enum DemoData {
         state.coachPendingCount = 1
         state.coachLatestPendingId = DemoCoach.pendingId
 
-        UserDefaults.standard.set(days[0], forKey: AppClock.overrideKey)
+        UserDefaults.standard.set(days[offset], forKey: AppClock.overrideKey)
         settings?.currentGymId = 3
         try? ctx.save()
+    }
+
+    /// Sample values for the additive plan fields: runs may adapt, the long run was moved, earlier days are done.
+    private static func applyAdaptiveSamples(to week: inout PlanWeekDTO, days: [String], todayIndex: Int) {
+        for d in week.days.indices {
+            for s in week.days[d].sessions.indices {
+                var item = week.days[d].sessions[s]
+                if d < todayIndex, item.kind != "rest" { item.status = "done" }
+                if ["easy_run", "intervals", "long_run"].contains(item.kind) {
+                    item.adaptive = true
+                    item.adaptsOn = ["last_run", "readiness", "weekly_volume"]
+                }
+                if item.kind == "intervals" { item.changeReason = "Trimmed from 6 to 5 reps after a high-HR session." }
+                if item.kind == "long_run" { item.movedFrom = days[5]; item.status = "moved" }
+                week.days[d].sessions[s] = item
+            }
+        }
     }
 
     /// Removes the demo rows and caches (real unsynced records stay), ends demo mode.

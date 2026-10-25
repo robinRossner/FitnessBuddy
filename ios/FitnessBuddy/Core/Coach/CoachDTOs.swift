@@ -43,6 +43,7 @@ enum CoachStatus: String, TolerantEnum {
 enum CoachTriggerType: String, TolerantEnum {
     case liftStall = "lift_stall", ruleConflict = "rule_conflict", runningStagnation = "running_stagnation"
     case dataAnomaly = "data_anomaly", weeklyReview = "weekly_review", ask, unknown
+    case missedSession = "missed_session"
     static var fallback: CoachTriggerType { .unknown }
 
     var symbol: String {
@@ -53,6 +54,7 @@ enum CoachTriggerType: String, TolerantEnum {
         case .dataAnomaly: "waveform.path.ecg"
         case .weeklyReview: "calendar"
         case .ask: "bubble.left.and.text.bubble.right"
+        case .missedSession: "calendar.badge.exclamationmark"
         case .unknown: "sparkles"
         }
     }
@@ -183,7 +185,13 @@ struct CoachTriggerDTO: Decodable, Sendable, Equatable {
     }
 }
 
-struct CoachChangeDTO: Decodable, Sendable, Equatable, Identifiable {
+/// Something the user can switch on or off when approving (a parameter change or a schedule change).
+protocol CoachReviewable: Identifiable where ID == String {
+    var valid: Bool { get }
+    var status: CoachChangeStatus { get }
+}
+
+struct CoachChangeDTO: Decodable, Sendable, Equatable, Identifiable, CoachReviewable {
     var id: String
     var param: String
     var label: String
@@ -222,6 +230,81 @@ struct CoachChangeDTO: Decodable, Sendable, Equatable, Identifiable {
     var changeText: String { CoachValueFormat.change(from: from, to: to, path: param) }
 }
 
+enum ScheduleAction: String, TolerantEnum {
+    case move, skip, swap, shorten, replace, unknown
+    static var fallback: ScheduleAction { .unknown }
+
+    var symbol: String {
+        switch self {
+        case .move: "arrow.right.circle"
+        case .skip: "forward.end.circle"
+        case .swap: "arrow.left.arrow.right.circle"
+        case .shorten: "arrow.down.right.and.arrow.up.left.circle"
+        case .replace: "arrow.triangle.2.circlepath.circle"
+        case .unknown: "calendar.circle"
+        }
+    }
+}
+
+/// One entry of `schedule_changes` on a proposal: move / skip / swap / shorten / replace a planned session.
+/// Approved by id together with the parameter changes (`change_ids`).
+struct CoachScheduleChangeDTO: Decodable, Sendable, Equatable, Identifiable, CoachReviewable {
+    var id: String
+    var date: String?
+    var action: ScheduleAction
+    var target: String?
+    var toDate: String?
+    var newKind: String?
+    var distanceKm: Double?
+    var reason: String
+    var risk: CoachRisk
+    var valid: Bool
+    var validationError: String?
+    var status: CoachChangeStatus
+    var label: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, action, target, reason, risk, valid, status, label
+        case toDate = "to_date", newKind = "new_kind", distanceKm = "distance_km", validationError = "validation_error"
+    }
+
+    init(id: String, date: String? = nil, action: ScheduleAction = .move, target: String? = nil, toDate: String? = nil,
+         newKind: String? = nil, distanceKm: Double? = nil, reason: String = "", risk: CoachRisk = .low, valid: Bool = true,
+         validationError: String? = nil, status: CoachChangeStatus = .proposed, label: String? = nil) {
+        self.id = id; self.date = date; self.action = action; self.target = target; self.toDate = toDate; self.newKind = newKind
+        self.distanceKm = distanceKm; self.reason = reason; self.risk = risk; self.valid = valid
+        self.validationError = validationError; self.status = status
+        self.label = label ?? Self.fallbackLabel(action: action, target: target, date: date, toDate: toDate)
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.flexString(.id) ?? ""
+        date = try? c.decodeIfPresent(String.self, forKey: .date)
+        action = try c.decodeIfPresent(ScheduleAction.self, forKey: .action) ?? .unknown
+        target = c.flexString(.target)
+        toDate = try? c.decodeIfPresent(String.self, forKey: .toDate)
+        newKind = try? c.decodeIfPresent(String.self, forKey: .newKind)
+        distanceKm = try? c.decodeIfPresent(Double.self, forKey: .distanceKm)
+        reason = (try? c.decodeIfPresent(String.self, forKey: .reason)) ?? ""
+        risk = (try? c.decodeIfPresent(CoachRisk.self, forKey: .risk)) ?? .unknown
+        valid = (try? c.decodeIfPresent(Bool.self, forKey: .valid)) ?? true
+        validationError = try? c.decodeIfPresent(String.self, forKey: .validationError)
+        status = (try? c.decodeIfPresent(CoachChangeStatus.self, forKey: .status)) ?? (valid ? .proposed : .invalid)
+        let given = (try? c.decodeIfPresent(String.self, forKey: .label)) ?? nil
+        label = given.flatMap { $0.isEmpty ? nil : $0 } ?? Self.fallbackLabel(action: action, target: target, date: date, toDate: toDate)
+    }
+
+    /// "Move intervals Fri → Sat" when the server sent no label.
+    static func fallbackLabel(action: ScheduleAction, target: String?, date: String?, toDate: String?) -> String {
+        let what = (target ?? "session").replacingOccurrences(of: "_", with: " ")
+        let verb = action == .unknown ? "Change" : action.rawValue.capitalized
+        guard let date else { return "\(verb) \(what)" }
+        if let toDate { return "\(verb) \(what) \(DayLabel.weekday(date)) → \(DayLabel.weekday(toDate))" }
+        return "\(verb) \(what) \(DayLabel.weekday(date))"
+    }
+}
+
 struct CoachSessionOverrideDTO: Decodable, Sendable, Equatable, Identifiable {
     var date: String?
     var session: String?
@@ -254,6 +337,8 @@ struct CoachProposalDTO: Decodable, Sendable, Equatable, Identifiable {
     var confidence: CoachConfidence?
     var changes: [CoachChangeDTO]
     var sessionOverrides: [CoachSessionOverrideDTO]
+    /// Moves / skips of planned sessions (additive; empty on older backends).
+    var scheduleChanges: [CoachScheduleChangeDTO]
     var appliedConfigVersion: String?
     var error: String?
     var costUsd: Double?
@@ -265,7 +350,8 @@ struct CoachProposalDTO: Decodable, Sendable, Equatable, Identifiable {
     var isPending: Bool {
         switch status {
         case .pending: true
-        case .partiallyApplied: changes.contains { $0.status == .proposed && $0.valid }
+        case .partiallyApplied:
+            changes.contains { $0.status == .proposed && $0.valid } || scheduleChanges.contains { $0.status == .proposed && $0.valid }
         default: false
         }
     }
@@ -276,13 +362,15 @@ struct CoachProposalDTO: Decodable, Sendable, Equatable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, status, trigger, question, diagnosis, confidence, changes, error
         case createdAt = "created_at", notesForUser = "notes_for_user", sessionOverrides = "session_overrides"
+        case scheduleChanges = "schedule_changes"
         case appliedConfigVersion = "applied_config_version", costUsd = "cost_usd", inputSummary = "input_summary"
     }
 
     init(id: String, createdAt: Date? = nil, status: CoachStatus, trigger: CoachTriggerDTO, question: String? = nil,
          diagnosis: String? = nil, notesForUser: String? = nil, confidence: CoachConfidence? = nil, changes: [CoachChangeDTO] = [],
-         sessionOverrides: [CoachSessionOverrideDTO] = [], appliedConfigVersion: String? = nil, error: String? = nil,
-         costUsd: Double? = nil, inputSummary: JSONValue? = nil) {
+         sessionOverrides: [CoachSessionOverrideDTO] = [], scheduleChanges: [CoachScheduleChangeDTO] = [],
+         appliedConfigVersion: String? = nil, error: String? = nil, costUsd: Double? = nil, inputSummary: JSONValue? = nil) {
+        self.scheduleChanges = scheduleChanges
         self.id = id; self.createdAt = createdAt; self.status = status; self.trigger = trigger; self.question = question
         self.diagnosis = diagnosis; self.notesForUser = notesForUser; self.confidence = confidence; self.changes = changes
         self.sessionOverrides = sessionOverrides; self.appliedConfigVersion = appliedConfigVersion; self.error = error
@@ -305,6 +393,7 @@ struct CoachProposalDTO: Decodable, Sendable, Equatable, Identifiable {
         confidence = try? c.decodeIfPresent(CoachConfidence.self, forKey: .confidence)
         changes = (try? c.decodeIfPresent([CoachChangeDTO].self, forKey: .changes)) ?? []
         sessionOverrides = (try? c.decodeIfPresent([CoachSessionOverrideDTO].self, forKey: .sessionOverrides)) ?? []
+        scheduleChanges = (try? c.decodeIfPresent([CoachScheduleChangeDTO].self, forKey: .scheduleChanges)) ?? []
         appliedConfigVersion = c.flexString(.appliedConfigVersion)
         error = try? c.decodeIfPresent(String.self, forKey: .error)
         costUsd = try? c.decodeIfPresent(Double.self, forKey: .costUsd)

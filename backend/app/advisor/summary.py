@@ -3,7 +3,7 @@
 Built from the stats/engine functions the dashboards already use (app/analytics/*,
 app/engine/*), never from raw tables where one of those exists. Sections (see the glossary in
 prompt.py): why, today, week_start, config, program, lifts, readiness_14d, baselines, running,
-recent_sessions, upcoming_plan, rules, past_advisor_changes, swap_candidates.
+recent_sessions, upcoming_plan, schedule, rules, past_advisor_changes, swap_candidates.
 
 `fit_budget` trims the least valuable detail first when the document is over budget.
 """
@@ -32,6 +32,8 @@ from app.db.models import (
 )
 from app.engine import config_service as cs
 from app.engine import data as D
+from app.engine import schedule_edit as SE
+from app.engine import schedule_rules as SR
 from app.engine import service
 from app.engine.config import EngineConfig
 from app.engine.program import Program, apply_overrides
@@ -297,6 +299,51 @@ def upcoming_plan(db: Session, today: date) -> list[dict]:
     return out
 
 
+def schedule_section(db: Session, cfg: EngineConfig, today: date) -> dict[str, Any]:
+    """The current and next week as planned sessions (past ones with their outcome), plus the
+    rules a `schedule_changes` entry must obey, so Claude can propose valid moves."""
+    sc = cfg.schedule_cfg
+    ws = today - timedelta(days=today.weekday())
+    weeks = []
+    missed = []
+    for i in range(sc.horizon_weeks):
+        w = ws + timedelta(weeks=i)
+        sessions = []
+        for r in SE.load_rows(db, w):
+            if not (w <= r.day < w + timedelta(days=7)):
+                continue
+            km = SE.prescribed_km(r)
+            sessions.append(
+                [
+                    r.day.isoformat(),
+                    r.kind,
+                    r.status,
+                    _r(km, 1),
+                    r.moved_from.isoformat() if r.moved_from else None,
+                ]
+            )
+            if r.status == "skipped" and r.day < today and i == 0:
+                missed.append([r.day.isoformat(), r.kind])
+        weeks.append({"week_start": w.isoformat(), "sessions": sessions})
+    rules = SR.Rules.from_config(cfg)
+    return {
+        "columns": ["date", "kind", "status", "km", "moved_from"],
+        "weeks": weeks,
+        "missed_this_week": missed,
+        "run_km_left_under_cap": SE.volume_room(db, cfg, today, ws),
+        "rules": {
+            "hard_kinds": list(sc.hard_kinds),
+            "max_hard_per_day": sc.max_hard_per_day,
+            "no_consecutive_hard_days": sc.no_consecutive_hard_days,
+            "max_sessions_per_day": sc.max_sessions_per_day,
+            "min_days_lower_to_intervals": rules.min_gap,
+            "shorten_max_pct": sc.shorten_max_pct,
+            "kind_load": sc.kind_load,
+            "makeup_priority": list(sc.makeup_priority),
+        },
+    }
+
+
 # --------------------------------------------------------------------------- rules + history
 
 
@@ -483,6 +530,7 @@ def build_input(
         "running": run_doc,
         "recent_sessions": recent_sessions(db, today, run_types),
         "upcoming_plan": upcoming_plan(db, today),
+        "schedule": schedule_section(db, cfg, today),
         "rules": rules_section(db, today, variant_names),
         "past_advisor_changes": past_changes_section(db),
         "swap_candidates": swap_candidates(db, sorted(set(focus_slugs)), program, row.content, s),

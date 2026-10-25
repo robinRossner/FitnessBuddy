@@ -73,8 +73,17 @@ class Settings(BaseSettings):
     sync_nightly_time: str = "03:30"  # full incremental sync
     sync_day_times: str = "07:30,11:30,15:30,19:30"  # lighter runs (activities + today's health)
 
-    # Claude advisor (app/advisor). No key => consultations wait with status `awaiting_key`.
+    # Claude advisor (app/advisor). No credential => consultations wait with status `awaiting_key`.
+    # Two providers: `api` (Messages API, paid per token, ANTHROPIC_API_KEY) and `claude_code`
+    # (headless `claude -p` billed to a Claude Pro/Max subscription through the long-lived
+    # CLAUDE_CODE_OAUTH_TOKEN of `claude setup-token`). auto = claude_code if that token is set,
+    # else api if a key is set, else awaiting_key.
+    advisor_provider: Literal["api", "claude_code", "auto"] = "auto"
     anthropic_api_key: SecretStr | None = None
+    claude_code_oauth_token: SecretStr | None = None
+    advisor_cli_path: str = "claude"  # the Claude Code binary (looked up on PATH)
+    advisor_cli_timeout_s: float = 300.0
+    advisor_cli_effort: str = "high"  # `claude --effort`: low | medium | high | xhigh | max
     advisor_model: str = "claude-opus-5-5"
     advisor_dry_run: bool = False  # build + store the input, never call Claude
     advisor_max_tokens: int = 16000
@@ -85,10 +94,44 @@ class Settings(BaseSettings):
     advisor_outcome_time: str = "04:15"  # daily: outcomes of changes applied 21-28 days ago
 
     @property
-    def advisor_key(self) -> str | None:
-        """The API key if one is configured (blank counts as unset)."""
+    def advisor_api_key(self) -> str | None:
+        """The Messages API key if one is configured (blank counts as unset)."""
         key = self.anthropic_api_key.get_secret_value().strip() if self.anthropic_api_key else ""
         return key or None
+
+    @property
+    def advisor_oauth_token(self) -> str | None:
+        """The Claude Code subscription token if one is configured (blank counts as unset)."""
+        tok = (
+            self.claude_code_oauth_token.get_secret_value().strip()
+            if self.claude_code_oauth_token
+            else ""
+        )
+        return tok or None
+
+    @property
+    def advisor_provider_resolved(self) -> Literal["api", "claude_code", "none"]:
+        """Which provider will run: the requested one, or (auto) the first with a credential."""
+        if self.advisor_provider == "api":
+            return "api" if self.advisor_api_key else "none"
+        if self.advisor_provider == "claude_code":
+            return "claude_code" if self.advisor_oauth_token else "none"
+        if self.advisor_oauth_token:
+            return "claude_code"
+        return "api" if self.advisor_api_key else "none"
+
+    @property
+    def advisor_key(self) -> str | None:
+        """The credential of the resolved provider, or None (=> `awaiting_key`).
+
+        Callers only test it against None ("is the advisor usable?"); it is a secret.
+        """
+        provider = self.advisor_provider_resolved
+        if provider == "claude_code":
+            return self.advisor_oauth_token
+        if provider == "api":
+            return self.advisor_api_key
+        return None
 
 
 @lru_cache

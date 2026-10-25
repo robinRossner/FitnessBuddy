@@ -176,6 +176,12 @@ struct PrescriptionDTO: Codable, Sendable, Equatable {
     }
 }
 
+/// `status` of a plan item. Unknown values fall back to `.unknown`, so a new backend state never breaks decoding.
+enum PlanStatus: String, TolerantEnum {
+    case proposed, approved, done, skipped, modified, moved, unknown
+    static var fallback: PlanStatus { .unknown }
+}
+
 struct PlanItemDTO: Codable, Sendable, Equatable {
     var id: String?
     var date: String
@@ -190,14 +196,26 @@ struct PlanItemDTO: Codable, Sendable, Equatable {
     var session: PrescriptionDTO?
     var updatedAt: Date?
     var deletedAt: Date?
+    /// Additive (all optional): the session may still change with the last run, readiness or weekly volume.
+    var adaptive: Bool?
+    /// What it depends on ("last_run", "readiness", "weekly_volume", ...).
+    var adaptsOn: [String]?
+    /// "YYYY-MM-DD" the session was originally planned for, when it was moved.
+    var movedFrom: String?
+    var changeReason: String?
 
     init(id: String?, date: String, kind: String, status: String? = "proposed", title: String?,
          readiness: ReadinessDTO? = nil, adjustments: [String] = [], notes: [String] = [],
-         session: PrescriptionDTO?, updatedAt: Date? = nil) {
+         session: PrescriptionDTO?, updatedAt: Date? = nil, adaptive: Bool? = nil, adaptsOn: [String]? = nil,
+         movedFrom: String? = nil, changeReason: String? = nil) {
         self.id = id; self.date = date; self.kind = kind; self.status = status; self.title = title
         self.readiness = readiness; self.adjustments = adjustments; self.notes = notes
         self.session = session; self.updatedAt = updatedAt
+        self.adaptive = adaptive; self.adaptsOn = adaptsOn; self.movedFrom = movedFrom; self.changeReason = changeReason
     }
+
+    /// Typed `status` (unknown strings and nil map to `.unknown`).
+    var planStatus: PlanStatus { status.flatMap(PlanStatus.init(rawValue:)) ?? .unknown }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -214,6 +232,11 @@ struct PlanItemDTO: Codable, Sendable, Equatable {
         session = try c.decodeIfPresent(PrescriptionDTO.self, forKey: .session)
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
         deletedAt = try c.decodeIfPresent(Date.self, forKey: .deletedAt)
+        // Additive fields: a wrong shape must not hide the session.
+        adaptive = (try? c.decodeIfPresent(Bool.self, forKey: .adaptive)) ?? nil
+        adaptsOn = (try? c.decodeIfPresent([String].self, forKey: .adaptsOn)) ?? nil
+        movedFrom = (try? c.decodeIfPresent(String.self, forKey: .movedFrom)) ?? nil
+        changeReason = (try? c.decodeIfPresent(String.self, forKey: .changeReason)) ?? nil
     }
 
     /// Stable local key; preview items (no server id yet) get a synthetic one.

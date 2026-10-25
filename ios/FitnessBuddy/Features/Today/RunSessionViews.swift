@@ -4,13 +4,15 @@ import SwiftUI
 struct HRZoneChipView: View {
     let hr: HRRangeDTO?
     var lthr: Double? = nil
+    /// Smaller chip for list rows.
+    var compact = false
 
     var body: some View {
         if let label = HRZoneChip.label(for: hr, lthr: lthr) {
             let color = HRZoneChip.highestZone(in: label).map(ChartPalette.zone) ?? Color.secondary
             Text(label)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .padding(.horizontal, 10).padding(.vertical, 4)
+                .font((compact ? Font.caption : Font.subheadline).weight(.semibold).monospacedDigit())
+                .padding(.horizontal, compact ? 8 : 10).padding(.vertical, compact ? 3 : 4)
                 .background(color.opacity(0.22), in: Capsule())
                 .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1))
                 .fixedSize(horizontal: false, vertical: true)
@@ -133,6 +135,7 @@ struct RunDetailSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     summary
                     if let st = session?.structure, type == "intervals" { structure(st) }
+                    whyItMayChange
                     notes
                     Button {} label: {
                         Label("Send to watch (coming soon)", systemImage: "applewatch")
@@ -156,6 +159,10 @@ struct RunDetailSheet: View {
         Card(tint: Domain.running.color) {
             Text(AppClock.date(fromDay: item.date)?.formatted(.dateTime.weekday(.wide).day().month(.wide)) ?? item.date)
                 .font(.subheadline).foregroundStyle(.secondary)
+            if let from = item.movedFrom {
+                Label("Moved from \(DayLabel.weekday(from))", systemImage: "arrow.uturn.right")
+                    .font(.footnote.weight(.medium)).foregroundStyle(.secondary)
+            }
             VStack(alignment: .leading, spacing: 14) {
                 if let km = session?.distanceKm ?? session?.totalKm {
                     row("Distance", "\(Fmt.km(km)) km")
@@ -179,6 +186,37 @@ struct RunDetailSheet: View {
                     stepRow("Recovery", "\(rec.distanceM.map { Fmt.number($0, maxFraction: 0) + " m " } ?? "")\(rec.type ?? "jog")", hr: nil)
                 }
                 if let cd = st.cooldown { stepRow("Cool-down", cd.distanceKm.map { "\(Fmt.km($0)) km easy" } ?? "easy", hr: cd.hr) }
+            }
+        }
+    }
+
+    /// Only for sessions that can still change: what they depend on and why they last changed.
+    @ViewBuilder private var whyItMayChange: some View {
+        let keys = item.adaptsOn ?? []
+        let reason = item.changeReason?.trimmingCharacters(in: .whitespaces) ?? ""
+        let open = item.planStatus != .done && item.planStatus != .skipped
+        if open, item.adaptive == true || !keys.isEmpty || !reason.isEmpty {
+            Card {
+                SectionLabel(title: "Why it may change", symbol: "arrow.triangle.2.circlepath", color: Domain.running.color)
+                if !keys.isEmpty {
+                    Text("This session can still change before you run it, based on:")
+                        .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(keys, id: \.self) { key in
+                            Label(PlanFormat.adaptsOnLabel(key), systemImage: "circle.fill")
+                                .labelStyle(BulletLabelStyle())
+                                .font(.subheadline)
+                        }
+                    }
+                } else if reason.isEmpty {
+                    Text("This session can still change based on your last run, readiness and weekly volume.")
+                        .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                if !reason.isEmpty {
+                    MetricBlock(title: "Last change") {
+                        Text(reason).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
     }
@@ -226,5 +264,15 @@ struct RunDetailSheet: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Small dot instead of the SF Symbol glyph, for bullet lists.
+private struct BulletLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle().fill(Domain.running.color).frame(width: 5, height: 5).alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+            configuration.title
+        }
     }
 }

@@ -16,6 +16,7 @@ from app.engine import persist as P
 from app.engine import running as R
 from app.engine.config import EngineConfig
 from app.engine.hr import zones_from_config
+from app.engine.makeup import MakeupSummary, handle_missed
 from app.engine.planner import WeekPlan, generate_week
 from app.engine.program import Program, derive_program, load_program, render_program
 from app.engine.readiness import Readiness, score_day
@@ -54,6 +55,7 @@ class WeekResult:
 class RunSummary:
     config_version: str
     reconciled: dict[str, int] = field(default_factory=dict)
+    makeups: MakeupSummary = field(default_factory=MakeupSummary)
     weeks: list[WeekResult] = field(default_factory=list)
 
 
@@ -94,7 +96,12 @@ def run_engine(
     today = today or user_today(s)
     cs.ensure_seeded(db, s.engine_config_path)
     summary = RunSummary(config_version=cs.get_active(db).version)
-    summary.reconciled = P.reconcile(db, today)
+    summary.reconciled, missed = P.reconcile_detail(db, today)
+    if missed:
+        cfg, row = cs.load_active(db)
+        summary.makeups = handle_missed(
+            db, today=today, missed=missed, cfg=cfg, config_version_id=row.id
+        )
     prog = program or get_program(s)
     for i in range(weeks):
         ws = monday(today) + timedelta(weeks=i)
@@ -109,13 +116,16 @@ def apply_week(
     week_start: date,
     settings: Settings | None = None,
     program: Program | None = None,
+    only_days: set[date] | None = None,
 ) -> WeekResult:
     s = settings or get_settings()
     plan, _cfg, cv_id = plan_week(
         db, today=today, week_start=week_start, settings=s, program=program
     )
     gym = D.current_gym(db, s.gyms_path)
-    res = P.persist_week(db, plan, config_version_id=cv_id, gym_id=gym.id if gym else None)
+    res = P.persist_week(
+        db, plan, config_version_id=cv_id, gym_id=gym.id if gym else None, only_days=only_days
+    )
     return WeekResult(plan, res)
 
 
@@ -205,7 +215,14 @@ def plan_for_api(
                 for dp in plan.days:
                     if dp.day in missing:
                         item = dp.as_dict()
-                        item.update({"id": None, "status": "preview", "session": dp.prescription})
+                        item.update(
+                            {
+                                "id": None,
+                                "status": "preview",
+                                "session": dp.prescription,
+                                **P.adaptive_fields(dp.kind, "preview", dp.prescription),
+                            }
+                        )
                         per_day[dp.day].append(item)
         except FileNotFoundError:
             pass

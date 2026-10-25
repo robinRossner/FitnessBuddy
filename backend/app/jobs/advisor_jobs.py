@@ -47,6 +47,7 @@ def trigger_job(settings: Settings | None = None) -> None:
         with dbsession.get_session_factory()() as db:
             service.recover_stale(db, s)
             service.retry_awaiting_key(db, s)
+            service.retry_usage_limited(db, s)
             if service.user_today(s).weekday() == 6:
                 return
             c = service.run_trigger_batch(db, s)

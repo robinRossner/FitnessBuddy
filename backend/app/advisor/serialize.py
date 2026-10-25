@@ -7,13 +7,19 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import AdvisorChange, AdvisorConsultation, ConfigVersion, Outcome
+from app.db.models import (
+    AdvisorChange,
+    AdvisorConsultation,
+    AdvisorScheduleChange,
+    ConfigVersion,
+    Outcome,
+)
 from app.db.types import iso_z
 
 
 def change_json(x: AdvisorChange) -> dict[str, Any]:
     return {
-        "id": str(x.id),
+        "id": f"p{x.id}",
         "param": x.param,
         "label": x.label,
         "from": x.old_value,
@@ -23,6 +29,24 @@ def change_json(x: AdvisorChange) -> dict[str, Any]:
         "valid": bool(x.valid),
         "validation_error": x.validation_error,
         "status": x.status,
+    }
+
+
+def schedule_change_json(x: AdvisorScheduleChange) -> dict[str, Any]:
+    return {
+        "id": f"s{x.id}",
+        "date": x.day.isoformat() if x.day else None,
+        "action": x.action,
+        "target": x.target,
+        "to_date": x.to_day.isoformat() if x.to_day else None,
+        "new_kind": x.new_kind,
+        "distance_km": x.distance_km,
+        "reason": x.reason,
+        "risk": x.risk,
+        "valid": bool(x.valid),
+        "validation_error": x.validation_error,
+        "status": x.status,
+        "label": x.label,
     }
 
 
@@ -48,6 +72,7 @@ def proposal_json(db: Session, c: AdvisorConsultation, *, detail: bool = False) 
         "notes_for_user": resp.get("notes_for_user"),
         "confidence": resp.get("confidence"),
         "changes": [change_json(x) for x in c.changes],
+        "schedule_changes": [schedule_change_json(x) for x in c.schedule_changes],
         "session_overrides": resp.get("session_overrides") or [],
         "applied_config_version": version.version if version else None,
         "error": c.error,

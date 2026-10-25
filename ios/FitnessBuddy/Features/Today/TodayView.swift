@@ -31,6 +31,16 @@ struct TodayView: View {
 
     private var runDays: Set<String> { Set((env.stats.resource(StatsEndpoints.recentRuns()).value ?? []).compactMap(\.day)) }
 
+    private var weekRuns: WeekRunsModel {
+        WeekRunsModel.build(
+            days: AppClock.weekDays(containing: AppClock.now),
+            items: planned.compactMap(\.item),
+            runs: env.stats.resource(StatsEndpoints.recentRuns()).value ?? [],
+            finished: sessions.filter { $0.endedAt != nil && $0.deletedAt == nil }
+                .map { FinishedDayRef(plannedId: $0.plannedSessionId, day: AppClock.dayString($0.startedAt), kind: $0.kind) },
+            today: today)
+    }
+
     private var hasLiftingToday: Bool { todayItems.contains { Domain.forKind($0.kind) == .lifting } }
 
     var body: some View {
@@ -51,7 +61,10 @@ struct TodayView: View {
                             }
                         }
                     }
-                    if !hasLiftingToday { QuickStartCard(hasActive: activeSession != nil) }
+                    if TodayLogic.showsResumeCard(hasActiveWorkout: activeSession != nil, hasLiftingToday: hasLiftingToday) {
+                        ResumeWorkoutCard()
+                    }
+                    WeekRunsCard(model: weekRuns, today: today, openFirstAdaptive: openSheet == "weekrun")
                     WeekStrip(planned: planned, sessions: sessions, runDays: runDays, today: today)
                 }
                 .padding(.horizontal, 16)
@@ -159,41 +172,39 @@ struct SessionCard: View {
         }
     }
 
+    /// Starting a workout lives in the Workout tab; here only "Done" and, for a running workout, "Resume".
     @ViewBuilder private var startButton: some View {
-        if let completed {
-            Label("Done · \(Fmt.longDuration((completed.endedAt ?? .now).timeIntervalSince(completed.startedAt)))",
-                  systemImage: "checkmark.circle.fill")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(.green)
-        } else if activeSession != nil {
+        switch TodayLogic.liftCardAction(completed: completed != nil, hasActiveWorkout: activeSession != nil) {
+        case .done:
+            if let completed {
+                Label("Done · \(Fmt.longDuration((completed.endedAt ?? .now).timeIntervalSince(completed.startedAt)))",
+                      systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.green)
+            }
+        case .resume:
             Button { env.selectedTab = .workout } label: {
                 Label("Resume workout", systemImage: "play.fill").frame(maxWidth: .infinity, minHeight: 34)
             }
             .buttonStyle(.borderedProminent).tint(domain.color)
-        } else {
-            Button { env.startWorkout(from: row) } label: {
-                Label("Start workout", systemImage: "play.fill").frame(maxWidth: .infinity, minHeight: 34)
-            }
-            .buttonStyle(.borderedProminent).tint(domain.color)
-            .disabled((item.session?.exercises ?? []).allSatisfy { $0.variantId == nil })
+        case .none:
+            EmptyView()
         }
     }
 }
 
-/// Shown on days without a planned lifting session: opens the chooser (next planned sessions / empty).
-struct QuickStartCard: View {
+/// Shown on days without a planned lifting session while a workout is running. (Starting one is done in the Workout tab.)
+struct ResumeWorkoutCard: View {
     @Environment(AppEnvironment.self) private var env
-    let hasActive: Bool
 
     var body: some View {
-        Button { env.beginWorkout() } label: {
+        Button { env.selectedTab = .workout } label: {
             Card {
                 HStack(spacing: 12) {
-                    Image(systemName: hasActive ? "play.fill" : "dumbbell.fill")
+                    Image(systemName: "play.fill")
                         .font(.title3).foregroundStyle(Domain.lifting.color).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(hasActive ? "Resume workout" : "Start workout").font(.headline)
-                        Text(hasActive ? "Your workout is still running." : "Pick the next planned session or go empty.")
-                            .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text("Resume workout").font(.headline)
+                        Text("Your workout is still running.").font(.subheadline).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)

@@ -25,10 +25,15 @@ ENDPOINTS = [
 
 PROPOSAL_KEYS = {
     "id", "created_at", "status", "trigger", "question", "diagnosis", "notes_for_user",
-    "confidence", "changes", "session_overrides", "applied_config_version", "error", "cost_usd",
+    "confidence", "changes", "schedule_changes", "session_overrides", "applied_config_version",
+    "error", "cost_usd",
 }  # fmt: skip
 CHANGE_KEYS = {
     "id", "param", "label", "from", "to", "reason", "risk", "valid", "validation_error", "status",
+}  # fmt: skip
+SCHEDULE_CHANGE_KEYS = {
+    "id", "date", "action", "target", "to_date", "new_kind", "distance_km", "reason", "risk",
+    "valid", "validation_error", "status", "label",
 }  # fmt: skip
 
 
@@ -268,7 +273,13 @@ def test_settings_get_and_put(client):
         "dry_run": False,
         "calls_this_week": 0,
         "max_calls_per_week": 4,
+        "provider": "api",
+        "requested_provider": "auto",
+        "credential_configured": True,
+        "billing": "api",
+        "model": s["model"],
     }
+    assert s["model"].startswith("claude")
     r = client.put("/api/v1/coach/settings", json={"approval_mode": "auto-low-risk"})
     assert r.status_code == 200 and r.json()["approval_mode"] == "auto-low-risk"
     hist = client.get("/api/v1/coach/history").json()["versions"][0]

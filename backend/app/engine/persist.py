@@ -60,10 +60,19 @@ class PersistResult:
 
 
 def persist_week(
-    db: Session, plan: WeekPlan, *, config_version_id: int | None, gym_id: int | None
+    db: Session,
+    plan: WeekPlan,
+    *,
+    config_version_id: int | None,
+    gym_id: int | None,
+    only_days: set[date] | None = None,
 ) -> PersistResult:
+    """Write the plan. `only_days` limits the sessions written to those dates (a targeted re-run
+    after a schedule change); decisions and triggers are always written."""
     res = PersistResult()
     for d in plan.days:
+        if only_days is not None and d.day not in only_days:
+            continue
         pid = planned_id(plan.week_start, d.slot_id)
         res.ids[d.slot_id] = pid
         row = db.get(PlannedSession, pid)
@@ -78,6 +87,9 @@ def persist_week(
                     gym_id=gym_id if d.kind in ("upper", "lower") else None,
                     config_version_id=config_version_id,
                     prescription=presc,
+                    moved_from=d.moved_from,
+                    change_reason=d.change_reason,
+                    changed_by=d.changed_by,
                 )
             )
             res.created += 1
@@ -85,11 +97,18 @@ def persist_week(
         if row.deleted_at is not None or row.status in ("done", "skipped", "modified"):
             res.skipped_closed += 1
             continue
-        changed = row.day != d.day or row.kind != d.kind or row.prescription != presc
+        marks = (d.moved_from, d.change_reason, d.changed_by)
+        changed = (
+            row.day != d.day
+            or row.kind != d.kind
+            or row.prescription != presc
+            or (row.moved_from, row.change_reason, row.changed_by) != marks
+        )
         if not changed:
             res.unchanged += 1
             continue
         row.day, row.kind, row.prescription = d.day, d.kind, presc
+        row.moved_from, row.change_reason, row.changed_by = marks
         row.config_version_id = config_version_id
         row.gym_id = gym_id if d.kind in ("upper", "lower") else None
         if row.status == "approved":
@@ -143,12 +162,22 @@ def write_readiness_colors(db: Session, colors: dict[date, str]) -> None:
 
 
 def reconcile(db: Session, today: date) -> dict[str, int]:
+    return reconcile_detail(db, today)[0]
+
+
+def reconcile_detail(db: Session, today: date) -> tuple[dict[str, int], list[PlannedSession]]:
     """Close earlier proposals: done (matching activity found, linked) or skipped (day passed).
 
     Lifting: a session of a matching kind on that date; runs: a running activity on that date;
     rest days are simply done once past. Today's unmatched sessions stay open.
+
+    Returns the counts and the sessions that were marked skipped just now (the missed ones the
+    make-up policy, `makeup.py`, has to decide about). A session that was skipped earlier and now
+    matches an activity (late Strong export) is healed, and a make-up made for it is cancelled.
     """
     counts = {"done": 0, "skipped": 0}
+    newly_skipped: list[PlannedSession] = []
+    healed: list[str] = []
     rows = db.scalars(
         select(PlannedSession).where(
             PlannedSession.deleted_at.is_(None),
@@ -162,6 +191,7 @@ def reconcile(db: Session, today: date) -> dict[str, int]:
         start = datetime.combine(p.day, datetime.min.time())
         end = start + timedelta(days=1)
         kind = p.kind
+        was_skipped = p.status == "skipped"
         if kind in LIFT_MATCH:
             hit = db.scalars(
                 select(TrainingSession)
@@ -178,6 +208,8 @@ def reconcile(db: Session, today: date) -> dict[str, int]:
                     s.planned_session_id = p.id
                 p.status = "done"
                 counts["done"] += 1
+                if was_skipped:
+                    healed.append(p.id)
         elif kind in ("easy_run", "intervals", "long_run"):
             runs = db.scalars(
                 select(Run).where(
@@ -192,6 +224,8 @@ def reconcile(db: Session, today: date) -> dict[str, int]:
                     r.planned_session_id = p.id
                 p.status = "done"
                 counts["done"] += 1
+                if was_skipped:
+                    healed.append(p.id)
         elif kind == "rest" and p.day < today:
             p.status = "done"
             counts["done"] += 1
@@ -199,10 +233,75 @@ def reconcile(db: Session, today: date) -> dict[str, int]:
         if p.status in ("proposed", "approved") and p.day < today:
             p.status = "skipped"
             counts["skipped"] += 1
+            newly_skipped.append(p)
         elif p.status == "skipped" and p.day < today:
             pass  # still unmatched: stays skipped
     db.flush()
-    return counts
+    if healed:
+        cancel_makeups(db, healed, today)
+    return counts, newly_skipped
+
+
+def cancel_makeups(db: Session, healed_ids: list[str], today: date) -> int:
+    """The missed session turned out to have happened: undo the make-up placed for it."""
+    from app.engine.schedule_edit import clear_lock
+
+    n = 0
+    rows = db.scalars(
+        select(PlannedSession).where(
+            PlannedSession.deleted_at.is_(None),
+            PlannedSession.status.in_(["proposed", "approved"]),
+            PlannedSession.day >= today,
+            PlannedSession.schedule_lock.is_not(None),
+        )
+    )
+    for r in rows:
+        if (r.schedule_lock or {}).get("makeup_for") in healed_ids:
+            log_decision(
+                db,
+                kind="scheduling",
+                rule="makeup:cancelled",
+                inputs={"healed_session": r.schedule_lock["makeup_for"]},
+                output={"action": "cancelled", "slot": r.id, "day": r.day.isoformat()},
+                rationale=(
+                    f"The missed {r.kind} was done after all (late import): the make-up on "
+                    f"{r.day:%a} is cancelled and the template slot returns"
+                ),
+                subject_type="planned_session",
+                subject_id=r.id,
+                planned_session_id=r.id,
+            )
+            clear_lock(r)
+            n += 1
+    db.flush()
+    return n
+
+
+ADAPTIVE_STATUSES = ("proposed", "approved", "preview")
+
+
+def adaptive_fields(kind: str, status: str | None, prescription: dict | None = None) -> dict:
+    """`adaptive` / `adapts_on` of a plan item: which open sessions will still change, and why.
+
+    Open run sessions and open lifting targets are recomputed on every engine run (from the last
+    interval session / long run, the lifts' last performance, today's readiness, the weekly
+    volume cap, the 24 h rule, missed sessions). Done, skipped and rest sessions are fixed."""
+    if status not in ADAPTIVE_STATUSES or kind == "rest":
+        return {"adaptive": False, "adapts_on": []}
+    if kind == "intervals":
+        on = [
+            "result of your last interval session",
+            "today's readiness",
+            "weekly volume cap",
+            "recovery after lower-body days",
+        ]
+    elif kind == "long_run":
+        on = ["result of your last long run", "today's readiness", "weekly volume cap"]
+    elif kind == "easy_run":
+        on = ["today's readiness", "weekly volume cap"]
+    else:  # upper | lower
+        on = ["your last performance on each lift", "today's readiness"]
+    return {"adaptive": True, "adapts_on": on}
 
 
 def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
@@ -212,6 +311,9 @@ def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
         "date": p.day.isoformat(),
         "kind": p.kind,
         "status": p.status,
+        **adaptive_fields(p.kind, p.status, pr),
+        "moved_from": p.moved_from.isoformat() if p.moved_from else None,
+        "change_reason": p.change_reason,
         "title": pr.get("title"),
         "slot_id": pr.get("slot_id"),
         "template_kind": pr.get("template_kind"),
@@ -224,4 +326,13 @@ def planned_to_dict(p: PlannedSession) -> dict[str, Any]:
     }
 
 
-__all__ = ["PersistResult", "persist_week", "planned_to_dict", "reconcile", "utcnow"]
+__all__ = [
+    "PersistResult",
+    "adaptive_fields",
+    "cancel_makeups",
+    "persist_week",
+    "planned_to_dict",
+    "reconcile",
+    "reconcile_detail",
+    "utcnow",
+]

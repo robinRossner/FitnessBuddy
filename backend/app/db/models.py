@@ -464,6 +464,13 @@ class PlannedSession(ServerSeq, Syncable, Base):
     prescription: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     notes: Mapped[str | None] = mapped_column(Text)
+    # --- schedule changes (missed-session policy, approved coach changes)
+    moved_from: Mapped[date | None] = mapped_column(Date)  # original date if the session was moved
+    change_reason: Mapped[str | None] = mapped_column(Text)  # why it was moved / changed
+    changed_by: Mapped[str | None] = mapped_column(String(16))  # engine | advisor
+    # Placement the engine keeps on every re-run: {"day", "kind", "distance_km", "source",
+    # "action", "makeup_for", "consultation_id"}; null = follows the weekly template.
+    schedule_lock: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
 
 class DecisionLog(Base):
@@ -487,7 +494,8 @@ class AdvisorConsultation(Base):
     """One call (or would-be call) to the Claude advisor and what came of it (app/advisor).
 
     `trigger` = proposal trigger type (lift_stall | rule_conflict | running_stagnation |
-    data_anomaly | weekly_review | ask); `kind` = budget bucket (weekly | trigger | ask);
+    data_anomaly | missed_session | weekly_review | ask); `kind` = budget bucket
+    (weekly | trigger | ask);
     `request` = the compact input summary, `response` = the validated output JSON.
     """
 
@@ -521,6 +529,9 @@ class AdvisorConsultation(Base):
     changes: Mapped[list[AdvisorChange]] = relationship(
         back_populates="consultation", order_by="AdvisorChange.position"
     )
+    schedule_changes: Mapped[list[AdvisorScheduleChange]] = relationship(
+        back_populates="consultation", order_by="AdvisorScheduleChange.position"
+    )
 
 
 class AdvisorChange(Base):
@@ -544,6 +555,32 @@ class AdvisorChange(Base):
     applied_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
     consultation: Mapped[AdvisorConsultation] = relationship(back_populates="changes")
+
+
+class AdvisorScheduleChange(Base):
+    """One proposed change to the schedule of the current / next week (move, skip, swap, shorten,
+    replace), validated on its own against the hard scheduling rules. API ids are `s<id>`."""
+
+    __tablename__ = "advisor_schedule_changes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    consultation_id: Mapped[int] = mapped_column(ForeignKey("advisor_consultations.id"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    day: Mapped[date | None] = mapped_column(Date)
+    action: Mapped[str] = mapped_column(String(12))
+    target: Mapped[str] = mapped_column(String(24))
+    to_day: Mapped[date | None] = mapped_column(Date)
+    new_kind: Mapped[str | None] = mapped_column(String(16))
+    distance_km: Mapped[float | None] = mapped_column(Float)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    label: Mapped[str] = mapped_column(String(200), default="")
+    risk: Mapped[str] = mapped_column(String(8), default="medium")  # validator's classification
+    valid: Mapped[bool] = mapped_column(Boolean, default=False)
+    validation_error: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(12), default="proposed")
+    planned_session_id: Mapped[str | None] = mapped_column(ForeignKey("planned_sessions.id"))
+    applied_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+
+    consultation: Mapped[AdvisorConsultation] = relationship(back_populates="schedule_changes")
 
 
 class AdvisorTrigger(Base):

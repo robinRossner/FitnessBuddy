@@ -74,6 +74,9 @@ class PlanInputs:
     runs: list[R.RunData]  # running activities, oldest first
     actual_lower_days: set[date] = field(default_factory=set)
     frozen_slots: set[str] = field(default_factory=set)
+    # placements decided by the missed-session policy / the coach (planned_sessions.schedule_lock)
+    slot_locks: dict[str, S.SlotLock] = field(default_factory=dict)
+    excluded_slots: set[str] = field(default_factory=set)  # skipped / deleted: no training load
     gym_name: str | None = None
 
 
@@ -111,9 +114,14 @@ class DayPlan:
     readiness: dict[str, Any] | None = None
     adjustments: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    moved_from: date | None = None
+    change_reason: str | None = None
+    changed_by: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "moved_from": self.moved_from.isoformat() if self.moved_from else None,
+            "change_reason": self.change_reason,
             "slot_id": self.slot_id,
             "date": self.day.isoformat(),
             "kind": self.kind,
@@ -228,11 +236,14 @@ class _Planner:
         self._readiness_decisions()
 
         slots = S.build_week(inp.week_start, self.cfg.weekly_template)
+        S.apply_locks(slots, inp.slot_locks)
+        slots = [s for s in slots if s.id not in inp.excluded_slots]
         slots, events = S.apply_recovery_rules(
             slots,
             today=self.today,
             actual_lower_days=inp.actual_lower_days,
             hard_after_heavy_lower_h=self.rec.hard_after_heavy_lower_h,
+            locked=inp.slot_locks.keys(),
         )
         for ev in events:
             self.decisions.append(
@@ -420,6 +431,9 @@ class _Planner:
             km["intervals"] = interval_km(self._interval_plan.reps, self.cfg, self._wu, self._cd)
         if "long_run" in run_slots:
             km["long_run"] = self._long_km
+        for kind, slot in run_slots.items():  # a coach `shorten` caps the run
+            if slot.distance_cap_km is not None and kind in km and kind != "intervals":
+                km[kind] = min(km[kind], slot.distance_cap_km)
         fitted, notes = R.fit_to_cap(km, remaining, lc.min_km)
         self._volume = {
             "cap_km": cap,
@@ -483,6 +497,16 @@ class _Planner:
         else:
             plan = DayPlan(slot.id, slot.day, "rest", kind, "Rest", {"type": "rest"})
         plan.notes.extend(slot.notes)
+        plan.moved_from, plan.change_reason = slot.moved_from, slot.change_reason
+        plan.changed_by = slot.changed_by
+        if slot.distance_cap_km is not None and "distance_km" in plan.prescription:
+            plan.prescription["distance_km"] = min(
+                plan.prescription["distance_km"], slot.distance_cap_km
+            )
+            if plan.kind == "easy_run":
+                plan.title = f"Easy run {plan.prescription['distance_km']:g} km"
+            elif plan.kind == "long_run":
+                plan.title = f"Long run {plan.prescription['distance_km']:g} km"
         if slot.day == self.today:
             self._apply_readiness(plan)
         else:

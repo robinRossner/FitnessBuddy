@@ -191,6 +191,39 @@ class RecoveryConfig(_Model):
     hard_after_heavy_lower_h: float = 24
 
 
+class ScheduleConfig(_Model):
+    """Missed-session policy + the hard scheduling rules (app/engine/makeup.py, schedule_rules.py).
+    Lives under `schedule:` in the config content; every key has a default, so versions without
+    the section (v3) behave the same. Kinds use the short names: lower, intervals, upper, long,
+    easy (rest where a rest day is meant)."""
+
+    # who gets a make-up first when several sessions were missed (the rest of the list is the
+    # order of importance; a missed `easy` run is never made up)
+    makeup_priority: tuple[str, ...] = ("lower", "intervals", "upper", "long", "easy")
+    makeup_never: tuple[str, ...] = ("easy",)  # missed sessions that are simply dropped
+    makeup_replaceable: tuple[str, ...] = ("easy",)  # planned kinds a make-up may take the slot of
+    makeup_use_rest_day: bool = True
+    long_run_makeup_day: str = "sat"  # a missed long run moves here if that day is still ahead
+    # hard rules (also used by the advisor's schedule changes)
+    hard_kinds: tuple[str, ...] = ("lower", "intervals")
+    max_hard_per_day: int = 1
+    no_consecutive_hard_days: bool = True
+    max_sessions_per_day: int = 2
+    # coach schedule changes
+    shorten_max_pct: float = 50  # `shorten` may cut a run by at most this share
+    horizon_weeks: int = 2  # current + next week
+    # how hard a kind is (a `replace` may only go to an equal or easier kind unless it makes up
+    # a missed session)
+    kind_load: dict[str, int] = {
+        "rest": 0,
+        "easy": 1,
+        "upper": 2,
+        "long": 3,
+        "lower": 4,
+        "intervals": 4,
+    }
+
+
 class AdvisorConfig(_Model):
     """Claude advisor settings (app/advisor). Lives under `advisor:` in the config content; every
     key has a default, so versions without the section behave the same (v3 has none)."""
@@ -224,6 +257,7 @@ class EngineConfig(_Model):
     # Set by the advisor (app/advisor); wins over program.yaml (see program.apply_overrides).
     exercise_overrides: dict[str, Any] = {}
     advisor: dict[str, Any] = {}
+    schedule: dict[str, Any] = {}
 
     # Typed views over the free-form sections (the raw dicts stay for old callers / old versions).
     @property
@@ -237,6 +271,10 @@ class EngineConfig(_Model):
     @property
     def advisor_cfg(self) -> AdvisorConfig:
         return AdvisorConfig.model_validate(self.advisor)
+
+    @property
+    def schedule_cfg(self) -> ScheduleConfig:
+        return ScheduleConfig.model_validate(self.schedule)
 
     @property
     def recovery_cfg(self) -> RecoveryConfig:

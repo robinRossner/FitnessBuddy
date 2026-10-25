@@ -65,6 +65,7 @@ struct ProposalDetailView: View {
                     }
                 }
                 if !p.changes.isEmpty { changesCard(p) }
+                if !p.scheduleChanges.isEmpty { scheduleCard(p) }
                 if !p.sessionOverrides.isEmpty { overridesCard(p) }
                 if let notes = p.notesForUser, !notes.isEmpty {
                     Card {
@@ -173,13 +174,13 @@ struct ProposalDetailView: View {
 
     private func changesCard(_ p: CoachProposalDTO) -> some View {
         let reviewing = p.isPending
-        let effective = selection ?? CoachLogic.defaultSelection(p.changes)
+        let effective = selection ?? CoachLogic.defaultSelection(of: p)
         return Card {
             HStack {
-                SectionLabel(title: "Proposed changes", symbol: "slider.horizontal.3", color: CoachStyle.color)
+                SectionLabel(title: "Parameter changes", symbol: "slider.horizontal.3", color: CoachStyle.color)
                 Spacer()
                 if reviewing {
-                    Text("\(CoachLogic.approvalIds(selection: effective, changes: p.changes).count) of \(p.changes.filter(CoachLogic.isSelectable).count) selected")
+                    Text("\(CoachLogic.approvalIds(selection: effective, changes: p.changes).count) of \(p.changes.filter { CoachLogic.isSelectable($0) }.count) selected")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -217,7 +218,65 @@ struct ProposalDetailView: View {
             if reviewing && c.valid {
                 Toggle("Apply \(c.label)", isOn: Binding(
                     get: { selected },
-                    set: { _ in selection = CoachLogic.toggled(c.id, in: selection ?? CoachLogic.defaultSelection(p.changes), changes: p.changes) }
+                    set: { _ in selection = CoachLogic.toggled(c.id, in: selection ?? CoachLogic.defaultSelection(of: p), proposal: p) }
+                ))
+                .labelsHidden()
+                .tint(CoachStyle.color)
+            }
+        }
+        .opacity(c.valid ? 1 : 0.55)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func scheduleCard(_ p: CoachProposalDTO) -> some View {
+        let reviewing = p.isPending
+        let effective = selection ?? CoachLogic.defaultSelection(of: p)
+        return Card {
+            HStack {
+                SectionLabel(title: "Schedule changes", symbol: "calendar.badge.clock", color: CoachStyle.color)
+                Spacer()
+                if reviewing {
+                    Text("\(CoachLogic.approvalIds(selection: effective, changes: p.scheduleChanges).count) of \(p.scheduleChanges.filter { CoachLogic.isSelectable($0) }.count) selected")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            VStack(spacing: 0) {
+                ForEach(Array(p.scheduleChanges.enumerated()), id: \.element.id) { index, change in
+                    if index > 0 { Divider().padding(.vertical, 10) }
+                    scheduleRow(change, reviewing: reviewing, selected: effective.contains(change.id), proposal: p)
+                }
+            }
+        }
+    }
+
+    private func scheduleRow(_ c: CoachScheduleChangeDTO, reviewing: Bool, selected: Bool, proposal p: CoachProposalDTO) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: c.action.symbol)
+                .font(.title3).foregroundStyle(CoachStyle.color).frame(width: 24)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(c.label).font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    RiskPill(risk: c.risk)
+                }
+                if !c.reason.isEmpty {
+                    Text(c.reason).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                if !c.valid {
+                    Label {
+                        Text((c.validationError ?? "Not allowed") + ". Rejected automatically.")
+                    } icon: { Image(systemName: "exclamationmark.triangle.fill") }
+                    .font(.footnote).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                } else if !reviewing, c.status == .applied || c.status == .rejected {
+                    Chip(text: c.status == .applied ? "Applied" : "Not applied", color: c.status == .applied ? .green : .gray)
+                }
+            }
+            Spacer(minLength: 0)
+            if reviewing && c.valid {
+                Toggle("Apply \(c.label)", isOn: Binding(
+                    get: { selected },
+                    set: { _ in selection = CoachLogic.toggled(c.id, in: selection ?? CoachLogic.defaultSelection(of: p), proposal: p) }
                 ))
                 .labelsHidden()
                 .tint(CoachStyle.color)
@@ -260,8 +319,8 @@ struct ProposalDetailView: View {
     // MARK: Actions
 
     private func actionBar(_ p: CoachProposalDTO) -> some View {
-        let effective = selection ?? CoachLogic.defaultSelection(p.changes)
-        let ids = CoachLogic.approvalIds(selection: effective, changes: p.changes)
+        let effective = selection ?? CoachLogic.defaultSelection(of: p)
+        let ids = CoachLogic.approvalIds(selection: effective, proposal: p)
         let blocked = env.coach.writeBlockedHint
         let next = CoachLogic.nextVersion(after: env.coach.activeVersion?.version)
         return VStack(spacing: 8) {

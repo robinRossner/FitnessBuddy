@@ -65,14 +65,21 @@ final class DemoCoach: @unchecked Sendable {
             case ("POST", "approve"):
                 let ids = payload["change_ids"] as? [String]
                 var changes = proposals[i]["changes"] as? [[String: Any]] ?? []
+                var schedule = proposals[i]["schedule_changes"] as? [[String: Any]] ?? []
                 var applied = 0
                 for k in changes.indices {
                     let id = changes[k]["id"] as? String ?? ""
                     if (changes[k]["valid"] as? Bool) == true, ids?.contains(id) ?? true { changes[k]["status"] = "applied"; applied += 1 }
                     else if (changes[k]["valid"] as? Bool) == true { changes[k]["status"] = "rejected" }
                 }
+                for k in schedule.indices {
+                    let id = schedule[k]["id"] as? String ?? ""
+                    if (schedule[k]["valid"] as? Bool) == true, ids?.contains(id) ?? true { schedule[k]["status"] = "applied"; applied += 1 }
+                    else if (schedule[k]["valid"] as? Bool) == true { schedule[k]["status"] = "rejected" }
+                }
                 proposals[i]["changes"] = changes
-                proposals[i]["status"] = applied == changes.count ? "applied" : "partially_applied"
+                proposals[i]["schedule_changes"] = schedule
+                proposals[i]["status"] = applied == changes.count + schedule.count ? "applied" : "partially_applied"
                 let next = "v3.3"
                 proposals[i]["applied_config_version"] = next
                 for k in versions.indices { versions[k]["active"] = false }
@@ -121,12 +128,23 @@ final class DemoCoach: @unchecked Sendable {
         return c
     }
 
+    private func schedule(_ id: String, _ action: String, _ label: String, _ reason: String, _ risk: String, date: String,
+                          toDate: String? = nil, valid: Bool = true, error: String? = nil) -> [String: Any] {
+        var c: [String: Any] = ["id": id, "date": date, "action": action, "target": "session", "label": label, "reason": reason,
+                                "risk": risk, "valid": valid, "status": valid ? "proposed" : "invalid"]
+        if let toDate { c["to_date"] = toDate }
+        if let error { c["validation_error"] = error }
+        return c
+    }
+
     private func proposal(_ id: String, _ status: String, trigger: [String: Any], question: String? = nil,
                           diagnosis: String? = nil, confidence: String? = nil, changes: [[String: Any]] = [],
+                          schedule: [[String: Any]] = [],
                           overrides: [[String: Any]] = [], version: String? = nil, minutesAgo: Int, cost: Double? = nil,
                           notes: String? = nil) -> [String: Any] {
         var p: [String: Any] = ["id": id, "created_at": iso(minutesAgo), "status": status, "trigger": trigger,
                                 "changes": changes, "session_overrides": overrides]
+        if !schedule.isEmpty { p["schedule_changes"] = schedule }
         if let question { p["question"] = question }
         if let diagnosis { p["diagnosis"] = diagnosis }
         if let confidence { p["confidence"] = confidence }
@@ -150,6 +168,18 @@ final class DemoCoach: @unchecked Sendable {
                      ],
                      overrides: [["date": "2026-10-27", "session": "upper", "change": "Incline press: start at 24 kg for 3 x 8", "reason": "Rebuild reps at the lower step."]],
                      minutesAgo: 35, cost: 0.042, notes: "Your bench numbers are unaffected."),
+            proposal("demo-p4", "pending",
+                     trigger: ["type": "missed_session", "title": "Missed Wednesday's easy run", "detail": "No run logged on Wed 21 Oct."],
+                     diagnosis: "The easy run on Wednesday did not happen, so the week is 8 km short. Friday's intervals come two days after a lower-body session; moving them one day later and trimming Sunday keeps the hard days apart.",
+                     confidence: "medium",
+                     changes: [change("c1", "running.easy.hr_ceiling_bpm", "Easy run HR ceiling", 145, 147, "Small buffer for warm days.", "low")],
+                     schedule: [
+                        schedule("s1", "move", "Move intervals Fri → Sat", "Legs are still heavy from Thursday's lower session; Saturday gives one more day.", "low", date: "2026-10-23", toDate: "2026-10-24"),
+                        schedule("s2", "shorten", "Shorten Sunday long run to 9 km", "Weekly volume is already near the cap after the make-up.", "medium", date: "2026-10-25"),
+                        schedule("s3", "replace", "Replace Wednesday easy run with intervals", "Catch up on quality work.", "high", date: "2026-10-21", valid: false,
+                                 error: "Two hard sessions within 48 hours"),
+                     ],
+                     minutesAgo: 90, cost: 0.036),
             proposal("demo-p2", "applied",
                      trigger: ["type": "weekly_review", "title": "Weekly review", "detail": "Week 42"],
                      diagnosis: "Training load was steady. Interval pace held within 2 % of target, so the engine only needed a small tolerance tweak.",

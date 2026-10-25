@@ -359,11 +359,15 @@ struct CoachRepositoryTests {
         var bodies: [String: String] = [:]
         var failure: APIError?
         var queries: [String: String] = [:]
+        /// `refreshAll` fires several requests at once; the recording below must not race.
+        private let lock = NSLock()
 
         func respond(_ method: String, _ path: String, _ query: [URLQueryItem] = [], _ body: Data?) throws -> Data {
-            calls.append(method + " " + path)
-            queries[method + " " + path] = query.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&")
-            if let body { bodies[method + " " + path] = String(decoding: body, as: UTF8.self) }
+            lock.withLock {
+                calls.append(method + " " + path)
+                queries[method + " " + path] = query.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&")
+                if let body { bodies[method + " " + path] = String(decoding: body, as: UTF8.self) }
+            }
             if let failure, method != "GET" { throw failure }
             switch (method, path) {
             case ("GET", "/api/v1/coach/proposals"):

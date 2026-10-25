@@ -35,13 +35,17 @@ from app.analytics import common
 from app.db.models import (
     AdvisorChange,
     AdvisorConsultation,
+    AdvisorScheduleChange,
     AdvisorTrigger,
     ConfigVersion,
     ExerciseVariant,
+    PlannedSession,
     Run,
 )
 from app.db.types import utcnow
 from app.engine import config_service as cs
+from app.engine import schedule_edit as SE
+from app.engine import schedule_rules as SR
 from app.engine import service as engine_service
 from app.engine.config import AdvisorConfig
 from app.engine.decisions import log_decision
@@ -53,6 +57,7 @@ log = logging.getLogger(__name__)
 # trigger / proposal types
 LIFT_STALL, RULE_CONFLICT, RUNNING_STAGNATION = "lift_stall", "rule_conflict", "running_stagnation"
 DATA_ANOMALY, WEEKLY_REVIEW, ASK = "data_anomaly", "weekly_review", "ask"
+MISSED_SESSION = "missed_session"
 # engine trigger type -> proposal trigger type (a deload is a recovery anomaly for the advisor)
 TRIGGER_MAP = {
     "lift_stall": LIFT_STALL,
@@ -60,14 +65,19 @@ TRIGGER_MAP = {
     "running_stagnation": RUNNING_STAGNATION,
     "data_anomaly": DATA_ANOMALY,
     "deload": DATA_ANOMALY,
+    "missed_session": MISSED_SESSION,
 }
-PRIORITY = (LIFT_STALL, RULE_CONFLICT, RUNNING_STAGNATION, DATA_ANOMALY)
+PRIORITY = (LIFT_STALL, MISSED_SESSION, RULE_CONFLICT, RUNNING_STAGNATION, DATA_ANOMALY)
 
 RUNNABLE = ("queued", "awaiting_key", "dry_run")
 COUNTED = ("running", "pending", "applied", "partially_applied", "rejected", "failed")
 MAX_CHANGES = 8
+MAX_SCHEDULE_CHANGES = 6
 STALE_RUNNING_MIN = 30
 COVER_DAYS = 14  # a stalled lift / stagnating run metric is not consulted again within this time
+
+
+USAGE_LIMIT_MESSAGE = "Subscription usage limit reached, retry later"
 
 
 class AdvisorError(Exception):
@@ -230,6 +240,13 @@ def _describe(row: AdvisorTrigger) -> tuple[str, str, dict[str, Any]]:
             str(p.get("conflict") or "The engine's rules conflict."),
             {"kind": "week", "id": week},
         )
+    if t == "missed_session":
+        missed = p.get("missed") or {}
+        return (
+            f"Missed {SR.PRETTY.get(missed.get('kind'), 'session')}",
+            str(p.get("reason") or "A planned session was missed and could not be made up."),
+            {"kind": "week", "id": p.get("week_start") or week},
+        )
     if t == "deload":
         return (
             "Deload week triggered",
@@ -379,6 +396,32 @@ def _fail(db: Session, c: AdvisorConsultation, message: str) -> AdvisorConsultat
     return c
 
 
+def _call_failed(
+    db: Session, c: AdvisorConsultation, exc: claude.AdvisorCallError
+) -> AdvisorConsultation:
+    """Map a failed provider call to a consultation status by `exc.kind`:
+
+    - `auth` (the subscription login is missing / expired): `awaiting_key`, message kept; it runs
+      again once the credential is fixed (`retry_awaiting_key`);
+    - `usage_limit` (subscription limit reached): `failed` with a fixed message; an ask / weekly
+      consultation is flagged `usage.requeue` and re-run by the next daily trigger job
+      (`retry_usage_limited`), a trigger batch gives its triggers back to `open` so the next
+      daily batch picks them up;
+    - everything else (timeout, cli_missing, cli_error, invalid_output, API errors): `failed`.
+    """
+    if exc.kind == "auth":
+        c.status = "awaiting_key"
+        c.error = redact(exc.message)[:1000]
+        db.commit()
+        log.warning("advisor consultation %s waits for a working login: %s", c.id, c.error)
+        return c
+    if exc.kind == "usage_limit":
+        if c.kind in ("ask", "weekly"):
+            c.usage = {**(c.usage or {}), "requeue": True}
+        return _fail(db, c, USAGE_LIMIT_MESSAGE)
+    return _fail(db, c, exc.message)
+
+
 def execute(
     db: Session,
     consultation_id: int,
@@ -425,7 +468,7 @@ def execute(
     try:
         result = claude.consult(s, summary.user_message(doc), client=client)
     except claude.AdvisorCallError as exc:
-        return _fail(db, c, exc.message)
+        return _call_failed(db, c, exc)
     except Exception as exc:  # a bug in our code must not leave the row in `running`
         log.exception("advisor call crashed")
         return _fail(db, c, f"Unexpected error: {type(exc).__name__}")
@@ -439,20 +482,23 @@ def execute(
         "served_by": result.model,
     }
     c.tokens_in = (
-        result.usage["input_tokens"]
-        + result.usage["cache_read_input_tokens"]
-        + result.usage["cache_creation_input_tokens"]
+        result.usage.get("input_tokens", 0)
+        + result.usage.get("cache_read_input_tokens", 0)
+        + result.usage.get("cache_creation_input_tokens", 0)
     )
-    c.tokens_out = result.usage["output_tokens"]
-    c.cost_usd = cost_usd(result.usage, cfg)
+    c.tokens_out = result.usage.get("output_tokens", 0)
+    # a subscription run has no per-token price: the cost is unknown, not zero
+    c.cost_usd = (
+        None if result.usage.get("billing") == "subscription" else cost_usd(result.usage, cfg)
+    )
     log.info(
-        "advisor consultation %s: in=%d (cache read %d, write %d) out=%d cost=$%.4f",
+        "advisor consultation %s: in=%d (cache read %d, write %d) out=%d cost=%s",
         c.id,
-        result.usage["input_tokens"],
-        result.usage["cache_read_input_tokens"],
-        result.usage["cache_creation_input_tokens"],
-        result.usage["output_tokens"],
-        c.cost_usd,
+        result.usage.get("input_tokens", 0),
+        result.usage.get("cache_read_input_tokens", 0),
+        result.usage.get("cache_creation_input_tokens", 0),
+        result.usage.get("output_tokens", 0),
+        "subscription" if c.cost_usd is None else f"${c.cost_usd:.4f}",
     )
     if result.outcome == "refusal":
         category = (result.stop_details or {}).get("category")
@@ -526,6 +572,7 @@ def store_output(db: Session, c: AdvisorConsultation, out, settings: Settings) -
                 status="proposed" if verdict.valid else "invalid",
             )
         )
+    _store_schedule_changes(db, c, out, settings)
     kept, dropped = [], []
     for o in out.session_overrides:
         problem = V.override_problem(f"{o.change} {o.reason}")
@@ -547,8 +594,80 @@ def store_output(db: Session, c: AdvisorConsultation, out, settings: Settings) -
     settle_status(c)
 
 
+def _store_schedule_changes(db: Session, c: AdvisorConsultation, out, settings: Settings) -> None:
+    """Validate every schedule change on its own, in order, on a working copy of the plan."""
+    items = list(getattr(out, "schedule_changes", None) or [])
+    if not items:
+        return
+    cfg, _row = cs.load_active(db)
+    ctx = V.build_schedule_context(db, cfg, user_today(settings))
+    for i, ch in enumerate(items):
+        if i >= MAX_SCHEDULE_CHANGES:
+            verdict = V.ScheduleVerdict(
+                False,
+                f"too many schedule changes in one answer (max {MAX_SCHEDULE_CHANGES})",
+                None,
+                V.schedule_label(
+                    ch.action,
+                    ch.target,
+                    _day(ch.date),
+                    _day(ch.to_date),
+                    ch.new_kind,
+                    ch.distance_km,
+                ),
+                None,
+            )
+        else:
+            verdict = V.validate_schedule_change(
+                ctx,
+                day=ch.date,
+                action=ch.action,
+                target=ch.target,
+                to_day=ch.to_date,
+                new_kind=ch.new_kind,
+                distance_km=ch.distance_km,
+                reason=ch.reason,
+            )
+        if verdict.valid:
+            V.accept_schedule(ctx, verdict)
+        else:
+            log.warning("advisor schedule change rejected: %s: %s", verdict.label, verdict.error)
+        db.add(
+            AdvisorScheduleChange(
+                consultation_id=c.id,
+                position=i,
+                day=_day(ch.date),
+                action=ch.action,
+                target=ch.target[:24],
+                to_day=_day(ch.to_date),
+                new_kind=ch.new_kind,
+                distance_km=ch.distance_km,
+                reason=ch.reason[:1500],
+                label=verdict.label[:200],
+                risk=verdict.risk or "medium",
+                valid=verdict.valid,
+                validation_error=verdict.error,
+                status="proposed" if verdict.valid else "invalid",
+                planned_session_id=verdict.session_id,
+            )
+        )
+
+
+def _day(raw: Any) -> date | None:
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(str(raw))
+    except ValueError:
+        return None
+
+
+def _all_changes(c: AdvisorConsultation) -> list[Any]:
+    return [*c.changes, *c.schedule_changes]
+
+
 def settle_status(c: AdvisorConsultation) -> None:
-    changes = list(c.changes)
+    changes = _all_changes(c)
     proposed = [x for x in changes if x.status == "proposed"]
     applied = [x for x in changes if x.status == "applied"]
     if proposed:
@@ -574,9 +693,16 @@ def _auto_apply(
     ids = [
         x.id for x in c.changes if x.status == "proposed" and (mode == "auto" or x.risk == "low")
     ]
-    if not ids:
+    sched = [
+        x.id
+        for x in c.schedule_changes
+        if x.status == "proposed" and x.valid and (mode == "auto" or x.risk == "low")
+    ]
+    if not ids and not sched:
         return
-    version = apply_changes(db, c, ids, settings=settings)
+    version = apply_changes(db, c, ids, settings=settings) if ids else None
+    if sched:
+        apply_schedule_changes(db, c, sched, settings=settings)
     db.commit()
     if version is not None:
         (on_applied or rerun_engine_after_change)()
@@ -689,6 +815,22 @@ def get_consultation(db: Session, ref: str | int) -> AdvisorConsultation:
     return c
 
 
+def change_ref(x: AdvisorChange | AdvisorScheduleChange) -> str:
+    """API id of a change: `p<id>` for a parameter change, `s<id>` for a schedule change (unique
+    across both lists of a proposal)."""
+    return f"{'s' if isinstance(x, AdvisorScheduleChange) else 'p'}{x.id}"
+
+
+def _parse_ref(raw: Any) -> tuple[str, int]:
+    text = str(raw).strip()
+    kind, digits = (
+        ("s", text[1:]) if text[:1] == "s" else ("p", text[1:] if text[:1] == "p" else text)
+    )
+    if not digits.isdigit():
+        raise Unprocessable(f"change '{raw}' does not belong to this proposal")
+    return kind, int(digits)
+
+
 def approve(
     db: Session,
     c: AdvisorConsultation,
@@ -696,17 +838,22 @@ def approve(
     *,
     settings: Settings | None = None,
 ) -> ConfigVersion | None:
-    """User approval (all valid changes, or the given subset). Idempotent: what is already applied
-    is skipped. Returns the new config version, or None when nothing had to be applied."""
+    """User approval (all valid changes, or the given subset; ids are `p…` / `s…`, a bare number
+    counts as a parameter change). Idempotent: what is already applied is skipped. Returns the
+    new config version, or None when no parameter change had to be applied (schedule changes are
+    applied here, with a targeted engine re-run)."""
     if c.status in ("queued", "running", "awaiting_key", "dry_run", "failed", "rejected"):
         raise Conflict(f"this proposal is '{c.status}': there is nothing to approve")
-    by_id = {str(x.id): x for x in c.changes}
+    params = {x.id: x for x in c.changes}
+    scheds = {x.id: x for x in c.schedule_changes}
     if change_ids is None:
-        targets = [x for x in c.changes if x.valid and x.status == "proposed"]
+        p_targets = [x for x in c.changes if x.valid and x.status == "proposed"]
+        s_targets = [x for x in c.schedule_changes if x.valid and x.status == "proposed"]
     else:
-        targets = []
+        p_targets, s_targets = [], []
         for raw in change_ids:
-            x = by_id.get(str(raw))
+            kind, num = _parse_ref(raw)
+            x = (scheds if kind == "s" else params).get(num)
             if x is None:
                 raise Unprocessable(f"change '{raw}' does not belong to this proposal")
             if not x.valid:
@@ -714,12 +861,122 @@ def approve(
             if x.status == "rejected":
                 raise Conflict(f"change '{raw}' was rejected")
             if x.status == "proposed":
-                targets.append(x)
-    if not targets:
+                (s_targets if kind == "s" else p_targets).append(x)
+    if not p_targets and not s_targets:
         return None
-    version = apply_changes(db, c, [x.id for x in targets], settings=settings)
+    version = apply_changes(db, c, [x.id for x in p_targets], settings=settings)
+    if s_targets:
+        apply_schedule_changes(db, c, [x.id for x in s_targets], settings=settings)
     db.commit()
     return version
+
+
+def apply_schedule_changes(
+    db: Session,
+    c: AdvisorConsultation,
+    change_ids: list[int],
+    *,
+    settings: Settings | None = None,
+) -> int:
+    """Apply the given proposed schedule changes (author advisor). Each is validated again against
+    the plan as it is now; the placement is written to the planned sessions (a lock the engine
+    keeps on every re-run), every change goes to decisions_log with the consultation id, and the
+    engine re-plans the affected days only. Returns how many were applied."""
+    s = settings or get_settings()
+    wanted = set(change_ids)
+    todo = [x for x in c.schedule_changes if x.id in wanted and x.status == "proposed"]
+    if not todo:
+        return 0
+    cfg, row = cs.load_active(db)
+    today = user_today(s)
+    ctx = V.build_schedule_context(db, cfg, today)
+    now = utcnow()
+    days: set[date] = set()
+    n = 0
+    for x in todo:
+        v = V.validate_schedule_change(
+            ctx,
+            day=x.day,
+            action=x.action,
+            target=x.target,
+            to_day=x.to_day,
+            new_kind=x.new_kind,
+            distance_km=x.distance_km,
+            reason=x.reason,
+        )
+        if not v.valid:
+            x.status, x.valid = "invalid", False
+            x.validation_error = f"no longer valid: {v.error}"
+            continue
+        V.accept_schedule(ctx, v)
+        for e in v.edits:
+            planned = db.get(PlannedSession, e.session_id)
+            if planned is None:
+                continue
+            days.update({planned.day, *([e.day] if e.day else [])})
+            SE.write_edit(planned, e, source="advisor", action=x.action, consultation_id=c.id)
+        x.status, x.applied_at, x.label = "applied", now, v.label[:200]
+        x.planned_session_id = v.session_id
+        n += 1
+        decision = log_decision(
+            db,
+            kind="scheduling",
+            rule="advisor_schedule_change",
+            subject_type="planned_session",
+            subject_id=v.session_id,
+            config_version_id=row.id,
+            planned_session_id=v.session_id,
+            inputs={
+                "consultation_id": c.id,
+                "change": {
+                    "date": x.day.isoformat() if x.day else None,
+                    "action": x.action,
+                    "target": x.target,
+                    "to_date": x.to_day.isoformat() if x.to_day else None,
+                    "new_kind": x.new_kind,
+                    "distance_km": x.distance_km,
+                },
+            },
+            output={
+                "action": x.action,
+                "edits": [
+                    {
+                        "session": e.session_id,
+                        "day": e.day.isoformat() if e.day else None,
+                        "kind": e.kind,
+                        "distance_km": e.distance_km,
+                        "skip": e.skip,
+                    }
+                    for e in v.edits
+                ],
+            },
+            rationale=f"Advisor (consultation {c.id}): {v.label}: {x.reason}"[:900],
+        )
+        if decision is not None and c.decision_id is None:
+            c.decision_id = decision.id
+    if n:
+        c.accepted = True
+    db.flush()
+    settle_status(c)
+    if n:
+        _replan_days(db, days, today, s)
+        log.info("advisor consultation %s applied %d schedule change(s)", c.id, n)
+    return n
+
+
+def _replan_days(db: Session, days: set[date], today: date, settings: Settings) -> None:
+    """Re-run the engine for the affected days only; the placements are locks, so they stay."""
+    by_week: dict[date, set[date]] = {}
+    for d in days:
+        by_week.setdefault(engine_service.monday(d), set()).add(d)
+    program = program_raw(settings)
+    if program is None:
+        log.warning("schedule change applied without a lifting program: sessions not re-planned")
+        return
+    for ws, ds in sorted(by_week.items()):
+        engine_service.apply_week(
+            db, today=today, week_start=ws, settings=settings, program=program, only_days=ds
+        )
 
 
 def reject(db: Session, c: AdvisorConsultation, note: str | None) -> AdvisorConsultation:
@@ -727,7 +984,7 @@ def reject(db: Session, c: AdvisorConsultation, note: str | None) -> AdvisorCons
         raise Conflict(f"this proposal is still '{c.status}'")
     if c.status == "rejected":
         return c
-    for x in c.changes:
+    for x in _all_changes(c):
         if x.status == "proposed":
             x.status = "rejected"
     if note:
@@ -814,7 +1071,7 @@ def _release_if_failed(
     db: Session, rows: list[AdvisorTrigger], c: AdvisorConsultation | None
 ) -> AdvisorConsultation | None:
     """A failed call did not answer anything: its triggers go back to `open` for the next run."""
-    if c is not None and c.status == "failed":
+    if c is not None and c.status == "failed" and not (c.usage or {}).get("requeue"):
         for t in rows:
             t.status, t.consultation_id = "open", None
         db.commit()
@@ -929,6 +1186,36 @@ def retry_awaiting_key(
     return n
 
 
+def retry_usage_limited(
+    db: Session,
+    settings: Settings | None = None,
+    *,
+    client: Any | None = None,
+    on_applied: Callable[[], None] | None = None,
+    max_age_days: int = 2,
+    limit: int = 3,
+) -> int:
+    """Run again the ask / weekly consultations that stopped on the subscription usage limit."""
+    s = settings or get_settings()
+    if s.advisor_key is None or s.advisor_dry_run:
+        return 0
+    since = utcnow() - timedelta(days=max_age_days)
+    rows = [
+        c
+        for c in db.scalars(
+            select(AdvisorConsultation)
+            .where(AdvisorConsultation.status == "failed", AdvisorConsultation.created_at >= since)
+            .order_by(AdvisorConsultation.id)
+        )
+        if (c.usage or {}).get("requeue")
+    ][:limit]
+    for c in rows:
+        c.status, c.error, c.usage = "queued", None, None
+        db.commit()
+        execute(db, c.id, settings=s, client=client, on_applied=on_applied)
+    return len(rows)
+
+
 @dataclass
 class CoachSettings:
     approval_mode: str
@@ -980,4 +1267,4 @@ def pending_proposals(db: Session) -> list[AdvisorConsultation]:
         .where(AdvisorConsultation.status.in_(("pending", "partially_applied")))
         .order_by(AdvisorConsultation.id.desc())
     )
-    return [c for c in rows if any(x.status == "proposed" for x in c.changes)]
+    return [c for c in rows if any(x.status == "proposed" for x in _all_changes(c))]

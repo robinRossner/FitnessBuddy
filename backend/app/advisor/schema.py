@@ -4,10 +4,18 @@
      "proposed_changes": [{"param": "dotted.config.path", "from": <json>, "to": <json>,
                            "reason": str, "risk": "low|medium|high"}],
      "session_overrides": [{"date": "YYYY-MM-DD", "session": str, "change": str, "reason": str}],
+     "schedule_changes": [{"date": "YYYY-MM-DD", "action": "move|skip|swap|shorten|replace",
+                           "target": str, "to_date": "YYYY-MM-DD"|null,
+                           "new_kind": "easy|rest|upper|lower|intervals|long"|null,
+                           "distance_km": number|null, "reason": str}],
      "confidence": "low|medium|high", "notes_for_user": str}
 
 `from` / `to` are JSON scalars or a flat list (a rep range). The risk Claude states is kept for
 the record only: the validator classifies the risk (app/advisor/validator.py).
+
+`schedule_changes` move / skip / swap / shorten / replace planned sessions of the current and next
+week (validated against the hard scheduling rules, applied on approval); `session_overrides`
+stay free-text notes that are never applied.
 """
 
 from __future__ import annotations
@@ -36,9 +44,28 @@ class SessionOverride(BaseModel):
     reason: str
 
 
+class ScheduleChange(BaseModel):
+    date: str = Field(description="YYYY-MM-DD of the planned session this change is about")
+    action: Literal["move", "skip", "swap", "shorten", "replace"]
+    target: str = Field(
+        description="kind of the planned session on `date`: upper, lower, easy, intervals or long"
+    )
+    to_date: str | None = Field(
+        default=None, description="YYYY-MM-DD, for move and swap (same week), else null"
+    )
+    new_kind: Literal["easy", "rest", "upper", "lower", "intervals", "long"] | None = Field(
+        default=None, description="for replace only: the kind the session becomes, else null"
+    )
+    distance_km: float | None = Field(
+        default=None, description="for shorten only: the new run distance in km, else null"
+    )
+    reason: str = Field(description="one or two sentences; never a weight or a pace")
+
+
 class AdvisorOutput(BaseModel):
     diagnosis: str
     proposed_changes: list[ProposedChange]
     session_overrides: list[SessionOverride]
+    schedule_changes: list[ScheduleChange] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"]
     notes_for_user: str

@@ -219,7 +219,9 @@ A lifting item, abridged (taken from the real engine output in `examples/plan_we
 ```json
 {
   "id": "c6eaf326-5d7b-5713-bec2-e1db59b16e83", "date": "2026-10-26",
-  "kind": "upper", "status": "proposed", "title": "Upper",
+  "kind": "upper", "status": "proposed", "adaptive": true,
+  "adapts_on": ["your last performance on each lift", "today's readiness"],
+  "moved_from": null, "change_reason": null, "title": "Upper",
   "slot_id": "mon_upper", "template_kind": "upper",
   "readiness": {"color": null, "known": false, "reason": "forecast not available yet"},
   "adjustments": [], "notes": [], "config_version_id": 3,
@@ -243,6 +245,21 @@ A lifting item, abridged (taken from the real engine output in `examples/plan_we
 }
 ```
 
+- Additive fields on **every** plan item (stored and preview, `/plan/today`, `/plan/week` and
+  `planned_sessions` in pull):
+  - `status`: `proposed|approved|done|skipped|modified` (`preview` for computed items);
+  - `adaptive` (bool): `true` while the session is still open (`proposed`/`approved`/`preview`) and not
+    a rest day: its content is recomputed on every engine run; `false` for done / skipped sessions and
+    rest;
+  - `adapts_on` (`[str]`, empty when not adaptive): short phrases for the app, e.g. `["result of your
+    last interval session", "today's readiness", "weekly volume cap", "recovery after lower-body
+    days"]` (intervals), `["result of your last long run", "today's readiness", "weekly volume cap"]`
+    (long run), `["today's readiness", "weekly volume cap"]` (easy run), `["your last performance on
+    each lift", "today's readiness"]` (upper / lower);
+  - `moved_from` (`YYYY-MM-DD|null`): the original date if the session was moved or is a make-up;
+  - `change_reason` (`str|null`): why, e.g. "Lower missed Tue → moved to Wed, replacing the easy run"
+    (engine make-up), a recovery swap ("intervals on ... too soon after the lower-body day ...") or
+    the reason of an approved coach change. Who changed it is not exposed.
 - `kind`: `upper|lower|easy_run|intervals|long_run|rest`. `session.type` is `lifting`, `easy_run`,
   `long_run`, `intervals` or `rest` (see `examples/plan_week.json` for run / rest shapes).
 - Lifting exercises: `variant_id` links to the catalog (match with `variants`). An exercise the

@@ -5,17 +5,17 @@ enum CoachLogic {
     // MARK: Selection
 
     /// Only valid, still-proposed changes can be switched on.
-    static func isSelectable(_ change: CoachChangeDTO) -> Bool {
+    static func isSelectable(_ change: some CoachReviewable) -> Bool {
         change.valid && (change.status == .proposed || change.status == .unknown)
     }
 
     /// Default selection: every selectable change.
-    static func defaultSelection(_ changes: [CoachChangeDTO]) -> Set<String> {
-        Set(changes.filter(isSelectable).map(\.id))
+    static func defaultSelection(_ changes: [some CoachReviewable]) -> Set<String> {
+        Set(changes.filter { isSelectable($0) }.map(\.id))
     }
 
     /// Flip one change; invalid / unknown ids are ignored.
-    static func toggled(_ id: String, in selection: Set<String>, changes: [CoachChangeDTO]) -> Set<String> {
+    static func toggled(_ id: String, in selection: Set<String>, changes: [some CoachReviewable]) -> Set<String> {
         guard let change = changes.first(where: { $0.id == id }), isSelectable(change) else { return selection }
         var next = selection
         if next.contains(id) { next.remove(id) } else { next.insert(id) }
@@ -23,8 +23,33 @@ enum CoachLogic {
     }
 
     /// Ids to send, in the proposal's order, restricted to selectable changes.
-    static func approvalIds(selection: Set<String>, changes: [CoachChangeDTO]) -> [String] {
+    static func approvalIds(selection: Set<String>, changes: [some CoachReviewable]) -> [String] {
         changes.filter { isSelectable($0) && selection.contains($0.id) }.map(\.id)
+    }
+
+    // MARK: Selection across parameter and schedule changes
+
+    /// Every selectable parameter change and schedule change.
+    static func defaultSelection(of p: CoachProposalDTO) -> Set<String> {
+        defaultSelection(p.changes).union(defaultSelection(p.scheduleChanges))
+    }
+
+    static func toggled(_ id: String, in selection: Set<String>, proposal p: CoachProposalDTO) -> Set<String> {
+        if p.changes.contains(where: { $0.id == id }) { return toggled(id, in: selection, changes: p.changes) }
+        return toggled(id, in: selection, changes: p.scheduleChanges)
+    }
+
+    /// `change_ids` for approve: the selected parameter changes, then the selected schedule changes (each in the
+    /// proposal's order, no duplicates).
+    static func approvalIds(selection: Set<String>, proposal p: CoachProposalDTO) -> [String] {
+        var seen = Set<String>()
+        return (approvalIds(selection: selection, changes: p.changes) + approvalIds(selection: selection, changes: p.scheduleChanges))
+            .filter { seen.insert($0).inserted }
+    }
+
+    /// Selectable changes in both lists.
+    static func selectableCount(_ p: CoachProposalDTO) -> Int {
+        p.changes.filter { isSelectable($0) }.count + p.scheduleChanges.filter { isSelectable($0) }.count
     }
 
     // MARK: Polling

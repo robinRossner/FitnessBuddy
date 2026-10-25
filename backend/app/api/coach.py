@@ -7,7 +7,7 @@ POST /coach/proposals/{id}/approve   {"change_ids": [..]|null}  apply (all valid
 POST /coach/proposals/{id}/reject    {"note": str|null}
 POST /coach/ask                      {"scope","ref_id","question"}  202, answered in the background
 GET  /coach/history                  config versions with author, reason, diff and outcome
-GET  /coach/settings, PUT /coach/settings {"approval_mode"}
+GET  /coach/settings, PUT /coach/settings {"approval_mode"}   (+ provider, billing, model, ...)
 """
 
 from __future__ import annotations
@@ -21,12 +21,13 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.advisor import service
+from app.advisor import claude, service
 from app.advisor.serialize import history_json, proposal_json
 from app.api.auth import require_token
 from app.api.routes import get_db
 from app.db.models import AdvisorConsultation
 from app.jobs.advisor_jobs import run_consultation
+from app.settings import get_settings
 
 router = APIRouter(prefix="/api/v1/coach", dependencies=[Depends(require_token)])
 
@@ -62,6 +63,7 @@ def _errors() -> Iterator[None]:
 def _settings_json(db: Session) -> dict:
     s = service.coach_settings(db)
     return {
+        **claude.provider_status(get_settings()),
         "approval_mode": s.approval_mode,
         "api_key_configured": s.api_key_configured,
         "dry_run": s.dry_run,
