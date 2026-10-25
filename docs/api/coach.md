@@ -105,7 +105,10 @@ sent to Claude; for `awaiting_key` and `dry_run` proposals it is what *would* be
   into one proposal; its type is the most important one (stall > missed session > conflict > stagnation >
   anomaly),
   `title` says "(+N more)" and `detail` lists them. The engine's `deload` trigger is reported as
-  `data_anomaly`.
+  `data_anomaly`. Progression engine v2 (no new values here): the engine's `multi_lift_stall`
+  (>= 3 lifts stalled together; a soft deload + retest is already scheduled) is reported as
+  `lift_stall`, `fourth_run` (8 consistent weeks: a 4th run may be suggested) as
+  `running_stagnation`; the item's `engine_type` keeps the original name.
 - `question`, `diagnosis`, `notes_for_user`, `confidence` (`low|medium|high`) are `null` until Claude
   has answered (and stay `null` when it failed). `question` is only set for `ask`.
 - `changes[].from` is always the value the engine uses **now** (it replaces whatever Claude claimed);
@@ -340,6 +343,26 @@ against the earlier valid changes of the same answer.
 | `running.intervals.reps_start` / `reps_min` / `reps_max` | int 3..10, +-3, `reps_min <= reps_start <= reps_max` | +-1: **low**, +-2 medium, +-3 high |
 | `running.intervals.rep_distance_m` | 200..2000 in steps of 50, +-500 | medium; > 300: high |
 | `running.intervals.recovery_distance_m` | 100..800 in steps of 50, +-300 | medium; > 200: high |
+| `strength.stall_exposures_2x` | int 2..8, +-2 (clean sessions before a stall, lifts trained twice a week; `stall_exposures` is the once-a-week value) | medium |
+| `strength.stall_min_days` | int 7..28, +-7 | medium |
+| `strength.stall_reset_small_pct` | 2.5..10, +-2.5 (first stall-ladder step) | medium |
+| `strength.multi_stall_lifts` | int 2..6, +-2 | medium |
+| `strength.big_miss_reps` | int 2..5, +-1 | medium |
+| `strength.rung_min_reps` | int 6..10, +-1 | medium |
+| `strength.rep_ceiling_cap` | int 12..20, +-3 | medium |
+| `strength.deload.sets_pct` / `strength.deload.fatigue_index_pct` | 25..60, +-15 / +-10 | medium |
+| `running.interval_pace_tolerance_pct` | 1..6, +-2 | medium |
+| `running.volume.cap_abs_km` | 0..4, +-1 | medium; raising above 2: high |
+| `running.volume.single_run_factor` | 1.0..1.3, +-0.1 | medium; raising above 1.15: high |
+| `running.long_run.step_back_every` / `step_back_pct` / `drift_hold_pct` | int 3..6, +-1 / 10..30, +-10 / 3..10, +-2 | medium |
+| `running.vdot.max_step` / `max_per_4w` | 0.25..1.0, +-0.5 / 0.5..2.0, +-0.5 | medium; raising above 0.5 / 1.0: high |
+| `running.easy.strides.reps` | int 0..8, +-2 | **low** |
+| `running.threshold.reps_max` | int 3..8, +-2 | +-1 **low**, else medium / high |
+| `running.threshold.max_work_min` / `running.intervals.max_work_min` | 15..45, +-10 / 10..30, +-6 | medium |
+| `running.quality.phase_weeks.<threshold, threshold_vo2max, 5k_specific>` | int 4..16 / 2..12 / 2..10, +-4 | medium |
+
+`running.weekly_volume_floor_km` is a weekly **target** since the progression engine v2 (the cap
+grows toward it), not a floor. RIR / RPE are never parameters.
 
 Per-exercise overrides live in the config as `exercise_overrides.<slug>.{rep_range,sets,variant,rest_s}`;
 the engine applies them on top of `program.yaml` (which is never edited), so rolling the config back

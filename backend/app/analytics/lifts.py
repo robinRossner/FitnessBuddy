@@ -49,15 +49,16 @@ class Row:
 
 
 def _stall_resets(db: Session) -> dict[int, date]:
-    """Day of the latest stall reset the engine decided per variant (decisions_log), in one query
-    (same source as `engine.data.last_stall_reset`)."""
+    """Day of the latest stall-ladder reset the engine decided per variant (decisions_log
+    `output.ladder`, same source as `engine.data.load_ladder`), in one query."""
     out: dict[int, date] = {}
     q = (
         select(DecisionLog.subject_id, DecisionLog.output)
         .where(
             DecisionLog.kind == "progression",
             DecisionLog.subject_type == "variant",
-            func.json_extract(DecisionLog.output, "$.reset_day").is_not(None),
+            (func.json_extract(DecisionLog.output, "$.reset_day").is_not(None))
+            | (func.json_extract(DecisionLog.output, "$.ladder").is_not(None)),
         )
         .order_by(DecisionLog.id.desc())
     )
@@ -65,8 +66,11 @@ def _stall_resets(db: Session) -> dict[int, date]:
         if sid is None or not sid.isdigit() or int(sid) in out:
             continue
         o = output if isinstance(output, dict) else json.loads(output or "{}")
-        if o.get("reset_day") and o.get("reset_load") is not None:
-            out[int(sid)] = date.fromisoformat(o["reset_day"])
+        lad = o.get("ladder") or {}
+        if lad.get("day") and lad.get("step") in (1, 3):
+            out[int(sid)] = date.fromisoformat(lad["day"])
+        elif o.get("reset_day") and o.get("reset_load") is not None and "ladder" not in o:
+            continue  # engine v1 -10 % resets are converted to a retest (data.legacy_windows)
     return out
 
 

@@ -68,7 +68,11 @@ def volume_room(db: Session, cfg: EngineConfig, today: date, week_start: date) -
     runs = D.load_runs(db, today - timedelta(weeks=8), today)
     weekly = R.weekly_km(runs)
     cap = R.volume_cap_km(
-        weekly, week_start, rc.weekly_volume_cap_pct, floor_km=rc.weekly_volume_floor_km
+        weekly,
+        week_start,
+        rc.weekly_volume_cap_pct,
+        weeks_avg=rc.volume.mean_weeks,
+        abs_km=rc.volume.cap_abs_km,
     )
     if cap is None:
         return None

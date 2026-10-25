@@ -125,7 +125,7 @@ def test_moves_and_swaps_stay_inside_one_week_and_swap_needs_one_partner(planned
 def test_shorten_cuts_at_most_half_and_only_runs(planned, db):
     c = ctx_for(db)
     km = db_km(db, DAY["sun"])
-    assert km >= 8
+    assert km >= 3  # whatever the weekly cap left the long run
     ok = check(c, DAY["sun"], "shorten", "long", km=round(km * 0.6, 1))
     assert ok.valid and ok.risk == "low" and ok.label.startswith("Shorten long run Sun to ")
     too_much = check(c, DAY["sun"], "shorten", "long", km=round(km * 0.4, 1))

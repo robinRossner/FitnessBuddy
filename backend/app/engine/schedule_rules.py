@@ -226,10 +226,8 @@ def past_problem(moved: Iterable[Sess], today: date) -> str | None:
 def min_run_km(kind: str, cfg: EngineConfig) -> float:
     """The least the planner can shrink a run of this kind to (it never goes below this)."""
     rc = cfg.running_cfg
-    if kind == EASY:
-        return 3.0
-    if kind == LONG:
-        return rc.long_run.min_km
+    if kind in (EASY, LONG):
+        return rc.volume.min_run_km  # the planner shrinks easy and long runs to this under the cap
     if kind == INTERVALS:
         ic = rc.intervals
         work = (ic.reps_min * ic.rep_distance_m + (ic.reps_min - 1) * ic.recovery_distance_m) / 1000

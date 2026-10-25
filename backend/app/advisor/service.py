@@ -58,11 +58,15 @@ log = logging.getLogger(__name__)
 LIFT_STALL, RULE_CONFLICT, RUNNING_STAGNATION = "lift_stall", "rule_conflict", "running_stagnation"
 DATA_ANOMALY, WEEKLY_REVIEW, ASK = "data_anomaly", "weekly_review", "ask"
 MISSED_SESSION = "missed_session"
-# engine trigger type -> proposal trigger type (a deload is a recovery anomaly for the advisor)
+# engine trigger type -> proposal trigger type (a deload is a recovery anomaly for the advisor).
+# v2 engine types map onto the existing proposal types, so the coach API (and the iOS app) see
+# no new values: a multi-lift stall is a lift stall, a possible 4th run is a running topic.
 TRIGGER_MAP = {
     "lift_stall": LIFT_STALL,
+    "multi_lift_stall": LIFT_STALL,
     "rule_conflict": RULE_CONFLICT,
     "running_stagnation": RUNNING_STAGNATION,
+    "fourth_run": RUNNING_STAGNATION,
     "data_anomaly": DATA_ANOMALY,
     "deload": DATA_ANOMALY,
     "missed_session": MISSED_SESSION,
@@ -219,10 +223,37 @@ def _describe(row: AdvisorTrigger) -> tuple[str, str, dict[str, Any]]:
     t = row.type
     week = engine_service.monday(row.day).isoformat() if row.day else None
     if t == "lift_stall":
+        ask = {
+            "rep_range_or_variation": " The engine already tried a -5% reset: propose a rep "
+            "range change or a close variation.",
+            "smaller_increment_or_variation": " The next load step is too big a jump: a smaller "
+            "increment or a variation is needed.",
+            "ladder_exhausted": " The stall ladder is used up: decide on a variation, the rep "
+            "range or the sets.",
+        }.get(str(p.get("proposal")), "")
         return (
             f"Stalled lift: {p.get('variant', 'lift')}",
-            str(p.get("reason") or "No improvement of the best e1RM over the stall window."),
+            str(p.get("reason") or "No progress over the stall window.") + ask,
             {"kind": "lift", "id": str(p.get("variant_id") or row.subject_id)},
+        )
+    if t == "multi_lift_stall":
+        lifts = p.get("lifts") or []
+        win = p.get("window") or {}
+        return (
+            f"{len(lifts)} lifts stalled together",
+            f"{', '.join(lifts[:8])}. No per-lift resets: a soft deload week "
+            f"({win.get('start')} to {win.get('until')}, sets halved, loads kept), then a retest "
+            "of the old loads. Look for the shared cause (running load, sleep, food, stress, "
+            "copied or prefilled logs).",
+            {"kind": "week", "id": week},
+        )
+    if t == "fourth_run":
+        return (
+            "Ready for a 4th run?",
+            f"{p.get('weeks_consistent', 8)} consistent weeks, {p.get('mean_km_4w')} km/week, "
+            f"longest run {p.get('longest_km_4w')} km. Suggest an easy 30-40 min run (Thursday "
+            "after upper or Monday, never Tuesday) only if lifting does not suffer.",
+            {"kind": "week", "id": week},
         )
     if t == "running_stagnation":
         change = p.get("change_pct")
@@ -248,6 +279,12 @@ def _describe(row: AdvisorTrigger) -> tuple[str, str, dict[str, Any]]:
             {"kind": "week", "id": p.get("week_start") or week},
         )
     if t == "deload":
+        if p.get("reason") == "fatigue_index":
+            return (
+                "Deload week triggered",
+                "Many lifting sessions missed their reps two weeks in a row (fatigue index).",
+                {"kind": "week", "id": week},
+            )
         return (
             "Deload week triggered",
             f"{p.get('streak', 'Several')} red readiness days in a row.",
@@ -1028,7 +1065,7 @@ def _covered_subjects(db: Session) -> set[tuple[str, str | None]]:
         )
     ):
         for item in (c.trigger_info or {}).get("items") or []:
-            if item.get("engine_type") in ("lift_stall", "running_stagnation"):
+            if item.get("engine_type") in ("lift_stall", "running_stagnation", "fourth_run"):
                 out.add((item["engine_type"], item.get("subject")))
     return out
 

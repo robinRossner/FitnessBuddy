@@ -219,36 +219,60 @@ added weight; null when not meaningful). All set types are listed in set order; 
 `{"start": "2026-10-26", "days": [{"date", "sessions": [PlanItem...]}] x7}`. Days with nothing
 stored get a computed item with `"id": null, "status": "preview"` (not in `planned_sessions`).
 
-A lifting item, abridged (taken from the real engine output in `examples/plan_week.json`):
+A lifting item, abridged (taken from the real engine output in `examples/plan_week.json`; this
+week is the soft deload that replaced the v1 engine's planned -10 % resets):
 
 ```json
 {
   "id": "c6eaf326-5d7b-5713-bec2-e1db59b16e83", "date": "2026-10-26",
   "kind": "upper", "status": "proposed", "adaptive": true,
-  "adapts_on": ["your last performance on each lift", "today's readiness"],
-  "moved_from": null, "change_reason": null, "title": "Upper",
+  "adapts_on": ["your reps at each load", "today's readiness",
+                "censored misses (readiness, hard runs, breaks)", "stall ladder and deload weeks"],
+  "moved_from": null, "change_reason": null, "title": "Upper (deload)",
   "slot_id": "mon_upper", "template_kind": "upper",
-  "readiness": {"color": null, "known": false, "reason": "forecast not available yet"},
-  "adjustments": [], "notes": [], "config_version_id": 3,
-  "updated_at": "2026-10-25T07:23:42.537Z",
+  "readiness": {"color": "green", "known": false, "reason": "no data"},
+  "adjustments": [], "notes": [], "config_version_id": 8,
+  "updated_at": "2026-10-25T15:45:23.767Z",
   "session": {
     "type": "lifting", "kind": "upper", "gym": "Gym 3",
+    "deload": {"active": true, "from": "2026-10-26", "until": "2026-11-01",
+               "reason": "legacy_reset"},
     "exercises": [
       {"order": 2, "variant_id": 122, "variant_key": "634a70a4-b4fd-5a14-a86a-429cf78ff39e",
        "name": "Incline Bench Press (Smith Machine) @ Gym 3", "exercise": "incline_bench_press",
        "equipment_type": "smith", "load_convention": "total", "rep_range": [7, 12],
+       "effective_rep_range": [7, 12], "progression_state": "deload",
+       "progression_note": "deload week (several lifts stalled; replaces the planned -10% reset): 2 of 3 sets, same load; retest 80 kg after the deload",
        "rest_s": 120,
-       "sets": [{"index": 1, "set_type": "working", "target_weight": 70.0, "target_reps": 7},
-                {"index": 2, "set_type": "working", "target_weight": 70.0, "target_reps": 7},
-                {"index": 3, "set_type": "working", "target_weight": 70.0, "target_reps": 7}],
+       "sets": [{"index": 1, "set_type": "working", "target_weight": 80.0, "target_reps": 9},
+                {"index": 2, "set_type": "working", "target_weight": 80.0, "target_reps": 8}],
        "last": {"date": "2026-10-13", "best_e1rm": 104.0,
                 "sets": [{"weight": 80.0, "reps": 9, "duration_s": null},
-                         {"weight": 80.0, "reps": 8, "duration_s": null}]},
-       "rule": "stall_reset", "reason": "stall reset to 70 kg from 2026-10-26 not trained yet",
-       "flags": ["stall"]}
+                         {"weight": 80.0, "reps": 8, "duration_s": null},
+                         {"weight": 80.0, "reps": 7, "duration_s": null}]},
+       "rule": "deload:legacy_reset", "reason": "deload week (...) (2026-10-26 .. 2026-11-01)",
+       "flags": ["deload", "retest_pending"]}
     ]
   }
 }
+```
+
+The Friday quality session of the same week, abridged:
+
+```json
+{"type": "intervals", "total_km": 5.2, "phase": "threshold", "phase_week": 1,
+ "progression_note": "first threshold session of the cycle",
+ "structure": {
+   "session_type": "threshold",
+   "warmup": {"distance_km": 1.0, "hr": {"zone": "Z1-Z2", "low": 127, "high": 156, "basis": "lthr"}},
+   "work": {"reps": 3, "distance_m": 1000.0, "duration_s": 294, "pace_s_per_km": 294,
+            "pace_label": "4:54", "pace_range_s_per_km": [290.0, 298.0], "pace_tolerance_pct": 3.0,
+            "hr": {"zone": "Z4", "low": 166, "high": 173,
+                   "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)"}},
+   "recovery": {"distance_m": 240, "duration_s": 90.0, "type": "jog", "hr_drop_min_bpm": 12.0},
+   "cooldown": {"distance_km": 0.7}},
+ "progression": {"rule": "quality:start", "reason": "...", "lever": null, "vdot": 43.44,
+                 "last_session": null}}
 ```
 
 - Additive fields on **every** plan item (stored and preview, `/plan/today`, `/plan/week` and
@@ -257,11 +281,13 @@ A lifting item, abridged (taken from the real engine output in `examples/plan_we
   - `adaptive` (bool): `true` while the session is still open (`proposed`/`approved`/`preview`) and not
     a rest day: its content is recomputed on every engine run; `false` for done / skipped sessions and
     rest;
-  - `adapts_on` (`[str]`, empty when not adaptive): short phrases for the app, e.g. `["result of your
-    last interval session", "today's readiness", "weekly volume cap", "recovery after lower-body
-    days"]` (intervals), `["result of your last long run", "today's readiness", "weekly volume cap"]`
-    (long run), `["today's readiness", "weekly volume cap"]` (easy run), `["your last performance on
-    each lift", "today's readiness"]` (upper / lower);
+  - `adapts_on` (`[str]`, empty when not adaptive): short phrases for the app (free text, may change):
+    `["pace of your last quality session", "training phase (quality cycle)", "VDOT updates",
+    "today's readiness", "weekly volume cap", "recovery after lower-body days"]` (intervals),
+    `["your longest recent long run", "HR drift of the last long run", "step-back weeks", "today's
+    readiness", "weekly and single-run volume caps"]` (long run), `["today's readiness", "weekly and
+    single-run volume caps"]` (easy run), `["your reps at each load", "today's readiness", "censored
+    misses (readiness, hard runs, breaks)", "stall ladder and deload weeks"]` (upper / lower);
   - `moved_from` (`YYYY-MM-DD|null`): the original date if the session was moved or is a make-up;
   - `change_reason` (`str|null`): why, e.g. "Lower missed Tue → moved to Wed, replacing the easy run"
     (engine make-up), a recovery swap ("intervals on ... too soon after the lower-body day ...") or
@@ -279,6 +305,33 @@ A lifting item, abridged (taken from the real engine output in `examples/plan_we
   Timed exercises carry `target_duration_s` instead of reps. `target_weight` is in the variant's
   logged convention (per dumbbell for `per_hand`).
 - When the user logs a session against a plan item, set `planned_session_id` on the pushed session.
+- **Progression engine v2 (additive, optional; absent on plans made by older engines).** Rules and
+  sources: [decisions.md](../spec/decisions.md) "Progression engine v2".
+  - Lifting exercises: `effective_rep_range` (`[low, high]`: the rep range in force at this load;
+    the top may be raised up to 15 when the next load step is too big a jump, the "rung rule"),
+    `progression_state` (`progressing | grinding | stalled | deload | retest | rebuild`) and
+    `progression_note` (one short human sentence, e.g. "+1 rep per set: beat 10/9/8 @ 60 kg").
+    `rule` / `flags` gain new values (`double_progression:hold_noise`, `stall:reset_small`,
+    `stall:advisor`, `retest`, `deload:<reason>`, `return_after_break`, `rung_infeasible`; flags
+    `ceiling_raised`, `rung_infeasible`, `retest_pending`, `retest`, `break`, ...): display only.
+  - Lifting session: `deload` (`{active, from, until}` as before) gains `reason`
+    (`multi_lift_stall | fatigue_index | red_streak | legacy_reset`). A deload keeps the loads and
+    halves the sets (rounded up).
+  - Run sessions (`easy_run`, `intervals`, `long_run`): `phase` (`threshold | threshold_vo2max |
+    5k_specific | time_trial`), `phase_week` (int, 1-based) and `progression_note` (str).
+  - Intervals: `structure.session_type` (`threshold | vo2max | race_5k | time_trial`),
+    `structure.work.duration_s` (approximate seconds per rep), `structure.work.pace_tolerance_pct`,
+    `structure.work.hr.note`, `structure.recovery.duration_s` (seconds, null for distance-based
+    recoveries; `distance_m` stays, approximated from the duration for threshold reps). For a
+    `time_trial` `structure.recovery` is `null`. `progression` gains `lever` (`reps | rep_length |
+    recovery | pace | null`) and `vdot`; `progression.last_session` carries the pace-based
+    evaluation (`verdict`: `green | pass | pass_hard | fail | no_target`, `reps_on_pace`,
+    `pace_ok_share`, `last_rep_peak_hr`, `hr_safety_exceeded`, ...).
+  - Easy runs: `structure` = `{"strides": {"reps", "duration_s", "recovery_s", "note"}}` (the
+    `structure` key was intervals-only before; its `work` / `recovery` are absent here).
+    `last_easy_run` gains `exempt` (bool) and `notes` (`[str]`): the day after a lower-body
+    session an HR fail is shown as a note, not a fail.
+  - Long runs: `step_back` (bool) and `progression.drift` (`hold | cut | null`).
 
 ## Errors
 
@@ -309,12 +362,15 @@ All additive unless noted:
    later pull, not in the immediate one).
 9. Rest timers (additive): `rest_s` on lifting plan exercises and `config.lifting` in pull;
    endpoint in `docs/api/exercises.md`.
+10. Progression engine v2 (additive): the plan fields listed under "Plan JSON". Nothing was
+    removed or renamed; old plans simply lack them.
 
 ## Example fixtures
 
 Produced by `backend/scripts/gen_api_examples.py` (real endpoints via FastAPI `TestClient` against
-a copy of the real database, with "today" pinned to Monday 2026-10-26; the live database is not
-touched): `plan_today.json`, `plan_week.json`, `sync_pull.json` (snapshot; sessions trimmed to the
-newest 3, a `_note` key says so), `sync_pull_incremental.json` (changes caused by the example push),
+a copy of the real database, with "today" pinned to Monday 2026-10-26; the current engine is run on
+the copy first, so the plans show its output; the live database is not touched):
+`plan_today.json`, `plan_week.json`, `sync_pull.json` (snapshot; sessions trimmed to the newest 3,
+a `_note` key says so), `sync_pull_incremental.json` (changes caused by the example push),
 `sync_push_request.json`, `sync_push_response.json`, `variant_history.json`.
 Regenerate: `cd backend && uv run python -m scripts.gen_api_examples`.

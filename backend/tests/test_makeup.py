@@ -99,7 +99,7 @@ def test_missed_intervals_use_the_rest_day(world, db, env):
     assert sat.prescription["session"]["type"] == "intervals"
 
 
-def test_hard_rules_block_a_makeup_and_the_session_is_dropped_with_a_trigger(world, db, env):
+def test_hard_rules_block_a_run_makeup_and_the_session_is_dropped_and_repeated(world, db, env):
     long_base(world)
     plan(db, env, MON)
     world.lift_session(MON, "upper", [(world.bench, 60, [8, 8, 8])])
@@ -117,16 +117,10 @@ def test_hard_rules_block_a_makeup_and_the_session_is_dropped_with_a_trigger(wor
     d = decisions(db, "makeup:dropped")
     assert len(d) == 1 and "Intervals missed Fri → dropped: no valid slot" in d[0].rationale
     assert "never two hard days in a row" in d[0].rationale or "24 h rule" in d[0].rationale
-    trig = triggers(db)
-    assert len(trig) == 1 and trig[0].status == "open"
-    assert trig[0].dedupe_key == f"missed_session:{fri.id}"
-    assert trig[0].payload["missed"] == {
-        "date": FRI.isoformat(),
-        "kind": "intervals",
-        "title": fri.prescription["title"],
-    }
-    plan(db, env, SUN)  # idempotent: no second trigger, no second decision
-    assert len(triggers(db)) == 1 and len(decisions(db, "makeup:dropped")) == 1
+    assert "the same session is planned again next week" in d[0].rationale
+    assert not triggers(db)  # a dropped run simply repeats: no coach needed
+    plan(db, env, SUN)  # idempotent: no second decision
+    assert len(decisions(db, "makeup:dropped")) == 1
 
 
 def test_missed_easy_run_is_dropped_without_a_makeup(world, db, env):
@@ -152,7 +146,7 @@ def _long_on_tuesday(db):
     db.commit()
 
 
-def test_missed_long_run_moves_to_saturday_if_saturday_is_ahead(world, db, env):
+def test_missed_long_run_moves_at_most_one_day(world, db, env):
     long_base(world)
     _long_on_tuesday(db)
     plan(db, env, MON)
@@ -161,9 +155,20 @@ def test_missed_long_run_moves_to_saturday_if_saturday_is_ahead(world, db, env):
     res = plan(db, env, WED)
     long = [m for m in res.makeups.results if m.kind == "long_run"]
     assert [m.action for m in long] == ["moved"]
-    sat = row(db, MON, "sat_rest")
-    assert (sat.kind, sat.day, sat.moved_from) == ("long_run", SAT, TUE)
-    assert sat.change_reason == "Long run missed Tue → moved to Sat, using the rest day"
+    wed = row(db, MON, "wed_easy_run")
+    assert (wed.kind, wed.day, wed.moved_from) == ("long_run", WED, TUE)
+    assert wed.change_reason == "Long run missed Tue → moved to Wed, replacing the easy run"
+    assert row(db, MON, "sat_rest").kind == "rest"  # never further than one day
+
+
+def test_a_missed_run_is_dropped_when_the_next_day_is_gone(world, db, env):
+    long_base(world)
+    _long_on_tuesday(db)
+    plan(db, env, MON)
+    res = plan(db, env, THU)  # Tuesday's long run missed, Wednesday already over
+    long = [m for m in res.makeups.results if m.kind == "long_run"]
+    assert [m.action for m in long] == ["dropped"] and long[0].trigger is False
+    assert "nothing within 1 day" in long[0].reason and "planned again next week" in long[0].reason
 
 
 def test_missed_long_run_with_saturday_gone_is_dropped_and_next_long_run_does_not_progress(
@@ -173,11 +178,11 @@ def test_missed_long_run_with_saturday_gone_is_dropped_and_next_long_run_does_no
     long_km = row(db, MON, "sun_long_run").prescription["session"]["distance_km"]
     res = plan(db, env, NEXT_MON)  # the Sunday long run did not happen
     long = [m for m in res.makeups.results if m.kind == "long_run"]
-    assert [m.action for m in long] == ["dropped"] and long[0].trigger is True
-    assert "that week is over; the next long run does not progress" in long[0].reason
+    assert [m.action for m in long] == ["dropped"] and long[0].trigger is False
+    assert "that week is over; the same session is planned again next week" in long[0].reason
     nxt = row(db, NEXT_MON, "sun_long_run").prescription["session"]["distance_km"]
     assert nxt <= long_km  # planned from the last long run that happened: no step on top of it
-    assert any(t.payload["missed"]["kind"] == "long_run" for t in triggers(db))
+    assert not any(t.payload["missed"]["kind"] == "long_run" for t in triggers(db))
 
 
 def test_week_over_misses_older_than_a_week_get_no_trigger(world, db, env):
@@ -195,8 +200,9 @@ def test_interval_progression_does_not_advance_after_a_missed_interval_session(w
     nxt = row(db, NEXT_MON, "fri_intervals").prescription["session"]
     work = nxt["structure"]["work"]
     assert (work["reps"], work["pace_s_per_km"]) == (miss["reps"], miss["pace_s_per_km"])
-    # still derived from the last session that was actually run (2026-10-20), not from the plan
-    assert nxt["progression"]["last_session"]["date"] == "2026-10-20"
+    # the same session again: the levers and the phase week do not advance
+    assert nxt["progression"]["rule"] == "quality:repeat_missed"
+    assert nxt["phase_week"] == row(db, MON, "fri_intervals").prescription["session"]["phase_week"]
 
 
 def test_lift_targets_and_running_volume_use_what_was_actually_done(world, db, env):
@@ -228,4 +234,5 @@ def test_volume_cap_blocks_a_makeup_that_would_exceed_it(world, db, env):
     res = plan(db, env, SAT)
     assert [m.action for m in res.makeups.results] == ["dropped"]
     assert "weekly volume cap" in res.makeups.results[0].reason
-    assert len(triggers(db)) == 1
+    assert "planned again next week" in res.makeups.results[0].reason
+    assert not triggers(db)  # never made up in volume, and a dropped run needs no coach

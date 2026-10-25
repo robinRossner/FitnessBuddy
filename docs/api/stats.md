@@ -346,8 +346,9 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 - `intervals`: interval sessions (engine `split_intervals` / `evaluate_intervals`).
   `target_pace_s_per_km`: from the linked planned session, else the pace model's interval pace on
   that day. `target_hr_low/high`: the interval HR zone (z4 to z5a). `hr_in_range`, `recovery_ok`
-  (HR drop in the recovery laps vs `intervals.hr_recovery_min_bpm`) may be `null`.
-  `passed` is the engine's verdict.
+  (HR drop in the recovery laps vs `intervals.hr_recovery_min_bpm`) may be `null`; both are
+  context only. `passed` is the engine's verdict, judged by PACE since the progression engine v2
+  (>= 80 % of the reps within the tolerance, last rep <= 3 % slower than the first, all reps done).
 
 ## GET /runs/{run_id}/analysis
 
@@ -395,8 +396,8 @@ Works for any run id of `/api/v1/runs`. Examples: `stats_run_analysis_intervals.
       "avg_hr": 166.0,
       "max_hr": 171.0,
       "target_pace_s_per_km": 269.1,
-      "target_hr_low": 166,
-      "target_hr_high": 179,
+      "target_hr_low": 179,
+      "target_hr_high": 189,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -417,9 +418,11 @@ Works for any run id of `/api/v1/runs`. Examples: `stats_run_analysis_intervals.
   ],
   "verdict": {
     "passed": true,
-    "summary": "5 reps at 4:10/km, work HR 166: criteria met.",
+    "summary": "5 reps at 4:10/km, work HR 166: passed easily.",
     "reasons": [
-      "work HR 166 below the target zone (166)",
+      "5 of 5 reps on pace",
+      "last rep -1.7% vs the first",
+      "last rep peaked at 173 bpm: passed easily",
       "Reps ran ~7% faster than target 4:29/km; the target will catch up via VDOT"
     ]
   }
@@ -437,12 +440,17 @@ Works for any run id of `/api/v1/runs`. Examples: `stats_run_analysis_intervals.
   laps (unless the watch marked warm-up / cool-down).
 - Targets: `work` laps of an interval run get the target pace (`pace_ok` = true unless the
   lap is slower than the target by more than `running.interval_pace_tolerance_pct`, default 3 %;
-  running faster is always ok) and the interval HR zone (`hr_ok`). Laps of
+  running faster is always ok). HR is a safety ceiling only (v2): `target_hr_low` = the "passed
+  easily" line, `target_hr_high` = the ceiling of the planned session type (VO2max / 5k: 102 % /
+  108 % of LTHR, threshold: 95 % / 99 %), `hr_ok` = the lap's peak HR (max, else average) at or
+  below the ceiling. Laps of
   easy / long runs get the easy HR range (`hr_ok` = avg HR at or below the easy ceiling) and no
   pace target. Everything else is `null`.
-- `verdict.passed`: interval runs -> the engine's `evaluate_intervals` (work HR not above the zone,
-  recovery drop OK, all prescribed reps); easy / long -> `evaluate_easy_run` (avg HR at or below
-  the ceiling and enough time under it); `null` when there is nothing to judge (non-running
+- `verdict.passed`: interval runs -> the engine's `evaluate_intervals` (by pace: >= 80 % of the
+  reps on pace, a fade of at most 3 %, all prescribed reps; HR above the ceiling only turns the
+  summary into "on pace, but HR above the ceiling"); easy / long -> `evaluate_easy_run` (avg HR
+  at or below the ceiling and enough time under it; the day after a lower-body session an HR
+  miss is a note and `passed` stays true); `null` when there is nothing to judge (non-running
   activity, interval title without lap structure). `reasons` are the engine's messages; for a
   clean run they are short positive facts instead.
   If the average work pace is more than `running.interval_fast_flag_pct` (default 5 %) faster than

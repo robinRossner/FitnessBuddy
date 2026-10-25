@@ -1,18 +1,20 @@
-"""The weekly planner on synthetic plain data (no database)."""
+"""The weekly planner on synthetic plain data (no database), progression engine v2."""
 
 from datetime import date, timedelta
 
 import pytest
 
 from app.engine import lifting as L
+from app.engine import quality as Q
 from app.engine import running as R
+from app.engine import vdot as V
 from app.engine.config import load_engine_config
 from app.engine.planner import LiftContext, PlanInputs, VariantInfo, generate_week
 from app.engine.program import Program, ProgramExercise
 from app.engine.readiness import HealthDay
 from app.settings import BACKEND_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v3.yaml")
+CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v6.yaml")
 MON = date(2026, 10, 26)
 
 BENCH = VariantInfo(
@@ -159,14 +161,19 @@ def test_week_has_the_template_sessions_in_order():
     assert not plan.readiness.known and plan.readiness.reason == "no data"
 
 
-def test_lifting_prescription_has_targets_and_previous_performance():
+def test_lifting_prescription_has_targets_state_and_previous_performance():
     plan = generate_week(inputs())
     mon = day_of(plan, "mon_upper")
     assert sets_of(mon, "Bench") == [(60, 11), (60, 10), (60, 9)]  # last 10/9/8 -> +1
-    assert sets_of(mon, "Lat Pulldown") == [(55.0, 7)] * 3  # all 12 @ 50 -> next rung
+    # all 12 @ 50 -> next rung 55 (+10 %): Epley predicts ~8 reps there, not blindly 7
+    assert sets_of(mon, "Lat Pulldown") == [(55.0, 8)] * 3
     bench = mon.prescription["exercises"][0]
     assert bench["last"]["sets"][0] == {"weight": 60, "reps": 10, "duration_s": None}
     assert bench["rep_range"] == [7, 12] and bench["rule"] == "double_progression:add_reps"
+    assert bench["effective_rep_range"] == [7, 12] and bench["progression_state"] == "grinding"
+    assert bench["progression_note"].startswith("+1 rep per set")
+    pull = mon.prescription["exercises"][1]
+    assert pull["progression_state"] == "progressing" and "Epley" in pull["progression_note"]
     assert mon.prescription["gym"] == "Gym 3"
 
 
@@ -178,28 +185,130 @@ def test_both_upper_days_use_the_same_program():
     ]
 
 
-def test_interval_session_prescription_from_last_session():
+def test_rung_rule_shows_the_raised_rep_ceiling_in_the_plan():
+    stack = VariantInfo(
+        2,
+        "k2",
+        "Lat Pulldown (Cable) @ Gym 3",
+        "Lat Pulldown (Cable)",
+        "lat_pulldown",
+        "Lat Pulldown",
+        "cable",
+        "total",
+        [40.0, 46.0],
+    )
+    d = MON - timedelta(days=4)
+    ctx = LiftContext(
+        stack, [expo(d - timedelta(days=3), 40, [11, 11, 11]), expo(d, 40, [12, 12, 12])]
+    )
+    plan = generate_week(inputs(lifts=lifts(**{"Lat Pulldown (Cable)": ctx})))
+    ex = day_of(plan, "mon_upper").prescription["exercises"][1]
+    assert ex["effective_rep_range"] == [7, 14] and sets_of(day_of(plan, "mon_upper"), "Lat")[
+        0
+    ] == (40, 13)
+    assert "ceiling 14" in ex["progression_note"]
+
+
+# --------------------------------------------------------------------------- running
+
+
+def test_first_quality_session_starts_the_threshold_phase():
     plan = generate_week(inputs())
     fri = day_of(plan, "fri_intervals")
-    work = fri.prescription["structure"]["work"]
-    assert work["reps"] == 6 and work["distance_m"] == 1000  # last session: 5 reps, passed
-    assert work["pace_s_per_km"] == 250 and work["hr"] == {
-        "zone": "Z4-Z5a",
-        "low": 166,
-        "high": 179,
-    }
-    assert fri.prescription["structure"]["recovery"]["distance_m"] == 400
-    assert fri.prescription["progression"]["rule"] == "intervals:add_rep"
-    assert fri.title.startswith("Intervals 6x1000")
+    pres = fri.prescription
+    work = pres["structure"]["work"]
+    assert pres["structure"]["session_type"] == "threshold"
+    assert (pres["phase"], pres["phase_week"]) == ("threshold", 1)
+    assert work["reps"] == 3 and work["distance_m"] == 1000
+    assert 280 < work["pace_s_per_km"] < 310  # T pace, ~5:00/km for VDOT ~42
+    assert pres["structure"]["recovery"]["duration_s"] == 90
+    assert pres["progression"]["rule"] == "quality:start" and pres["progression_note"]
+    assert fri.title.startswith("Threshold 3x1000")
+    assert work["hr"]["zone"] == "Z4" and "ceiling" in work["hr"]["note"]
 
 
-def test_easy_and_long_run_targets():
+def quality_inputs(pace: float = 300.0, reps: int = 3, **kw):
+    last_fri = MON - timedelta(days=3)
+    log = [Q.QualityRecord(last_fri, "threshold", reps, 1000, 90, pace)]
+    return inputs(quality_log=log, cycle_start=MON - timedelta(weeks=1), **kw)
+
+
+def test_quality_session_passed_on_pace_adds_one_rep():
+    plan = generate_week(quality_inputs())  # reps ran at 4:10 vs 5:00: faster is fine
+    pres = day_of(plan, "fri_intervals").prescription
+    assert pres["structure"]["work"]["reps"] == 4
+    assert (
+        pres["progression"]["rule"] == "quality:add_rep" and pres["progression"]["lever"] == "reps"
+    )
+    assert pres["progression_note"] == "+1 rep: last session passed on pace"
+    assert (pres["phase"], pres["phase_week"]) == ("threshold", 2)
+    assert pres["progression"]["last_session"]["verdict"] == "pass"
+
+
+def test_quality_session_missing_the_pace_is_repeated():
+    plan = generate_week(quality_inputs(pace=240))  # target 4:00, reps ran 4:10 (+4 %)
+    pres = day_of(plan, "fri_intervals").prescription
+    assert (
+        pres["structure"]["work"]["reps"] == 3 and pres["progression"]["rule"] == "quality:repeat"
+    )
+    assert pres["progression"]["last_session"]["verdict"] == "fail"
+
+
+def test_a_missed_quality_session_is_repeated_and_the_phase_waits():
+    last_fri = MON - timedelta(days=3)
+    log = [Q.QualityRecord(last_fri, "threshold", 4, 1000, 90, 300)]
+    runs = [r for r in runs_history() if r.day != last_fri]
+    plan = generate_week(inputs(quality_log=log, runs=runs, cycle_start=MON - timedelta(weeks=1)))
+    pres = day_of(plan, "fri_intervals").prescription
+    assert (
+        pres["structure"]["work"]["reps"] == 4
+        and pres["progression"]["rule"] == "quality:repeat_missed"
+    )
+    assert pres["phase_week"] == 1
+
+
+def test_easy_run_has_strides_and_phase_fields():
     plan = generate_week(inputs())
     easy = day_of(plan, "wed_easy_run").prescription
     assert easy["hr"]["high"] == 156 and easy["hr"]["low"] == 127 and easy["distance_km"] == 7
+    assert (
+        easy["structure"]["strides"]["reps"] == 6
+        and easy["structure"]["strides"]["duration_s"] == 20
+    )
+    assert easy["phase"] == "threshold" and "strides" in easy["progression_note"]
     assert easy["last_easy_run"]["passed"] is True
     long = day_of(plan, "sun_long_run").prescription
     assert long["distance_km"] >= 10 and long["hr"]["high"] == 156
+    assert long["progression_note"] and long["step_back"] is False
+
+
+def test_wednesday_easy_run_after_tuesday_legs_is_exempt_from_a_hard_hr_fail():
+    tue = MON - timedelta(days=6)
+    hot = easy_run(tue + timedelta(days=1), 7, hr=162)
+    runs = [r for r in runs_history() if r.day < hot.day] + [hot]
+    plan = generate_week(inputs(runs=runs, actual_lower_days={tue}))
+    last = day_of(plan, "wed_easy_run").prescription["last_easy_run"]
+    assert last["date"] == hot.day.isoformat() and last["passed"] and last["exempt"]
+    assert last["notes"]
+    plain = generate_week(inputs(runs=runs))
+    assert not day_of(plain, "wed_easy_run").prescription["last_easy_run"]["passed"]
+
+
+def test_no_quality_session_in_the_first_week_back_after_a_long_break():
+    runs = [easy_run(MON - timedelta(days=40), 8), easy_run(MON - timedelta(days=20), 6)]
+    plan = generate_week(inputs(runs=runs))
+    fri = day_of(plan, "fri_intervals")
+    assert fri.kind == "easy_run" and "back after a break" in fri.title
+    assert fri.prescription["structure"]["strides"]["reps"] == 6
+
+
+def test_vdot_initial_record_is_logged_once():
+    plan = generate_week(inputs())
+    rec = [d for d in plan.decisions if d.rule == "running:vdot"]
+    assert rec and rec[0].output["vdot_record"]["source"] == "initial"
+    again = generate_week(inputs(vdot_log=[V.VdotRecord(MON - timedelta(days=1), 42.0, "initial")]))
+    assert not [d for d in again.decisions if d.rule == "running:vdot"]
+    assert again.pace["vdot"] == 42.0  # the stored record wins over the fit
 
 
 def test_decisions_are_logged_with_rules_and_inputs():
@@ -207,9 +316,11 @@ def test_decisions_are_logged_with_rules_and_inputs():
     kinds = {(d.kind, d.rule) for d in plan.decisions}
     assert ("progression", "double_progression:add_reps") in kinds
     assert ("progression", "double_progression:increase_load") in kinds
-    assert ("running", "intervals:add_rep") in kinds and ("readiness", "readiness:score") in kinds
+    assert ("running", "quality:start") in kinds and ("readiness", "readiness:score") in kinds
+    assert ("running", "running:quality_phase") in kinds
     prog = next(d for d in plan.decisions if d.kind == "progression" and d.subject_id == "2")
     assert prog.inputs["rep_range"] == [7, 12] and prog.output["sets"] and prog.rationale
+    assert prog.output["state"] == "progressing" and "censored" in prog.inputs
 
 
 # readiness adjustments
@@ -222,12 +333,11 @@ def test_yellow_today_drops_a_set_and_turns_nothing_else():
     assert len(sets_of(mon, "Bench")) == 2 and len(sets_of(mon, "Lat")) == 2
     assert mon.adjustments and "-1 working set" in mon.adjustments[0] and "(-1 set)" in mon.title
     assert mon.readiness["color"] == "yellow" and "HRV" in mon.readiness["reason"]
-    # other days are forecasts: no adjustment, readiness unknown
     thu = day_of(plan, "thu_upper")
     assert len(sets_of(thu, "Bench")) == 3 and thu.readiness["color"] is None
 
 
-def test_yellow_converts_intervals_to_easy_run_on_that_day():
+def test_yellow_converts_the_quality_session_to_easy_plus_strides():
     fri = MON + timedelta(days=4)
     p = generate_week(
         inputs(
@@ -239,10 +349,8 @@ def test_yellow_converts_intervals_to_easy_run_on_that_day():
     )
     day = day_of(p, "fri_intervals")
     assert day.kind == "easy_run" and day.prescription["converted_from"]["kind"] == "intervals"
-    assert (
-        "intervals replaced by an easy run" in day.adjustments[0]
-        and day.prescription["hr"]["high"] == 156
-    )
+    assert "easy + strides" in day.adjustments[0] and day.prescription["hr"]["high"] == 156
+    assert day.prescription["structure"]["strides"]["reps"] == 6
 
 
 def test_red_today_replaces_lifting_by_rest_and_flags_conflict_when_progression_wants_more():
@@ -251,22 +359,21 @@ def test_red_today_replaces_lifting_by_rest_and_flags_conflict_when_progression_
     mon = day_of(plan, "mon_upper")
     assert plan.readiness.color == "red" and mon.kind == "rest"
     assert mon.prescription["type"] == "rest" and mon.prescription["original"]["kind"] == "upper"
-    assert "mobility" in mon.prescription["optional"]
-    # lat pulldown was due to go up (12/12/12) while readiness says red
     conflicts = [t for t in plan.triggers if t.type == "rule_conflict"]
     assert conflicts and "Lat Pulldown (Cable) @ Gym 3" in conflicts[0].payload["items"]
-    assert any(d.kind == "conflict" for d in plan.decisions)
 
 
 def test_red_turns_hard_run_into_short_easy_run_or_rest():
     fri = MON + timedelta(days=4)
     p = generate_week(
-        inputs(today=fri, health=health(HealthDay(fri, resting_hr=53, hrv_ms=52, sleep_s=8 * 3600)))
+        quality_inputs(
+            today=fri, health=health(HealthDay(fri, resting_hr=53, hrv_ms=52, sleep_s=8 * 3600))
+        )
     )
     day = day_of(p, "fri_intervals")
     assert day.kind == "easy_run" and day.prescription["distance_km"] == 4
     assert day.prescription["alternative"] == "rest"
-    assert any(t.type == "rule_conflict" for t in p.triggers)  # intervals wanted to progress
+    assert any(t.type == "rule_conflict" for t in p.triggers)  # the session wanted +1 rep
 
 
 def test_unknown_readiness_changes_nothing():
@@ -274,7 +381,7 @@ def test_unknown_readiness_changes_nothing():
     assert all(not d.adjustments for d in plan.days)
 
 
-# deload / stall / anomaly
+# deloads, stalls, anomalies
 
 
 def red_history(n_days: int) -> list[HealthDay]:
@@ -287,18 +394,22 @@ def red_history(n_days: int) -> list[HealthDay]:
     return out
 
 
-def test_four_red_days_trigger_a_deload_week():
+def test_four_red_days_trigger_a_reactive_deload_with_loads_kept():
     hist = [
         *red_history(4),
         HealthDay(MON, resting_hr=69, hrv_ms=35, sleep_s=8 * 3600, sleep_score=85),
     ]
     plan = generate_week(inputs(today=MON, health=hist))
-    thu = day_of(plan, "thu_upper")  # inside the 7-day window, readiness itself unknown
-    assert thu.prescription["deload"]["active"]
-    assert len(sets_of(thu, "Bench")) == 2 and "deload" in thu.title
-    assert sets_of(thu, "Bench")[0][0] < 60  # lighter than the 60 kg of last time
-    deload_trigger = [t for t in plan.triggers if t.type == "deload"]
-    assert deload_trigger and any(d.kind == "deload" for d in plan.decisions)
+    thu = day_of(plan, "thu_upper")
+    assert (
+        thu.prescription["deload"]["active"]
+        and thu.prescription["deload"]["reason"] == "red_streak"
+    )
+    assert sets_of(thu, "Bench") == [(60, 10), (60, 9)]  # half the sets (rounded up), same load
+    assert "deload" in thu.title
+    assert [e["progression_state"] for e in thu.prescription["exercises"]] == ["deload"] * 2
+    assert [t for t in plan.triggers if t.type == "deload"]
+    assert any(d.kind == "deload" for d in plan.decisions)
 
 
 def test_three_red_days_is_no_deload():
@@ -306,20 +417,106 @@ def test_three_red_days_is_no_deload():
     assert not any(t.type == "deload" for t in plan.triggers)
 
 
-def test_stalled_lift_resets_load_and_creates_advisor_trigger():
-    d = MON - timedelta(days=20)
-    hist = [expo(d + timedelta(days=3 * i), 60, [10, 9, 9], e1rm=80.0 - i) for i in range(5)]
+def stalled(weight: float, start: date, n=6, step=3.5, reps=(10, 9, 9)) -> list[L.Exposure]:
+    return [
+        expo(
+            start + timedelta(days=round(i * step)), weight, list(reps), weight * (1 + reps[0] / 30)
+        )
+        for i in range(n)
+    ]
+
+
+def test_one_stalled_lift_takes_the_first_ladder_step():
+    hist = stalled(60, MON - timedelta(days=21))
     plan = generate_week(inputs(lifts=lifts(**{"Bench Press (Barbell)": LiftContext(BENCH, hist)})))
     mon = day_of(plan, "mon_upper")
-    assert sets_of(mon, "Bench") == [(50.0, 7)] * 3
-    stall = [t for t in plan.triggers if t.type == "lift_stall"]
-    assert (
-        len(stall) == 1
-        and stall[0].payload["variant"] == BENCH.name
-        and stall[0].dedupe_key == f"lift_stall:1:{MON}"
+    assert [w for w, _r in sets_of(mon, "Bench")] == [55.0] * 3  # 60 x 0.95 -> 55 on the grid
+    ex = mon.prescription["exercises"][0]
+    assert ex["progression_state"] == "rebuild" and ex["rule"] == "stall:reset_small"
+    dec = next(x for x in plan.decisions if x.rule == "stall:reset_small")
+    assert dec.output["ladder"] == {
+        "day": MON.isoformat(),
+        "step": 1,
+        "load": 55.0,
+        "peak_e1rm": 80.0,
+        "from_load": 60.0,
+    }
+    thu = next(
+        x for x in plan.decisions if x.rule == "stall:reset_small" and x.slot_id == "thu_upper"
     )
-    dec = next(x for x in plan.decisions if x.rule == "stall_reset")
-    assert dec.output["reset_load"] == 50.0 and dec.output["reset_day"] == MON.isoformat()
+    assert thu.output["ladder"]["day"] == MON.isoformat()  # one ladder step for the week
+    assert not [t for t in plan.triggers if t.type == "lift_stall"]  # step 1 needs no coach
+
+
+def test_second_stall_asks_the_coach_for_a_rep_range_or_variation():
+    hist = stalled(60, MON - timedelta(days=50)) + stalled(55, MON - timedelta(days=21))
+    ladder = [L.LadderEvent(MON - timedelta(days=21), 1, 55.0, 80.0, 60.0)]
+    ctx = LiftContext(BENCH, hist, ladder)
+    plan = generate_week(inputs(lifts=lifts(**{"Bench Press (Barbell)": ctx})))
+    ex = day_of(plan, "mon_upper").prescription["exercises"][0]
+    assert ex["progression_state"] == "stalled" and ex["rule"] == "stall:advisor"
+    trig = [t for t in plan.triggers if t.type == "lift_stall"]
+    assert len(trig) == 1 and trig[0].payload["proposal"] == "rep_range_or_variation"
+
+
+def test_three_stalled_lifts_become_one_soft_deload_and_a_retest():
+    d0 = MON - timedelta(days=21)
+    squat_hist = stalled(90, MON - timedelta(days=34), n=5, step=7)  # Tuesdays, no runs before
+    ctxs = {
+        "Bench Press (Barbell)": LiftContext(BENCH, stalled(60, d0)),
+        "Lat Pulldown (Cable)": LiftContext(PULL, stalled(50, d0)),
+        "Squat (Barbell)": LiftContext(SQUAT, squat_hist),
+    }
+    plan = generate_week(inputs(lifts=ctxs))
+    mon, tue = day_of(plan, "mon_upper"), day_of(plan, "tue_lower")
+    assert mon.prescription["deload"]["reason"] == "multi_lift_stall"
+    assert sets_of(mon, "Bench") == [(60, 10), (60, 9)]  # no -5 %: half the sets, same load
+    assert sets_of(tue, "Squat") == [(90, 10), (90, 9)]
+    assert not any(d.rule.startswith("stall:") for d in plan.decisions)
+    trig = [t for t in plan.triggers if t.type == "multi_lift_stall"]
+    assert len(trig) == 1 and len(trig[0].payload["lifts"]) == 3
+    win = next(d for d in plan.decisions if d.rule == "deload:multi_lift_stall").output["window"]
+    assert win["start"] == MON.isoformat() and win["until"] == (MON + timedelta(days=6)).isoformat()
+    assert win["retest"]["1"]["load"] == 60
+    # next week: the retest of the old loads
+    w = L.DeloadWindow(
+        MON,
+        MON + timedelta(days=6),
+        "multi_lift_stall",
+        {1: L.Retest(60, (10, 9, 9)), 2: L.Retest(50, (10, 9, 9)), 3: L.Retest(90, (10, 9, 9))},
+    )
+    nxt = MON + timedelta(days=7)
+    plan2 = generate_week(inputs(lifts=ctxs, windows=[w], today=nxt, week_start=nxt))
+    mon2 = day_of(plan2, "mon_upper")
+    assert sets_of(mon2, "Bench") == [(60, 11), (60, 10), (60, 10)]
+    assert mon2.prescription["exercises"][0]["progression_state"] == "retest"
+    assert not [t for t in plan2.triggers if t.type == "multi_lift_stall"]
+
+
+def test_fatigue_index_two_weeks_in_a_row_triggers_a_reactive_deload():
+    def falling(weight, start, step):
+        out = [
+            expo(start, weight, [12, 11, 11]),
+            expo(start + timedelta(days=3), weight, [12, 11, 11]),
+        ]
+        reps = [11, 11, 10]
+        for i in range(4):
+            day = MON - timedelta(days=14) + timedelta(days=round(i * step))
+            reps = [max(r - 1, 1) if j == i % 3 else r for j, r in enumerate(reps)]
+            out.append(expo(day, weight, list(reps)))
+        return out
+
+    ctxs = {
+        "Bench Press (Barbell)": LiftContext(BENCH, falling(60, MON - timedelta(days=24), 3.5)),
+        "Lat Pulldown (Cable)": LiftContext(PULL, falling(50, MON - timedelta(days=24), 3.5)),
+        "Squat (Barbell)": LiftContext(SQUAT, [expo(MON - timedelta(days=13), 90, [10, 10, 9])]),
+    }
+    plan = generate_week(inputs(lifts=ctxs))
+    mon = day_of(plan, "mon_upper")
+    assert mon.prescription["deload"]["reason"] == "fatigue_index"
+    assert [
+        t for t in plan.triggers if t.type == "deload" and t.payload["reason"] == "fatigue_index"
+    ]
 
 
 def test_hrv_anomaly_trigger():
@@ -336,18 +533,68 @@ def test_hrv_anomaly_trigger():
     assert any(t.type == "data_anomaly" for t in plan.triggers)
 
 
-# volume, frozen, missing
+# volume, long run, frozen, missing
 
 
-def test_weekly_volume_cap_trims_the_long_run():
-    heavy = [
-        easy_run(MON - timedelta(days=7 * w - 2), 6) for w in range(1, 5)
-    ]  # only 6 km/week before
-    plan = generate_week(inputs(runs=heavy))
-    total = sum(plan.volume["planned_km"].values())
-    assert plan.volume["cap_km"] == pytest.approx(6.6)
-    assert plan.volume["notes"] and total <= 7 + 9.5 + 8  # trimmed, but never below the minimums
-    assert day_of(plan, "sun_long_run").prescription["distance_km"] >= 8
+def test_weekly_cap_from_the_4_week_mean_and_the_18_km_target():
+    light = [easy_run(MON - timedelta(days=7 * w - 2), 6) for w in range(1, 5)]  # 6 km/week
+    plan = generate_week(inputs(runs=light))
+    v = plan.volume
+    assert v["cap_km"] == pytest.approx(8.0)  # max(6 x 1.1, 6 + 2)
+    assert v["mean_km_4w"] == 6.0 and v["target_km"] == 18 and v["single_run_cap_km"] == 6.6
+    assert "target 18 km/week is reached step by step" in v["reasoning"]
+    assert sum(v["planned_km"].values()) <= 8.0 + 4.5  # quality minimum + the 3 km floors
+    long = day_of(plan, "sun_long_run").prescription["distance_km"]
+    assert long <= 6.6  # never above 1.1 x the longest run of 30 days
+
+
+def test_cap_below_the_template_minimum_raises_a_rule_conflict_trigger():
+    light = [easy_run(MON - timedelta(days=7 * w - 2), 3) for w in range(1, 5)]
+    plan = generate_week(inputs(runs=light))
+    conflicts = [
+        t for t in plan.triggers if t.type == "rule_conflict" and "volume_cap" in t.dedupe_key
+    ]
+    assert conflicts and conflicts[0].payload["cap_km"] == pytest.approx(5.0)
+
+
+def test_long_run_step_back_every_fourth_week():
+    plan = generate_week(inputs(cycle_start=MON - timedelta(weeks=3)))
+    long = day_of(plan, "sun_long_run").prescription
+    assert long["step_back"] is True and "step-back week" in long["progression_note"]
+    assert long["distance_km"] == 8.0  # longest recent 11 km x 0.75 -> 8.0 (0.5 km grid)
+    plan = generate_week(
+        inputs(cycle_start=MON - timedelta(weeks=3), last_step_back=MON - timedelta(weeks=1))
+    )
+    assert day_of(plan, "sun_long_run").prescription["step_back"] is False
+
+
+def test_long_run_step_back_moves_into_a_lifting_deload_week():
+    hist = [
+        *red_history(4),
+        HealthDay(MON, resting_hr=69, hrv_ms=35, sleep_s=8 * 3600, sleep_score=85),
+    ]
+    p = generate_week(inputs(health=hist, cycle_start=MON - timedelta(weeks=2)))
+    long = day_of(p, "sun_long_run").prescription
+    assert (
+        long["step_back"] is True and "aligned with the lifting deload" in long["progression_note"]
+    )
+
+
+def test_fourth_run_is_suggested_after_eight_consistent_weeks():
+    runs = []
+    for w in range(1, 9):
+        mon = MON - timedelta(days=7 * w)
+        runs += [
+            easy_run(mon + timedelta(days=2), 8),
+            interval_run(mon + timedelta(days=4)),
+            easy_run(mon + timedelta(days=6), 14),
+        ]
+    plan = generate_week(inputs(runs=sorted(runs, key=lambda r: r.day)))
+    trig = [t for t in plan.triggers if t.type == "fourth_run"]
+    assert trig and trig[0].payload["mean_km_4w"] >= 28
+    assert len(plan.days) == 7  # suggested to the coach, never added
+    few = generate_week(inputs(runs=sorted(runs, key=lambda r: r.day)[3:]))
+    assert not [t for t in few.triggers if t.type == "fourth_run"]
 
 
 def test_frozen_and_past_slots_are_not_regenerated():
@@ -385,81 +632,25 @@ def test_stagnating_efficiency_creates_trigger():
     assert any(t.type == "running_stagnation" for t in plan.triggers)
 
 
-def test_cap_below_the_template_minimum_raises_a_rule_conflict_trigger():
-    light = [easy_run(MON - timedelta(days=7 * w - 2), 6) for w in range(1, 5)]
-    plan = generate_week(inputs(runs=light))
-    conflicts = [
-        t for t in plan.triggers if t.type == "rule_conflict" and "volume_cap" in t.dedupe_key
-    ]
-    assert conflicts and conflicts[0].payload["cap_km"] == pytest.approx(6.6)
-
-
 def cfg_with(**running) -> object:
     raw = CFG.model_dump(mode="json")
     raw["running"] = {**CFG.running, **running}
     return CFG.__class__.model_validate(raw)
 
 
-def light_runs() -> list[R.RunData]:
-    return [interval_run(MON - timedelta(days=5))]  # last week: one 5-rep session (8.6 km)
+def test_quality_session_keeps_full_size_when_the_budget_is_roomy():
+    plan = generate_week(quality_inputs())
+    s = day_of(plan, "fri_intervals").prescription["structure"]
+    assert s["work"]["reps"] == 4 and s["warmup"]["distance_km"] == 2.0
+    assert s["cooldown"]["distance_km"] == 1.5
 
 
-def intervals_of(plan):
-    return day_of(plan, "fri_intervals")
-
-
-def test_volume_floor_replaces_a_tiny_cap():
-    weekly = {MON - timedelta(days=7): 6.0}
-    assert R.volume_cap_km(weekly, MON, 10) == pytest.approx(6.6)
-    assert R.volume_cap_km(weekly, MON, 10, floor_km=18) == 18
-    assert R.volume_cap_km({MON - timedelta(days=7): 30.0}, MON, 10, floor_km=18) == pytest.approx(
-        33
-    )
-    assert R.volume_cap_km({}, MON, 10, floor_km=18) == 18 and R.volume_cap_km({}, MON, 10) is None
-
-
-def test_interval_session_keeps_full_size_when_the_budget_is_roomy():
-    plan = generate_week(inputs(cfg=cfg_with(weekly_volume_floor_km=40), runs=light_runs()))
-    s = intervals_of(plan).prescription["structure"]
-    assert (
-        s["work"]["reps"] == 6
-        and s["warmup"]["distance_km"] == 2.0
-        and s["cooldown"]["distance_km"] == 1.5
-    )
-
-
-def test_warmup_and_cooldown_shrink_to_fit_the_interval_share():
-    # cap 21, minus easy 3 and long 8 -> 10 km for intervals: 6 x 1000 (8.0 km) + 2.0 km of wu/cd
-    plan = generate_week(inputs(cfg=cfg_with(weekly_volume_floor_km=21), runs=light_runs()))
-    pres = intervals_of(plan).prescription
-    assert pres["structure"]["work"]["reps"] == 6
-    wu, cd = (
-        pres["structure"]["warmup"]["distance_km"],
-        pres["structure"]["cooldown"]["distance_km"],
-    )
-    assert wu < 2.0 and cd < 1.5 and wu >= 1.0 and cd >= 0.5
-    assert pres["total_km"] == pytest.approx(10.0, abs=0.05)
-    assert "shortened" in pres["progression"]["reason"]
-
-
-def test_extra_rep_is_dropped_when_even_minimal_warmup_does_not_fit():
-    # cap 18 -> 7 km: 6 reps (8.0 km) cannot fit, so the last session's 5 reps are kept
-    plan = generate_week(inputs(cfg=cfg_with(weekly_volume_floor_km=18), runs=light_runs()))
-    pres = intervals_of(plan).prescription
-    assert pres["structure"]["work"]["reps"] == 5
-    assert pres["progression"]["rule"] == "intervals:volume_hold"
-    assert "keep 5 reps" in pres["progression"]["reason"]
-    assert (
-        pres["structure"]["warmup"]["distance_km"] == 1.0
-        and pres["structure"]["cooldown"]["distance_km"] == 0.5
-    )
-    dec = next(d for d in plan.decisions if d.rule == "intervals:volume_hold")
-    assert "weekly cap" in dec.rationale
-    assert plan.volume["cap_km"] == 18
-
-
-def test_floor_cap_from_config_applies_to_the_whole_week():
-    plan = generate_week(inputs(cfg=cfg_with(weekly_volume_floor_km=18), runs=light_runs()))
-    assert plan.volume["cap_km"] == 18
-    easy, long = plan.volume["planned_km"]["easy_run"], plan.volume["planned_km"]["long_run"]
-    assert easy == 3 and long == 8  # minimums
+def test_warmup_and_cooldown_shrink_and_the_extra_rep_waits_when_the_cap_is_tight():
+    runs = [interval_run(MON - timedelta(days=3))]  # ~8.6 km last week only: cap ~ 4.15 km
+    log = [Q.QualityRecord(MON - timedelta(days=3), "threshold", 3, 1000, 90, 300)]
+    plan = generate_week(inputs(runs=runs, quality_log=log, cycle_start=MON - timedelta(weeks=1)))
+    pres = day_of(plan, "fri_intervals").prescription
+    assert pres["structure"]["work"]["reps"] == 3
+    assert pres["progression"]["rule"] == "quality:volume_hold"
+    assert pres["structure"]["warmup"]["distance_km"] == 1.0
+    assert pres["structure"]["cooldown"]["distance_km"] == 0.5

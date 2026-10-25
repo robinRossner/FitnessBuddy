@@ -125,7 +125,8 @@ def test_volume_problem_only_when_the_change_adds_minimum_km():
     after = apply_edits(before, [Edit("s0", kind="intervals")])
     assert volume_problem(before, after, cfg, today=TODAY, week_start=MON, room_km=None) is None
     assert volume_problem(before, after, cfg, today=TODAY, week_start=MON, room_km=30) is None
-    msg = volume_problem(before, after, cfg, today=TODAY, week_start=MON, room_km=12)
+    # minimums: intervals 6.7 km (4 reps, minimal warm-up / cool-down) + long run 3 km (v2)
+    msg = volume_problem(before, after, cfg, today=TODAY, week_start=MON, room_km=8)
     assert msg and "weekly volume cap" in msg
     # a shrinking change is never blamed on the cap
     shrink = apply_edits(before, [Edit("s1", kind="easy_run")])

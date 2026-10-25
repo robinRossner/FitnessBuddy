@@ -439,38 +439,185 @@ def test_yellow_readiness_is_written_into_todays_planned_session(db, world, prog
     assert len(mon.prescription["session"]["exercises"][0]["sets"]) == 3
 
 
-def test_stall_persists_trigger_and_reset_is_remembered(db, world, program, settings):
+def test_stall_ladder_step_is_persisted_and_remembered(db, world, program, settings):
     squat = world["squat"]
-    for i in range(4):  # better squat days long ago, then 3 weaker/equal ones -> no improvement
-        world["session"](
-            TODAY - timedelta(days=40 - 3 * i), "Lower", "lower", [(squat, 90, [12, 12, 11])]
-        )
+    for ago in (40, 33, 26, 19, 12):  # weekly, flat, never the day after a 10 km run
+        world["session"](TODAY - timedelta(days=ago), "Lower", "lower", [(squat, 90, [12, 12, 11])])
     rebuild_stats(db, bodyweight_kg=82)
     db.commit()
     service.run_engine(db, today=TODAY, weeks=1, settings=settings, program=program)
     db.commit()
-    trig = db.scalars(select(AdvisorTrigger).where(AdvisorTrigger.type == "lift_stall")).all()
-    assert (
-        len(trig) == 1
-        and trig[0].status == "open"
-        and trig[0].payload["variant"] == "Squat (Barbell)"
-    )
     tue = db.scalars(
         select(PlannedSession).where(PlannedSession.day == TODAY + timedelta(days=1))
     ).one()
-    assert tue.prescription["session"]["exercises"][0]["sets"][0]["target_weight"] == 80.0
-    reset = D.last_stall_reset(db, squat.id)
-    assert reset is not None and reset.load == 80.0 and reset.day == TODAY + timedelta(days=1)
+    ex = tue.prescription["session"]["exercises"][0]
+    assert ex["sets"][0]["target_weight"] == 85.0  # -5 % of 90 on the barbell grid
+    assert ex["progression_state"] == "rebuild" and ex["rule"] == "stall:reset_small"
+    ladder = D.load_ladder(db, squat.id)
+    assert [(e.day, e.step, e.load, e.from_load) for e in ladder] == [
+        (TODAY + timedelta(days=1), 1, 85.0, 90.0)
+    ]
+    assert not db.scalars(select(AdvisorTrigger).where(AdvisorTrigger.type == "lift_stall")).all()
+    res = service.run_engine(db, today=TODAY, weeks=1, settings=settings, program=program)
+    db.commit()
+    assert res.weeks[0].persisted.updated == 0  # the remembered step: same plan
+    n = db.scalar(select(func.count()).select_from(DecisionLog))
     service.run_engine(db, today=TODAY, weeks=1, settings=settings, program=program)
     db.commit()
-    assert (
-        db.scalar(
-            select(func.count())
-            .select_from(AdvisorTrigger)
-            .where(AdvisorTrigger.type == "lift_stall")
-        )
-        == 1
+    assert db.scalar(select(func.count()).select_from(DecisionLog)) == n  # idempotent
+    # trained at the new load: the reset is no longer pending, normal progression resumes
+    world["session"](TODAY + timedelta(days=1), "Lower", "lower", [(squat, 85, [12, 12, 12])])
+    rebuild_stats(db, bodyweight_kg=82)
+    db.commit()
+    nxt = TODAY + timedelta(days=7)
+    plan, _cfg, _cv = service.plan_week(
+        db, today=nxt, week_start=nxt, settings=settings, program=program
     )
+    sq = next(d for d in plan.days if d.kind == "lower").prescription["exercises"][0]
+    assert sq["rule"] != "stall:pending_reset" and sq["sets"][0]["target_weight"] >= 85
+
+
+def _legacy_reset(db, variant, load: float, reps: list[int], reset_load: float) -> None:
+    from app.engine.decisions import log_decision
+
+    log_decision(
+        db,
+        kind="progression",
+        rule="stall_reset",
+        inputs={
+            "last": {
+                "date": (TODAY - timedelta(days=3)).isoformat(),
+                "sets": [{"weight": load, "reps": r, "duration_s": None} for r in reps],
+                "best_e1rm": None,
+            }
+        },
+        output={
+            "day": TODAY.isoformat(),
+            "sets": [],
+            "flags": ["stall", "identical_exposures"],
+            "reset_day": TODAY.isoformat(),
+            "reset_load": reset_load,
+        },
+        rationale="no e1RM improvement in the last 3 exposures (engine v1)",
+        subject_type="variant",
+        subject_id=variant.id,
+    )
+
+
+def test_legacy_minus_10_percent_resets_become_a_soft_deload_and_a_retest(
+    db, world, program, settings
+):
+    _legacy_reset(db, world["bench"], 60, [11, 10, 9], 54.0)
+    _legacy_reset(db, world["pull"], 50, [12, 12, 12], 45.0)
+    _legacy_reset(db, world["squat"], 90, [10, 10, 9], 80.0)
+    db.commit()
+    cfg, _ = cs.load_active(db)
+    (w,) = D.legacy_windows(db, cfg)
+    assert (w.start, w.until, w.reason, w.deload) == (
+        TODAY,
+        TODAY + timedelta(days=6),
+        "legacy_reset",
+        True,
+    )
+    assert {k: (r.load, r.reps) for k, r in w.retest.items()} == {
+        world["bench"].id: (60.0, (11, 10, 9)),
+        world["pull"].id: (50.0, (12, 12, 12)),
+        world["squat"].id: (90.0, (10, 10, 9)),
+    }
+    service.run_engine(db, today=TODAY, weeks=2, settings=settings, program=program)
+    db.commit()
+    rows = {r.day: r for r in db.scalars(select(PlannedSession))}
+    mon = rows[TODAY].prescription["session"]
+    bench = mon["exercises"][0]
+    assert mon["deload"]["active"] and mon["deload"]["reason"] == "legacy_reset"
+    # the old load, half the sets: no -10 %
+    assert [(s["target_weight"], s["target_reps"]) for s in bench["sets"]] == [(60, 11), (60, 10)]
+    assert bench["progression_state"] == "deload"
+    squat = rows[TODAY + timedelta(days=1)].prescription["session"]["exercises"][0]
+    assert squat["sets"][0]["target_weight"] == 90 and len(squat["sets"]) == 2
+    nxt = rows[TODAY + timedelta(days=7)].prescription["session"]["exercises"][0]
+    assert nxt["progression_state"] == "retest" and nxt["sets"][0]["target_weight"] == 60
+    assert [s["target_reps"] for s in nxt["sets"]] == [12, 11, 10]
+    trig = db.scalars(select(AdvisorTrigger).where(AdvisorTrigger.type == "multi_lift_stall")).all()
+    assert len(trig) == 1 and len(trig[0].payload["lifts"]) == 3
+    # the conversion is logged once and read back as one window, not twice
+    assert len(D.load_windows(db, cfg, TODAY - timedelta(days=30))) == 1
+    n = db.scalar(select(func.count()).select_from(DecisionLog))
+    service.run_engine(db, today=TODAY, weeks=2, settings=settings, program=program)
+    db.commit()
+    assert db.scalar(select(func.count()).select_from(DecisionLog)) == n
+
+
+def test_a_trained_legacy_reset_is_left_alone(db, world, program, settings):
+    _legacy_reset(db, world["bench"], 60, [11, 10, 9], 54.0)
+    world["session"](TODAY, "Upper", "upper", [(world["bench"], 54, [12, 12, 12])])
+    db.commit()
+    cfg, _ = cs.load_active(db)
+    assert D.legacy_windows(db, cfg) == []
+
+
+def test_migration_0010_adds_the_v2_keys_and_retires_v1_stall_triggers(tmp_path):
+    import json
+
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, text
+
+    from app.engine.config import EngineConfig
+
+    url = f"sqlite:///{tmp_path / 'm.db'}"
+    acfg = Config(str(BACKEND_DIR / "alembic.ini"))
+    acfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    acfg.attributes["url"] = url
+    command.upgrade(acfg, "0009")
+    content = {
+        "version": "v3.2",
+        "strength": {"stall_exposures": 3, "deload": {"sets_pct": 40, "load_pct": 10}},
+        "running": {"weekly_volume_floor_km": 18, "long_run": {"cap_km": 21, "step_km": 1.0}},
+    }
+    eng = create_engine(url)
+    with eng.begin() as c:
+        c.execute(
+            text(
+                "INSERT INTO config_versions (version, content, content_hash, is_active, "
+                "created_at, author) VALUES ('v3.2', :c, 'h', 1, '2026-10-01 00:00:00', 'user')"
+            ),
+            {"c": json.dumps(content)},
+        )
+        for typ, key, payload in (
+            ("lift_stall", "lift_stall:1:2026-10-26", {"variant": "x", "reset_load_kg": 54}),
+            ("lift_stall", "lift_stall:2:2026-10-26", {"variant": "y", "ladder_step": 2}),
+            ("rule_conflict", "rule_conflict:x", {"conflict": "x"}),
+        ):
+            c.execute(
+                text(
+                    "INSERT INTO advisor_triggers (created_at, type, status, dedupe_key, payload) "
+                    "VALUES ('2026-10-25 00:00:00', :t, 'open', :k, :p)"
+                ),
+                {"t": typ, "k": key, "p": json.dumps(payload)},
+            )
+    command.upgrade(acfg, "head")
+    with eng.connect() as c:
+        rows = c.execute(
+            text("SELECT version, is_active, author, content FROM config_versions ORDER BY id")
+        ).all()
+        trig = dict(c.execute(text("SELECT dedupe_key, status FROM advisor_triggers")).all())
+    eng.dispose()
+    assert [(r[0], r[1], r[2]) for r in rows] == [("v3.2", 0, "user"), ("v3.1", 1, "engine")]
+    new = json.loads(rows[1][3]) if isinstance(rows[1][3], str) else rows[1][3]
+    cfg = EngineConfig.model_validate(new)
+    assert cfg.strength.deload.sets_pct == 50 and cfg.strength.deload.load_pct == 0
+    assert cfg.strength.deload.sets_rounding == "up"
+    assert cfg.strength.stall_exposures == 3 and cfg.strength.stall_exposures_2x == 4
+    assert cfg.running_cfg.long_run.cap_km == 20 and cfg.running_cfg.long_run.step_back_every == 4
+    assert cfg.running_cfg.weekly_volume_floor_km == 18  # kept: now the target
+    assert cfg.running_cfg.quality.phases[0].name == "threshold"
+    assert cfg.schedule_cfg.run_makeup_max_shift_days == 1
+    assert trig == {
+        "lift_stall:1:2026-10-26": "dismissed",
+        "lift_stall:2:2026-10-26": "open",
+        "rule_conflict:x": "open",
+    }
 
 
 def test_reconcile_links_done_sessions_and_skips_missed_ones(db, world, program, settings):

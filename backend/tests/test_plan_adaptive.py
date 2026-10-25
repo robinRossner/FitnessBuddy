@@ -33,16 +33,18 @@ def test_every_plan_item_has_the_adaptive_fields(world, db, env, client):
     by = {s["kind"]: s for s in items}
     assert by["intervals"]["adaptive"] is True
     assert by["intervals"]["adapts_on"] == [
-        "result of your last interval session",
+        "pace of your last quality session",
+        "training phase (quality cycle)",
+        "VDOT updates",
         "today's readiness",
         "weekly volume cap",
         "recovery after lower-body days",
     ]
-    assert "result of your last long run" in by["long_run"]["adapts_on"]
-    assert by["easy_run"]["adapts_on"] == ["today's readiness", "weekly volume cap"]
-    assert (
-        by["lower"]["adaptive"] and "your last performance on each lift" in by["lower"]["adapts_on"]
-    )
+    assert "HR drift of the last long run" in by["long_run"]["adapts_on"]
+    assert "step-back weeks" in by["long_run"]["adapts_on"]
+    assert by["easy_run"]["adapts_on"] == ["today's readiness", "weekly and single-run volume caps"]
+    assert by["lower"]["adaptive"] and "your reps at each load" in by["lower"]["adapts_on"]
+    assert "stall ladder and deload weeks" in by["lower"]["adapts_on"]
     assert by["rest"]["adaptive"] is False and by["rest"]["adapts_on"] == []
     assert all(s["moved_from"] is None and s["change_reason"] is None for s in items)
     assert all(s["status"] == "proposed" for s in items)
@@ -144,11 +146,13 @@ def test_migration_adds_the_schedule_section_as_a_derived_config_version(tmp_pat
         tables = {
             r[0] for r in c.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
         }
-    # 0008 adds the schedule section (v3.1), 0009 the lifting section on top (v3.2, active)
+    # 0008 adds the schedule section (v3.1), 0009 the lifting section on top (v3.2), 0010 the
+    # progression v2 keys (v3.3, active)
     assert [(r[0], r[1], r[2]) for r in rows] == [
         ("v3", 0, "seed"),
         ("v3.1", 0, "engine"),
-        ("v3.2", 1, "engine"),
+        ("v3.2", 0, "engine"),
+        ("v3.3", 1, "engine"),
     ]
     import json
 
@@ -168,5 +172,5 @@ def test_migration_adds_the_schedule_section_as_a_derived_config_version(tmp_pat
     command.downgrade(cfg, "0007")
     command.upgrade(cfg, "head")  # idempotent for the config: the section is already there
     with eng.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM config_versions")).scalar() == 3
+        assert c.execute(text("SELECT count(*) FROM config_versions")).scalar() == 4
     eng.dispose()

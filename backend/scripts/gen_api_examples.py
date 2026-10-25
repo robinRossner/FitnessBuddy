@@ -91,6 +91,12 @@ def main() -> None:
         patch("app.engine.service.user_today", lambda s=None: date.fromisoformat(MONDAY)),
         patch("app.api.sync.rerun_engine", lambda *a, **k: None),
     ):
+        from app.engine import service as engine_service
+
+        plan_db = factory()  # the stored plans of the copy come from the CURRENT engine
+        engine_service.run_engine(plan_db, today=date.fromisoformat(MONDAY), weeks=2)
+        plan_db.commit()
+        plan_db.close()
         today = client.get("/api/v1/plan/today", headers=AUTH).json()
         week = client.get(f"/api/v1/plan/week?start={MONDAY}", headers=AUTH).json()
         dump("plan_today.json", today)

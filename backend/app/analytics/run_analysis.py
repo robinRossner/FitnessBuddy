@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -11,10 +13,12 @@ from app.analytics.running import (
     Ctx,
     classify,
     evaluate_interval_run,
+    hr_lines,
     load_ctx,
     target_interval_pace,
 )
 from app.db.models import Lap, PlannedSession, Run
+from app.engine import data as D
 from app.engine import running as R
 from app.engine.pace import fmt_pace
 from app.engine.persist import planned_to_dict
@@ -62,16 +66,19 @@ def _laps_out(db, run_row: Run, rd: R.RunData | None, ctx: Ctx | None, typ: str,
         )
     kinds = _lap_kinds(data, split)
     target = target_interval_pace(ctx, rd) if (ctx and rd and typ == "intervals") else None
+    green, ceiling = hr_lines(ctx, rd) if (ctx and rd and typ == "intervals") else (None, None)
     out = []
     for lap, d, kind in zip(db_laps, data, kinds, strict=True):
         t_pace = lo = hi = pace_ok = hr_ok = None
         if ctx is not None and kind == "work" and typ == "intervals":
-            lo, hi = ctx.zones.interval_low, ctx.zones.interval_high
+            # pace decides; HR is only a safety ceiling (the lap's peak vs the ceiling)
+            lo = green if green is not None else ctx.zones.interval_low
+            hi = ceiling if ceiling is not None else ctx.zones.interval_high
             t_pace = target
-            if d.pace is not None and target is not None:
-                pace_ok = d.pace <= target * (1 + ctx.rc.interval_pace_tolerance_pct / 100)
-            if d.avg_hr is not None:
-                hr_ok = lo <= d.avg_hr <= hi
+            pace_ok = R.lap_on_pace(d.pace, target, ctx.rc.interval_pace_tolerance_pct)
+            peak = d.max_hr or d.avg_hr
+            if peak is not None:
+                hr_ok = peak <= hi
         elif ctx is not None and kind == "other" and typ in ("easy", "long"):
             lo, hi = ctx.zones.easy_low, ctx.zones.easy_high
             if d.avg_hr is not None:
@@ -95,7 +102,9 @@ def _laps_out(db, run_row: Run, rd: R.RunData | None, ctx: Ctx | None, typ: str,
     return out
 
 
-def _verdict(typ: str, rd: R.RunData, ctx: Ctx, ev, target: float | None) -> dict:
+def _verdict(
+    typ: str, rd: R.RunData, ctx: Ctx, ev, target: float | None, after_lower: bool = False
+) -> dict:
     zones = ctx.zones
     if typ == "intervals":
         if ev is None:
@@ -105,14 +114,14 @@ def _verdict(typ: str, rd: R.RunData, ctx: Ctx, ev, target: float | None) -> dic
                 "reasons": [],
             }
         reasons = list(ev.reasons)
-        if not reasons:
-            if ev.hr_in_zone and ev.work_hr is not None:
-                reasons.append(
-                    f"work HR {ev.work_hr:.0f} inside the target zone "
-                    f"{zones.interval_low}-{zones.interval_high}"
-                )
-            if ev.recovery_drop_bpm is not None:
-                reasons.append(f"HR dropped {ev.recovery_drop_bpm:.0f} bpm in the recovery laps")
+        if ev.passed:
+            if ev.reps_on_pace is not None:
+                reasons.append(f"{ev.reps_on_pace} of {ev.reps} reps on pace")
+            if ev.pace_fade_pct is not None:
+                reasons.append(f"last rep {ev.pace_fade_pct:+.1f}% vs the first")
+            if ev.verdict == "green":
+                reasons.append(f"last rep peaked at {ev.last_rep_peak_hr:.0f} bpm: passed easily")
+        reasons += list(ev.notes)
         if target:
             faster = (target - ev.work_pace_s_per_km) / target * 100
             if faster > ctx.rc.interval_fast_flag_pct:
@@ -122,13 +131,20 @@ def _verdict(typ: str, rd: R.RunData, ctx: Ctx, ev, target: float | None) -> dic
                 )
         hr = f", work HR {ev.work_hr:.0f}" if ev.work_hr is not None else ""
         head = f"{ev.reps} reps at {fmt_pace(ev.work_pace_s_per_km)}/km{hr}"
+        word = {
+            "green": "passed easily",
+            "pass": "passed on pace",
+            "pass_hard": "on pace, but HR above the ceiling",
+            "fail": "pace not held",
+            "no_target": "no target pace: judged by the fade only",
+        }.get(ev.verdict, "criteria met" if ev.passed else "criteria not met")
         return {
             "passed": ev.passed,
-            "summary": f"{head}: {'criteria met' if ev.passed else 'criteria not met'}.",
+            "summary": f"{head}: {word}.",
             "reasons": reasons,
         }
-    ev = R.evaluate_easy_run(rd, zones, ctx.rc.easy)
-    reasons = list(ev.reasons)
+    ev = R.evaluate_easy_run(rd, zones, ctx.rc.easy, after_lower=after_lower)
+    reasons = list(ev.reasons) + list(ev.notes)
     if not reasons:
         if ev.avg_hr is not None:
             reasons.append(f"avg HR {ev.avg_hr:.0f} within the easy ceiling {zones.easy_high}")
@@ -142,10 +158,12 @@ def _verdict(typ: str, rd: R.RunData, ctx: Ctx, ev, target: float | None) -> dic
         if ev.pct_at_or_below_cap is not None
         else ""
     )
+    word = "passed" if ev.passed else "not passed"
+    if ev.exempt:
+        word = "HR high the day after lower body (a note, not a fail)"
     return {
         "passed": ev.passed,
-        "summary": f"{'Easy' if typ == 'easy' else 'Long'} run: {hr}{share}: "
-        f"{'passed' if ev.passed else 'not passed'}.",
+        "summary": f"{'Easy' if typ == 'easy' else 'Long'} run: {hr}{share}: {word}.",
         "reasons": reasons,
     }
 
@@ -168,7 +186,12 @@ def run_analysis(db: Session, run_id: str) -> dict | None:
         typ = classify(rd, ctx)
         if typ == "intervals":
             split, ev = evaluate_interval_run(ctx, rd)
-        verdict = _verdict(typ, rd, ctx, ev, target_interval_pace(ctx, rd) if ev else None)
+        after_lower = typ == "easy" and bool(
+            D.lower_days(db, day - timedelta(days=1), day - timedelta(days=1))
+        )
+        verdict = _verdict(
+            typ, rd, ctx, ev, target_interval_pace(ctx, rd) if ev else None, after_lower
+        )
     else:
         verdict = {"passed": None, "summary": "Not a running activity: no verdict.", "reasons": []}
     return {

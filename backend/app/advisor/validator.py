@@ -14,9 +14,10 @@ Schedule changes (move / skip / swap / shorten / replace of planned sessions) ha
 validation below (`validate_schedule_change`).
 
 Hard limits (see `describe_allowlist()`, which also feeds the system prompt):
-rep ranges 3-20 (low < high), stall exposures 2-6, stall reset 5-15 %, deload red days 2-7,
-interval reps 3-10, rep distance 200-2000 m, jog recovery 100-800 m, weekly volume cap 0-15 %,
-weekly volume floor 10-60 km, long run cap <= 25 km, increments only from the options of their
+rep ranges 3-20 (low < high), stall exposures 2-6 (2-8 twice a week), stall reset 5-15 % (first
+ladder step 2.5-10 %), deload red days 2-7, interval reps 3-10, rep distance 200-2000 m, jog
+recovery 100-800 m, weekly volume cap 0-15 % (+0-4 km), weekly volume target 10-60 km, long run
+cap <= 25 km, VDOT steps <= 1.0 (<= 2.0 per 4 weeks), increments only from the options of their
 equipment, exercise swaps only to active variants of the same movement pattern or body region
 at the current gym (or generic). Every change also has a maximum step ("max load jump" /
 "volume ramp"): a single proposal cannot move a limit across its whole range.
@@ -374,6 +375,58 @@ def _intervals_after(ctx: Context) -> str | None:
     return None
 
 
+def _up_risk(threshold: float):
+    """High when the value goes up past `threshold`, medium otherwise."""
+
+    def risk(cur: float, new: float) -> str:
+        return HIGH if new > cur and new > threshold + 1e-9 else MEDIUM
+
+    return risk
+
+
+def _int_spec(path: str, label: str, lo: int, hi: int, step: int, risk=None, doc: str = "") -> Spec:
+    return Spec(
+        path,
+        label,
+        doc or f"int {lo}..{hi}, max step {step}",
+        _path_current(path),
+        _numeric(lo, hi, integer=True, max_step=step, risk=risk or _always(MEDIUM)),
+    )
+
+
+def _num_spec(
+    path: str, label: str, lo: float, hi: float, step: float, risk=None, unit="", doc=""
+) -> Spec:
+    return Spec(
+        path,
+        label,
+        doc or f"number {_fmt(lo)}..{_fmt(hi)}, max step {_fmt(step)}",
+        _path_current(path),
+        _numeric(lo, hi, integer=False, max_step=step, risk=risk or _always(MEDIUM), unit=unit),
+    )
+
+
+def _phase_spec(name: str, label: str, lo: int, hi: int, step: int) -> Spec:
+    """Weeks of one quality-cycle phase: the override, else the phase's configured weeks."""
+
+    def cur(ctx: Context, _g: dict[str, str]) -> Any:
+        ov = ctx.effective(f"running.quality.phase_weeks.{name}")
+        if ov is not None:
+            return ov
+        for ph in ctx.effective("running.quality.phases") or []:
+            if ph.get("name") == name:
+                return ph.get("weeks")
+        return None
+
+    return Spec(
+        f"running.quality.phase_weeks.{name}",
+        label,
+        f"int {lo}..{hi}, max step {step}; a phase week counts only when its session was run",
+        cur,
+        _numeric(lo, hi, integer=True, max_step=step, risk=_always(MEDIUM)),
+    )
+
+
 def _long_run_after(ctx: Context) -> str | None:
     cap, mn = ctx.effective("running.long_run.cap_km"), ctx.effective("running.long_run.min_km")
     if cap is not None and mn is not None and cap < mn:
@@ -503,8 +556,9 @@ SPECS: tuple[Spec, ...] = (
     ),
     Spec(
         "running.weekly_volume_floor_km",
-        "Weekly run volume floor (km)",
-        "number 10..60 (0 = off), max step 20; raising by more than 5 is high risk",
+        "Weekly run volume target (km)",
+        "number 10..60 (0 = off), max step 20; a target the cap grows toward, never a jump; "
+        "raising by more than 5 is high risk",
         _path_current("running.weekly_volume_floor_km"),
         _numeric(10, 60, integer=False, max_step=20, risk=_floor_risk, unit=" km"),
     ),
@@ -523,6 +577,114 @@ SPECS: tuple[Spec, ...] = (
         _path_current("running.long_run.step_km"),
         _numeric(0.5, 2, integer=False, max_step=1, risk=_step_risk, unit=" km"),
     ),
+    # ---- progression engine v2 (docs/spec/decisions.md "Progression engine v2")
+    _int_spec(
+        "strength.stall_exposures_2x",
+        "Clean sessions before a stall (lifts trained twice a week)",
+        2,
+        8,
+        2,
+        doc="int 2..8, max step 2 (strength.stall_exposures is the once-a-week value)",
+    ),
+    _int_spec("strength.stall_min_days", "Minimum days before a stall", 7, 28, 7),
+    _num_spec(
+        "strength.stall_reset_small_pct",
+        "First stall-ladder step (% load drop)",
+        2.5,
+        10,
+        2.5,
+        unit=" %",
+    ),
+    _int_spec("strength.multi_stall_lifts", "Lifts stalled together for a soft deload", 2, 6, 2),
+    _int_spec("strength.big_miss_reps", "Rep drop that steps the load down", 2, 5, 1),
+    _int_spec("strength.rung_min_reps", "Predicted reps needed at the next load", 6, 10, 1),
+    _int_spec("strength.rep_ceiling_cap", "Highest temporary rep ceiling", 12, 20, 3),
+    _num_spec("strength.deload.sets_pct", "Deload: working sets cut (%)", 25, 60, 15, unit=" %"),
+    _num_spec(
+        "strength.deload.fatigue_index_pct",
+        "Fatigue index that triggers a deload (%)",
+        25,
+        60,
+        10,
+        unit=" %",
+    ),
+    _num_spec(
+        "running.interval_pace_tolerance_pct",
+        "Interval rep pace tolerance (%)",
+        1,
+        6,
+        2,
+        unit=" %",
+    ),
+    _num_spec(
+        "running.volume.cap_abs_km",
+        "Weekly cap: absolute allowance over the 4-week mean (km)",
+        0,
+        4,
+        1,
+        risk=_up_risk(2),
+        unit=" km",
+        doc="number 0..4, max step 1; raising above 2 is high risk",
+    ),
+    _num_spec(
+        "running.volume.single_run_factor",
+        "Single run vs the longest of 30 days (x)",
+        1.0,
+        1.3,
+        0.1,
+        risk=_up_risk(1.15),
+        doc="number 1.0..1.3, max step 0.1; raising above 1.15 is high risk",
+    ),
+    _int_spec("running.long_run.step_back_every", "Long run step-back every N weeks", 3, 6, 1),
+    _num_spec("running.long_run.step_back_pct", "Long run step-back (%)", 10, 30, 10, unit=" %"),
+    _num_spec(
+        "running.long_run.drift_hold_pct", "Long run drift that holds (%)", 3, 10, 2, unit=" %"
+    ),
+    _num_spec(
+        "running.vdot.max_step",
+        "VDOT: largest single update",
+        0.25,
+        1.0,
+        0.5,
+        risk=_up_risk(0.5),
+        doc="number 0.25..1.0, max step 0.5; raising above 0.5 is high risk",
+    ),
+    _num_spec(
+        "running.vdot.max_per_4w",
+        "VDOT: largest rise per 4 weeks",
+        0.5,
+        2.0,
+        0.5,
+        risk=_up_risk(1.0),
+        doc="number 0.5..2.0, max step 0.5; raising above 1.0 is high risk",
+    ),
+    _int_spec(
+        "running.easy.strides.reps",
+        "Strides on the easy run",
+        0,
+        8,
+        2,
+        risk=_always(LOW),
+        doc="int 0..8, max step 2; always low risk",
+    ),
+    _int_spec(
+        "running.threshold.reps_max",
+        "Threshold reps (maximum)",
+        3,
+        8,
+        2,
+        risk=_risk_by_step(1, 2),
+        doc="int 3..8, max step 2; +-1 is low risk",
+    ),
+    _num_spec(
+        "running.threshold.max_work_min", "Threshold minutes per session", 15, 45, 10, unit=" min"
+    ),
+    _num_spec(
+        "running.intervals.max_work_min", "VO2max minutes per session", 10, 30, 6, unit=" min"
+    ),
+    _phase_spec("threshold", "Weeks of the threshold phase", 4, 16, 4),
+    _phase_spec("threshold_vo2max", "Weeks of the threshold / VO2max phase", 2, 12, 4),
+    _phase_spec("5k_specific", "Weeks of the 5k-specific phase", 2, 10, 4),
     _reps_spec("reps_start", "Interval reps (first session)"),
     _reps_spec("reps_min", "Interval reps after a pace step"),
     _reps_spec("reps_max", "Interval reps (maximum)"),

@@ -4,13 +4,16 @@
 * easy-run evaluation: pass = avg HR <= easy ceiling and >= X % of the time at/below it,
   aerobic efficiency (speed / HR) and decoupling (HR drift between first and second half),
 * interval evaluation: work vs recovery laps (FIT lap intensity if it distinguishes them, else
-  a pace heuristic), work HR vs the target zone, HR drop in the recovery laps, and the
-  progression rule (+1 rep up to max reps, then a faster pace and back to the minimum reps),
-* long-run distance progression, the weekly-volume cap and "metric not improving" detection.
+  a pace heuristic), judged by PACE (share of reps on pace, fade); HR is a safety ceiling and a
+  multi-week trend only (docs/research/running-progression.md section 4),
+* long-run distance progression (step-back weeks, drift gate), the weekly-volume cap from the
+  4-week actual mean, the single-run cap and "metric not improving" detection.
+The Friday quality cycle and its levers live in `quality.py`, VDOT updates in `vdot.py`.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -19,7 +22,7 @@ from typing import Any
 
 from app.engine.config import EasyRunConfig, IntervalConfig, LongRunConfig
 from app.engine.hr import HrZones
-from app.engine.pace import PaceModel, PaceObservation
+from app.engine.pace import PaceObservation
 
 WORK_INTENSITIES = {"active", "interval"}
 REST_INTENSITIES = {"recovery", "rest"}
@@ -195,9 +198,26 @@ class IntervalEval:
     passed: bool
     reasons: list[str] = field(default_factory=list)
     method: str = ""
+    # v2: judged by pace, HR is a safety ceiling only
+    target_pace_s_per_km: float | None = None
+    reps_on_pace: int | None = None
+    pace_ok_share: float | None = None
+    last_rep_peak_hr: float | None = None
+    hr_ceiling_bpm: float | None = None
+    hr_safety_exceeded: bool | None = None
+    green: bool = False  # passed easily (the last rep's peak HR below the green line)
+    verdict: str = ""  # green | pass | pass_hard | fail | no_target
+    notes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in self.__dict__.items()}
+
+
+def lap_on_pace(pace: float | None, target: float | None, tol_pct: float) -> bool | None:
+    """A rep is on pace unless slower than the target by more than `tol_pct` % (faster is fine)."""
+    if pace is None or target is None:
+        return None
+    return pace <= target * (1 + tol_pct / 100) + 1e-9
 
 
 def evaluate_intervals(
@@ -206,7 +226,18 @@ def evaluate_intervals(
     cfg: IntervalConfig,
     *,
     prescribed_reps: int | None = None,
+    target_pace: float | None = None,
+    pace_tol_pct: float = 3.0,
+    hr_ceiling: float | None = None,
+    green_hr: float | None = None,
 ) -> IntervalEval:
+    """Pass = >= `pass_rep_share` of the work reps on pace (within `pace_tol_pct` % of
+    `target_pace`, faster is fine) and the last rep at most `fade_max_pct` % slower than the
+    first, with every prescribed rep done. HR never fails a session: the last rep's peak HR (the
+    lap max HR, the closest a lap file gets to "the final 60 s") above `hr_ceiling` makes it
+    `pass_hard` (hold, no progression); below `green_hr` it is `green` (passed easily). The
+    recovery-lap HR drop and the work HR vs the zone are reported for the multi-week trend only.
+    Without a target pace only the fade is judged (verdict `no_target`)."""
     work = split.work
     dur = sum(lap.duration_s for lap in work)
     dist = sum(lap.distance_m for lap in work)
@@ -218,16 +249,13 @@ def evaluate_intervals(
         else None
     )
     reasons: list[str] = []
+    notes: list[str] = []
     in_zone = None
     too_high = below = False
     if work_hr is not None:
         in_zone = zones.interval_low <= work_hr <= zones.interval_high
         too_high = work_hr > zones.interval_high
         below = work_hr < zones.interval_low
-        if too_high:
-            reasons.append(f"work HR {work_hr:.0f} above the target zone ({zones.interval_high})")
-        elif below:
-            reasons.append(f"work HR {work_hr:.0f} below the target zone ({zones.interval_low})")
     drops = [
         w.avg_hr - r.avg_hr
         for w, r in zip(work, split.rest, strict=False)
@@ -236,16 +264,51 @@ def evaluate_intervals(
     drop = fmean(drops) if drops else None
     recovery_ok = None if drop is None else drop >= cfg.hr_recovery_min_bpm
     if recovery_ok is False:
-        reasons.append(
-            f"HR drop in the recovery laps only {drop:.0f} bpm (< {cfg.hr_recovery_min_bpm:g})"
+        notes.append(
+            f"HR drop in the recovery laps {drop:.0f} bpm (< {cfg.hr_recovery_min_bpm:g}): "
+            "watched as a multi-week trend, not a fail"
         )
     fade = None
     if len(work) >= 2 and work[0].pace and work[-1].pace:
         fade = (work[-1].pace - work[0].pace) / work[0].pace * 100
+    on_pace = (
+        sum(1 for lap in work if lap_on_pace(lap.pace, target_pace, pace_tol_pct))
+        if target_pace
+        else None
+    )
+    share = on_pace / len(work) if on_pace is not None and work else None
     short = prescribed_reps is not None and len(work) < prescribed_reps
     if short:
         reasons.append(f"only {len(work)} of {prescribed_reps} reps")
-    passed = not too_high and recovery_ok is not False and not short
+    pace_pass = True
+    if share is not None and share < cfg.pass_rep_share - 1e-9:
+        pace_pass = False
+        reasons.append(
+            f"{on_pace} of {len(work)} reps on pace (need {cfg.pass_rep_share * 100:.0f}%)"
+        )
+    if fade is not None and fade > cfg.fade_max_pct:
+        pace_pass = False
+        reasons.append(f"last rep {fade:.1f}% slower than the first (max {cfg.fade_max_pct:g}%)")
+    passed = pace_pass and not short
+    last = work[-1] if work else None
+    peak = (last.max_hr or last.avg_hr) if last else None
+    safety = None if peak is None or hr_ceiling is None else peak > hr_ceiling
+    green = bool(passed and peak is not None and green_hr is not None and peak < green_hr)
+    if not passed:
+        verdict = "fail"
+    elif target_pace is None:
+        verdict = "no_target"
+    elif safety:
+        verdict = "pass_hard"
+        notes.append(
+            f"last rep peaked at {peak:.0f} bpm (> {hr_ceiling:.0f}): on pace but hard, hold"
+        )
+    elif green:
+        verdict = "green"
+    else:
+        verdict = "pass"
+    if peak is None:
+        notes.append("no heart rate in the laps: judged by pace only")
     return IntervalEval(
         reps=len(work),
         work_pace_s_per_km=pace,
@@ -259,48 +322,15 @@ def evaluate_intervals(
         passed=passed,
         reasons=reasons,
         method=split.method,
-    )
-
-
-@dataclass
-class IntervalPlan:
-    reps: int
-    pace_s_per_km: float
-    rule: str
-    reason: str
-
-
-def next_interval_plan(
-    last: IntervalEval | None, model: PaceModel, cfg: IntervalConfig
-) -> IntervalPlan:
-    """Progression: pass -> +1 rep (max `reps_max`), at max reps -> faster pace (VDOT step) and
-    back to `reps_min`; fail -> repeat. No history -> `reps_start` at the model's interval pace."""
-    if last is None:
-        rng = model.interval_pace(cfg.rep_distance_m)
-        pace = (rng.min_s_per_km + rng.max_s_per_km) / 2
-        return IntervalPlan(
-            cfg.reps_start,
-            round(pace),
-            "intervals:start",
-            f"no earlier interval session: {cfg.reps_start} reps at the model's interval pace",
-        )
-    pace = round(last.work_pace_s_per_km)
-    if not last.passed:
-        why = "; ".join(last.reasons) or "criteria not met"
-        return IntervalPlan(last.reps, pace, "intervals:repeat", f"repeat {last.reps} reps ({why})")
-    if last.reps < cfg.reps_max:
-        return IntervalPlan(
-            last.reps + 1,
-            pace,
-            "intervals:add_rep",
-            f"HR in range and recovery fine -> {last.reps + 1} reps at the same pace",
-        )
-    new_pace = round(model.faster_pace(pace, 1.0))
-    return IntervalPlan(
-        cfg.reps_min,
-        min(new_pace, pace - 1),
-        "intervals:faster_pace",
-        f"{last.reps} reps done cleanly -> faster pace and back to {cfg.reps_min} reps",
+        target_pace_s_per_km=target_pace,
+        reps_on_pace=on_pace,
+        pace_ok_share=share,
+        last_rep_peak_hr=peak,
+        hr_ceiling_bpm=hr_ceiling,
+        hr_safety_exceeded=safety,
+        green=green,
+        verdict=verdict,
+        notes=notes,
     )
 
 
@@ -317,12 +347,19 @@ class EasyEval:
     decoupling_pct: float | None
     decoupling_flag: bool
     reasons: list[str] = field(default_factory=list)
+    exempt: bool = False  # the day after a lower-body session: an HR fail is only a note
+    notes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.__dict__.items()}
 
 
-def evaluate_easy_run(run: RunData, zones: HrZones, cfg: EasyRunConfig) -> EasyEval:
+def evaluate_easy_run(
+    run: RunData, zones: HrZones, cfg: EasyRunConfig, *, after_lower: bool = False
+) -> EasyEval:
+    """Pass = avg HR <= the easy ceiling and >= X % of the time at/below it. With
+    `after_lower` (the day after a lower-body session, `cfg.exempt_after_lower`) an HR fail is
+    turned into a note: the legs are pre-fatigued, so HR runs high for the same pace."""
     cap = zones.easy_high
     reasons: list[str] = []
     ok = True
@@ -343,6 +380,12 @@ def evaluate_easy_run(run: RunData, zones: HrZones, cfg: EasyRunConfig) -> EasyE
     flag = dec is not None and dec > cfg.decoupling_flag_pct
     if flag:
         reasons.append(f"HR drift {dec:.1f}% (> {cfg.decoupling_flag_pct:g}%)")
+    exempt = False
+    notes: list[str] = []
+    if not ok and after_lower and cfg.exempt_after_lower and run.avg_hr is not None:
+        exempt, ok = True, True
+        notes = [f"{r} (day after lower body: a note, not a fail)" for r in reasons]
+        reasons = []
     return EasyEval(
         passed=ok,
         avg_hr=run.avg_hr,
@@ -352,6 +395,8 @@ def evaluate_easy_run(run: RunData, zones: HrZones, cfg: EasyRunConfig) -> EasyE
         decoupling_pct=dec,
         decoupling_flag=flag,
         reasons=reasons,
+        exempt=exempt,
+        notes=notes,
     )
 
 
@@ -416,56 +461,120 @@ def volume_cap_km(
     cap_pct: float,
     *,
     weeks_avg: int = 4,
-    floor_km: float = 0.0,
+    abs_km: float = 2.0,
 ) -> float | None:
-    """Max km for the week starting `week_start`:
-    max(floor, (1 + cap) x max(last week, 4-week average)).
-
-    The floor stops a tiny running base from producing nonsense caps. With no history and no
-    floor there is nothing to cap against (None).
-    """
+    """Max km for the week starting `week_start`: the mean of the last `weeks_avg` weeks of
+    ACTUAL km (weeks without runs count as 0), then max(mean x (1 + cap %), mean + abs_km).
+    No run in those weeks: nothing to cap against (None)."""
     prev = [weekly.get(week_start - timedelta(days=7 * i), 0.0) for i in range(1, weeks_avg + 1)]
     if not any(prev):
-        return floor_km or None
-    base = max(prev[0], fmean(prev))
-    return round(max(floor_km, base * (1 + cap_pct / 100)), 2)
+        return None
+    mean = fmean(prev)
+    return round(max(mean * (1 + cap_pct / 100), mean + abs_km), 2)
+
+
+def mean_km(weekly: dict[date, float], week_start: date, weeks: int = 4) -> float:
+    prev = [weekly.get(week_start - timedelta(days=7 * i), 0.0) for i in range(1, weeks + 1)]
+    return round(fmean(prev), 2) if prev else 0.0
+
+
+def single_run_cap_km(
+    runs: Sequence[RunData], today: date, factor: float, abs_km: float = 0.0, days: int = 30
+) -> float | None:
+    """A single run may be at most `factor` x the longest run of the last `days` days (or that
+    run + `abs_km`, whichever is larger). None without runs in the window."""
+    since = today - timedelta(days=days)
+    longest = max((r.km for r in runs if since <= r.day <= today), default=0)
+    if longest <= 0:
+        return None
+    return round(max(longest * factor, longest + abs_km), 1)
 
 
 def fit_to_cap(
-    planned: dict[str, float], cap_km: float | None, long_min_km: float, easy_min_km: float = 3.0
+    planned: dict[str, float],
+    cap_km: float | None,
+    long_min_km: float,
+    easy_min_km: float = 3.0,
 ) -> tuple[dict[str, float], list[str]]:
-    """Scale the planned km down to `cap_km`: long run first (to `long_min_km`), then easy runs
-    (to `easy_min_km`). Interval sessions keep their structure. Returns (km by slot, notes)."""
+    """Scale the planned km down to `cap_km`: the easy run first (to `easy_min_km`), then the
+    long run (to `long_min_km`). Interval sessions keep their structure (the planner already
+    shrank warm-up / cool-down). Returns (km by slot, notes)."""
     out = dict(planned)
     notes: list[str] = []
     if cap_km is None or sum(out.values()) <= cap_km:
         return out, notes
-    for slot, floor in (("long_run", long_min_km), ("easy_run", easy_min_km)):
+    for slot, floor in (("easy_run", easy_min_km), ("long_run", long_min_km)):
         excess = sum(out.values()) - cap_km
         if excess <= 0 or slot not in out:
             continue
-        new = max(floor, out[slot] - excess)
-        new = round(new * 2) / 2
+        new = math.floor((out[slot] - excess) * 2 + 1e-9) / 2
+        new = max(floor, new)
         if new < out[slot]:
-            notes.append(f"{slot} {out[slot]:g} -> {new:g} km (10% weekly cap {cap_km:g} km)")
+            notes.append(f"{slot} {out[slot]:g} -> {new:g} km (weekly cap {cap_km:g} km)")
             out[slot] = new
     return out, notes
 
 
+@dataclass
+class LongRunPlan:
+    km: float
+    reason: str
+    step_back: bool = False
+    drift: str | None = None  # hold | cut | None
+    capped_by: str | None = None
+
+
 def next_long_run_km(
-    recent_long: float | None, passed: bool, cfg: LongRunConfig
-) -> tuple[float, str]:
-    """Distance for the next long run: last long run + step if it was easy/clean, else hold."""
+    recent_long: float | None,
+    cfg: LongRunConfig,
+    *,
+    decoupling: float | None = None,
+    duration_min: float | None = None,
+    step_back: bool = False,
+    single_cap: float | None = None,
+) -> LongRunPlan:
+    """Next long run: the longest recent long run + `step_km`; on a step-back week -
+    `step_back_pct` %; drift gate on the last long run (steady and >= `drift_min_minutes`):
+    decoupling > `drift_hold_pct` holds, > `drift_cut_pct` cuts by `drift_cut_by_pct` %. Never
+    above `cap_km` or the single-run cap (1.1 x the longest run of the last 30 days)."""
     if recent_long is None:
-        return cfg.start_km, f"no recent long run: start at {cfg.start_km:g} km"
-    base = recent_long
-    km = base + cfg.step_km if passed else base
-    km = min(round(km * 2) / 2, cfg.cap_km)
-    km = max(km, cfg.min_km)
-    why = (
-        f"+{cfg.step_km:g} km after a clean long run" if passed else "hold: last long run not clean"
-    )
-    return km, f"last {base:.1f} km, {why}"
+        plan = LongRunPlan(cfg.start_km, f"no recent long run: start at {cfg.start_km:g} km")
+    else:
+        base = recent_long
+        drift = None
+        if decoupling is not None and (duration_min or 0) >= cfg.drift_min_minutes:
+            if decoupling > cfg.drift_cut_pct:
+                drift = "cut"
+            elif decoupling > cfg.drift_hold_pct:
+                drift = "hold"
+        if step_back:
+            km = base * (1 - cfg.step_back_pct / 100)
+            why = f"step-back week: -{cfg.step_back_pct:g}% of {base:.1f} km"
+        elif drift == "cut":
+            km = base * (1 - cfg.drift_cut_by_pct / 100)
+            why = (
+                f"HR drift {decoupling:.1f}% (> {cfg.drift_cut_pct:g}%) on the last long run: "
+                f"-{cfg.drift_cut_by_pct:g}%"
+            )
+        elif drift == "hold":
+            km = base
+            why = (
+                f"HR drift {decoupling:.1f}% (> {cfg.drift_hold_pct:g}%) on the last long run: "
+                f"hold {base:.1f} km"
+            )
+        else:
+            km = base + cfg.step_km
+            why = f"last {base:.1f} km, +{cfg.step_km:g} km"
+        plan = LongRunPlan(km, why, step_back=step_back, drift=drift)
+    km = plan.km
+    if km > cfg.cap_km:
+        km, plan.capped_by = cfg.cap_km, f"long-run cap {cfg.cap_km:g} km"
+    if single_cap is not None and km > single_cap:
+        km, plan.capped_by = single_cap, f"single-run cap {single_cap:g} km"
+    plan.km = max(math.floor(km * 2 + 1e-9) / 2, 1.0)
+    if plan.capped_by:
+        plan.reason += f"; capped by the {plan.capped_by}"
+    return plan
 
 
 # --------------------------------------------------------------------------- stagnation

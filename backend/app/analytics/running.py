@@ -113,13 +113,40 @@ def prescribed_reps(ctx: Ctx, run: R.RunData) -> int | None:
     return int(reps) if reps else None
 
 
+def session_type(ctx: Ctx, run: R.RunData) -> str:
+    planned = ctx.planned.get(run.id)
+    st = ((planned.prescription.get("session") or {}).get("structure") or {}) if planned else {}
+    return st.get("session_type") or "vo2max"
+
+
+def hr_lines(ctx: Ctx, run: R.RunData) -> tuple[float | None, float | None]:
+    """(green line, safety ceiling) in bpm of the run's quality session type (None w/o LTHR)."""
+    from app.engine.quality import type_spec
+
+    lthr = ctx.zones.lthr
+    if not lthr:
+        return None, None
+    spec = type_spec(ctx.rc, session_type(ctx, run))
+    # round half up, like the HR zones (app/engine/hr.py)
+    return int(lthr * spec.green_hr_pct_lthr + 0.5), int(lthr * spec.hr_ceiling_pct_lthr + 0.5)
+
+
 def evaluate_interval_run(ctx: Ctx, run: R.RunData):
-    """(split, evaluation) or (None, None) when the laps do not show an interval structure."""
+    """(split, evaluation) or (None, None) when the laps do not show an interval structure.
+    Judged by pace against the planned (else the model's) target; HR is a ceiling only."""
     split = R.split_intervals(run.laps)
     if split is None:
         return None, None
+    green, ceiling = hr_lines(ctx, run)
     ev = R.evaluate_intervals(
-        split, ctx.zones, ctx.rc.intervals, prescribed_reps=prescribed_reps(ctx, run)
+        split,
+        ctx.zones,
+        ctx.rc.intervals,
+        prescribed_reps=prescribed_reps(ctx, run),
+        target_pace=target_interval_pace(ctx, run),
+        pace_tol_pct=ctx.rc.interval_pace_tolerance_pct,
+        hr_ceiling=ceiling,
+        green_hr=green,
     )
     return split, ev
 

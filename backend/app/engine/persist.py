@@ -286,23 +286,37 @@ def adaptive_fields(kind: str, status: str | None, prescription: dict | None = N
     """`adaptive` / `adapts_on` of a plan item: which open sessions will still change, and why.
 
     Open run sessions and open lifting targets are recomputed on every engine run (from the last
-    interval session / long run, the lifts' last performance, today's readiness, the weekly
-    volume cap, the 24 h rule, missed sessions). Done, skipped and rest sessions are fixed."""
+    quality session / long run, the training phase and VDOT, the lifts' reps at their loads,
+    censored misses, the stall ladder and deload weeks, today's readiness, the weekly volume
+    cap, the 24 h rule, missed sessions). Done, skipped and rest sessions are fixed."""
     if status not in ADAPTIVE_STATUSES or kind == "rest":
         return {"adaptive": False, "adapts_on": []}
     if kind == "intervals":
         on = [
-            "result of your last interval session",
+            "pace of your last quality session",
+            "training phase (quality cycle)",
+            "VDOT updates",
             "today's readiness",
             "weekly volume cap",
             "recovery after lower-body days",
         ]
     elif kind == "long_run":
-        on = ["result of your last long run", "today's readiness", "weekly volume cap"]
+        on = [
+            "your longest recent long run",
+            "HR drift of the last long run",
+            "step-back weeks",
+            "today's readiness",
+            "weekly and single-run volume caps",
+        ]
     elif kind == "easy_run":
-        on = ["today's readiness", "weekly volume cap"]
+        on = ["today's readiness", "weekly and single-run volume caps"]
     else:  # upper | lower
-        on = ["your last performance on each lift", "today's readiness"]
+        on = [
+            "your reps at each load",
+            "today's readiness",
+            "censored misses (readiness, hard runs, breaks)",
+            "stall ladder and deload weeks",
+        ]
     return {"adaptive": True, "adapts_on": on}
 
 

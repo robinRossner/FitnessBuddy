@@ -3,7 +3,8 @@
 Built from the stats/engine functions the dashboards already use (app/analytics/*,
 app/engine/*), never from raw tables where one of those exists. Sections (see the glossary in
 prompt.py): why, today, week_start, config, program, lifts, readiness_14d, baselines, running,
-recent_sessions, upcoming_plan, schedule, rules, past_advisor_changes, swap_candidates.
+recent_sessions, upcoming_plan, progression, schedule, rules, past_advisor_changes,
+swap_candidates.
 
 `fit_budget` trims the least valuable detail first when the document is over budget.
 """
@@ -45,6 +46,14 @@ SCHEMA_VERSION = 1
 WORKING = ("working", "failure")
 INTERESTING_RULES = (
     "stall",
+    "retest",
+    "ladder",
+    "multi_lift",
+    "fatigue",
+    "rung",
+    "vdot",
+    "quality",
+    "step_back",
     "deload",
     "conflict",
     "anomaly",
@@ -277,9 +286,9 @@ def recent_sessions(db: Session, today: date, run_types: dict[str, str]) -> list
     return out
 
 
-def upcoming_plan(db: Session, today: date) -> list[dict]:
+def upcoming_plan(db: Session, today: date, days: list[dict] | None = None) -> list[dict]:
     out = []
-    for day in service.plan_for_api(db, today, 7):
+    for day in days if days is not None else service.plan_for_api(db, today, 7):
         for s in day["sessions"]:
             sess = s.get("session") or {}
             item: dict[str, Any] = {
@@ -297,6 +306,109 @@ def upcoming_plan(db: Session, today: date) -> list[dict]:
                 item["readiness"] = s["readiness"]["color"]
             out.append(item)
     return out
+
+
+def _latest(db: Session, since: datetime, **where: Any) -> list[DecisionLog]:
+    q = select(DecisionLog).where(DecisionLog.created_at >= since)
+    for k, v in where.items():
+        q = q.where(getattr(DecisionLog, k) == v)
+    return list(db.scalars(q.order_by(DecisionLog.id.desc()).limit(400)))
+
+
+def progression_section(
+    db: Session, days: list[dict], variant_names: dict[str, str]
+) -> dict[str, Any]:
+    """What the deterministic engine thinks of each lift and the running block right now, from
+    the plan of the next 7 days and the latest decisions: progression state, effective rep
+    range and note per lift, stall-ladder position, censored misses (14 days), the deload /
+    retest window, the running phase, VDOT and the volume-cap reasoning."""
+    lifts: dict[str, list] = {}
+    run: dict[str, Any] = {}
+    deload = None
+    for day in days:
+        for it in day["sessions"]:
+            sess = it.get("session") or {}
+            typ = sess.get("type")
+            if typ == "lifting":
+                if (sess.get("deload") or {}).get("active") and deload is None:
+                    deload = sess["deload"]
+                for ex in sess.get("exercises", []):
+                    slug = ex.get("exercise")
+                    if not slug or slug in lifts or not ex.get("progression_state"):
+                        continue
+                    rr = ex.get("effective_rep_range") or ex.get("rep_range") or []
+                    lifts[slug] = [
+                        ex["progression_state"],
+                        "-".join(str(x) for x in rr),
+                        (ex.get("progression_note") or "")[:140],
+                    ]
+            elif typ == "intervals" and "quality" not in run:
+                st = sess.get("structure") or {}
+                run["quality"] = {
+                    "date": day["date"],
+                    "phase": sess.get("phase"),
+                    "phase_week": sess.get("phase_week"),
+                    "session_type": st.get("session_type"),
+                    "note": (sess.get("progression_note") or "")[:160],
+                }
+            elif typ == "long_run" and "long_run" not in run:
+                run["long_run"] = {
+                    "date": day["date"],
+                    "km": sess.get("distance_km"),
+                    "step_back": sess.get("step_back"),
+                    "note": (sess.get("progression_note") or "")[:160],
+                }
+            elif typ == "easy_run" and "phase" not in run and sess.get("phase"):
+                run["phase"] = [sess.get("phase"), sess.get("phase_week")]
+    since = datetime.now(UTC) - timedelta(days=14)
+    ladder: dict[str, list] = {}
+    censored: list[list] = []
+    seen_c: set[tuple] = set()
+    for r in _latest(db, since, kind="progression", subject_type="variant"):
+        name = variant_names.get(r.subject_id or "", r.subject_id)
+        inp = r.inputs or {}
+        if name not in ladder and "ladder_position" in inp:
+            ladder[name] = [
+                inp.get("ladder_position"),
+                inp.get("stall_counter"),
+                inp.get("stall_n"),
+            ]
+        for d, why in inp.get("censored") or []:
+            if (d, name) not in seen_c:
+                seen_c.add((d, name))
+                censored.append([d, name, why])
+    vol = next(
+        (
+            r.output
+            for r in _latest(db, since, kind="running", subject_type="week")
+            if (r.output or {}).get("rule") == "running:weekly_volume_cap"
+        ),
+        None,
+    )
+    vdot = next(
+        (
+            (r.output or {}).get("vdot_record")
+            for r in _latest(db, datetime.now(UTC) - timedelta(days=60), kind="running")
+            if (r.output or {}).get("vdot_record")
+        ),
+        None,
+    )
+    if vol:
+        run["volume"] = {
+            k: vol.get(k)
+            for k in ("cap_km", "mean_km_4w", "target_km", "single_run_cap_km", "reasoning")
+        }
+    if vdot:
+        run["vdot"] = vdot
+    return {
+        "lifts": lifts,
+        "lift_columns": ["state", "effective rep range", "note"],
+        "stall_ladder": ladder,
+        "stall_ladder_columns": ["ladder step taken", "clean sessions w/o progress", "N"],
+        "censored_misses_14d": sorted(censored)[-20:],
+        "deload": deload,
+        "running": run,
+    }
 
 
 def schedule_section(db: Session, cfg: EngineConfig, today: date) -> dict[str, Any]:
@@ -491,6 +603,7 @@ def build_input(
     readiness, baselines = health_sections(db)
     run_doc, run_types = running_section(db)
     variant_names = {str(vid): lifts_out[slug]["name"] for slug, vid in variant_ids.items()}
+    plan_days = service.plan_for_api(db, today, 7)
 
     ctx = V.build_context(db, row.content, program=program, settings=s)
     params = {
@@ -529,7 +642,8 @@ def build_input(
         "baselines": baselines,
         "running": run_doc,
         "recent_sessions": recent_sessions(db, today, run_types),
-        "upcoming_plan": upcoming_plan(db, today),
+        "upcoming_plan": upcoming_plan(db, today, plan_days),
+        "progression": progression_section(db, plan_days, variant_names),
         "schedule": schedule_section(db, cfg, today),
         "rules": rules_section(db, today, variant_names),
         "past_advisor_changes": past_changes_section(db),
@@ -548,6 +662,9 @@ def fit_budget(doc: dict[str, Any], budget_tokens: int) -> dict[str, Any]:
         ),
         lambda d: d["running"].__setitem__("easy_runs", d["running"]["easy_runs"][-4:]),
         lambda d: d.__setitem__("rules", d["rules"][:5]),
+        lambda d: d["progression"].__setitem__(
+            "censored_misses_14d", d["progression"]["censored_misses_14d"][-6:]
+        ),
         lambda d: d.__setitem__("past_advisor_changes", d["past_advisor_changes"][:5]),
         lambda d: [
             v.__setitem__("e1rm_12w", v["e1rm_12w"][-6:])

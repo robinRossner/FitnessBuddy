@@ -534,7 +534,8 @@ def test_running_efficiency_vdot_and_intervals(client, world):
     assert ok["avg_work_pace_s_per_km"] == 250 and ok["avg_work_hr"] == 168
     assert (ok["target_hr_low"], ok["target_hr_high"]) == (166, 179)
     assert ok["hr_in_range"] is True and ok["recovery_ok"] is True and ok["passed"] is True
-    assert bad["hr_in_range"] is False and bad["passed"] is False
+    # HR above the zone no longer fails a session: pace decides (HR is a safety ceiling)
+    assert bad["hr_in_range"] is False and bad["passed"] is True
 
 
 # --------------------------------------------------------------------------- zones
@@ -592,7 +593,8 @@ def test_interval_run_analysis_laps_targets_and_verdict(client, world):
     assert kinds == ["warmup", *["work", "recovery"] * 4, "cooldown"]
     work = [lp for lp in body["laps"] if lp["kind"] == "work"]
     assert all(lp["target_pace_s_per_km"] == 250 and lp["pace_ok"] is True for lp in work)
-    assert all((lp["target_hr_low"], lp["target_hr_high"]) == (166, 179) for lp in work)
+    # HR: the green line and the safety ceiling of a VO2max session (102 / 108 % of LTHR 171)
+    assert all((lp["target_hr_low"], lp["target_hr_high"]) == (179, 189) for lp in work)
     assert all(lp["hr_ok"] is True for lp in work)
     warm = body["laps"][0]
     assert warm["index"] == 1 and warm["target_pace_s_per_km"] is None and warm["pace_ok"] is None
@@ -664,10 +666,17 @@ def test_much_faster_reps_stay_ok_but_the_verdict_says_so(client, db, world):
     assert not any("faster than target" in r for r in reasons)
 
 
-def test_failing_interval_verdict_explains_why(client, world):
+def test_failing_interval_verdict_explains_why(client, db, world):
+    slow = _planned_interval_run(db, world, 20, 262)  # every rep 4.8 % slower than 250
+    v = client.get(f"/api/v1/runs/{slow.id}/analysis").json()["verdict"]
+    assert v["passed"] is False and "pace not held" in v["summary"]
+    assert any("0 of 4 reps on pace" in r for r in v["reasons"])
+
+
+def test_high_hr_alone_does_not_fail_an_interval_session(client, world):
     v = client.get(f"/api/v1/runs/{world.bad_interval.id}/analysis").json()["verdict"]
-    assert v["passed"] is False
-    assert any("above the target zone" in r for r in v["reasons"])
+    assert v["passed"] is True and "passed on pace" in v["summary"]
+    assert not any("above the target zone" in r for r in v["reasons"])
 
 
 def test_easy_run_analysis_and_verdicts(client, world):

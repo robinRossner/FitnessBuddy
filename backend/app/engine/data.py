@@ -28,7 +28,9 @@ from app.db.models import (
 )
 from app.db.types import SessionKind, SetType
 from app.engine import lifting as L
+from app.engine import quality as Q
 from app.engine import running as R
+from app.engine import vdot as V
 from app.engine.config import EngineConfig
 from app.engine.planner import LiftContext, PlanInputs, VariantInfo
 from app.engine.program import Program, apply_overrides
@@ -114,7 +116,7 @@ def variant_info(v: ExerciseVariant) -> VariantInfo:
 
 def load_exposures(db: Session, variant_id: int, before: date | None = None) -> list[L.Exposure]:
     rows = db.execute(
-        select(WorkoutSet, TrainingSession.started_at_local)
+        select(WorkoutSet, TrainingSession.started_at_local, TrainingSession.gym_id)
         .join(TrainingSession, WorkoutSet.session_id == TrainingSession.id)
         .where(
             WorkoutSet.variant_id == variant_id,
@@ -124,11 +126,11 @@ def load_exposures(db: Session, variant_id: int, before: date | None = None) -> 
         )
         .order_by(TrainingSession.started_at_local, WorkoutSet.exercise_order, WorkoutSet.set_index)
     ).all()
-    by_session: dict[str, tuple[date, list[L.SetResult]]] = {}
-    for ws, started in rows:
+    by_session: dict[str, tuple[date, int | None, list[L.SetResult]]] = {}
+    for ws, started, gym_id in rows:
         if before is not None and started.date() >= before:
             continue
-        _day, sets = by_session.setdefault(ws.session_id, (started.date(), []))
+        _day, _gym, sets = by_session.setdefault(ws.session_id, (started.date(), gym_id, []))
         sets.append(L.SetResult(ws.weight_kg, ws.reps, ws.duration_s))
     e1rm = {
         s.session_id: s.best_e1rm_kg
@@ -136,28 +138,140 @@ def load_exposures(db: Session, variant_id: int, before: date | None = None) -> 
             select(ExerciseSessionStats).where(ExerciseSessionStats.variant_id == variant_id)
         )
     }
-    out = [L.Exposure(day, tuple(sets), e1rm.get(sid)) for sid, (day, sets) in by_session.items()]
+    out = [
+        L.Exposure(day, tuple(sets), e1rm.get(sid), gym)
+        for sid, (day, gym, sets) in by_session.items()
+    ]
     out.sort(key=lambda e: e.day)
     return out
 
 
-def last_stall_reset(db: Session, variant_id: int) -> L.StallReset | None:
-    """The most recent stall reset the engine decided for this variant (decisions_log)."""
-    rows = db.scalars(
-        select(DecisionLog)
-        .where(
-            DecisionLog.kind == "progression",
-            DecisionLog.subject_type == "variant",
-            DecisionLog.subject_id == str(variant_id),
+def _progression_rows(db: Session, variant_id: int, limit: int = 400) -> list[DecisionLog]:
+    return list(
+        db.scalars(
+            select(DecisionLog)
+            .where(
+                DecisionLog.kind == "progression",
+                DecisionLog.subject_type == "variant",
+                DecisionLog.subject_id == str(variant_id),
+            )
+            .order_by(DecisionLog.id.desc())
+            .limit(limit)
         )
-        .order_by(DecisionLog.id.desc())
-        .limit(40)
     )
-    for r in rows:
+
+
+def load_ladder(db: Session, variant_id: int) -> list[L.LadderEvent]:
+    """The stall-ladder steps the engine decided for this variant (decisions_log
+    `output.ladder`), one per (day, step), oldest first."""
+    seen: dict[tuple[str, int], L.LadderEvent] = {}
+    for r in _progression_rows(db, variant_id):
+        lad = (r.output or {}).get("ladder")
+        if not lad or not lad.get("day"):
+            continue
+        key = (lad["day"], int(lad["step"]))
+        if key in seen:
+            continue
+        seen[key] = L.LadderEvent(
+            date.fromisoformat(lad["day"]),
+            int(lad["step"]),
+            float(lad["load"]) if lad.get("load") is not None else None,
+            lad.get("peak_e1rm"),
+            lad.get("from_load"),
+        )
+    return sorted(seen.values(), key=lambda e: (e.day, e.step))
+
+
+def _window_from(d: dict) -> L.DeloadWindow:
+    return L.DeloadWindow(
+        date.fromisoformat(d["start"]),
+        date.fromisoformat(d["until"]),
+        d.get("reason") or "multi_lift_stall",
+        {
+            int(k): L.Retest(
+                float(v["load"]), tuple(int(x) for x in v.get("reps") or ()), v.get("best_e1rm")
+            )
+            for k, v in (d.get("retest") or {}).items()
+        },
+        bool(d.get("deload", True)),
+    )
+
+
+def load_windows(db: Session, cfg: EngineConfig, since: date) -> list[L.DeloadWindow]:
+    """Deload windows (multi-lift stall, fatigue index) the engine decided, plus the converted
+    legacy -10 % stall resets (engine v1) that were never trained."""
+    out: dict[tuple[str, str], L.DeloadWindow] = {}
+    for r in db.scalars(
+        select(DecisionLog).where(DecisionLog.kind == "deload").order_by(DecisionLog.id.desc())
+    ):
+        w = (r.output or {}).get("window")
+        if not w or not w.get("start"):
+            continue
+        win = _window_from(w)
+        if win.until < since:
+            continue
+        out.setdefault((w["start"], win.reason), win)
+    windows = list(out.values())
+    windows += [w for w in legacy_windows(db, cfg) if (w.start.isoformat(), w.reason) not in out]
+    return sorted(windows, key=lambda w: w.start)
+
+
+def legacy_windows(db: Session, cfg: EngineConfig) -> list[L.DeloadWindow]:
+    """Engine v1 planned `stall_reset` (-10 %, `output.reset_day/reset_load`). Every such reset
+    that was not trained yet becomes a retest of the OLD load; when at least
+    `strength.multi_stall_lifts` share the reset day, a soft deload week comes first (the v2
+    multi-lift-stall rule). Derived on every run, so it needs no stored state."""
+    latest: dict[str, DecisionLog] = {}
+    for r in db.scalars(
+        select(DecisionLog)
+        .where(DecisionLog.kind == "progression", DecisionLog.subject_type == "variant")
+        .order_by(DecisionLog.id.desc())
+    ):
         out = r.output or {}
-        if out.get("reset_day") and out.get("reset_load") is not None:
-            return L.StallReset(date.fromisoformat(out["reset_day"]), float(out["reset_load"]))
-    return None
+        if out.get("rule") != "stall_reset" or not out.get("reset_day") or "ladder" in out:
+            continue
+        latest.setdefault(r.subject_id or "", r)
+    by_day: dict[date, dict[int, L.Retest]] = defaultdict(dict)
+    for sid, r in latest.items():
+        if not sid.isdigit():
+            continue
+        day = date.fromisoformat(r.output["reset_day"])
+        trained = db.scalar(
+            select(TrainingSession.id)
+            .join(WorkoutSet, WorkoutSet.session_id == TrainingSession.id)
+            .where(
+                WorkoutSet.variant_id == int(sid),
+                WorkoutSet.deleted_at.is_(None),
+                TrainingSession.deleted_at.is_(None),
+                TrainingSession.started_at_local >= datetime.combine(day, datetime.min.time()),
+            )
+            .limit(1)
+        )
+        if trained is not None:
+            continue
+        last = (r.inputs or {}).get("last") or {}
+        sets = [s for s in last.get("sets") or [] if s.get("reps") is not None]
+        if not sets:
+            continue
+        load = max(float(s.get("weight") or 0.0) for s in sets)
+        reps = tuple(
+            int(s["reps"]) for s in sets if abs(float(s.get("weight") or 0.0) - load) < 1e-6
+        )
+        by_day[day][int(sid)] = L.Retest(load, reps, last.get("best_e1rm"))
+    st = cfg.strength
+    out = []
+    for day, retest in sorted(by_day.items()):
+        if len(retest) >= st.multi_stall_lifts:
+            out.append(
+                L.DeloadWindow(
+                    day, day + timedelta(days=st.deload.days - 1), "legacy_reset", retest
+                )
+            )
+        else:
+            out.append(
+                L.DeloadWindow(day, day - timedelta(days=1), "legacy_reset", retest, deload=False)
+            )
+    return out
 
 
 def load_lift_contexts(db: Session, program: Program, gym: Gym | None) -> dict[str, LiftContext]:
@@ -168,10 +282,97 @@ def load_lift_contexts(db: Session, program: Program, gym: Gym | None) -> dict[s
         if v is None:
             out[name] = LiftContext(None)
             continue
-        out[name] = LiftContext(
-            variant_info(v), load_exposures(db, v.id), last_stall_reset(db, v.id)
+        out[name] = LiftContext(variant_info(v), load_exposures(db, v.id), load_ladder(db, v.id))
+    return out
+
+
+# --------------------------------------------------------------------------- running state
+
+
+def load_quality_log(db: Session, since: date, until: date) -> list[Q.QualityRecord]:
+    """Prescribed quality sessions (planned `intervals`) from the stored plans. Sessions of the
+    v1 engine (no `session_type`) count as `vo2max`."""
+    out = []
+    for p in db.scalars(
+        select(PlannedSession)
+        .where(
+            PlannedSession.kind == "intervals",
+            PlannedSession.deleted_at.is_(None),
+            PlannedSession.day >= since,
+            PlannedSession.day < until,
+        )
+        .order_by(PlannedSession.day)
+    ):
+        sess = (p.prescription or {}).get("session") or {}
+        st = sess.get("structure") or {}
+        work = st.get("work") or {}
+        if not work.get("reps") or not work.get("distance_m"):
+            continue
+        rec = st.get("recovery") or {}
+        out.append(
+            Q.QualityRecord(
+                p.day,
+                st.get("session_type") or "vo2max",
+                int(work["reps"]),
+                float(work["distance_m"]),
+                float(rec["duration_s"]) if rec.get("duration_s") else None,
+                float(work["pace_s_per_km"]) if work.get("pace_s_per_km") else None,
+            )
         )
     return out
+
+
+def load_vdot_log(db: Session) -> list[V.VdotRecord]:
+    out = []
+    for r in db.scalars(
+        select(DecisionLog)
+        .where(DecisionLog.kind == "running", DecisionLog.subject_type == "vdot")
+        .order_by(DecisionLog.id)
+    ):
+        rec = (r.output or {}).get("vdot_record")
+        if not rec:
+            continue
+        out.append(
+            V.VdotRecord(
+                date.fromisoformat(rec["day"]),
+                float(rec["vdot"]),
+                rec.get("source") or "initial",
+                float(rec.get("delta") or 0.0),
+            )
+        )
+    # one record per (day, source): the latest wins
+    dedup = {(x.day, x.source): x for x in out}
+    return sorted(dedup.values(), key=lambda x: x.day)
+
+
+def load_cycle_start(db: Session) -> date | None:
+    for r in db.scalars(
+        select(DecisionLog)
+        .where(DecisionLog.kind == "running", DecisionLog.subject_type == "week")
+        .order_by(DecisionLog.id)
+    ):
+        ps = (r.output or {}).get("phase_state")
+        if ps and ps.get("cycle_start"):
+            return date.fromisoformat(ps["cycle_start"])
+    return None
+
+
+def load_last_step_back(db: Session, before: date) -> date | None:
+    """Monday of the latest week whose (latest) long-run decision was a step-back."""
+    latest: dict[str, bool] = {}
+    for r in db.scalars(
+        select(DecisionLog)
+        .where(DecisionLog.kind == "running", DecisionLog.subject_type == "slot")
+        .order_by(DecisionLog.id.desc())
+        .limit(400)
+    ):
+        out = r.output or {}
+        if out.get("rule") != "running:long_run_progression" or not out.get("week_start"):
+            continue
+        latest.setdefault(out["week_start"], bool(out.get("step_back")))
+    weeks = [date.fromisoformat(w) for w, sb in latest.items() if sb]
+    weeks = [w for w in weeks if w < before]
+    return max(weeks) if weeks else None
 
 
 # --------------------------------------------------------------------------- health / runs
@@ -341,10 +542,16 @@ def load_inputs(
     program: Program,
     gyms_path: Path | None = None,
 ) -> PlanInputs:
+    from app.bodyweight import bodyweight_at
+
     gym = current_gym(db, gyms_path)
     program = apply_overrides(program, cfg.exercise_overrides)
-    lookback = max(cfg.running_cfg.vdot.lookback_weeks, 8) + 4
-    runs = load_runs(db, today - timedelta(weeks=lookback), today)
+    cycle_start = load_cycle_start(db)
+    weeks = max(cfg.running_cfg.vdot.lookback_weeks, 8) + 4
+    since = today - timedelta(weeks=weeks)
+    if cycle_start is not None:
+        since = min(since, cycle_start - timedelta(days=7))
+    runs = load_runs(db, since, today)
     locks, excluded = slot_placements(db, week_start, cfg.weekly_template)
     return PlanInputs(
         today=today,
@@ -353,13 +560,19 @@ def load_inputs(
         config_version=config_version,
         program=program,
         lifts=load_lift_contexts(db, program, gym),
-        health=load_health(db, today - timedelta(days=45), today),
+        health=load_health(db, today - timedelta(days=120), today),
         runs=runs,
-        actual_lower_days=lower_days(db, week_start - timedelta(days=3), today),
+        actual_lower_days=lower_days(db, today - timedelta(weeks=8), today),
         frozen_slots=frozen_slots(db, week_start, cfg.weekly_template),
         slot_locks=locks,
         excluded_slots=excluded,
         gym_name=gym.name if gym else None,
+        windows=load_windows(db, cfg, today - timedelta(days=90)),
+        quality_log=load_quality_log(db, since, today),
+        vdot_log=load_vdot_log(db),
+        cycle_start=cycle_start,
+        last_step_back=load_last_step_back(db, week_start),
+        bodyweight_kg=bodyweight_at(db, today, cfg.user.bodyweight_kg),
     )
 
 

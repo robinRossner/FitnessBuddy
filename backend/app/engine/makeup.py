@@ -6,9 +6,12 @@ Priority (`schedule.makeup_priority`, default lower, intervals, upper, long, eas
 - lower / intervals: take over the slot of a later easy run (`makeup_replaceable`) or the rest day
   of the same week, the earliest slot that breaks no hard rule;
 - upper: the same, but only if such a later slot exists;
-- easy: dropped, no make-up (`makeup_never`);
-- long: moves to `long_run_makeup_day` (Saturday) if that day is still ahead, else it is dropped
-  and the next long run does not progress (it is planned from the last long run that happened).
+- runs (intervals, long run; v2, docs/research/running-progression.md scenario 6): a missed run
+  never adds volume. It moves by at most `run_makeup_max_shift_days` (1) day, onto a later easy
+  run or the rest day, if the hard rules allow; otherwise it is dropped and the SAME session is
+  planned again next week (the quality cycle only advances on a session that was run, and the
+  long run is planned from the last long run that happened). A dropped run needs no advisor;
+- easy: dropped, no make-up (`makeup_never`; the day after Wednesday is an upper day anyway).
 
 Hard rules (`schedule_rules.py`): max 1 hard session per day, never two hard days in a row, the
 24 h rule after lower, max 2 sessions per day, nothing in the past, the weekly volume cap. A
@@ -37,6 +40,7 @@ from app.engine.decisions import add_trigger, log_decision
 from app.engine.schedule_rules import (
     PRETTY,
     REST,
+    RUN_KINDS,
     Edit,
     Layout,
     Rules,
@@ -47,7 +51,6 @@ from app.engine.schedule_rules import (
     volume_problem,
     weekday,
 )
-from app.engine.scheduling import WEEKDAYS
 
 log = logging.getLogger(__name__)
 
@@ -87,14 +90,13 @@ def _priority(cfg: EngineConfig, kind: str) -> int:
     return order.index(short) if short in order else len(order)
 
 
-def _candidate_days(kind: str, ws: date, today: date, cfg: EngineConfig) -> list[date]:
+def _candidate_days(
+    kind: str, ws: date, today: date, cfg: EngineConfig, missed_day: date | None = None
+) -> list[date]:
     sc = cfg.schedule_cfg
-    if short_kind(kind) == "long":
-        wd = sc.long_run_makeup_day[:3].lower()
-        if wd not in WEEKDAYS:
-            return []
-        d = ws + timedelta(days=WEEKDAYS.index(wd))
-        return [d] if d >= today else []
+    if kind in RUN_KINDS and missed_day is not None:
+        days = [missed_day + timedelta(days=k) for k in range(1, sc.run_makeup_max_shift_days + 1)]
+        return [d for d in days if d >= today and _monday(d) == ws]
     return [ws + timedelta(days=i) for i in range(7) if ws + timedelta(days=i) >= today]
 
 
@@ -129,7 +131,7 @@ def _place(
     layout = E.load_layout(db, ws, today)
     room = E.volume_room(db, cfg, today, ws)
     why: list[str] = []
-    for day in _candidate_days(missed.kind, ws, today, cfg):
+    for day in _candidate_days(missed.kind, ws, today, cfg, missed.day):
         for slot in _takeover_slots(layout, day, cfg):
             edit = Edit(
                 session_id=slot.id,
@@ -251,29 +253,32 @@ def handle_missed(
                 )
             )
             continue
+        is_run = kind in RUN_KINDS
+        repeat = "; the same session is planned again next week, no volume is made up"
         ws = _monday(p.day)
         if ws != _monday(today):
-            tail = "; the next long run does not progress" if short == "long" else ""
+            tail = repeat if is_run else ""
             summary.results.append(
                 _drop(
                     db,
                     p,
                     f"{label} missed {when} {p.day:%d %b} → dropped, that week is over{tail}",
                     config_version_id=config_version_id,
-                    trigger=(today - p.day).days <= 7,  # history is not worth a consultation
+                    # history is not worth a consultation; a run simply repeats next week
+                    trigger=(today - p.day).days <= 7 and not is_run,
                     context={"remaining_days": []},
                 )
             )
             continue
         edit, took, why = _place(db, p, cfg, today, ws)
         if edit is None:
-            tail = "; the next long run does not progress" if short == "long" else ""
+            shift = sc.run_makeup_max_shift_days
             detail = (
                 f" ({why[0]})"
                 if why
                 else (
-                    f" ({sc.long_run_makeup_day.capitalize()} is not ahead)"
-                    if short == "long"
+                    f" (nothing within {shift} day{'s' if shift != 1 else ''})"
+                    if is_run
                     else " (no free slot is left in the week)"
                 )
             )
@@ -281,9 +286,10 @@ def handle_missed(
                 _drop(
                     db,
                     p,
-                    f"{label} missed {when} → dropped: no valid slot this week{detail}{tail}",
+                    f"{label} missed {when} → dropped: no valid slot{detail}"
+                    + (repeat if is_run else ""),
                     config_version_id=config_version_id,
-                    trigger=True,
+                    trigger=not is_run,
                     context={"checked": why[:6]},
                 )
             )
