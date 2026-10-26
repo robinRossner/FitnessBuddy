@@ -55,6 +55,19 @@ enum PlanFormat {
         }
     }
 
+    /// Today card title. Lifting days only say which half ("Upper body"); the lifts themselves are in the workout.
+    static func cardTitle(type: String, kind: String, title: String?) -> String {
+        if type == "lifting" {
+            switch kind {
+            case "upper": return "Upper body"
+            case "lower": return "Lower body"
+            case "full": return "Full body"
+            default: return title ?? "Lifting"
+            }
+        }
+        return title ?? runTitle(type)
+    }
+
     static func symbol(forKind kind: String) -> String {
         switch kind {
         case "upper", "full", "other": "dumbbell.fill"

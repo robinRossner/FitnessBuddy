@@ -313,6 +313,8 @@ struct VariantDTO: Codable, Sendable, Equatable {
     var weightLadder: [Double]?
     var repRange: [Int]?
     var deletedAt: Date?
+    /// The user's load step (additive; absent on older servers).
+    var incrementKg: Double?
 }
 
 struct ExerciseDTO: Codable, Sendable, Equatable {
@@ -320,6 +322,10 @@ struct ExerciseDTO: Codable, Sendable, Equatable {
     var name: String
     var muscleGroup: String?
     var movementPattern: String?
+    /// Additive fields (docs/api/exercises.md); absent on older servers.
+    var bodyRegion: String?
+    var defaultEquipment: String?
+    var isTimed: Bool?
 }
 
 struct GymDTO: Codable, Sendable, Equatable {

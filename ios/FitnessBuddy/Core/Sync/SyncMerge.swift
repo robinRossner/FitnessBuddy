@@ -47,35 +47,52 @@ enum SyncMerge {
             else { ctx.insert(CachedGym(id: g.id, name: g.name, deletedAt: g.deletedAt)) }
         }
         let exercises = Dictionary(uniqueKeysWithValues: ((try? ctx.fetch(FetchDescriptor<CachedExercise>())) ?? []).map { ($0.id, $0) })
-        for x in pull.exercises {
-            if let e = exercises[x.id] {
-                e.name = x.name; e.muscleGroup = x.muscleGroup; e.movementPattern = x.movementPattern
-            } else {
-                ctx.insert(CachedExercise(id: x.id, name: x.name, muscleGroup: x.muscleGroup, movementPattern: x.movementPattern))
-            }
-        }
+        for x in pull.exercises { upsert(exercise: x, existing: exercises[x.id], in: ctx) }
         let variants = Dictionary(uniqueKeysWithValues: ((try? ctx.fetch(FetchDescriptor<CachedVariant>())) ?? []).map { ($0.id, $0) })
-        for v in pull.variants {
-            let ladder = v.weightLadder ?? []
-            if let e = variants[v.id] {
-                e.exerciseId = v.exerciseId ?? e.exerciseId
-                e.name = v.name
-                e.gymId = v.gymId
-                e.equipmentType = v.equipmentType ?? e.equipmentType
-                e.loadConvention = v.loadConvention ?? e.loadConvention
-                e.active = v.active ?? true
-                e.weightLadder = ladder
-                e.repRangeLow = v.repRange?.first
-                e.repRangeHigh = v.repRange?.last
-                e.deletedAt = v.deletedAt
-            } else {
-                ctx.insert(CachedVariant(id: v.id, exerciseId: v.exerciseId ?? 0, name: v.name, gymId: v.gymId,
-                                         equipmentType: v.equipmentType ?? "other",
-                                         loadConvention: v.loadConvention ?? "total", active: v.active ?? true,
-                                         weightLadder: ladder, repRangeLow: v.repRange?.first, repRangeHigh: v.repRange?.last,
-                                         deletedAt: v.deletedAt))
-            }
+        for v in pull.variants { upsert(variant: v, existing: variants[v.id], in: ctx) }
+    }
+
+    /// Also used right after the app created an exercise or variant (so it can be logged before the next pull).
+    @discardableResult
+    static func upsert(exercise x: ExerciseDTO, existing: CachedExercise?, in ctx: ModelContext) -> CachedExercise {
+        if let e = existing {
+            e.name = x.name; e.muscleGroup = x.muscleGroup; e.movementPattern = x.movementPattern
+            e.bodyRegion = x.bodyRegion ?? e.bodyRegion
+            e.defaultEquipment = x.defaultEquipment ?? e.defaultEquipment
+            e.isTimed = x.isTimed ?? e.isTimed
+            return e
         }
+        let e = CachedExercise(id: x.id, name: x.name, muscleGroup: x.muscleGroup, movementPattern: x.movementPattern,
+                               bodyRegion: x.bodyRegion, defaultEquipment: x.defaultEquipment, isTimed: x.isTimed ?? false)
+        ctx.insert(e)
+        return e
+    }
+
+    @discardableResult
+    static func upsert(variant v: VariantDTO, existing: CachedVariant?, in ctx: ModelContext) -> CachedVariant {
+        let ladder = v.weightLadder ?? []
+        if let e = existing {
+            e.exerciseId = v.exerciseId ?? e.exerciseId
+            e.name = v.name
+            e.gymId = v.gymId
+            e.equipmentType = v.equipmentType ?? e.equipmentType
+            e.loadConvention = v.loadConvention ?? e.loadConvention
+            e.active = v.active ?? true
+            e.weightLadder = ladder
+            e.repRangeLow = v.repRange?.first
+            e.repRangeHigh = v.repRange?.last
+            e.deletedAt = v.deletedAt
+            e.incrementKg = v.incrementKg
+            return e
+        }
+        let e = CachedVariant(id: v.id, exerciseId: v.exerciseId ?? 0, name: v.name, gymId: v.gymId,
+                              equipmentType: v.equipmentType ?? "other",
+                              loadConvention: v.loadConvention ?? "total", active: v.active ?? true,
+                              weightLadder: ladder, repRangeLow: v.repRange?.first, repRangeHigh: v.repRange?.last,
+                              deletedAt: v.deletedAt)
+        e.incrementKg = v.incrementKg
+        ctx.insert(e)
+        return e
     }
 
     // MARK: Sessions

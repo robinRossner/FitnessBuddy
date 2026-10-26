@@ -1,6 +1,10 @@
 """Per-exercise settings for the iOS app (bearer token like the other write APIs).
 
-PUT /api/v1/exercises/{variant_id}/rest   body {"rest_s": 30..600 | null}
+PUT   /api/v1/exercises/{variant_id}/rest      body {"rest_s": 30..600 | null}
+POST  /api/v1/exercises                        a new exercise + its first variant
+POST  /api/v1/exercises/{exercise_id}/variants a variant by equipment (at a gym for machines)
+PATCH /api/v1/exercises/{exercise_id}          the muscle group
+
 
 Sets the rest timer of the variant's exercise (all variants of one exercise share it; the setting
 is `exercise_overrides.<slug>.rest_s` in the engine config). `null` resets it to the default
@@ -10,13 +14,14 @@ the same value again creates no new version. Contract: docs/api/exercises.md.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app import exercise_service as xs
 from app.api.auth import require_token
 from app.api.routes import get_db
 from app.db.models import Exercise, ExerciseVariant, PlannedSession
@@ -25,7 +30,9 @@ from app.engine import config_service as cs
 from app.engine import rest
 from app.engine import service as engine
 from app.engine.config import REST_MAX_S, REST_MIN_S, EngineConfig
+from app.jobs.engine_jobs import rerun_engine
 from app.settings import get_settings
+from app.sync.pull import exercise_out, program_rep_ranges, variant_out
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
 
@@ -83,3 +90,92 @@ def put_rest(variant_id: int, body: RestBody, db: Session = Depends(get_db)) -> 
         "is_default": rest.override_for(new_cfg, exercise.slug) is None,
         "config_version": row.version,
     }
+
+
+# --------------------------------------------------------------------------- user exercises
+
+Equipment = Literal[
+    "barbell", "dumbbell", "machine_stack", "plate_loaded", "cable", "bodyweight", "smith", "other"
+]
+Increment = Annotated[float, Field(gt=0, le=xs.INCREMENT_MAX_KG)]
+
+
+class ExerciseBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: Annotated[str, Field(min_length=1, max_length=100)]
+    muscle_group: str
+    equipment_type: Equipment
+    timed: bool = False
+    gym_id: int | None = None  # machines: default is the current gym
+    increment_kg: Increment | None = None
+
+
+class VariantBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    equipment_type: Equipment
+    gym_id: int | None = None
+
+
+class ExercisePatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    muscle_group: str | None = None
+
+
+def _xcall(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except xs.ExerciseError as exc:
+        raise HTTPException(exc.status, exc.message) from None
+    except xs.gs.GymError as exc:
+        raise HTTPException(exc.status, exc.message) from None
+
+
+def _exercise(db: Session, exercise_id: int) -> Exercise:
+    ex = db.get(Exercise, exercise_id)
+    if ex is None:
+        raise HTTPException(404, "exercise not found")
+    return ex
+
+
+@router.post("/exercises", status_code=201)
+def create_exercise(body: ExerciseBody, db: Session = Depends(get_db)) -> dict[str, Any]:
+    settings = get_settings()
+    ex, v = _xcall(
+        xs.create_exercise,
+        db,
+        name=body.name,
+        muscle_group=body.muscle_group,
+        equipment_type=body.equipment_type,
+        timed=body.timed,
+        gym_id=body.gym_id,
+        increment_kg=xs.check_increment(body.increment_kg),
+        settings=settings,
+    )
+    db.commit()
+    return {"exercise": exercise_out(ex), "variant": variant_out(v, program_rep_ranges(settings))}
+
+
+@router.post("/exercises/{exercise_id}/variants")
+def add_variant(
+    exercise_id: int, body: VariantBody, db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    settings = get_settings()
+    ex = _exercise(db, exercise_id)
+    v = _xcall(
+        xs.add_variant, db, ex, equipment_type=body.equipment_type, gym_id=body.gym_id,
+        settings=settings,
+    )  # fmt: skip
+    db.commit()
+    if v.gym_id is not None:
+        rerun_engine("machine set up")  # a program exercise may stop being "set up this machine"
+    return variant_out(v, program_rep_ranges(settings))
+
+
+@router.patch("/exercises/{exercise_id}")
+def patch_exercise(
+    exercise_id: int, body: ExercisePatch, db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    ex = _exercise(db, exercise_id)
+    _xcall(xs.update_exercise, db, ex, body.model_dump(exclude_unset=True))
+    db.commit()
+    return exercise_out(ex)

@@ -63,6 +63,7 @@ class VariantInfo:
     load_convention: str
     weight_ladder: list[float] | None = None
     is_timed: bool = False
+    increment_kg: float | None = None  # the user's load step for this variant (app setting)
 
 
 @dataclass
@@ -564,7 +565,8 @@ class _Planner:
             variant=v,
             rep_range=pe.rep_range or self.st.rep_range,
             n_sets=pe.sets,
-            increment_kg=pe.increment_kg,
+            # the user's step for this machine wins over program.yaml's
+            increment_kg=v.increment_kg or pe.increment_kg,
             timed=v.is_timed,
             per_week=per_week,
             lower_body=kind == "lower",

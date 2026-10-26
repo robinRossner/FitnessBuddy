@@ -1,0 +1,365 @@
+import SwiftData
+import SwiftUI
+
+// MARK: - Exercise picker
+
+/// Add / swap an exercise: every exercise in sections by body region. Exercises without a variant at the current gym
+/// (a new gym, or never done) are set up on the spot; "New" creates an exercise that isn't in the library yet.
+struct ExercisePickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var env
+    @Query(sort: \CachedExercise.name) private var exercises: [CachedExercise]
+    @Query(sort: \CachedVariant.name) private var variants: [CachedVariant]
+    let title: String
+    let onPick: (CachedVariant) -> Void
+    @State private var search = ""
+    @State private var setupRow: ExercisePickRow?
+    @State private var showNew = false
+
+    private var gymId: Int? { env.settings.currentGymId }
+    private var groups: [ExercisePickGroup] {
+        ExerciseCatalog.groups(exercises: exercises, variants: variants, gymId: gymId, search: search)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(groups) { group in
+                    Section(group.region) {
+                        ForEach(group.rows) { row in
+                            Button { pick(row) } label: { rowLabel(row) }
+                                .buttonStyle(.plain)
+                        }
+                    }
+                }
+                Section {
+                    Button { showNew = true } label: {
+                        Label(search.isEmpty ? "New exercise" : "New exercise \u{201C}\(search)\u{201D}", systemImage: "plus.circle.fill")
+                    }
+                }
+            }
+            .overlay {
+                if variants.isEmpty && exercises.isEmpty {
+                    ContentUnavailableView("No exercises yet", systemImage: "arrow.triangle.2.circlepath",
+                                           description: Text("Sync with the backend to load your exercise library."))
+                }
+            }
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showNew = true } label: { Label("New exercise", systemImage: "plus") }
+                }
+            }
+            .sheet(item: $setupRow) { row in
+                ExerciseSetupSheet(row: row,
+                                   defaultEquipment: exercises.first { $0.id == row.exerciseId }?.defaultEquipment) { variant in
+                    finish(variant)
+                }
+            }
+            .sheet(isPresented: $showNew) {
+                NewExerciseSheet(initialName: search) { finish($0) }
+            }
+        }
+    }
+
+    private func rowLabel(_ row: ExercisePickRow) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.title).font(.body)
+                Text(row.variantId == nil ? "Not set up here yet" : ExerciseOptions.equipmentLabel(row.equipmentType))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if row.variantId == nil {
+                Image(systemName: "plus.circle").foregroundStyle(Domain.lifting.color).accessibilityHidden(true)
+            }
+        }
+        .frame(minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityHint(Text(row.variantId == nil ? "Sets it up for this gym first" : "Adds it to the workout"))
+    }
+
+    private func pick(_ row: ExercisePickRow) {
+        if let id = row.variantId, let variant = variants.first(where: { $0.id == id }) {
+            finish(variant)
+        } else {
+            setupRow = row
+        }
+    }
+
+    private func finish(_ variant: CachedVariant) {
+        onPick(variant)
+        dismiss()
+    }
+}
+
+// MARK: - Set up an exercise at this gym
+
+/// An exercise without a variant here: choose the equipment, the server creates the variant (a machine at the current
+/// gym, or a generic barbell / dumbbell / bodyweight one).
+struct ExerciseSetupSheet: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    let row: ExercisePickRow
+    let onDone: (CachedVariant) -> Void
+    @State private var equipment: String
+    @State private var saving = false
+    @State private var errorText: String?
+
+    init(row: ExercisePickRow, defaultEquipment: String?, onDone: @escaping (CachedVariant) -> Void) {
+        self.row = row
+        self.onDone = onDone
+        _equipment = State(initialValue: defaultEquipment ?? "machine_stack")
+    }
+
+    private var gymName: String { env.gyms.gym(env.settings.currentGymId)?.name ?? "this gym" }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Type", selection: $equipment) {
+                        ForEach(ExerciseOptions.equipment, id: \.key) { Text($0.label).tag($0.key) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } header: {
+                    Text("What do you use for \(row.title)?")
+                } footer: {
+                    Text(ExerciseOptions.gymBound.contains(equipment)
+                         ? "Saved as a machine at \(gymName), with its own progression. Add its weight steps later in Settings > Gym."
+                         : "Saved for every gym.")
+                }
+                SaveStatusSection(errorText: errorText, canWrite: env.exercises.canWrite)
+            }
+            .navigationTitle("Set up exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { Task { await save() } } label: {
+                        if saving { ProgressView() } else { Text("Add").fontWeight(.semibold) }
+                    }
+                    .disabled(saving || !env.exercises.canWrite)
+                }
+            }
+            .interactiveDismissDisabled(saving)
+        }
+        .presentationDetents([.large])
+    }
+
+    private func save() async {
+        saving = true
+        defer { saving = false }
+        do {
+            let variant = try await env.exercises.addVariant(exerciseId: row.exerciseId, equipmentType: equipment,
+                                                             gymId: env.settings.currentGymId)
+            env.sync.request(.manual)
+            onDone(variant)
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - New exercise
+
+struct NewExerciseSheet: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    let onDone: (CachedVariant) -> Void
+    @State private var draft: NewExerciseDraft
+    @State private var saving = false
+    @State private var errorText: String?
+
+    init(initialName: String = "", onDone: @escaping (CachedVariant) -> Void) {
+        self.onDone = onDone
+        var draft = NewExerciseDraft()
+        draft.name = initialName
+        _draft = State(initialValue: draft)
+    }
+
+    private var gymName: String { env.gyms.gym(env.settings.currentGymId)?.name ?? "this gym" }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Name (e.g. Lat Pulldown)", text: $draft.name)
+                        .textInputAutocapitalization(.words)
+                    MusclePicker(selection: $draft.muscleGroup)
+                    Picker("Type", selection: $draft.equipmentType) {
+                        ForEach(ExerciseOptions.equipment, id: \.key) { Text($0.label).tag($0.key) }
+                    }
+                    Toggle("Timed (hold, logged in seconds)", isOn: $draft.timed)
+                    IncrementPicker(selection: $draft.incrementKg)
+                } footer: {
+                    Text(ExerciseOptions.gymBound.contains(draft.equipmentType)
+                         ? "Machines are saved for \(gymName). At another gym you set it up again (one tap in the exercise list)."
+                         : "Saved for every gym.")
+                }
+                SaveStatusSection(errorText: errorText, canWrite: env.exercises.canWrite)
+            }
+            .navigationTitle("New exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { Task { await save() } } label: {
+                        if saving { ProgressView() } else { Text("Add").fontWeight(.semibold) }
+                    }
+                    .disabled(saving || !draft.isValid || !env.exercises.canWrite)
+                }
+            }
+            .interactiveDismissDisabled(saving)
+        }
+    }
+
+    private func save() async {
+        saving = true
+        defer { saving = false }
+        do {
+            let variant = try await env.exercises.create(draft, gymId: env.settings.currentGymId)
+            env.sync.request(.manual)
+            onDone(variant)
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Edit exercise
+
+/// Muscle (whole exercise), type and load step (this variant). Rest time has its own picker.
+struct ExerciseEditSheet: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    let variant: CachedVariant
+    let exercise: CachedExercise?
+    @State private var muscle: String
+    @State private var equipment: String
+    @State private var increment: Double?
+    @State private var saving = false
+    @State private var errorText: String?
+
+    init(variant: CachedVariant, exercise: CachedExercise?) {
+        self.variant = variant
+        self.exercise = exercise
+        _muscle = State(initialValue: exercise?.muscleGroup ?? "chest")
+        _equipment = State(initialValue: variant.equipmentType)
+        _increment = State(initialValue: variant.incrementKg)
+    }
+
+    private var changed: Bool {
+        (exercise != nil && muscle != exercise?.muscleGroup) || equipment != variant.equipmentType || increment != variant.incrementKg
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    if exercise != nil { MusclePicker(selection: $muscle) }
+                    Picker("Type", selection: $equipment) {
+                        ForEach(ExerciseOptions.equipment, id: \.key) { Text($0.label).tag($0.key) }
+                    }
+                    IncrementPicker(selection: $increment)
+                } header: {
+                    Text(variant.name.withoutGymSuffix)
+                } footer: {
+                    Text(increment == nil
+                         ? "Default steps: the machine's weight steps if set (Settings > Gym), else the usual step for the type."
+                         : "+ / − and the progression move by \(Fmt.number(increment ?? 0)) kg.")
+                }
+                SaveStatusSection(errorText: errorText, canWrite: env.exercises.canWrite)
+            }
+            .navigationTitle("Edit exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { Task { await save() } } label: {
+                        if saving { ProgressView() } else { Text("Save").fontWeight(.semibold) }
+                    }
+                    .disabled(saving || !changed || !env.exercises.canWrite)
+                }
+            }
+            .interactiveDismissDisabled(saving)
+        }
+    }
+
+    private func save() async {
+        saving = true
+        defer { saving = false }
+        do {
+            if let exercise, muscle != exercise.muscleGroup {
+                try await env.exercises.setMuscle(exerciseId: exercise.id, muscle: muscle)
+            }
+            if equipment != variant.equipmentType || increment != variant.incrementKg {
+                try await env.exercises.setVariant(variant.id, equipmentType: equipment, incrementKg: increment)
+            }
+            env.sync.request(.manual)
+            dismiss()
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Shared form pieces
+
+struct MusclePicker: View {
+    @Binding var selection: String
+
+    var body: some View {
+        Picker("Muscle", selection: $selection) {
+            ForEach(ExerciseOptions.regions, id: \.self) { region in
+                let muscles = ExerciseOptions.muscles.filter { $0.region == region }
+                if !muscles.isEmpty {
+                    Section(region) {
+                        ForEach(muscles, id: \.key) { Text($0.label).tag($0.key) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct IncrementPicker: View {
+    @Binding var selection: Double?
+
+    var body: some View {
+        Picker("Weight step", selection: $selection) {
+            Text("Default").tag(Double?.none)
+            ForEach(choices, id: \.self) { kg in
+                Text("\(Fmt.number(kg)) kg").tag(Double?.some(kg))
+            }
+        }
+    }
+
+    /// The fixed choices plus a stored value that isn't one of them.
+    private var choices: [Double] {
+        var out = ExerciseOptions.increments
+        if let selection, !out.contains(selection) { out.append(selection); out.sort() }
+        return out
+    }
+}
+
+struct SaveStatusSection: View {
+    let errorText: String?
+    let canWrite: Bool
+
+    var body: some View {
+        if errorText != nil || !canWrite {
+            Section {
+                if let errorText { Label(errorText, systemImage: "xmark.octagon.fill").font(.footnote).foregroundStyle(.red) }
+                if !canWrite {
+                    Label("Needs a connection. Exercises are saved on the server.", systemImage: "icloud.slash")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}

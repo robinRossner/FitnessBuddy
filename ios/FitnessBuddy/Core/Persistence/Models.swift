@@ -224,6 +224,8 @@ final class CachedVariant {
     var repRangeHigh: Int?
     /// Tombstoned variants stay resolvable for history but are hidden from add/swap pickers.
     var deletedAt: Date?
+    /// The user's load step for the +/- buttons (nil: the ladder / equipment default).
+    var incrementKg: Double? = nil
 
     init(id: Int, exerciseId: Int, name: String, gymId: Int?, equipmentType: String, loadConvention: String = "total",
          active: Bool = true, weightLadder: [Double] = [], repRangeLow: Int? = nil, repRangeHigh: Int? = nil,
@@ -248,12 +250,20 @@ final class CachedExercise {
     var name: String
     var muscleGroup: String?
     var movementPattern: String?
+    /// "Chest" | "Back" | "Shoulders" | "Arms" | "Legs" | "Core" | "Other" (nil from older servers).
+    var bodyRegion: String? = nil
+    var defaultEquipment: String? = nil
+    var isTimed: Bool = false
 
-    init(id: Int, name: String, muscleGroup: String? = nil, movementPattern: String? = nil) {
+    init(id: Int, name: String, muscleGroup: String? = nil, movementPattern: String? = nil,
+         bodyRegion: String? = nil, defaultEquipment: String? = nil, isTimed: Bool = false) {
         self.id = id
         self.name = name
         self.muscleGroup = muscleGroup
         self.movementPattern = movementPattern
+        self.bodyRegion = bodyRegion
+        self.defaultEquipment = defaultEquipment
+        self.isTimed = isTimed
     }
 }
 

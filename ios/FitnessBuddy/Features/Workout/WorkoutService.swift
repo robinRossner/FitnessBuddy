@@ -237,15 +237,20 @@ struct WorkoutService {
         }
     }
 
-    /// Toggles completion. Returns true if the set is now completed (caller starts the rest timer).
+    /// Toggles completion. Returns true if the set is now completed (caller starts the rest timer). A set without a
+    /// weight and reps (see `SetValidation`) is not ticked: the caller shows what is missing.
     @discardableResult
     func toggleComplete(_ set: LocalSet) -> Bool {
         if set.completedAt == nil {
             // First session at a machine: there is no target, so a weight must be picked (the hint is only a placeholder).
             if set.isBaseline && set.weightKg == nil { return false }
-            if set.weightKg == nil { set.weightKg = set.targetWeightKg ?? set.prevWeightKg }
-            if set.reps == nil && !set.isTimed { set.reps = set.targetReps ?? set.prevReps }
-            if set.durationS == nil && set.targetDurationS != nil { set.durationS = set.targetDurationS }
+            let c = completion(of: set)
+            guard SetValidation.missing(weight: c.weight, reps: c.reps, duration: c.duration, timed: set.isTimed,
+                                        equipmentType: c.equipment).isEmpty else { return false }
+            // bodyweight / timed sets may have no added weight: logged as 0
+            set.weightKg = c.weight ?? (SetValidation.weightOptional(timed: set.isTimed, equipmentType: c.equipment) ? 0 : nil)
+            set.reps = c.reps
+            set.durationS = c.duration
             set.completedAt = .now
         } else {
             set.completedAt = nil
@@ -253,6 +258,21 @@ struct WorkoutService {
         set.touch()
         save()
         return set.completedAt != nil
+    }
+
+    /// What ticking the set would log: the entered values, else the target / last time.
+    private func completion(of set: LocalSet) -> (weight: Double?, reps: Int?, duration: Double?, equipment: String?) {
+        (set.weightKg ?? set.targetWeightKg ?? set.prevWeightKg,
+         set.reps ?? (set.isTimed ? nil : set.targetReps ?? set.prevReps),
+         set.durationS ?? set.targetDurationS,
+         variant(set.variantId)?.equipmentType)
+    }
+
+    /// Why the set can't be ticked yet (empty: it can).
+    func missingFields(_ set: LocalSet) -> Set<SetValidation.Field> {
+        if set.isBaseline && set.weightKg == nil { return [.weight] }
+        let c = completion(of: set)
+        return SetValidation.missing(weight: c.weight, reps: c.reps, duration: c.duration, timed: set.isTimed, equipmentType: c.equipment)
     }
 
     /// Edits the weight; later *uncompleted* sets that still had the old weight follow along.
@@ -323,5 +343,26 @@ struct WorkoutService {
 
     func save() {
         do { try context.save() } catch { assertionFailure("save failed: \(error)") }
+    }
+}
+
+/// What a set needs before it can be ticked: reps (or seconds for a hold) and, unless the body is the load, a weight
+/// above zero. Keeps empty sets (nothing entered on a new machine) out of the history and the progression.
+enum SetValidation {
+    enum Field: Hashable { case weight, reps, duration }
+
+    static func weightOptional(timed: Bool, equipmentType: String?) -> Bool {
+        timed || equipmentType == "bodyweight"
+    }
+
+    static func missing(weight: Double?, reps: Int?, duration: Double?, timed: Bool, equipmentType: String?) -> Set<Field> {
+        var out: Set<Field> = []
+        if timed {
+            if (duration ?? 0) <= 0 { out.insert(.duration) }
+        } else if (reps ?? 0) <= 0 {
+            out.insert(.reps)
+        }
+        if !weightOptional(timed: timed, equipmentType: equipmentType) && (weight ?? 0) <= 0 { out.insert(.weight) }
+        return out
     }
 }

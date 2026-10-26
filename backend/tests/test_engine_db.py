@@ -335,6 +335,22 @@ def test_variant_resolution_and_exposures(db, world):
     assert D.load_exposures(db, world["bench"].id, before=TODAY - timedelta(days=7)) != exps
 
 
+def test_weightless_sets_of_loaded_exercises_are_not_exposures(db, world):
+    """A set ticked without a weight (machine not set up, nothing entered) is not history."""
+    latest = db.scalars(select(TrainingSession).order_by(TrainingSession.started_at_local)).all()
+    latest = latest[-1]
+    before = D.load_exposures(db, world["bench"].id)
+    db.add(
+        WorkoutSet(
+            session_id=latest.id, variant_id=world["bench"].id, source=Source.APP,
+            exercise_order=9, set_index=1, set_type="working", weight_kg=None, reps=10,
+        )
+    )  # fmt: skip
+    db.flush()
+    after = D.load_exposures(db, world["bench"].id)
+    assert [len(e.sets) for e in after] == [len(e.sets) for e in before]
+
+
 def test_program_sessions_filtered_to_current_gym(db, world):
     sessions = D.sessions_for_program(db, TODAY - timedelta(weeks=8), TODAY, world["gym"])
     assert sorted(s.kind for s in sessions) == ["lower", "upper", "upper", "upper"]

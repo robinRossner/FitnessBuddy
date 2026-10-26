@@ -9,10 +9,12 @@ struct ActiveWorkoutView: View {
     @Query(sort: \CachedVariant.name) private var variants: [CachedVariant]
     @Query private var states: [SyncState]
     @Query private var restOverrides: [LocalRestOverride]
+    @Query private var exercises: [CachedExercise]
 
     @State private var showAddExercise = false
     @State private var swapOrder: Int?
     @State private var restPickerOrder: Int?
+    @State private var editVariantId: Int?
     @State private var setupTarget: MachineSetupTarget?
     @State private var notesShown: Set<Int> = []
     @State private var confirmFinish = false
@@ -66,6 +68,16 @@ struct ActiveWorkoutView: View {
         .navigationTitle(session.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // the workout time stays visible however far down the list is scrolled
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text(session.name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                    Text(session.startedAt, style: .timer)
+                        .font(.headline.monospacedDigit()).foregroundStyle(Domain.lifting.color)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(session.name), workout time")
+            }
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
                     Button("Discard workout", systemImage: "trash", role: .destructive) { confirmDiscard = true }
@@ -73,9 +85,7 @@ struct ActiveWorkoutView: View {
                 .accessibilityLabel("Workout options")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Finish") {
-                    if uncompletedCount > 0 { confirmFinish = true } else { env.finishWorkout(session) }
-                }
+                Button("Finish") { confirmFinish = true }
                 .fontWeight(.semibold)
                 .disabled(completedCount == 0)
             }
@@ -94,12 +104,25 @@ struct ActiveWorkoutView: View {
             }
         }
         .sheet(item: $setupTarget) { MachineSetupSheet(target: $0) }
+        .sheet(item: Binding(get: { editVariantId.flatMap { variantsById[$0] } }, set: { if $0 == nil { editVariantId = nil } })) { variant in
+            ExerciseEditSheet(variant: variant, exercise: exercises.first { $0.id == variant.exerciseId })
+        }
         .sheet(item: Binding(get: { restPickerOrder.map(RestPickerTarget.init) }, set: { restPickerOrder = $0?.order })) { target in
             restPickerSheet(order: target.order)
         }
         .confirmationDialog("Finish workout?", isPresented: $confirmFinish, titleVisibility: .visible) {
-            Button("Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")") { env.finishWorkout(session) }
+            if uncompletedCount > 0 {
+                Button("Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")") { env.finishWorkout(session) }
+            } else {
+                Button("Finish workout") { env.finishWorkout(session) }
+            }
             Button("Keep going", role: .cancel) {}
+        } message: {
+            Text("\(completedCount) set\(completedCount == 1 ? "" : "s") logged. It is saved and can't be resumed.")
+        }
+        .onChange(of: uncompletedCount) { _, open in
+            // a set was added or un-ticked: this is no longer the end of the workout
+            if open > 0 { env.restTimer.cancelFinishReminder() }
         }
         .confirmationDialog("Discard this workout?", isPresented: $confirmDiscard, titleVisibility: .visible) {
             Button("Discard workout", role: .destructive) { env.discardWorkout(session) }
@@ -109,13 +132,9 @@ struct ActiveWorkoutView: View {
 
     // MARK: Header
 
+    /// The time is in the navigation bar (always visible); sets and volume scroll with the list.
     private var header: some View {
         HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Time").font(.caption).foregroundStyle(.secondary)
-                Text(session.startedAt, style: .timer).metricStyle(.title2).foregroundStyle(Domain.lifting.color)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
             StatTile(title: "Sets", value: "\(completedCount)/\(sets.count)")
             StatTile(title: "Volume", value: Fmt.number(WorkoutSummary.volume(of: sets).rounded(), maxFraction: 0), unit: "kg")
         }
@@ -134,10 +153,12 @@ struct ActiveWorkoutView: View {
                 SetRowView(set: set, label: setLabel(set, in: group, at: index),
                            ladder: variant?.weightLadder ?? [], equipment: variant?.equipmentType ?? "other",
                            dumbbellIncrement: dumbbellIncrement, increments: states.first?.config?.incrementsKg,
-                           service: service, session: session) { done in
+                           step: variant?.incrementKg, service: service, session: session) { done in
                     if done {
+                        // last open set ticked: remind to press Finish if nothing happens after this rest
+                        let last = service.sets(of: session).allSatisfy(\.isCompleted)
                         env.restTimer.start(seconds: restSeconds(variantId: set.variantId, planned: set.plannedRestS),
-                                            variantId: set.variantId)
+                                            variantId: set.variantId, finishReminder: last)
                     }
                 }
                 .listRowInsets(EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10))
@@ -160,7 +181,7 @@ struct ActiveWorkoutView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text((group.first?.variantName.isEmpty == false ? group.first!.variantName : variant?.name ?? "Exercise")
                         .withoutGymSuffix)
-                        .font(.headline).foregroundStyle(.primary)
+                        .font(.title3.weight(.bold)).foregroundStyle(Color.primary)
                     if group.first?.isBaseline == true {
                         Text(SetupRules.baselineNote).font(.caption).foregroundStyle(Domain.lifting.color).textCase(nil)
                     }
@@ -195,6 +216,9 @@ struct ActiveWorkoutView: View {
                 Spacer()
                 Menu {
                     Button("Swap exercise", systemImage: "arrow.triangle.swap") { swapOrder = order }
+                    if let id = group.first?.variantId, variantsById[id] != nil {
+                        Button("Edit exercise", systemImage: "slider.horizontal.3") { editVariantId = id }
+                    }
                     Button("Rest time", systemImage: "timer") { restPickerOrder = order }
                     Button("Add note", systemImage: "note.text") { notesShown.insert(order) }
                     Button("Skip exercise", systemImage: "forward.end", role: .destructive) {
@@ -327,56 +351,6 @@ struct RestTimerBar: View {
                 .padding(.bottom, 4)
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-    }
-}
-
-// MARK: - Exercise picker
-
-struct ExercisePickerView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppEnvironment.self) private var env
-    @Query(filter: #Predicate<CachedVariant> { $0.active && $0.deletedAt == nil }, sort: \CachedVariant.name) private var variants: [CachedVariant]
-    let title: String
-    let onPick: (CachedVariant) -> Void
-    @State private var search = ""
-
-    private var filtered: [CachedVariant] {
-        let gym = env.settings.currentGymId
-        let scoped = variants.filter { gym == nil || $0.gymId == nil || $0.gymId == gym }
-        guard !search.isEmpty else { return scoped }
-        return scoped.filter { $0.name.localizedCaseInsensitiveContains(search) }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List(filtered, id: \.id) { v in
-                Button {
-                    onPick(v)
-                    dismiss()
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(v.name.withoutGymSuffix).font(.body)
-                        Text(v.equipmentType.replacingOccurrences(of: "_", with: " ").capitalized)
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    .frame(minHeight: 44, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            .overlay {
-                if variants.isEmpty {
-                    ContentUnavailableView("No exercises yet", systemImage: "arrow.triangle.2.circlepath",
-                                           description: Text("Sync with the backend to load your exercise library."))
-                } else if filtered.isEmpty {
-                    ContentUnavailableView.search(text: search)
-                }
-            }
-            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
     }
 }

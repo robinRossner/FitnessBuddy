@@ -29,6 +29,9 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy import (
+    false as sa_false,
+)
+from sqlalchemy import (
     true as sa_true,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -118,6 +121,8 @@ class Exercise(ServerSeq, Timestamps, Base):
     e1rm_meaningful: Mapped[bool] = mapped_column(Boolean, default=True)
     is_timed: Mapped[bool] = mapped_column(Boolean, default=False)
     bodyweight_loaded: Mapped[bool] = mapped_column(Boolean, default=False)
+    # The user changed the muscle in the app: the catalog sync keeps their choice.
+    edited_by_user: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_false())
 
     variants: Mapped[list[ExerciseVariant]] = relationship(back_populates="exercise")
 
@@ -139,6 +144,8 @@ class ExerciseVariant(ServerSeq, Timestamps, Base):
     )
     weight_ladder: Mapped[list[Any] | None] = mapped_column(JSON)  # available weights, sorted
     ladder_inferred: Mapped[bool] = mapped_column(Boolean, default=False)  # False = user-edited
+    # The user's load step for this variant (None = ladder / equipment default).
+    increment_kg: Mapped[float | None] = mapped_column(Float)
     # False = the user no longer does this exercise: history is kept, never planned again.
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_true())
     notes: Mapped[str | None] = mapped_column(Text)

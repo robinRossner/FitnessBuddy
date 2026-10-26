@@ -97,17 +97,18 @@ other gym-bound exercises the user has history with (alphabetical).
 - If the gym is the current one the engine re-runs, so the "Set up this machine" plan item turns
   into a baseline item.
 
-`PATCH /variants/{id}` body, all optional: `{"name", "weight_ladder", "notes", "active"}` -> the
-variant:
+`PATCH /variants/{id}` body, all optional: `{"name", "weight_ladder", "notes", "active",
+"equipment_type", "increment_kg"}` (the last two: `docs/api/exercises.md`) -> the variant:
 
 ```json
 {"id": 123, "exercise_id": 7, "gym_id": 4, "name": "Lateral Raise (Cable) @ Gym 3",
- "equipment_type": "cable", "weight_ladder": [5.0, 7.5, 10.0], "notes": null, "active": true,
- "sessions": 9, "last_used": "2026-10-23"}
+ "equipment_type": "cable", "weight_ladder": [5.0, 7.5, 10.0], "increment_kg": null, "notes": null,
+ "active": true, "sessions": 9, "last_used": "2026-10-23"}
 ```
 
 - `weight_ladder: null` clears the ladder (the importer may infer one from history again).
-- Changing the ladder or `active` re-runs the engine for the upcoming sessions.
+- Changing the ladder, `active`, `equipment_type` or `increment_kg` re-runs the engine for the
+  upcoming sessions.
 - `404` for an unknown / deleted variant, `409` for a name already used at the gym.
 
 ### Weight ladder rules (POST and PATCH)

@@ -150,7 +150,8 @@ Response (`examples/sync_pull.json`, `examples/sync_pull_incremental.json`):
   and `ended_at` may be null.
 - `Variant`: `{"id": 122, "exercise_id": 2, "name": "Incline Bench Press (Smith Machine) @ Gym 3",
   "gym_id": 4, "equipment_type": "smith", "load_convention": "total", "active": true,
-  "deleted_at": null, "weight_ladder": [..]|null, "rep_range": [7, 12]|null}`. `equipment_type`:
+  "deleted_at": null, "weight_ladder": [..]|null, "rep_range": [7, 12]|null,
+  "increment_kg": 2.5|null}`. `equipment_type`:
   `barbell|dumbbell|machine_stack|plate_loaded|cable|bodyweight|smith|other`;
   `load_convention`: `total` (logged weight is the whole load), `per_hand` (one dumbbell),
   `assistance` (assisted pull-up: lower = harder; for band variants the number is a band level).
@@ -162,7 +163,9 @@ Response (`examples/sync_pull.json`, `examples/sync_pull_incremental.json`):
   can come back (`deleted_at: null` again, same `id`) if it is needed later. Pushing a set for a
   tombstoned variant is still accepted.
 - `Exercise`: `{"id": 1, "name": "Bench Press", "muscle_group": "chest", "movement_pattern":
-  "horizontal_push"}`.
+  "horizontal_push", "body_region": "Chest", "default_equipment": "barbell", "is_timed": false}`.
+  Exercises the user made in the app (`docs/api/exercises.md`) come the same way.
+  `increment_kg` on a variant is the user's load step (null = ladder / equipment default).
 - `Gym`: `{"id": 4, "name": "Gym 3", "deleted_at": null}`. `deleted_at` is an addition to the base
   contract: retired gyms (e.g. "Main gym") are still sent so old data resolves, hide them in
   pickers when `deleted_at != null`.
@@ -365,6 +368,8 @@ All additive unless noted:
    endpoint in `docs/api/exercises.md`.
 10. Progression engine v2 (additive): the plan fields listed under "Plan JSON". Nothing was
     removed or renamed; old plans simply lack them.
+11. User-managed exercises (additive): `body_region`, `default_equipment`, `is_timed` on
+    `Exercise`, `increment_kg` on `Variant`; endpoints in `docs/api/exercises.md`.
 
 ## Example fixtures
 

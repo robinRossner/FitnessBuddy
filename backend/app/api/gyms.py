@@ -29,6 +29,9 @@ router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
 
 Name = Annotated[str, Field(min_length=1, max_length=120)]
 Equipment = Literal["machine_stack", "cable", "smith", "plate_loaded", "other"]
+AnyEquipment = Literal[
+    "barbell", "dumbbell", "machine_stack", "plate_loaded", "cable", "bodyweight", "smith", "other"
+]
 
 
 def _call(fn, *args, **kwargs):
@@ -79,6 +82,9 @@ class VariantPatch(BaseModel):
     weight_ladder: list[float] | None = None
     notes: Annotated[str, Field(max_length=2000)] | None = None
     active: bool | None = None
+    equipment_type: AnyEquipment | None = None
+    # the load step of this variant; null = back to the ladder / equipment default
+    increment_kg: Annotated[float, Field(gt=0, le=50)] | None = None
 
     @field_validator("weight_ladder")
     @classmethod
@@ -197,6 +203,7 @@ def patch_variant(
         "name": v.name,
         "equipment_type": gs._val(v.equipment_type),
         "weight_ladder": v.weight_ladder,
+        "increment_kg": v.increment_kg,
         "notes": v.notes,
         "active": bool(v.active),
         "sessions": usage.sessions,

@@ -88,8 +88,9 @@ def sync_catalog(db: Session, catalog: dict[str, CatalogExercise]) -> dict[str, 
             db.add(ex)
             existing[c.slug] = ex
         ex.name = c.name
-        ex.primary_muscle = c.primary_muscle
-        ex.secondary_muscles = list(c.secondary_muscles)
+        if not ex.edited_by_user:  # the user's muscle choice in the app wins
+            ex.primary_muscle = c.primary_muscle
+            ex.secondary_muscles = list(c.secondary_muscles)
         ex.movement_pattern = c.movement_pattern
         ex.default_equipment_type = c.default_equipment
         ex.e1rm_meaningful = c.e1rm

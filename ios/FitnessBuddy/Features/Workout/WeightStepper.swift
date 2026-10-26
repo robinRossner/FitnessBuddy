@@ -4,6 +4,7 @@ import Foundation
 /// 1. If the variant has a `weight_ladder`, step to the next / previous rung.
 /// 2. Otherwise (or beyond the ladder's ends) step by the equipment default:
 ///    barbell 5 kg, dumbbell = configured dumbbell increment, everything else 2.5 kg.
+/// A step the user set for the exercise (`step`, the variant's `increment_kg`) replaces both.
 enum WeightStepper {
     static let fallbackStep = 2.5
     static let barbellStep = 5.0
@@ -24,15 +25,17 @@ enum WeightStepper {
     }
 
     static func next(from current: Double?, ladder: [Double], equipmentType: String, dumbbellIncrement: Double?,
-                     increments: [String: Double]? = nil) -> Double {
+                     increments: [String: Double]? = nil, step: Double? = nil) -> Double {
         let value = current ?? 0
+        if let step, step > 0 { return round2(value + step) }
         if let rung = ladder.sorted().first(where: { $0 > value + epsilon }) { return rung }
         return round2(value + defaultStep(equipmentType: equipmentType, dumbbellIncrement: dumbbellIncrement, increments: increments))
     }
 
     static func previous(from current: Double?, ladder: [Double], equipmentType: String, dumbbellIncrement: Double?,
-                         increments: [String: Double]? = nil) -> Double {
+                         increments: [String: Double]? = nil, step: Double? = nil) -> Double {
         let value = current ?? 0
+        if let step, step > 0 { return max(0, round2(value - step)) }
         if let rung = ladder.sorted().last(where: { $0 < value - epsilon }) { return rung }
         return max(0, round2(value - defaultStep(equipmentType: equipmentType, dumbbellIncrement: dumbbellIncrement, increments: increments)))
     }

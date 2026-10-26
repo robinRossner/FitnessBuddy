@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import SwiftData
 import SwiftUI
+import UserNotifications
 
 enum AppTab: Hashable {
     case today, workout, progress, health, coach
@@ -25,6 +26,8 @@ final class AppEnvironment {
     let stats: StatsRepository
     let coach: CoachRepository
     let gyms: GymRepository
+    /// Retained here: the notification center only holds its delegate weakly.
+    private let notificationPresenter = NotificationPresenter()
 
     #if DEBUG
     /// `-uiTab progress|health|...` selects the tab at launch (screenshots).
@@ -168,6 +171,7 @@ final class AppEnvironment {
 
     var context: ModelContext { container.mainContext }
     var workout: WorkoutService { WorkoutService(context: context) }
+    var exercises: ExerciseLibrary { ExerciseLibrary(settings: settings, network: network, context: context) }
 
     func start() {
         guard !Self.isRunningTests else { return }
@@ -180,6 +184,16 @@ final class AppEnvironment {
         #endif
         network.start()
         sync.request(.launch)
+        UNUserNotificationCenter.current().delegate = notificationPresenter
+        // ask before the first rest, so its notification is not scheduled without permission
+        Task { await restTimer.requestAuthorizationIfNeeded() }
+        didBecomeActive()
+    }
+
+    /// The app came to the foreground: the user is here, so the rest / finish notifications already shown are cleared.
+    func didBecomeActive() {
+        guard !Self.isRunningTests else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: WorkoutNotifications.all)
     }
 
     // MARK: Workout flow
@@ -218,6 +232,7 @@ final class AppEnvironment {
 
     func finishWorkout(_ session: LocalSession) {
         restTimer.cancel()
+        restTimer.cancelFinishReminder()
         if let summary = workout.finish(session) {
             finishedSummary = summary
             sync.request(.workoutFinished)
@@ -226,6 +241,7 @@ final class AppEnvironment {
 
     func discardWorkout(_ session: LocalSession) {
         restTimer.cancel()
+        restTimer.cancelFinishReminder()
         workout.discard(session)
     }
 }

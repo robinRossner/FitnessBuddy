@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Observation
 import UIKit
@@ -10,9 +11,28 @@ enum RestTimerEvent: Equatable {
     case cancelled
 }
 
+/// Identifiers and wording of the workout's local notifications.
+enum WorkoutNotifications {
+    static let restId = "rest-timer"
+    static let finishReminderId = "finish-reminder"
+    /// Two rings of a boxing bell, in the app bundle (also used as the notification sound).
+    static let bellFile = "boxing_bell.wav"
+    /// After the last set's rest ends with nothing logged, remind to press Finish this much later.
+    static let finishReminderDelay: TimeInterval = 180
+
+    static var all: [String] { [restId, finishReminderId] }
+
+    /// How a notification shows while the app is open: the rest notification not at all (the bell rings in the
+    /// app instead), anything else as a banner with sound. Outside the app the system always shows them.
+    static func inAppPresentation(forId id: String) -> UNNotificationPresentationOptions {
+        id == restId ? [] : [.banner, .list, .sound]
+    }
+}
+
 /// In-app rest timer based on an absolute end date (so it stays correct across backgrounding).
-/// Schedules a local notification for the end. `onEvent` is the seam for a future Live Activity:
-/// start/update/end an `Activity` from there without touching the views.
+/// Schedules a local notification (bell sound) for the end; when the app is open at the end it rings the bell itself
+/// (ambient audio: silent with the ring switch off unless headphones are connected, mixes with music).
+/// `onEvent` is the seam for a future Live Activity.
 @MainActor
 @Observable
 final class RestTimer {
@@ -20,12 +40,14 @@ final class RestTimer {
     private(set) var totalSeconds: TimeInterval = 0
     /// Variant id of the exercise whose set started the running rest (nil: not tied to an exercise).
     private(set) var variantId: Int?
+    /// When the "finish your workout" reminder is due (nil: none). Set after the workout's last open set was ticked.
+    private(set) var finishReminderDate: Date?
     @ObservationIgnored private var startDate: Date?
 
     @ObservationIgnored var onEvent: ((RestTimerEvent) -> Void)?
     @ObservationIgnored private var finishTask: Task<Void, Never>?
-    @ObservationIgnored private let notificationId = "rest-timer"
     @ObservationIgnored private let center: UNUserNotificationCenter?
+    @ObservationIgnored private let bell = BellPlayer()
 
     init(center: UNUserNotificationCenter? = nil) {
         self.center = center
@@ -37,14 +59,17 @@ final class RestTimer {
         max(0, (endDate ?? date).timeIntervalSince(date))
     }
 
-    func start(seconds: Int, variantId: Int? = nil) {
+    /// `finishReminder`: this rest follows the last open set of the workout.
+    func start(seconds: Int, variantId: Int? = nil, finishReminder: Bool = false) {
         let total = TimeInterval(max(5, seconds))
         totalSeconds = total
         self.variantId = variantId
         startDate = Date()
-        arm(end: Date().addingTimeInterval(total))
-        onEvent?(.started(end: endDate!, total: totalSeconds))
-        requestAuthorizationIfNeeded()
+        let end = Date().addingTimeInterval(total)
+        if finishReminder { finishReminderDate = end } else { cancelFinishReminder() }
+        arm(end: end)
+        onEvent?(.started(end: end, total: totalSeconds))
+        Task { await requestAuthorizationIfNeeded() }
     }
 
     func adjust(by delta: TimeInterval) {
@@ -65,16 +90,28 @@ final class RestTimer {
         onEvent?(.adjusted(end: newEnd, total: totalSeconds))
     }
 
+    /// Skip the rest. A pending finish reminder counts from now (the rest is over).
     func cancel() {
         guard endDate != nil else { return }
         clear()
+        notificationCenter?.removePendingNotificationRequests(withIdentifiers: [WorkoutNotifications.restId])
+        if finishReminderDate != nil { scheduleFinishReminder(restEnd: Date()) }
         onEvent?(.cancelled)
+    }
+
+    /// The workout was finished / discarded, or it has open sets again.
+    func cancelFinishReminder() {
+        guard finishReminderDate != nil else { return }
+        finishReminderDate = nil
+        notificationCenter?.removePendingNotificationRequests(withIdentifiers: [WorkoutNotifications.finishReminderId])
+        notificationCenter?.removeDeliveredNotifications(withIdentifiers: [WorkoutNotifications.finishReminderId])
     }
 
     private func arm(end: Date) {
         endDate = end
         finishTask?.cancel()
         scheduleNotification(at: end)
+        if finishReminderDate != nil { scheduleFinishReminder(restEnd: end) }
         finishTask = Task { [weak self] in
             let wait = end.timeIntervalSinceNow
             if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
@@ -85,7 +122,12 @@ final class RestTimer {
 
     private func fire() {
         guard let end = endDate, end <= Date().addingTimeInterval(0.5) else { return }
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        // Only ring on time with the app open. After a suspension this runs late, and the notification already rang.
+        if Date().timeIntervalSince(end) < 3, UIApplication.shared.applicationState == .active {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            bell.play()
+        }
+        // The pending notification is left alone: it is due now, and removing it here could race its delivery.
         clear()
         onEvent?(.finished)
     }
@@ -96,30 +138,82 @@ final class RestTimer {
         startDate = nil
         finishTask?.cancel()
         finishTask = nil
-        notificationCenter?.removePendingNotificationRequests(withIdentifiers: [notificationId])
     }
 
     // MARK: Notifications
 
     private var notificationCenter: UNUserNotificationCenter? {
         // Unit tests run hosted in the app; only touch the real center when explicitly injected or in a real run.
-        center ?? (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil ? .current() : nil)
+        center ?? (AppEnvironment.isRunningTests ? nil : .current())
     }
 
-    private func requestAuthorizationIfNeeded() {
-        notificationCenter?.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    /// Asks once (the system remembers the answer). Called at launch too, so the first rest's notification is not
+    /// scheduled before permission exists.
+    func requestAuthorizationIfNeeded() async {
+        guard let center = notificationCenter else { return }
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .notDetermined else { return }
+        let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+        // the rest that triggered the prompt was scheduled before permission existed: schedule it again
+        if granted, let end = endDate { scheduleNotification(at: end) }
+        if granted, let end = endDate, finishReminderDate != nil { scheduleFinishReminder(restEnd: end) }
     }
 
     private func scheduleNotification(at end: Date) {
-        guard let center = notificationCenter else { return }
-        center.removePendingNotificationRequests(withIdentifiers: [notificationId])
         let content = UNMutableNotificationContent()
         content.title = "Rest over"
         content.body = "Time for your next set."
+        content.sound = UNNotificationSound(named: UNNotificationSoundName(WorkoutNotifications.bellFile))
+        content.interruptionLevel = .active
+        add(WorkoutNotifications.restId, content, at: end)
+    }
+
+    private func scheduleFinishReminder(restEnd: Date) {
+        let due = restEnd.addingTimeInterval(WorkoutNotifications.finishReminderDelay)
+        finishReminderDate = due
+        let content = UNMutableNotificationContent()
+        content.title = "Workout done?"
+        content.body = "All sets are logged. Open the app and tap Finish to save your workout."
         content.sound = .default
         content.interruptionLevel = .active
-        let interval = max(1, end.timeIntervalSinceNow)
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-        center.add(UNNotificationRequest(identifier: notificationId, content: content, trigger: trigger))
+        add(WorkoutNotifications.finishReminderId, content, at: due)
+    }
+
+    private func add(_ id: String, _ content: UNNotificationContent, at date: Date) {
+        guard let center = notificationCenter else { return }
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+        center.removeDeliveredNotifications(withIdentifiers: [id])
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow), repeats: false)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+}
+
+/// Rings the bell inside the app. Ambient audio: follows the ring/silent switch on the speaker, plays through
+/// headphones, and mixes with (never stops) music.
+@MainActor
+final class BellPlayer {
+    private var player: AVAudioPlayer?
+
+    func play() {
+        guard !AppEnvironment.isRunningTests else { return }
+        if player == nil {
+            let name = (WorkoutNotifications.bellFile as NSString).deletingPathExtension
+            guard let url = Bundle.main.url(forResource: name, withExtension: "wav") else { return }
+            player = try? AVAudioPlayer(contentsOf: url)
+            player?.prepareToPlay()
+        }
+        try? AVAudioSession.sharedInstance().setCategory(.ambient)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        player?.currentTime = 0
+        player?.play()
+    }
+}
+
+/// Presents workout notifications: the rest bell is not shown while the app is open (it rings in the app), the finish
+/// reminder is. Set as the notification center's delegate at launch.
+final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate, Sendable {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async
+        -> UNNotificationPresentationOptions {
+        WorkoutNotifications.inAppPresentation(forId: notification.request.identifier)
     }
 }

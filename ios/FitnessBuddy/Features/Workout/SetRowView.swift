@@ -7,9 +7,13 @@ struct SetRowView: View {
     let equipment: String
     let dumbbellIncrement: Double?
     var increments: [String: Double]? = nil
+    /// The exercise's own load step (Edit exercise), replaces ladder and equipment default.
+    var step: Double? = nil
     let service: WorkoutService
     let session: LocalSession
     let onToggle: (Bool) -> Void
+    /// Fields the last tick attempt found empty (shown in red until filled in).
+    @State private var missing: Set<SetValidation.Field> = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -17,27 +21,35 @@ struct SetRowView: View {
                 typeBadge
                 StepperField(title: "Weight", unit: "kg", value: set.weightKg, fractionDigits: 2,
                              placeholder: set.weightKg == nil ? (SetupRules.placeholder(hintWeightKg: set.hintWeightKg) ?? "–") : "–",
-                             decrement: { service.setWeight(set, WeightStepper.previous(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments), in: session) },
+                             highlighted: missing.contains(.weight),
+                             decrement: { service.setWeight(set, WeightStepper.previous(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments, step: step), in: session) },
                              increment: {
                                  // an empty baseline set adopts its hint on the first tap
                                  if set.weightKg == nil, let hint = set.hintWeightKg { service.setWeight(set, hint, in: session); return }
-                                 service.setWeight(set, WeightStepper.next(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments), in: session)
+                                 service.setWeight(set, WeightStepper.next(from: set.weightKg, ladder: ladder, equipmentType: equipment, dumbbellIncrement: dumbbellIncrement, increments: increments, step: step), in: session)
                              },
                              commit: { service.setWeight(set, $0, in: session) })
                 if set.isTimed {
                     StepperField(title: "Seconds", unit: "sec", value: set.durationS, fractionDigits: 0,
+                                 highlighted: missing.contains(.duration),
                                  decrement: { service.setDuration(set, CountStepper.seconds(set.durationS, delta: -5)) },
                                  increment: { service.setDuration(set, CountStepper.seconds(set.durationS, delta: 5)) },
                                  commit: { service.setDuration(set, $0) })
                 } else {
                     StepperField(title: "Reps", unit: "reps", value: set.reps.map(Double.init), fractionDigits: 0,
+                                 highlighted: missing.contains(.reps),
                                  decrement: { service.setReps(set, CountStepper.reps(set.reps, delta: -1)) },
                                  increment: { service.setReps(set, CountStepper.reps(set.reps, delta: 1)) },
                                  commit: { service.setReps(set, $0.map { Int($0.rounded()) }) })
                 }
                 checkButton
             }
-            if let hint {
+            if !missing.isEmpty {
+                Text(missingText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.leading, 32)
+            } else if let hint {
                 Text(hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -45,6 +57,22 @@ struct SetRowView: View {
             }
         }
         .opacity(set.isCompleted ? 0.9 : 1)
+        .onChange(of: set.weightKg) { _, _ in recheck() }
+        .onChange(of: set.reps) { _, _ in recheck() }
+        .onChange(of: set.durationS) { _, _ in recheck() }
+        .sensoryFeedback(.warning, trigger: missing) { _, new in !new.isEmpty }
+    }
+
+    private var missingText: String {
+        let what = [missing.contains(.weight) ? "weight" : nil, missing.contains(.reps) ? "reps" : nil,
+                    missing.contains(.duration) ? "seconds" : nil].compactMap { $0 }
+        return "Enter " + ListFormatter.localizedString(byJoining: what) + " to log this set"
+    }
+
+    /// Once the user fills a field in, drop it from the red list.
+    private func recheck() {
+        guard !missing.isEmpty else { return }
+        missing = missing.intersection(service.missingFields(set))
     }
 
     private var hint: String? {
@@ -76,7 +104,10 @@ struct SetRowView: View {
 
     private var checkButton: some View {
         Button {
-            onToggle(service.toggleComplete(set))
+            let wasCompleted = set.isCompleted
+            let done = service.toggleComplete(set)
+            missing = (done || wasCompleted) ? [] : service.missingFields(set)
+            onToggle(done)
         } label: {
             Image(systemName: set.isCompleted ? "checkmark.circle.fill" : "circle")
                 .font(.system(.largeTitle))
@@ -99,6 +130,8 @@ struct StepperField: View {
     let value: Double?
     let fractionDigits: Int
     var placeholder = "–"
+    /// Red outline: the value is needed before the set can be logged.
+    var highlighted = false
     let decrement: () -> Void
     let increment: () -> Void
     let commit: (Double?) -> Void
@@ -123,11 +156,24 @@ struct StepperField: View {
             stepButton("plus", "Increase \(title.lowercased())", increment)
         }
         .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            if highlighted {
+                RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.red, lineWidth: 2)
+            }
+        }
         .onAppear { text = format(value) }
         .onChange(of: value) { _, new in if !focused { text = format(new) } }
         .onChange(of: focused) { _, isFocused in
             if !isFocused { commitText() }
         }
+        // typed numbers count at once, so ticking the set while the keyboard is still up logs what was typed
+        .onChange(of: text) { _, new in
+            if focused, let v = Double(Self.clean(new)) { commit(v) }
+        }
+    }
+
+    private static func clean(_ text: String) -> String {
+        text.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)
     }
 
     private func stepButton(_ symbol: String, _ label: String, _ action: @escaping () -> Void) -> some View {
@@ -143,7 +189,7 @@ struct StepperField: View {
     }
 
     private func commitText() {
-        let cleaned = text.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)
+        let cleaned = Self.clean(text)
         if cleaned.isEmpty { commit(nil) } else if let v = Double(cleaned) { commit(v) }
         text = format(value)
     }

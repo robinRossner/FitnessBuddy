@@ -23,6 +23,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.db.catalog import region_of_muscle
 from app.db.models import (
     BodyMeasurement,
     Exercise,
@@ -153,6 +154,10 @@ def exercise_out(e: Exercise) -> dict[str, Any]:
         "name": e.name,
         "muscle_group": e.primary_muscle,
         "movement_pattern": e.movement_pattern,
+        # additive (docs/api/exercises.md): for grouping pickers and the "new exercise" form
+        "body_region": region_of_muscle(e.primary_muscle),
+        "default_equipment": _val(e.default_equipment_type),
+        "is_timed": bool(e.is_timed),
     }
 
 
@@ -186,6 +191,7 @@ def variant_out(v: ExerciseVariant, rep_ranges: dict[str, list[int]]) -> dict[st
         "active": bool(v.active),
         "deleted_at": iso_z(v.deleted_at),
         "weight_ladder": v.weight_ladder,
+        "increment_kg": v.increment_kg,
         "rep_range": rep_ranges.get(v.name.split(" @ ")[0]),
     }
 

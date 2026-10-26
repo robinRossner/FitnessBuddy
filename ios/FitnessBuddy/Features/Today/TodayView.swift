@@ -145,7 +145,7 @@ struct SessionCard: View {
             header
             if !item.adjustments.isEmpty { AdjustmentNote(lines: item.adjustments, level: item.readiness?.level ?? .unknown) }
             switch type {
-            case "lifting": LiftingBody(session: item.session)
+            case "lifting": EmptyView()  // the title says what it is; the lifts are in the workout
             case "intervals": IntervalsBody(session: item.session)
             case "easy_run", "long_run": EasyRunBody(session: item.session)
             default: RestBody(notes: item.notes, optional: item.session?.optional ?? false)
@@ -161,7 +161,7 @@ struct SessionCard: View {
         HStack(alignment: .firstTextBaseline) {
             Image(systemName: PlanFormat.symbol(forKind: item.kind)).foregroundStyle(domain.color)
                 .accessibilityHidden(true)
-            Text(item.title ?? PlanFormat.runTitle(type)).font(.title3.weight(.semibold))
+            Text(PlanFormat.cardTitle(type: type, kind: item.kind, title: item.title)).font(.title3.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
             if let gym = item.session?.gym, type == "lifting" { Chip(text: gym, color: domain.color) }
@@ -234,46 +234,6 @@ struct AdjustmentNote: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background((level == .unknown ? Color.orange : level.color).opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-struct LiftingBody: View {
-    @Environment(AppEnvironment.self) private var env
-    let session: PrescriptionDTO?
-    @State private var setupTarget: MachineSetupTarget?
-
-    var body: some View {
-        let exercises = session?.exercises ?? []
-        VStack(spacing: 0) {
-            ForEach(Array(exercises.enumerated()), id: \.offset) { index, ex in
-                if index > 0 { Divider() }
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(ex.name.withoutGymSuffix).font(.subheadline.weight(.medium))
-                        if ex.showsSetupButton {
-                            Button { setupTarget = MachineSetupTarget(exercise: ex) } label: {
-                                Label("Set up machine", systemImage: "wrench.and.screwdriver")
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .buttonStyle(.bordered).tint(.orange).controlSize(.small)
-                            .disabled(!env.gyms.canWrite)
-                            .accessibilityHint(env.gyms.writeBlockedHint ?? "Opens the machine editor for the current gym")
-                        } else if ex.variantId == nil {
-                            Text(ex.reason ?? "Log it once to get targets").font(.caption).foregroundStyle(.secondary)
-                        }
-                        if let note = ex.setupNote {
-                            Text(note).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    Text(PlanFormat.setsSummary(ex.sets))
-                        .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.trailing)
-                }
-                .padding(.vertical, 8)
-            }
-        }
-        .sheet(item: $setupTarget) { MachineSetupSheet(target: $0) }
     }
 }
 

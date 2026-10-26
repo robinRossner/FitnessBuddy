@@ -593,5 +593,16 @@ def update_variant(
     if "active" in fields and fields["active"] is not None and bool(fields["active"]) != v.active:
         v.active = bool(fields["active"])
         changed = True
+    if fields.get("equipment_type") is not None and fields["equipment_type"] != _val(
+        v.equipment_type
+    ):
+        v.equipment_type = EquipmentType(fields["equipment_type"])
+        changed = True
+    if "increment_kg" in fields:
+        inc = fields["increment_kg"]
+        inc = round(float(inc) / LADDER_STEP) * LADDER_STEP or LADDER_STEP if inc else None
+        if inc != v.increment_kg:
+            v.increment_kg = inc
+            changed = True
     db.flush()
     return v, changed

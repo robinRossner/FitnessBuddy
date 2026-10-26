@@ -1,4 +1,4 @@
-# Exercises API: per-exercise rest timers
+# Exercises API: rest timers, new exercises, exercise settings
 
 The rest timer is **2:00 for every exercise** (`lifting.rest_default_s: 120` in the engine config).
 The user can change it per exercise (e.g. 3:00 for squats). The value lives on the server in the
@@ -54,3 +54,75 @@ with the server; a row without a value means "default"), else the plan's `rest_s
 rest that is currently running for that exercise), sent to this endpoint when online (retried with the next sync
 when offline, before the pull), and reconciled with `config.lifting.rest_s_by_variant` on every pull. The +-15 s
 buttons stay a one-off change of the current rest.
+
+## New exercises and variants (user-managed)
+
+The app can add exercises that are not in `data/catalog/exercises.yaml` and set up any exercise at
+the current gym (e.g. a new gym with no machines yet). Bearer token like the other APIs. All three
+calls are online-only in the app (never queued); the app writes the answer into its local cache
+right away and the next pull confirms it.
+
+### POST /api/v1/exercises
+
+```json
+{"name": "Pec Deck", "muscle_group": "chest", "equipment_type": "machine_stack",
+ "timed": false, "gym_id": 6, "increment_kg": 2.5}
+```
+
+- `muscle_group`: `chest | lats | back | traps | shoulders | rear_delts | biceps | triceps | forearms |
+  quads | hamstrings | glutes | adductors | calves | abs` (sets `body_region`).
+- `equipment_type`: `barbell | dumbbell | machine_stack | plate_loaded | cable | bodyweight | smith | other`.
+- `timed` (default false): logged in seconds. `increment_kg` (optional, `0 < x <= 50`, rounded to
+  0.25): the variant's load step. `gym_id` (optional): the gym of a machine, default the current gym.
+- Creates an `Exercise` with slug `user_<name>` (outside the catalog: the catalog sync never touches
+  it) and its first variant: machines (`machine_stack | plate_loaded | cable | smith`) at the gym as
+  `"<Name> (<Machine|Plate Loaded|Cable|Smith Machine>) @ <gym>"`, everything else generic as
+  `"<Name> (<Barbell|Dumbbell|Bodyweight>)"` / `"<Name>"` for `other`.
+- `201` `{"exercise": Exercise, "variant": Variant}` (the pull shapes, see `docs/api/sync.md`).
+  `409` if an exercise with that name (case-insensitive) exists, `422` for an invalid body, `404`
+  for an unknown gym.
+
+### POST /api/v1/exercises/{exercise_id}/variants
+
+```json
+{"equipment_type": "cable", "gym_id": 6}
+```
+
+The variant of the exercise with that equipment, **idempotent**: an existing live one is returned
+(for machines: the exercise's active variant at that gym, whatever its type), a tombstoned one is
+revived (same id), otherwise a new one is made. Machines go through the gyms API rules
+(`docs/api/gyms.md`: deterministic key, program exercises keep the program's name so the plan finds
+them) and re-run the engine. Generic variants get a deterministic key too
+(uuid5 over exercise id + equipment), and the Strong importer never tombstones them.
+`200` Variant (pull shape), `404` unknown exercise / gym, `422` invalid body.
+
+### PATCH /api/v1/exercises/{exercise_id}
+
+```json
+{"muscle_group": "shoulders"}
+```
+
+-> `200` Exercise. Marks the exercise `edited_by_user`, so a later catalog sync keeps the user's
+muscle. `404` / `422` as above.
+
+### Variant settings: PATCH /api/v1/variants/{id}
+
+The gyms API's variant PATCH (`docs/api/gyms.md`) also takes `equipment_type` (any type above) and
+`increment_kg` (`0 < x <= 50`, rounded to 0.25; `null` = back to the ladder / equipment default).
+`increment_kg` is the flat load step of that variant: the app's +/- buttons and the engine's
+progression use it instead of the weight ladder and the equipment default (a program
+`increment_kg` in `program.yaml` only applies when the variant has none). Both re-run the engine.
+
+### In the pull
+
+- `Exercise` gains `body_region` (`Chest | Back | Shoulders | Arms | Legs | Core | Other`),
+  `default_equipment` and `is_timed`.
+- `Variant` gains `increment_kg` (null = default steps).
+
+### iOS behaviour (for reference)
+
+- Add / Swap exercise: every exercise, in sections by body region, searchable. An exercise without a
+  usable variant at the current gym shows "Not set up here yet"; picking it asks for the equipment
+  and calls `POST /exercises/{id}/variants`. "New exercise" calls `POST /exercises`.
+- "Edit exercise" (exercise menu in the workout): muscle (`PATCH /exercises/{id}`), type and weight
+  step (`PATCH /variants/{id}`).

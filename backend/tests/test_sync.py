@@ -457,9 +457,12 @@ def test_pull_shapes_and_catalog(client, db):
     v = page["variants"][0]
     assert set(v) == {
         "id", "exercise_id", "name", "gym_id", "equipment_type", "load_convention",
-        "active", "deleted_at", "weight_ladder", "rep_range",
+        "active", "deleted_at", "weight_ladder", "rep_range", "increment_kg",
     }  # fmt: skip
-    assert set(page["exercises"][0]) == {"id", "name", "muscle_group", "movement_pattern"}
+    assert set(page["exercises"][0]) == {
+        "id", "name", "muscle_group", "movement_pattern", "body_region", "default_equipment",
+        "is_timed",
+    }  # fmt: skip
     assert {"id", "name"} <= set(page["gyms"][0])
     cfg = page["config"]
     assert isinstance(cfg["version"], str) and cfg["dumbbell_increment_kg"] in (2.0, 2.5)

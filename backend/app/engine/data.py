@@ -28,7 +28,7 @@ from app.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from app.db.types import SessionKind, SetType
+from app.db.types import EquipmentType, SessionKind, SetType
 from app.engine import lifting as L
 from app.engine import quality as Q
 from app.engine import running as R
@@ -137,6 +137,7 @@ def variant_info(v: ExerciseVariant) -> VariantInfo:
         load_convention=v.load_convention,
         weight_ladder=[float(w) for w in v.weight_ladder] if v.weight_ladder else None,
         is_timed=bool(ex.is_timed),
+        increment_kg=float(v.increment_kg) if v.increment_kg else None,
     )
 
 
@@ -156,8 +157,16 @@ def load_exposures(db: Session, variant_id: int, before: date | None = None) -> 
         .order_by(TrainingSession.started_at_local, WorkoutSet.exercise_order, WorkoutSet.set_index)
     ).all()
     by_session: dict[str, tuple[date, int | None, list[L.SetResult]]] = {}
+    variant = db.get(ExerciseVariant, variant_id)
+    # a weight-less set of a loaded exercise is a placeholder ticked without logging (the app now
+    # refuses those): it says nothing about the load, so it never counts as an exposure
+    loaded = variant is not None and (
+        variant.equipment_type != EquipmentType.BODYWEIGHT and not variant.exercise.is_timed
+    )
     for ws, started, gym_id in rows:
         if before is not None and started.date() >= before:
+            continue
+        if loaded and ws.weight_kg is None:
             continue
         _day, _gym, sets = by_session.setdefault(ws.session_id, (started.date(), gym_id, []))
         sets.append(L.SetResult(ws.weight_kg, ws.reps, ws.duration_s))

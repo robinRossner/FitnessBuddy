@@ -13,7 +13,10 @@ struct FitnessBuddyApp: App {
                 .modelContainer(env.container)
                 .task { env.start() }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { env.sync.request(.foreground) }
+                    if phase == .active {
+                        env.sync.request(.foreground)
+                        env.didBecomeActive()
+                    }
                 }
         }
     }
