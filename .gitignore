@@ -41,3 +41,5 @@ ios/Config/Local.xcconfig
 ios/**/*.xcuserstate
 ios/build/
 ios/FitnessBuddy.xcodeproj/
+ios/UILab/build/
+ios/UILab/FitnessBuddyUILab.xcodeproj/

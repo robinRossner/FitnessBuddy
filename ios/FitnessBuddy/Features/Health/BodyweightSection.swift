@@ -1,82 +1,49 @@
-import Charts
 import SwiftData
 import SwiftUI
 
-struct BodyweightCard: View {
-    @Environment(AppEnvironment.self) private var env
-    let server: [BodyweightPointDTO]
-    let summary: HealthSummaryDTO?
+/// "Weigh-Ins": your own log entries (swipe to delete; a tombstone that syncs) or a prompt to log the first one.
+/// Logging itself is the trailing "Log Weight" button of the section, in HealthTabView.
+struct WeighInsSection: View {
     let measurements: [LocalBodyMeasurement]
-    let range: HealthRange
+    /// Any weight at all (yours or from the scale); only changes the empty-state sentence.
+    let hasAnyWeight: Bool
     let logWeight: () -> Void
 
-    private var entries: [BodyweightEntry] {
-        BodyweightMerge.merge(server: server, local: measurements.map(BodyweightLog.snapshot))
-    }
-
     var body: some View {
-        let all = entries
-        let shown = BodyweightMerge.within(all, days: range.rawValue)
-        let latest = all.last
-        let change = BodyweightMerge.change4wPct(all) ?? summary?.bodyweightChange4wPct
-        let mine = measurements.filter { $0.deletedAt == nil }
-        VStack(spacing: 16) {
-            ChartCard(title: "Bodyweight", symbol: "scalemass.fill", color: ChartPalette.weight, trailing: {
-                Button(action: logWeight) { Label("Log weight", systemImage: "plus") }
-                    .font(.subheadline.weight(.semibold))
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .tint(ChartPalette.weight)
-            }) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(latest.map { Fmt.number($0.weightKg, maxFraction: 1) } ?? "–").metricStyle(.largeTitle)
-                    Text("kg").font(.headline).foregroundStyle(.secondary)
-                    Spacer()
-                    if let change {
-                        Chip(text: "\(Fmt.percent(change)) in 4 weeks", color: .secondary)
-                    }
+        let mine = Array(measurements.filter { $0.deletedAt == nil }.prefix(6))
+        PageSection("Weigh-Ins", info: "Weights you log are saved on this device first and synced when a connection is available. Weights from your scale show in the bodyweight chart but cannot be deleted here.") {
+            if mine.isEmpty {
+                Card {
+                    Text(hasAnyWeight ? "Weights you log appear here. Swipe an entry to delete it."
+                                      : "No weigh-ins yet. Log your weight to start the curve.")
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
-                if shown.count < 2 {
-                    ChartEmpty(symbol: "scalemass", message: shown.isEmpty ? "No weigh-ins yet. Log your weight to start the curve." : "One weigh-in so far. Log another to see the trend.", height: 110)
-                } else {
-                    Chart {
-                        ForEach(shown) { e in
-                            LineMark(x: .value("Date", e.date), y: .value("kg", e.weightKg))
-                                .interpolationMethod(.monotone)
-                                .foregroundStyle(ChartPalette.weight)
-                                .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                            PointMark(x: .value("Date", e.date), y: .value("kg", e.weightKg))
-                                .symbolSize(e.isPending ? 80 : 36)
-                                .foregroundStyle(e.isPending ? Color.orange : ChartPalette.weight)
-                        }
-                    }
-                    .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) { _ in AxisGridLine(); AxisValueLabel(format: .dateTime.month(.abbreviated).day()) } }
-                    .chartYScale(domain: .automatic(includesZero: false))
-                    .frame(height: 150)
-                    .accessibilityLabel("Bodyweight over \(range.rawValue) days")
-                    .accessibilityValue("Latest \(Fmt.number(latest?.weightKg ?? 0, maxFraction: 1)) kilograms" + (shown.contains { $0.isPending } ? ", includes entries waiting to sync" : ""))
-                    if shown.contains(where: \.isPending) {
-                        ChartNote(text: "Orange points are waiting to sync.", symbol: "icloud.and.arrow.up")
-                    }
-                }
+            } else {
+                MyEntriesCard(measurements: mine)
             }
-            if !mine.isEmpty { MyEntriesCard(measurements: Array(mine.prefix(6))) }
+        } trailing: {
+            Button(action: logWeight) { Label("Log Weight", systemImage: "plus") }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .tint(Domain.body.color)
         }
     }
 }
 
-/// Your own log entries; swipe to delete (a tombstone that syncs).
 private struct MyEntriesCard: View {
     @Environment(AppEnvironment.self) private var env
+    @ScaledMetric(relativeTo: .body) private var rowHeight: CGFloat = 56
     let measurements: [LocalBodyMeasurement]
 
     var body: some View {
-        ChartCard(title: "Your entries", subtitle: "Swipe left to delete.", symbol: "list.bullet", color: ChartPalette.weight) {
+        Card {
+            CardHeader(title: "Your Entries", symbol: "list.bullet", color: Domain.body.color, info: "Swipe left to delete.")
             List {
                 ForEach(measurements, id: \.id) { m in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(Fmt.number(m.weightKg, maxFraction: 1)) kg").metricStyle(.headline)
+                            MetricText(value: Fmt.number(m.weightKg, maxFraction: 1), unit: "kg", size: .headline)
                             Text(m.measuredAt.formatted(.dateTime.month(.abbreviated).day().year())).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -99,7 +66,7 @@ private struct MyEntriesCard: View {
             .listStyle(.plain)
             .scrollDisabled(true)
             .scrollContentBackground(.hidden)
-            .frame(height: CGFloat(measurements.count) * 56 + 4)
+            .frame(height: CGFloat(measurements.count) * rowHeight + 4)
         }
     }
 
@@ -153,6 +120,7 @@ struct LogWeightSheet: View {
                 focused = true
             }
         }
+        .tint(Domain.body.color)
         .presentationDetents([.medium])
     }
 

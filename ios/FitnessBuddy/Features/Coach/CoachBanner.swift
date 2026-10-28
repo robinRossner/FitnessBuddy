@@ -11,9 +11,9 @@ struct CoachBanner: View {
             HStack(spacing: 12) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(CoachStyle.color)
+                    .foregroundStyle(Domain.coach.color)
                     .frame(width: 34, height: 34)
-                    .background(CoachStyle.color.opacity(0.15), in: Circle())
+                    .background(Domain.coach.color.opacity(0.15), in: Circle())
                 VStack(alignment: .leading, spacing: 1) {
                     Text(CoachLogic.bannerTitle(pendingCount: pendingCount)).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
                     Text("Tap to review").font(.caption).foregroundStyle(.secondary)
@@ -23,8 +23,8 @@ struct CoachBanner: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(CoachStyle.color.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(CoachStyle.color.opacity(0.25), lineWidth: 1))
+            .background(Domain.coach.color.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Domain.coach.color.opacity(0.25), lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens the Coach tab")

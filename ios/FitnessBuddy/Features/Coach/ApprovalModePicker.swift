@@ -17,7 +17,7 @@ struct ApprovalModePicker: View {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: current == mode ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
-                            .foregroundStyle(current == mode ? CoachStyle.color : .secondary)
+                            .foregroundStyle(current == mode ? Domain.coach.color : .secondary)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(mode.title).font(.body.weight(.medium)).foregroundStyle(.primary)

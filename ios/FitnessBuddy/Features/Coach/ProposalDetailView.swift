@@ -27,7 +27,7 @@ struct ProposalDetailView: View {
                 loadingOrError
             }
         }
-        .background(Color.screenBackground)
+        .screenStyle()
         .navigationTitle("Proposal")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -55,28 +55,25 @@ struct ProposalDetailView: View {
 
     private func content(_ p: CoachProposalDTO) -> some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 24) {
                 headerCard(p)
                 statusCard(p)
                 if let diagnosis = p.diagnosis, !diagnosis.isEmpty {
-                    Card {
-                        SectionLabel(title: "Diagnosis", symbol: "stethoscope", color: CoachStyle.color)
-                        Text(diagnosis).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                    PageSection("Why") {
+                        Card { Text(diagnosis).font(.subheadline).fixedSize(horizontal: false, vertical: true) }
                     }
                 }
-                if !p.changes.isEmpty { changesCard(p) }
-                if !p.scheduleChanges.isEmpty { scheduleCard(p) }
-                if !p.sessionOverrides.isEmpty { overridesCard(p) }
+                if !p.changes.isEmpty { changesSection(p) }
+                if !p.scheduleChanges.isEmpty { scheduleSection(p) }
+                if !p.sessionOverrides.isEmpty { overridesSection(p) }
                 if let notes = p.notesForUser, !notes.isEmpty {
-                    Card {
-                        SectionLabel(title: "Note for you", symbol: "note.text", color: CoachStyle.color)
-                        Text(notes).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                    PageSection("Note for You") {
+                        Card { Text(notes).font(.subheadline).fixedSize(horizontal: false, vertical: true) }
                     }
                 }
                 footnote(p)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .pagePadding()
             .padding(.bottom, p.isPending || p.canDismiss ? 8 : 0)
         }
         .refreshable { await refreshOnce() }
@@ -84,30 +81,33 @@ struct ProposalDetailView: View {
     }
 
     private func headerCard(_ p: CoachProposalDTO) -> some View {
-        Card(tint: CoachStyle.color) {
-            HStack(alignment: .top, spacing: 12) {
-                TriggerBadge(type: p.trigger.type, size: 40)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(p.trigger.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
-                    if let detail = p.trigger.detail, !detail.isEmpty, detail != p.question {
-                        Text(detail).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    }
-                }
+        Card {
+            CardHeader(title: p.status.title, symbol: p.trigger.type.symbol, color: Domain.coach.color,
+                       time: p.createdAt?.coachLabel)
+            Text(p.trigger.title).font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+            if let detail = p.trigger.detail, !detail.isEmpty, detail != p.question {
+                Text(detail).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 8) {
-                CoachStatusChip(status: p.status)
-                ConfidencePill(confidence: p.confidence)
-                Spacer()
-                if let date = p.createdAt { Text(date.coachLabel).font(.caption).foregroundStyle(.secondary) }
+            if let confidence = p.confidence, confidence != .unknown {
+                HStack(spacing: 8) { ConfidencePill(confidence: confidence) }
             }
             if let q = p.question, !q.isEmpty {
                 HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "quote.opening").foregroundStyle(CoachStyle.color)
+                    Image(systemName: "quote.opening").foregroundStyle(Domain.coach.color)
                     Text(q).font(.subheadline.italic()).fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(CoachStyle.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(Domain.coach.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+        }
+    }
+
+    private func statusNote(_ title: String, symbol: String, color: Color, text: String?) -> some View {
+        Card {
+            CardHeader(title: title, symbol: symbol, color: color)
+            if let text {
+                Text(text).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -119,52 +119,37 @@ struct ProposalDetailView: View {
                 HStack(spacing: 12) {
                     if timedOut { Image(systemName: "hourglass").foregroundStyle(.orange) } else { ProgressView() }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(timedOut ? "Still working" : "Coach is thinking…").font(.headline)
+                        Text(timedOut ? "Still Working" : "Coach Is Thinking…").font(.headline)
                         Text(timedOut ? "This is taking longer than usual. Check back in a few minutes; the answer will be waiting here."
                                       : "This usually takes under a minute. You can leave this screen.")
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
                 }
                 if timedOut {
-                    Button("Check again") { Task { await load() } }.buttonStyle(.bordered).tint(CoachStyle.color)
+                    Button("Check Again") { Task { await load() } }.buttonStyle(.bordered).tint(Domain.coach.color)
                 }
             }
         case .awaitingKey:
-            Card(tint: .orange) {
-                Label("Waiting for the advisor key", systemImage: "key.fill").font(.headline).foregroundStyle(.orange)
-                Text("The coach can't answer yet. Add ANTHROPIC_API_KEY on the server; your question is saved and runs once the key is there.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
+            statusNote("Waiting for the Advisor", symbol: "key.fill", color: .orange,
+                       text: "The coach can't answer yet. Add an advisor credential on the server; your question is saved and runs once it is there.")
         case .failed:
-            Card(tint: .red) {
-                Label("The coach couldn't finish", systemImage: "xmark.octagon.fill").font(.headline).foregroundStyle(.red)
-                Text(p.error ?? "The request failed on the server. Nothing was changed.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
+            statusNote("The Coach Couldn't Finish", symbol: "xmark.octagon.fill", color: .red,
+                       text: p.error ?? "The request failed on the server. Nothing was changed.")
         case .dryRun:
-            Card(tint: .indigo) {
-                Label("Dry run", systemImage: "testtube.2").font(.headline).foregroundStyle(.indigo)
-                Text("The server built this request but did not send it to Claude, and nothing was applied.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
+            statusNote("Dry Run", symbol: "testtube.2", color: .indigo,
+                       text: "The server built this request but did not send it to Claude, and nothing was applied.")
         case .applied, .partiallyApplied:
-            Card(tint: .green) {
-                Label(p.status == .applied ? "Applied" : "Partly applied", systemImage: "checkmark.seal.fill")
-                    .font(.headline).foregroundStyle(.green)
+            Card {
+                CardHeader(title: p.status == .applied ? "Applied" : "Partly Applied", symbol: "checkmark.seal.fill", color: .green)
                 if let v = p.appliedConfigVersion {
-                    Text("New config \(CoachLogic.versionLabel(v)) is active. Today and Progress use the re-planned sessions.")
+                    Text("Config \(CoachLogic.versionLabel(v)) is active. Summary and Progress use the re-planned sessions.")
                         .font(.subheadline).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                NavigationLink(value: CoachRoute.history) {
-                    Label("Open history", systemImage: "clock.arrow.2.circlepath").font(.subheadline.weight(.semibold))
-                }
-                .tint(CoachStyle.color)
+                CoachFooterLink(title: "Config History", screen: .configHistory)
             }
         case .rejected:
-            Card {
-                Label("Rejected", systemImage: "hand.thumbsdown.fill").font(.headline).foregroundStyle(.secondary)
-                Text("Nothing was changed.").font(.subheadline).foregroundStyle(.secondary)
-            }
+            statusNote("Declined", symbol: "hand.thumbsdown.fill", color: .secondary, text: "Nothing was changed.")
         case .pending, .unknown:
             EmptyView()
         }
@@ -172,79 +157,88 @@ struct ProposalDetailView: View {
 
     // MARK: Changes
 
-    private func changesCard(_ p: CoachProposalDTO) -> some View {
+    private func selectedText(_ selected: Int, of total: Int) -> some View {
+        Text("\(selected) of \(total) selected").font(.subheadline).foregroundStyle(.secondary)
+    }
+
+    private func changesSection(_ p: CoachProposalDTO) -> some View {
         let reviewing = p.isPending
         let effective = selection ?? CoachLogic.defaultSelection(of: p)
-        return Card {
-            HStack {
-                SectionLabel(title: "Parameter changes", symbol: "slider.horizontal.3", color: CoachStyle.color)
-                Spacer()
-                if reviewing {
-                    Text("\(CoachLogic.approvalIds(selection: effective, changes: p.changes).count) of \(p.changes.filter { CoachLogic.isSelectable($0) }.count) selected")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            VStack(spacing: 0) {
+        return PageSection("Changes") {
+            Card {
                 ForEach(Array(p.changes.enumerated()), id: \.element.id) { index, change in
-                    if index > 0 { Divider().padding(.vertical, 10) }
+                    if index > 0 { Divider() }
                     changeRow(change, reviewing: reviewing, selected: effective.contains(change.id), proposal: p)
                 }
+            }
+        } trailing: {
+            if reviewing {
+                selectedText(CoachLogic.approvalIds(selection: effective, changes: p.changes).count,
+                             of: p.changes.filter { CoachLogic.isSelectable($0) }.count)
             }
         }
     }
 
     private func changeRow(_ c: CoachChangeDTO, reviewing: Bool, selected: Bool, proposal p: CoachProposalDTO) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        let parts = CoachChangeFormat.parts(from: c.from, to: c.to, path: c.param)
+        return HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
-                    Text(c.label).font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    Text(CoachChangeFormat.title(label: c.label, param: c.param))
+                        .font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
                     RiskPill(risk: c.risk)
                 }
-                ChangeValueText(text: c.changeText)
+                CoachValueChange(old: parts.old, new: parts.new)
+                    .font(.body)
+                    .fixedSize(horizontal: false, vertical: true)
                 if !c.reason.isEmpty {
                     Text(c.reason).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
-                if !c.valid {
-                    Label {
-                        Text((c.validationError ?? "Not allowed") + ". Rejected automatically.")
-                    } icon: { Image(systemName: "exclamationmark.triangle.fill") }
-                    .font(.footnote).foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-                } else if !reviewing, c.status == .applied || c.status == .rejected {
-                    Chip(text: c.status == .applied ? "Applied" : "Not applied", color: c.status == .applied ? .green : .gray)
-                }
+                invalidOrStatus(valid: c.valid, error: c.validationError, status: c.status, reviewing: reviewing)
             }
             Spacer(minLength: 0)
-            if reviewing && c.valid {
-                Toggle("Apply \(c.label)", isOn: Binding(
-                    get: { selected },
-                    set: { _ in selection = CoachLogic.toggled(c.id, in: selection ?? CoachLogic.defaultSelection(of: p), proposal: p) }
-                ))
-                .labelsHidden()
-                .tint(CoachStyle.color)
-            }
+            if reviewing && c.valid { toggle(c.id, label: c.label, selected: selected, proposal: p) }
         }
         .opacity(c.valid ? 1 : 0.55)
         .accessibilityElement(children: .contain)
     }
 
-    private func scheduleCard(_ p: CoachProposalDTO) -> some View {
+    @ViewBuilder
+    private func invalidOrStatus(valid: Bool, error: String?, status: CoachChangeStatus, reviewing: Bool) -> some View {
+        if !valid {
+            Label {
+                Text((error ?? "Not allowed") + ". Rejected automatically.")
+            } icon: { Image(systemName: "exclamationmark.triangle.fill") }
+            .font(.footnote).foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
+        } else if !reviewing, status == .applied || status == .rejected {
+            Chip(text: status == .applied ? "Applied" : "Not applied", color: status == .applied ? .green : .gray)
+        }
+    }
+
+    private func toggle(_ id: String, label: String, selected: Bool, proposal p: CoachProposalDTO) -> some View {
+        Toggle("Apply \(label)", isOn: Binding(
+            get: { selected },
+            set: { _ in selection = CoachLogic.toggled(id, in: selection ?? CoachLogic.defaultSelection(of: p), proposal: p) }
+        ))
+        .labelsHidden()
+        .tint(Domain.coach.color)
+    }
+
+    private func scheduleSection(_ p: CoachProposalDTO) -> some View {
         let reviewing = p.isPending
         let effective = selection ?? CoachLogic.defaultSelection(of: p)
-        return Card {
-            HStack {
-                SectionLabel(title: "Schedule changes", symbol: "calendar.badge.clock", color: CoachStyle.color)
-                Spacer()
-                if reviewing {
-                    Text("\(CoachLogic.approvalIds(selection: effective, changes: p.scheduleChanges).count) of \(p.scheduleChanges.filter { CoachLogic.isSelectable($0) }.count) selected")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            VStack(spacing: 0) {
+        return PageSection("Schedule") {
+            Card {
                 ForEach(Array(p.scheduleChanges.enumerated()), id: \.element.id) { index, change in
-                    if index > 0 { Divider().padding(.vertical, 10) }
+                    if index > 0 { Divider() }
                     scheduleRow(change, reviewing: reviewing, selected: effective.contains(change.id), proposal: p)
                 }
+            }
+        } trailing: {
+            if reviewing {
+                selectedText(CoachLogic.approvalIds(selection: effective, changes: p.scheduleChanges).count,
+                             of: p.scheduleChanges.filter { CoachLogic.isSelectable($0) }.count)
             }
         }
     }
@@ -252,7 +246,7 @@ struct ProposalDetailView: View {
     private func scheduleRow(_ c: CoachScheduleChangeDTO, reviewing: Bool, selected: Bool, proposal p: CoachProposalDTO) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: c.action.symbol)
-                .font(.title3).foregroundStyle(CoachStyle.color).frame(width: 24)
+                .font(.title3).foregroundStyle(Domain.coach.color).frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
@@ -262,42 +256,29 @@ struct ProposalDetailView: View {
                 if !c.reason.isEmpty {
                     Text(c.reason).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
-                if !c.valid {
-                    Label {
-                        Text((c.validationError ?? "Not allowed") + ". Rejected automatically.")
-                    } icon: { Image(systemName: "exclamationmark.triangle.fill") }
-                    .font(.footnote).foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-                } else if !reviewing, c.status == .applied || c.status == .rejected {
-                    Chip(text: c.status == .applied ? "Applied" : "Not applied", color: c.status == .applied ? .green : .gray)
-                }
+                invalidOrStatus(valid: c.valid, error: c.validationError, status: c.status, reviewing: reviewing)
             }
             Spacer(minLength: 0)
-            if reviewing && c.valid {
-                Toggle("Apply \(c.label)", isOn: Binding(
-                    get: { selected },
-                    set: { _ in selection = CoachLogic.toggled(c.id, in: selection ?? CoachLogic.defaultSelection(of: p), proposal: p) }
-                ))
-                .labelsHidden()
-                .tint(CoachStyle.color)
-            }
+            if reviewing && c.valid { toggle(c.id, label: c.label, selected: selected, proposal: p) }
         }
         .opacity(c.valid ? 1 : 0.55)
         .accessibilityElement(children: .contain)
     }
 
-    private func overridesCard(_ p: CoachProposalDTO) -> some View {
-        Card {
-            SectionLabel(title: "Planned sessions", symbol: "calendar.badge.clock", color: CoachStyle.color)
-            ForEach(p.sessionOverrides) { o in
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        if let date = o.date { Text(DayLabel.short(date)).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
-                        if let session = o.session { Chip(text: session.replacingOccurrences(of: "_", with: " ").capitalized, color: Domain.forKind(session).color) }
-                    }
-                    Text(o.change).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                    if let reason = o.reason, !reason.isEmpty {
-                        Text(reason).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+    private func overridesSection(_ p: CoachProposalDTO) -> some View {
+        PageSection("Planned Sessions") {
+            Card {
+                ForEach(Array(p.sessionOverrides.enumerated()), id: \.element.id) { index, o in
+                    if index > 0 { Divider() }
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            if let date = o.date { Text(DayLabel.short(date)).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
+                            if let session = o.session { Chip(text: session.replacingOccurrences(of: "_", with: " ").capitalized, color: Domain.forKind(session).color) }
+                        }
+                        Text(o.change).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                        if let reason = o.reason, !reason.isEmpty {
+                            Text(reason).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
@@ -329,11 +310,11 @@ struct ProposalDetailView: View {
                 Label(actionError, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(.orange)
             }
             HStack(spacing: 12) {
-                Button(role: .destructive) { showReject = true } label: {
-                    Text("Reject").frame(maxWidth: .infinity).padding(.vertical, 6)
+                Button { showReject = true } label: {
+                    Text("Decline").frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
                 .buttonStyle(.bordered)
-                .tint(.red)
+                .tint(.secondary)
                 .disabled(acting != nil || blocked != nil)
                 Button { confirmApprove = true } label: {
                     HStack(spacing: 6) {
@@ -343,7 +324,7 @@ struct ProposalDetailView: View {
                     .frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(CoachStyle.color)
+                .tint(Domain.coach.color)
                 .disabled(ids.isEmpty || acting != nil || blocked != nil)
             }
         }
@@ -353,7 +334,7 @@ struct ProposalDetailView: View {
             Button("Approve") { approve(ids) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text((next.map { "Creates config \($0). " } ?? "Creates a new config version. ") + "You can roll back in History.")
+            Text((next.map { "Creates config \($0). " } ?? "Creates a new config version. ") + "You can roll back in Coach Settings.")
         }
     }
 
@@ -388,12 +369,12 @@ struct ProposalDetailView: View {
                     Text("The note helps the coach next time. Nothing is changed.")
                 }
             }
-            .navigationTitle(proposal?.canDismiss == true ? "Dismiss proposal" : "Reject proposal")
+            .navigationTitle(proposal?.canDismiss == true ? "Dismiss Proposal" : "Decline Proposal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { showReject = false } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(proposal?.canDismiss == true ? "Dismiss" : "Reject", role: .destructive) { showReject = false; reject() }
+                    Button(proposal?.canDismiss == true ? "Dismiss" : "Decline", role: .destructive) { showReject = false; reject() }
                         .disabled(env.coach.writeBlockedHint != nil)
                 }
             }

@@ -10,15 +10,17 @@ struct RunAnalysisView: View {
     var body: some View {
         let analysis = analysis
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 if let data = analysis.value {
                     RunHeaderCard(run: data.run, planned: data.planned)
+                    RunTiles(run: data.run)
                     VerdictCard(verdict: data.verdict)
                     if !data.laps.isEmpty {
                         LapTableCard(laps: data.laps)
                         LapChartCard(laps: data.laps)
                     } else {
-                        ChartCard(title: "Laps", symbol: "flag.checkered", color: Domain.running.color) {
+                        Card {
+                            CardHeader(title: "Laps", symbol: "flag.checkered", color: Domain.running.color)
                             ChartEmpty(symbol: "flag.checkered", message: "This activity has no lap data.", height: 80)
                         }
                     }
@@ -29,12 +31,11 @@ struct RunAnalysisView: View {
                                context: .run(id: runId, name: analysis.value?.run.name ?? "This run"))
                 FreshnessLabel(resource: analysis)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .pagePadding()
         }
-        .background(Color.screenBackground)
-        .navigationTitle("Run analysis")
-        .navigationBarTitleDisplayMode(.inline)
+        .screenStyle()
+        .navigationTitle("Run Analysis")
+        .navigationBarTitleDisplayMode(.large)
         .refreshable { await refreshStats(env, [analysis]) }
         .loadsStats([analysis])
     }
@@ -45,25 +46,13 @@ private struct RunHeaderCard: View {
     let planned: PlanItemDTO?
 
     var body: some View {
-        Card(tint: Domain.running.color) {
+        let c = Domain.running.color
+        Card {
+            CardHeader(title: run.name ?? "Run", symbol: "figure.run", color: c, time: DayLabel.medium(run.date))
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(run.name ?? "Run").font(.title3.weight(.semibold))
-                    Text(DayLabel.medium(run.date)).font(.subheadline).foregroundStyle(.secondary)
-                }
-                Spacer()
-                if let type = run.type { Chip(text: type.replacingOccurrences(of: "_", with: " ").capitalized, color: Domain.running.color) }
-            }
-            HStack(alignment: .top, spacing: 12) {
-                StatTile(title: "Distance", value: run.distanceM.map { Fmt.km($0 / 1000) } ?? "–", unit: "km", color: Domain.running.color)
-                StatTile(title: "Time", value: run.durationS.map(Fmt.duration) ?? "–")
-                StatTile(title: "Avg pace", value: run.avgPaceSPerKm.map(Fmt.pace) ?? "–", unit: "/km")
-            }
-            HStack(alignment: .top, spacing: 12) {
-                StatTile(title: "Avg HR", value: run.avgHr.map { "\(Int($0.rounded()))" } ?? "–", unit: "bpm")
-                StatTile(title: "Max HR", value: run.maxHr.map { "\(Int($0.rounded()))" } ?? "–", unit: "bpm")
-                StatTile(title: "Training effect", value: run.trainingEffectAerobic.map { Fmt.number($0, maxFraction: 1) } ?? "–",
-                         unit: run.trainingEffectAnaerobic.map { "/ \(Fmt.number($0, maxFraction: 1))" })
+                MetricText(value: run.distanceM.map { Fmt.km($0 / 1000) } ?? "–", unit: "km", size: .largeTitle)
+                Spacer(minLength: 8)
+                if let type = run.type { Chip(text: type.replacingOccurrences(of: "_", with: " ").capitalized, color: c) }
             }
             if let planned {
                 Label("Planned: \(planned.title ?? planned.kind.replacingOccurrences(of: "_", with: " ").capitalized)", systemImage: "calendar")
@@ -74,6 +63,27 @@ private struct RunHeaderCard: View {
     }
 }
 
+private struct RunTiles: View {
+    let run: RunInfoDTO
+
+    var body: some View {
+        let c = Domain.running.color
+        KpiGrid(spacing: 12) {
+            MetricTile(label: "Time", symbol: "stopwatch", color: c, value: run.durationS.map(Fmt.duration) ?? "–")
+            MetricTile(label: "Avg Pace", symbol: "speedometer", color: c, value: run.avgPaceSPerKm.map(Fmt.pace) ?? "–",
+                       unit: run.avgPaceSPerKm == nil ? nil : "/km")
+            MetricTile(label: "Avg HR", symbol: "heart.fill", color: Domain.heart.color,
+                       value: run.avgHr.map { "\(Int($0.rounded()))" } ?? "–", unit: run.avgHr == nil ? nil : "bpm")
+            MetricTile(label: "Max HR", symbol: "heart.fill", color: Domain.heart.color,
+                       value: run.maxHr.map { "\(Int($0.rounded()))" } ?? "–", unit: run.maxHr == nil ? nil : "bpm")
+            MetricTile(label: "Training Effect", symbol: "flame.fill", color: c,
+                       value: run.trainingEffectAerobic.map { Fmt.number($0, maxFraction: 1) } ?? "–",
+                       unit: run.trainingEffectAnaerobic.map { "/ \(Fmt.number($0, maxFraction: 1))" },
+                       info: "Garmin's training effect from 0 to 5: aerobic first, anaerobic after the slash.")
+        }
+    }
+}
+
 private struct VerdictCard: View {
     let verdict: VerdictDTO?
 
@@ -81,15 +91,9 @@ private struct VerdictCard: View {
         let passed = verdict?.passed
         let color: Color = passed == true ? .green : (passed == false ? .orange : .secondary)
         Card {
-            HStack(spacing: 12) {
-                Image(systemName: passed == true ? "checkmark.seal.fill" : (passed == false ? "exclamationmark.triangle.fill" : "questionmark.circle"))
-                    .font(.title).foregroundStyle(color)
-                VStack(alignment: .leading, spacing: 2) {
-                    SectionLabel(title: "Verdict", color: color)
-                    Text(passed == true ? "Passed" : (passed == false ? "Missed the target" : "Not rated")).font(.title3.weight(.semibold))
-                }
-                Spacer()
-            }
+            CardHeader(title: "Verdict", symbol: passed == true ? "checkmark.seal.fill" : (passed == false ? "exclamationmark.triangle.fill" : "questionmark.circle"),
+                       color: color)
+            Text(passed == true ? "Passed" : (passed == false ? "Missed the target" : "Not rated")).font(.title3.weight(.semibold))
             if let summary = verdict?.summary, !summary.isEmpty { Text(summary).font(.subheadline) }
             if let reasons = verdict?.reasons, !reasons.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
@@ -110,7 +114,9 @@ private struct LapTableCard: View {
     let laps: [LapDTO]
 
     var body: some View {
-        ChartCard(title: "Laps", subtitle: "Work laps are highlighted and compared with the targets.", symbol: "flag.checkered", color: Domain.running.color) {
+        Card {
+            CardHeader(title: "Laps", symbol: "flag.checkered", color: Domain.running.color, time: "\(laps.count)",
+                       info: "Work laps are highlighted and compared with the targets.")
             VStack(spacing: 0) {
                 HStack {
                     Text("#").frame(width: 24, alignment: .leading)
@@ -181,7 +187,8 @@ private struct LapChartCard: View {
     var body: some View {
         let pace = laps.filter { ($0.avgPaceSPerKm ?? 0) > 0 }
         let hr = laps.filter { ($0.avgHr ?? 0) > 0 }
-        ChartCard(title: "Pace and heart rate per lap", symbol: "chart.xyaxis.line", color: Domain.running.color) {
+        Card {
+            CardHeader(title: "Pace and Heart Rate per Lap", symbol: "chart.xyaxis.line", color: Domain.running.color)
             if pace.isEmpty && hr.isEmpty {
                 ChartEmpty(symbol: "chart.xyaxis.line", message: "No pace or heart rate on the laps.", height: 80)
             } else {

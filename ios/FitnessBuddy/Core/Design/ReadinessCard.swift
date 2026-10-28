@@ -69,53 +69,62 @@ struct ReadinessChip: View {
     }
 }
 
-/// The readiness card shared by Today and Health: ring + headline + a row of metric chips. The long explanation lives in
-/// the detail sheet that opens on tap.
+/// The readiness card shared by Summary and Health (kit look): coloured header with (i), the headline with the level
+/// symbol, the first explanation line and a row of metric chips. The full explanation lives in the sheet opened on tap.
 struct ReadinessCard: View {
     let summary: ReadinessSummary?
+    /// Grey context on the right of the header ("Today").
+    var time: String?
     @State private var showDetails: Bool
 
-    init(summary: ReadinessSummary?, startOpen: Bool = false) {
+    static let about = "Readiness compares this morning's HRV and resting heart rate and last night's sleep with your own baseline. It decides whether today's plan is kept, eased or swapped for recovery. Tap the card for the details."
+
+    init(summary: ReadinessSummary?, time: String? = nil, startOpen: Bool = false) {
         self.summary = summary
+        self.time = time
         _showDetails = State(initialValue: startOpen && summary != nil)
     }
 
     private var level: ReadinessLevel { summary?.level ?? .unknown }
 
     var body: some View {
-        Button { if summary != nil { showDetails = true } } label: {
-            Card {
-                HStack(spacing: 16) {
-                    ReadinessRing(level: level, size: 68)
-                    VStack(alignment: .leading, spacing: 4) {
-                        SectionLabel(title: "Readiness", color: Domain.recovery.color)
-                        Text(summary?.headline ?? ReadinessLevel.unknown.title)
-                            .font(.title3.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        if summary == nil {
-                            Text("Shows up once your watch data has synced.").font(.subheadline).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                    if summary != nil {
-                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
-                            .accessibilityHidden(true)
-                    }
-                }
-                if let metrics = summary?.metrics, !metrics.isEmpty {
-                    FlowLayout(spacing: 8, lineSpacing: 8) {
-                        ForEach(metrics) { ReadinessChip(metric: $0) }
-                    }
+        Card {
+            HStack(spacing: 6) {
+                Label("Readiness", systemImage: Domain.readiness.symbol)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Domain.readiness.color)
+                InfoButton(text: Self.about)
+                Spacer(minLength: 8)
+                if let time, summary != nil { Text(time).font(.subheadline).foregroundStyle(.secondary) }
+                if summary != nil { DisclosureChevron() }
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(summary?.headline ?? ReadinessLevel.unknown.title)
+                    .font(.system(.title, design: .rounded).weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "\(level.symbol).circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(level.color)
+                    .accessibilityHidden(true)
+            }
+            if let line = summary?.details.first {
+                Text(line).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+            } else if summary == nil {
+                Text("Shows up once your watch data has synced.").font(.subheadline).foregroundStyle(.secondary)
+            }
+            if let metrics = summary?.metrics, !metrics.isEmpty {
+                FlowLayout(spacing: 8, lineSpacing: 8) {
+                    ForEach(metrics) { ReadinessChip(metric: $0) }
                 }
             }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .onTapGesture { if summary != nil { showDetails = true } }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Readiness: \(summary?.headline ?? "no data yet")")
         .accessibilityValue((summary?.metrics ?? []).map(\.spokenDescription).joined(separator: ". "))
         .accessibilityHint(summary == nil ? "" : "Shows the details")
-        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(summary == nil ? [] : .isButton)
+        .accessibilityAction { if summary != nil { showDetails = true } }
         .sheet(isPresented: $showDetails) {
             if let summary { ReadinessDetailSheet(summary: summary) }
         }

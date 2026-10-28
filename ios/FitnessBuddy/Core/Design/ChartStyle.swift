@@ -7,12 +7,13 @@ enum ChartPalette {
     static let zones: [Color] = [.cyan, .green, .yellow, .orange, .red]
     static func zone(_ z: Int) -> Color { zones[max(0, min(4, z - 1))] }
 
-    static let hrv = Color.purple
-    static let rhr = Color.pink
-    static let sleep = Color.indigo
+    // Health metrics use their `Domain` colour, so a chart matches its card and category header.
+    static let hrv = Domain.heart.color
+    static let rhr = Domain.heart.color
+    static let sleep = Domain.sleep.color
     static let battery = Color.mint
-    static let steps = Color.green
-    static let weight = Color.blue
+    static let steps = Domain.activity.color
+    static let weight = Domain.body.color
     /// Personal records: a warm gold that stays readable on light and dark backgrounds.
     static let pr = Color(red: 0.93, green: 0.68, blue: 0.0)
 
@@ -176,29 +177,5 @@ struct StatsPlaceholder<R: Decodable & Sendable>: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-// MARK: - Sparkline
-
-struct Sparkline: View {
-    let values: [Double]
-    var color: Color = .orange
-
-    var body: some View {
-        if values.count >= 2 {
-            Chart(Array(values.enumerated()), id: \.offset) { i, v in
-                LineMark(x: .value("Session", i), y: .value("e1RM", v))
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(color)
-                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-            }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .chartYScale(domain: .automatic(includesZero: false))
-            .accessibilityHidden(true)
-        } else {
-            Capsule().fill(color.opacity(0.18)).frame(height: 3).accessibilityHidden(true)
-        }
     }
 }

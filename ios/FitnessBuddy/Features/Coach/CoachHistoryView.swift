@@ -10,10 +10,10 @@ struct CoachHistoryView: View {
     var body: some View {
         let coach = env.coach
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 if coach.history.isEmpty {
                     Card {
-                        Label(coach.isOffline ? "Offline" : "No versions yet", systemImage: "clock.arrow.2.circlepath").font(.headline)
+                        Label(coach.isOffline ? "Offline" : "No Versions Yet", systemImage: "clock.arrow.circlepath").font(.headline)
                         Text(coach.isOffline ? "Nothing cached yet. Connect once and this stays available offline."
                                              : "Every change to your training settings shows up here.")
                             .font(.subheadline).foregroundStyle(.secondary)
@@ -28,11 +28,10 @@ struct CoachHistoryView: View {
                 if let error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(.orange) }
                 FreshnessLine(fetchedAt: coach.historyFetchedAt, offline: coach.isOffline)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .pagePadding()
         }
-        .background(Color.screenBackground)
-        .navigationTitle("Config history")
+        .screenStyle()
+        .navigationTitle("Config History")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await coach.refreshHistory() }
         .task { await coach.load(generation: env.sync.generation); await coach.refreshHistory() }
@@ -79,52 +78,61 @@ private struct VersionCard: View {
     let rollback: () -> Void
 
     var body: some View {
-        Card(tint: version.active ? CoachStyle.color : nil) {
-            HStack(alignment: .center, spacing: 10) {
-                Image(systemName: version.author.symbol)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(version.author == .advisor ? CoachStyle.color : .secondary)
-                    .frame(width: 30, height: 30)
-                    .background((version.author == .advisor ? CoachStyle.color : Color.secondary).opacity(0.14), in: Circle())
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 6) {
-                        Text(CoachLogic.versionLabel(version.version)).font(.headline)
-                        if version.active { Chip(text: "Active", color: .green) }
-                    }
-                    Text([version.author.title, version.createdAt?.coachLabel].compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(.secondary)
+        Card {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(CoachLogic.versionLabel(version.version))
+                    .font(.headline.monospacedDigit())
+                    .foregroundStyle(Domain.coach.color)
+                if version.active { Chip(text: "Active", color: Domain.coach.color) }
+                Spacer(minLength: 8)
+                if let date = version.createdAt?.coachLabel {
+                    Text(date).font(.subheadline).foregroundStyle(.secondary)
                 }
-                Spacer()
             }
+            Label(version.author.title, systemImage: version.author.symbol)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
             if let reason = version.reason, !reason.isEmpty {
                 Text(reason).font(.subheadline).fixedSize(horizontal: false, vertical: true)
             }
             if !version.diff.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(version.diff) { d in
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(d.path).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2)
-                            ChangeValueText(text: d.changeText)
+                        let parts = CoachChangeFormat.parts(from: d.old, to: d.new, path: d.path)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(CoachChangeFormat.title(label: d.path, param: d.path))
+                                .font(.footnote.weight(.semibold)).foregroundStyle(.secondary).lineLimit(2)
+                            CoachValueChange(old: parts.old, new: parts.new)
+                                .font(.subheadline)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
+                        .accessibilityElement(children: .combine)
                     }
                 }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Domain.coach.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             if let outcome = version.outcome { OutcomeBadge(outcome: outcome, path: nil) }
-            HStack(spacing: 12) {
-                if let id = version.consultationId {
-                    Button { env.openCoach(proposal: id) } label: {
-                        Label("View proposal", systemImage: "bubble.left.and.text.bubble.right").font(.footnote.weight(.semibold))
+            if version.consultationId != nil || canRollBack {
+                HStack(spacing: 12) {
+                    if let id = version.consultationId {
+                        Button { env.openCoach(proposal: id) } label: {
+                            Label("View Proposal", systemImage: "sparkles").font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.plain).foregroundStyle(Domain.coach.color)
                     }
-                    .buttonStyle(.plain).foregroundStyle(CoachStyle.color)
-                }
-                Spacer()
-                if canRollBack {
-                    Button { rollback() } label: {
-                        Label("Roll back to this version", systemImage: "arrow.uturn.backward").font(.footnote.weight(.semibold))
+                    Spacer()
+                    if canRollBack {
+                        Button { rollback() } label: {
+                            Label("Roll Back", systemImage: "arrow.uturn.backward").font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered).tint(Domain.coach.color)
+                        .disabled(busy || env.coach.writeBlockedHint != nil)
+                        .accessibilityLabel("Roll back to \(CoachLogic.versionLabel(version.version))")
                     }
-                    .buttonStyle(.bordered).tint(CoachStyle.color)
-                    .disabled(busy || env.coach.writeBlockedHint != nil)
                 }
+                .padding(.top, 2)
             }
         }
         .accessibilityElement(children: .contain)

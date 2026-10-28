@@ -1,21 +1,24 @@
 import SwiftUI
 
-/// Rounded grouped-style container used across Today / Workout.
+/// The one card of the app (Apple Health style): rounded, on the grouped background. See DesignKit.swift.
+/// `tint` draws a thin coloured bar on the leading edge (older screens); new screens use a `CardHeader` instead.
 struct Card<Content: View>: View {
     var tint: Color? = nil
+    var padding: CGFloat = 16
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) { content }
-            .padding(16)
+        VStack(alignment: .leading, spacing: 10) { content }
+            .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: Kit.cardRadius, style: .continuous))
             .overlay(alignment: .leading) {
                 if let tint {
                     Capsule().fill(tint).frame(width: 4).padding(.vertical, 14).padding(.leading, 5)
                         .accessibilityHidden(true)
                 }
             }
+            .contentShape(Rectangle())
     }
 }
 
@@ -79,15 +82,23 @@ struct StatTile: View {
     }
 }
 
+/// Small coloured capsule: "PR", "+2.5 kg", "Deload", "Today".
 struct Chip: View {
     let text: String
     var color: Color = .secondary
+    var symbol: String? = nil
+
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8).padding(.vertical, 3)
-            .background(color.opacity(0.15), in: Capsule())
-            .foregroundStyle(color)
+        HStack(spacing: 3) {
+            if let symbol { Image(systemName: symbol).accessibilityHidden(true) }
+            Text(text)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .lineLimit(1)
+        .background(color.opacity(0.14), in: Capsule())
     }
 }
 

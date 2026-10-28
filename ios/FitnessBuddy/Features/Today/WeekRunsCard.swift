@@ -16,7 +16,7 @@ struct WeekRunsCard: View {
     var body: some View {
         if !model.rows.isEmpty || model.liftLine != nil {
             Card {
-                SectionLabel(title: "This week's running", symbol: "figure.run", color: Domain.running.color)
+                CardHeader(title: "This Week's Running", symbol: "figure.run", color: Domain.running.color)
                 if !model.rows.isEmpty {
                     VStack(spacing: 0) {
                         ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in

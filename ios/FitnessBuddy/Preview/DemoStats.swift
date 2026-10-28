@@ -219,7 +219,7 @@ enum DemoStats {
                                 readiness: DayReadinessDTO(level: level, reason: level == "green" ? "HRV, resting heart rate and sleep are all normal." : "HRV is 12 % below baseline."),
                                 steps7dAvg: nil)
         }
-        let weights = (0..<8).map { i in BodyweightPointDTO(date: day(84 - i * 11), weightKg: (80.6 - Double(i) * 0.12 + noise(19, i) * 0.3 * 10).rounded() / 10 * 1, source: "garmin") }
+        let weights = (0..<8).map { i in BodyweightPointDTO(date: day(84 - i * 11), weightKg: ((80.6 - Double(i) * 0.12 + noise(19, i) * 0.3) * 10).rounded() / 10, source: "garmin") }
         let summary = HealthSummaryDTO(hrv7d: 57, hrv28d: 62, rhr7d: 53, rhr28d: 51.5, sleep7dS: 6.8 * 3600, sleep28dS: 7.2 * 3600,
                                        bodyweightLatest: weights.last?.weightKg, bodyweightChange4wPct: -0.6)
         let readiness = ReadinessTodayDTO(

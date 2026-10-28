@@ -532,15 +532,25 @@ struct CoachSettingsDTO: Decodable, Sendable, Equatable {
     var dryRun: Bool
     var callsThisWeek: Int
     var maxCallsPerWeek: Int
+    /// Additive provider keys (docs/api/coach.md): `credential_configured` is true for an API key or a Claude
+    /// subscription token, `provider` is `api | claude_code | none`, `billing` is `api | subscription`, `model` the
+    /// configured model. Older servers do not send them.
+    var credentialConfigured: Bool?
+    var provider: String?
+    var billing: String?
+    var model: String?
 
     enum CodingKeys: String, CodingKey {
         case approvalMode = "approval_mode", apiKeyConfigured = "api_key_configured", dryRun = "dry_run"
         case callsThisWeek = "calls_this_week", maxCallsPerWeek = "max_calls_per_week"
+        case credentialConfigured = "credential_configured", provider, billing, model
     }
     init(approvalMode: ApprovalMode = .manual, apiKeyConfigured: Bool = false, dryRun: Bool = false,
-         callsThisWeek: Int = 0, maxCallsPerWeek: Int = 0) {
+         callsThisWeek: Int = 0, maxCallsPerWeek: Int = 0, credentialConfigured: Bool? = nil, provider: String? = nil,
+         billing: String? = nil, model: String? = nil) {
         self.approvalMode = approvalMode; self.apiKeyConfigured = apiKeyConfigured; self.dryRun = dryRun
         self.callsThisWeek = callsThisWeek; self.maxCallsPerWeek = maxCallsPerWeek
+        self.credentialConfigured = credentialConfigured; self.provider = provider; self.billing = billing; self.model = model
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -549,7 +559,14 @@ struct CoachSettingsDTO: Decodable, Sendable, Equatable {
         dryRun = try c.decodeIfPresent(Bool.self, forKey: .dryRun) ?? false
         callsThisWeek = (try? c.decodeIfPresent(FlexCount.self, forKey: .callsThisWeek))?.value ?? 0
         maxCallsPerWeek = (try? c.decodeIfPresent(FlexCount.self, forKey: .maxCallsPerWeek))?.value ?? 0
+        credentialConfigured = try? c.decodeIfPresent(Bool.self, forKey: .credentialConfigured)
+        provider = try? c.decodeIfPresent(String.self, forKey: .provider)
+        billing = try? c.decodeIfPresent(String.self, forKey: .billing)
+        model = try? c.decodeIfPresent(String.self, forKey: .model)
     }
+
+    /// The advisor can run: an API key or a subscription token is set (falls back to the API key flag).
+    var isConnected: Bool { credentialConfigured ?? apiKeyConfigured }
 }
 
 /// `coach` block of `GET /plan/today` (decoded with the snake-case decoder, cached with the plan).

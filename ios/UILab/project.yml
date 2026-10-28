@@ -1,0 +1,38 @@
+# UI experiments: throwaway SwiftUI front ends with hardcoded data (Shared/ = placeholder data + kit).
+# Separate from the real app (../project.yml is untouched); each variant installs as its own app.
+# cd ios/UILab && xcodegen generate && open FitnessBuddyUILab.xcodeproj
+name: FitnessBuddyUILab
+options:
+  bundleIdPrefix: com.robinrossner
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+  generateEmptyDirectories: false
+configFiles:
+  Debug: ../Config/Debug.xcconfig
+  Release: ../Config/Release.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1"
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    ENABLE_PREVIEWS: YES
+targets:
+  # Add one target per experiment: sources [Shared, <Folder>], its own bundle ID and display name.
+  # Free signing team: reuse an already-registered ID (LabA..LabE) to stay under the App ID limit.
+  LabSandbox:
+    type: application
+    platform: iOS
+    sources: [Shared, Sandbox]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robinrossner.FitnessBuddyLabA
+        INFOPLIST_KEY_CFBundleDisplayName: UI Sandbox

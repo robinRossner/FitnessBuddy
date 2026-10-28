@@ -5,7 +5,7 @@ import SwiftUI
 import UserNotifications
 
 enum AppTab: Hashable {
-    case today, workout, progress, health, coach
+    case summary, workout, progress, health, coach
 }
 
 /// Where the Coach tab navigates to when opened from elsewhere.
@@ -37,11 +37,11 @@ final class AppEnvironment {
         case "progress": .progress
         case "health": .health
         case "coach": .coach
-        default: .today
+        default: .summary
         }
     }()
     #else
-    var selectedTab: AppTab = .today
+    var selectedTab: AppTab = .summary
     #endif
     var finishedSummary: WorkoutSummary?
     /// The "Start workout" chooser (planned sessions / empty).

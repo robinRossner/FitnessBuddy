@@ -1,10 +1,12 @@
 import SwiftData
 import SwiftUI
 
+/// Health tab: readiness against your baselines, then one card per signal (HRV, resting HR, sleep, steps, bodyweight)
+/// driven by a 7 / 30 / 90 day picker, then the weigh-ins you logged.
 struct HealthTabView: View {
     @Environment(AppEnvironment.self) private var env
     @Query(sort: \LocalBodyMeasurement.measuredAt, order: .reverse) private var measurements: [LocalBodyMeasurement]
-    @State private var range: HealthRange = .thirty
+    @State private var span: HealthSignals.Span = .month
     @State private var showWeightSheet = false
 
     private let openSheet: String?
@@ -24,34 +26,25 @@ struct HealthTabView: View {
 
     var body: some View {
         let health = health
+        let sources = MetricCatalog.Sources(health: health.value, volume: nil,
+                                            localWeights: measurements.map(BodyweightLog.snapshot))
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: Kit.groupSpacing) {
                     if let data = health.value {
-                        let days = HealthTransforms.window(data.days, range: range)
-                        HealthHeader(days: data.days, summary: data.summary, readinessToday: data.readinessToday,
-                                     openReadiness: openSheet == "readiness")
-                        Picker("Range", selection: $range) {
-                            ForEach(HealthRange.allCases) { Text($0.label).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        HRVCard(days: days)
-                        RHRCard(days: days)
-                        SleepCard(days: days)
-                        StepsCard(series: HealthTransforms.stepSeries(data.days), range: range, summary: data.summary, days: data.days)
-                        BodyweightCard(server: data.bodyweight, summary: data.summary, measurements: measurements,
-                                       range: range, logWeight: { showWeightSheet = true })
+                        ReadinessBreakdownCard(summary: readiness(data), time: readinessTime(data),
+                                               startOpen: openSheet == "readiness")
                     } else {
                         StatsPlaceholder(resource: health, symbol: "heart.text.square.fill", emptyTitle: "health data")
-                        BodyweightCard(server: [], summary: nil, measurements: measurements, range: range,
-                                       logWeight: { showWeightSheet = true })
                     }
+                    signals(health.value, sources: sources)
+                    WeighInsSection(measurements: measurements, hasAnyWeight: !sources.bodyweight.isEmpty,
+                                    logWeight: { showWeightSheet = true })
                     FreshnessLabel(resource: health)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .pagePadding()
             }
-            .background(Color.screenBackground)
+            .screenStyle()
             .navigationTitle("Health")
             .toolbar { ToolbarItem(placement: .topBarLeading) { SyncStatusBadge() } }
             .refreshable { await refreshStats(env, [health]) }
@@ -62,77 +55,70 @@ struct HealthTabView: View {
         }
     }
 
+    // MARK: Readiness
+
+    private func readiness(_ data: HealthStatsDTO) -> ReadinessSummary? {
+        ReadinessSummary.make(today: data.readinessToday, legacy: nil, day: HealthTransforms.latestReadinessDay(data.days))
+    }
+
+    private func readinessTime(_ data: HealthStatsDTO) -> String? {
+        if data.readinessToday != nil { return "Today" }
+        guard let day = HealthTransforms.latestReadinessDay(data.days) else { return nil }
+        return MetricSeries.timeLabel(MetricPoint(day: String(day.date.prefix(10)), value: 0), metric: MetricCatalog.hrv)
+    }
+
+    // MARK: Signals
+
+    @ViewBuilder
+    private func signals(_ data: HealthStatsDTO?, sources: MetricCatalog.Sources) -> some View {
+        let summary = data?.summary
+        PageSection("Signals", info: "The picker sets the period of every chart and average below. The dashed line is the average of that period. Tap a card for the full history.") {
+            Picker("Range", selection: $span.animation()) {
+                ForEach(HealthSignals.Span.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.bottom, 2)
+
+            if data != nil {
+                ForEach([MetricCatalog.hrv, MetricCatalog.restingHR, MetricCatalog.sleep]) { metric in
+                    let points = MetricCatalog.points(metric, from: sources)
+                    SignalCard(metric: metric, points: points, span: span,
+                               footnote: baselineFootnote(metric, points: points, summary: summary),
+                               emptyMessage: "Needs a few days of watch data.")
+                }
+                let steps = MetricCatalog.points(MetricCatalog.steps, from: sources)
+                if !steps.isEmpty {
+                    SignalCard(metric: MetricCatalog.steps, points: steps, span: span,
+                               footnote: stepsFootnote(data: data, summary: summary))
+                }
+            }
+            SignalCard(metric: MetricCatalog.bodyweight, points: MetricCatalog.points(MetricCatalog.bodyweight, from: sources),
+                       span: span, footnote: weightFootnote(sources.bodyweight, summary: summary),
+                       emptyMessage: "No weigh-ins in this period. Log your weight to start the curve.")
+        }
+    }
+
+    /// "vs 28-day average": the period average against the baseline the readiness uses.
+    private func baselineFootnote(_ metric: MetricInfo, points: [MetricPoint], summary: HealthSummaryDTO?) -> SignalFootnote? {
+        let window = HealthSignals.window(points, days: span.rawValue)
+        guard let delta = HealthSignals.deltaPct(HealthSignals.average(window), baseline: MetricCatalog.baseline(metric, summary: summary))
+        else { return nil }
+        return SignalFootnote(text: "vs 28-day average", delta: delta, higherIsBetter: metric.higherIsBetter ?? true)
+    }
+
+    private func stepsFootnote(data: HealthStatsDTO?, summary: HealthSummaryDTO?) -> SignalFootnote? {
+        guard let data else { return nil }
+        let n = HealthTransforms.daysAtGoal(data.days, summary: summary)
+        return SignalFootnote(text: "\(n) of the last 7 days above 10,000")
+    }
+
+    private func weightFootnote(_ entries: [BodyweightEntry], summary: HealthSummaryDTO?) -> SignalFootnote? {
+        guard let change = BodyweightMerge.change4wPct(entries) ?? summary?.bodyweightChange4wPct else { return nil }
+        return SignalFootnote(text: "\(Fmt.percent(change)) in 4 weeks")
+    }
+
     private var lastWeight: Double? {
         let live = measurements.filter { $0.deletedAt == nil }
         return live.first?.weightKg ?? health.value?.bodyweight.last?.weightKg
-    }
-}
-
-// MARK: - Header: readiness + 7d vs 28d
-
-private struct HealthHeader: View {
-    let days: [HealthDayDTO]
-    let summary: HealthSummaryDTO?
-    let readinessToday: ReadinessTodayDTO?
-    let openReadiness: Bool
-
-    private var readiness: ReadinessSummary? {
-        ReadinessSummary.make(today: readinessToday, legacy: nil, day: HealthTransforms.latestReadinessDay(days))
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            ReadinessCard(summary: readiness, startOpen: openReadiness)
-            Card {
-                SectionLabel(title: "7 days vs 28 days", symbol: "heart.fill", color: Domain.recovery.color)
-                HStack(alignment: .top, spacing: 12) {
-                    CompareTile(title: "HRV", short: summary?.hrv7d, long: summary?.hrv28d, unit: "ms", higherIsBetter: true,
-                                format: { Fmt.number($0, maxFraction: 0) })
-                    CompareTile(title: "Resting HR", short: summary?.rhr7d, long: summary?.rhr28d, unit: "bpm", higherIsBetter: false,
-                                format: { Fmt.number($0, maxFraction: 0) })
-                    CompareTile(title: "Sleep", short: summary?.sleep7dS, long: summary?.sleep28dS, unit: "h", higherIsBetter: true,
-                                format: { Fmt.hours($0) }, deltaOnRaw: true)
-                }
-            }
-        }
-    }
-}
-
-private struct CompareTile: View {
-    let title: String
-    let short: Double?
-    let long: Double?
-    let unit: String
-    let higherIsBetter: Bool
-    let format: (Double) -> String
-    var deltaOnRaw = false
-
-    var body: some View {
-        let delta = HealthTransforms.deltaPct(short: short, long: long)
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(short.map(format) ?? "–").metricStyle(.title2)
-                Text(unit).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-            }
-            .lineLimit(1).minimumScaleFactor(0.7)
-            Text("28d: \(long.map(format) ?? "–")").font(.caption2).foregroundStyle(.secondary)
-            if let delta {
-                HStack(spacing: 2) {
-                    Image(systemName: delta > 1 ? "arrow.up.right" : (delta < -1 ? "arrow.down.right" : "arrow.right"))
-                    Text(Fmt.percent(delta))
-                }
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(color(delta))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title): seven day average \(short.map(format) ?? "unknown") \(unit), twenty-eight day average \(long.map(format) ?? "unknown"), \(delta.map { Fmt.percent($0) } ?? "no change figure")")
-    }
-
-    private func color(_ delta: Double) -> Color {
-        if abs(delta) <= 1 { return .secondary }
-        return (delta > 0) == higherIsBetter ? .green : .orange
     }
 }

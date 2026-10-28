@@ -55,7 +55,7 @@ struct AskCoachSheet: View {
                         .pickerStyle(.segmented)
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        SectionLabel(title: "Your question", symbol: "bubble.left.fill", color: CoachStyle.color)
+                        SectionLabel(title: "Your question", symbol: "bubble.left.fill", color: Domain.coach.color)
                         TextField("What do you want to know?", text: $question, axis: .vertical)
                             .lineLimit(4...8)
                             .focused($focused)
@@ -103,9 +103,9 @@ struct AskCoachSheet: View {
             Text(context.subject).lineLimit(1)
         }
         .font(.subheadline.weight(.semibold))
-        .foregroundStyle(CoachStyle.color)
+        .foregroundStyle(Domain.coach.color)
         .padding(.horizontal, 12).padding(.vertical, 7)
-        .background(CoachStyle.color.opacity(0.14), in: Capsule())
+        .background(Domain.coach.color.opacity(0.14), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("About: \(context.subject)")
     }
@@ -160,7 +160,7 @@ struct AskCoachButton: View {
                 .padding(.vertical, 6)
         }
         .buttonStyle(.bordered)
-        .tint(CoachStyle.color)
+        .tint(Domain.coach.color)
         .sheet(isPresented: $show) { AskCoachSheet(context: context) }
     }
 }

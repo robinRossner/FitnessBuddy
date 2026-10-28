@@ -3,44 +3,99 @@ import SwiftUI
 
 struct InsightsRoute: Hashable {}
 
-/// What moves what: correlations grouped by category. Each card leads with the plain-language sentence and a small scatter.
+/// Insights on their own screen (Summary's "Show All" pushes it): the same content as Progress' Insights segment.
 struct InsightsView: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        ScrollView {
+            InsightsContent().pagePadding()
+        }
+        .screenStyle()
+        .navigationTitle("Insights")
+        .navigationBarTitleDisplayMode(.large)
+        .refreshable { await refreshStats(env, [env.stats.resource(StatsEndpoints.correlations())]) }
+    }
+}
+
+/// What moves what: a summary card, then the real correlations grouped Recovery / Hybrid under coloured headers, each in
+/// a card with its scatter that opens `InsightDetailView`. Items without enough data stay as one quiet line.
+struct InsightsContent: View {
     @Environment(AppEnvironment.self) private var env
 
     private var correlations: StatsResource<CorrelationsDTO> { env.stats.resource(StatsEndpoints.correlations()) }
 
     var body: some View {
         let correlations = correlations
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if let items = correlations.value?.items {
-                    let groups = InsightTransforms.grouped(items)
-                    if groups.isEmpty {
-                        Card { ChartEmpty(symbol: "lightbulb", message: "Not enough data yet. Patterns between sleep, HRV and training show up after a few weeks.") }
-                    }
-                    ForEach(groups) { group in
-                        VStack(alignment: .leading, spacing: 10) {
-                            SectionLabel(title: group.category.title, symbol: group.category == .hybrid ? "figure.run.circle" : "heart.fill",
-                                         color: Domain.recovery.color)
-                                .accessibilityAddTraits(.isHeader)
-                            ForEach(group.items) { item in
-                                if InsightTransforms.hasEnoughData(item) { InsightCard(item: item) } else { CollapsedInsight(item: item) }
+        VStack(alignment: .leading, spacing: Kit.groupSpacing) {
+            if let items = correlations.value?.items {
+                let groups = InsightTransforms.grouped(items)
+                if groups.isEmpty {
+                    Card { ChartEmpty(symbol: "lightbulb", message: "Not enough data yet. Patterns between sleep, HRV and training show up after a few weeks.") }
+                } else {
+                    InsightsSummaryCard(items: groups.flatMap(\.items))
+                }
+                ForEach(groups) { group in
+                    let style = InsightGroupStyle(group.category)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label(group.category.title, systemImage: style.symbol)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(style.color)
+                            .accessibilityAddTraits(.isHeader)
+                        ForEach(group.items) { item in
+                            if InsightTransforms.hasEnoughData(item) {
+                                NavigationLink {
+                                    InsightDetailView(item: item)
+                                } label: {
+                                    Card { InsightCardContent(item: item, color: style.color, chartHeight: 150) }
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint("Shows the correlation in detail")
+                            } else {
+                                CollapsedInsight(item: item)
                             }
                         }
                     }
-                } else {
-                    StatsPlaceholder(resource: correlations, symbol: "lightbulb", emptyTitle: "insights")
                 }
-                FreshnessLabel(resource: correlations)
+            } else {
+                StatsPlaceholder(resource: correlations, symbol: "lightbulb", emptyTitle: "insights")
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            FreshnessLabel(resource: correlations)
         }
-        .background(Color.screenBackground)
-        .navigationTitle("Insights")
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await refreshStats(env, [correlations]) }
         .loadsStats([correlations])
+    }
+}
+
+/// Header colour and symbol of a correlation group: recovery indigo, hybrid insights teal.
+struct InsightGroupStyle {
+    let color: Color
+    let symbol: String
+
+    init(_ category: CorrelationCategory) {
+        switch category {
+        case .recovery: color = Domain.recovery.color; symbol = Domain.recovery.symbol
+        case .hybrid: color = Domain.insights.color; symbol = "arrow.triangle.merge"
+        case .unknown: color = Domain.insights.color; symbol = Domain.insights.symbol
+        }
+    }
+}
+
+private struct InsightsSummaryCard: View {
+    let items: [CorrelationDTO]
+
+    var body: some View {
+        let rated = items.filter(InsightTransforms.hasEnoughData)
+        let clear = rated.filter { $0.strength >= 2 }.count
+        Card {
+            CardHeader(title: "Correlations", symbol: Domain.insights.symbol, color: Domain.insights.color, time: "Last 120 days",
+                       info: "Each card compares two of your own measurements day by day. r is the correlation (−1 to 1), n the number of days. Few days means an early read, not a rule, and a link is not proof that one thing causes the other.")
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                MetricText(value: "\(items.count)", size: .title)
+                Text("\(items.count == 1 ? "link" : "links") checked · \(clear) moderate or strong")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -70,58 +125,14 @@ private struct CollapsedInsight: View {
     let item: CorrelationDTO
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "chart.dots.scatter").foregroundStyle(.tertiary).accessibilityHidden(true)
-            Text(item.title).font(.subheadline.weight(.medium)).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            Text("Needs more data").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
-        }
-        .padding(.horizontal, 14).padding(.vertical, 12)
-        .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct InsightCard: View {
-    let item: CorrelationDTO
-
-    var body: some View {
-        Card {
-            Text(item.insight ?? CorrelationText.strength(item.r ?? 0))
-                .font(.headline).fixedSize(horizontal: false, vertical: true)
-            Text(item.title).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-            Chart {
-                ForEach(item.points) { p in
-                    PointMark(x: .value(item.xLabel ?? "x", p.x), y: .value(item.yLabel ?? "y", p.y))
-                        .foregroundStyle(Domain.recovery.color.opacity(0.7))
-                        .symbolSize(28)
-                }
-                if let line = CorrelationText.trendLine(item.points) {
-                    LineMark(x: .value("x", line.x0), y: .value("y", line.y0), series: .value("Series", "trend"))
-                        .foregroundStyle(Color.gray).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-                    LineMark(x: .value("x", line.x1), y: .value("y", line.y1), series: .value("Series", "trend"))
-                        .foregroundStyle(Color.gray).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-                }
-            }
-            .chartXScale(domain: .automatic(includesZero: false))
-            .chartYScale(domain: .automatic(includesZero: false))
-            .frame(height: 130)
-            .accessibilityLabel("\(item.title): \(item.points.count) points")
-            .accessibilityValue(CorrelationText.strength(item.r ?? 0))
-            if item.xLabel != nil || item.yLabel != nil {
-                VStack(alignment: .leading, spacing: 2) {
-                    if let x = item.xLabel { Label(x, systemImage: "arrow.right") }
-                    if let y = item.yLabel { Label(y, systemImage: "arrow.up") }
-                }
-                .font(.caption).foregroundStyle(.secondary).labelStyle(.titleAndIcon)
-            }
-            HStack {
-                if let r = item.r { Text("r = \(Fmt.number(r, maxFraction: 2)) · \(CorrelationText.strength(r))") }
+        Card(padding: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "chart.dots.scatter").foregroundStyle(.tertiary).accessibilityHidden(true)
+                Text(item.title).font(.subheadline.weight(.medium)).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
-                if let n = item.n { Text("n = \(n)") }
+                Text("Needs more data").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
             }
-            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
         }
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .combine)
     }
 }
