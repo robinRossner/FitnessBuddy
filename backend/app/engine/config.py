@@ -240,6 +240,27 @@ class EasyRunConfig(_Model):
     exempt_after_lower: bool = True
 
 
+class EasyCalibrationConfig(_Model):
+    """Easy / long run pace range calibrated from the athlete's own easy runs (engine/easy_pace.py).
+
+    A run qualifies when it is a steady run (not intervals, not a quality-session day) of at
+    least `min_minutes` in the last `window_days`, passed the easy-run HR rule (not via the
+    day-after-lower exemption), had an average HR <= easy ceiling - `hr_margin_bpm`, HR drift
+    <= the easy run's `decoupling_flag_pct` (laps needed) and <= `max_elevation_m_per_km`
+    climbing. With at least `min_runs` of them, their median pace becomes the fast end (74 % of
+    VDOT) of the easy range: the "easy VDOT" is that pace's VDOT, never below the quality VDOT
+    (calibration only speeds the range up) and at most `max_vdot_gain` above it. Quality paces
+    always use the quality VDOT."""
+
+    enabled: bool = True
+    window_days: int = 28
+    min_runs: int = 3
+    min_minutes: float = 25
+    hr_margin_bpm: float = 2
+    max_vdot_gain: float = 4.0
+    max_elevation_m_per_km: float = 25
+
+
 class IntervalConfig(_Model):
     """The VO2max session type (I pace) plus the evaluation shared by every quality session."""
 
@@ -377,6 +398,7 @@ class RunningConfig(_Model):
     heart_rate: HeartRateConfig = HeartRateConfig()
     vdot: VdotConfig = VdotConfig()
     easy: EasyRunConfig = EasyRunConfig()
+    easy_calibration: EasyCalibrationConfig = EasyCalibrationConfig()
     intervals: IntervalConfig = IntervalConfig()
     threshold: ThresholdConfig = ThresholdConfig()
     race_5k: Race5kConfig = Race5kConfig()

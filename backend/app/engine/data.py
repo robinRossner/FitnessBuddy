@@ -550,6 +550,7 @@ def load_runs(db: Session, since: date, until: date | None = None) -> list[R.Run
                 time_in_zones_s=r.time_in_zones_s,
                 zone_floors=_zone_floors(db, day) if r.time_in_zones_s else None,
                 title=r.title,
+                elevation_gain_m=r.elevation_gain_m,
             )
         )
     return out

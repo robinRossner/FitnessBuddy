@@ -28,6 +28,7 @@ from datetime import date, timedelta
 from statistics import fmean
 from typing import Any
 
+from app.engine import easy_pace as EP
 from app.engine import lifting as L
 from app.engine import quality as Q
 from app.engine import running as R
@@ -240,6 +241,7 @@ class _Planner:
         }
         self._fit_model()
         self._prepare_running()
+        self._calibrate_easy()
 
     # ------------------------------------------------------------------ pace model + VDOT
     def _fit_model(self) -> None:
@@ -434,6 +436,47 @@ class _Planner:
             )
         )
 
+    def _calibrate_easy(self) -> None:
+        """The easy / long run pace range from the athlete's own easy runs (engine/easy_pace.py).
+        Quality paces keep the quality VDOT; only VDOT-based pace models are calibrated."""
+        self.easy_cal: EP.EasyCalibration | None = None
+        if not hasattr(self.model, "vdot"):
+            return
+        q = self.vdot_update.vdot
+        cal = EP.calibrate_easy(
+            self.inp.runs,
+            self.zones,
+            self.rc.easy,
+            self.rc.easy_calibration,
+            q,
+            today=self.today,
+            exclude_days={rec.day for rec in self.inp.quality_log},
+        )
+        self.easy_cal = cal
+        ws = self.inp.week_start
+        self.decisions.append(
+            DecisionRec(
+                "running",
+                "running:easy_pace_calibration",
+                cal.reason,
+                {
+                    "quality_vdot": round(q, 2),
+                    "hr_ceiling": cal.hr_ceiling,
+                    "config": self.rc.easy_calibration.model_dump(),
+                },
+                {**cal.as_dict(), "range": _paces(cal.easy_range()), "week_start": ws.isoformat()},
+                "week",
+                ws.isoformat(),
+            )
+        )
+
+    def _easy_paces(self) -> dict[str, Any]:
+        """Pace range of easy and long runs (calibrated when the easy runs support it)."""
+        cal = self.easy_cal
+        if cal is None:
+            return {**_paces(self.model.easy_pace(self.zones.easy_high)), "basis": "model"}
+        return {**_paces(cal.easy_range()), "basis": cal.basis, "reason": cal.reason}
+
     # ------------------------------------------------------------------ main
     def run(self) -> WeekPlan:
         inp = self.inp
@@ -503,6 +546,7 @@ class _Planner:
             "vdot_reason": self.vdot_update.reason,
             "quality": self.quality_plan.as_dict(),
             "long_run": getattr(self, "_long_info", {}),
+            "easy_pace": self.easy_cal.as_dict() if self.easy_cal else None,
         }
         return plan
 
@@ -1352,7 +1396,7 @@ class _Planner:
             "distance_km": round(km, 1),
             "hr": _hr(self.zones, "easy"),
             "pace": {
-                **_paces(self.model.easy_pace(self.zones.easy_high)),
+                **self._easy_paces(),
                 "note": "HR leads: slow down if HR passes the ceiling",
             },
             "reason": reason,
@@ -1532,7 +1576,7 @@ class _Planner:
             "type": "long_run",
             "distance_km": round(km, 1),
             "hr": _hr(self.zones, "easy"),
-            "pace": {**_paces(self.model.easy_pace(self.zones.easy_high)), "note": "HR leads"},
+            "pace": {**self._easy_paces(), "note": "HR leads"},
             **self._phase_fields(),
             "progression_note": note,
             "step_back": lp.step_back,

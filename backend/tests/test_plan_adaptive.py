@@ -42,7 +42,12 @@ def test_every_plan_item_has_the_adaptive_fields(world, db, env, client):
     ]
     assert "HR drift of the last long run" in by["long_run"]["adapts_on"]
     assert "step-back weeks" in by["long_run"]["adapts_on"]
-    assert by["easy_run"]["adapts_on"] == ["today's readiness", "weekly and single-run volume caps"]
+    assert by["easy_run"]["adapts_on"] == [
+        "your recent easy-run paces",
+        "today's readiness",
+        "weekly and single-run volume caps",
+    ]
+    assert "your recent easy-run paces" in by["long_run"]["adapts_on"]
     assert by["lower"]["adaptive"] and "your reps at each load" in by["lower"]["adapts_on"]
     assert "stall ladder and deload weeks" in by["lower"]["adapts_on"]
     assert by["rest"]["adaptive"] is False and by["rest"]["adapts_on"] == []
@@ -147,13 +152,15 @@ def test_migration_adds_the_schedule_section_as_a_derived_config_version(tmp_pat
             r[0] for r in c.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
         }
     # 0008 adds the schedule section (v3.1), 0009 the lifting section on top (v3.2), 0010 the
-    # progression v2 keys (v3.3), 0011 the volume-hold keys (v3.4, active)
+    # progression v2 keys (v3.3), 0011 the volume-hold keys (v3.4), 0013 the easy pace
+    # calibration keys (v3.5, active)
     assert [(r[0], r[1], r[2]) for r in rows] == [
         ("v3", 0, "seed"),
         ("v3.1", 0, "engine"),
         ("v3.2", 0, "engine"),
         ("v3.3", 0, "engine"),
-        ("v3.4", 1, "engine"),
+        ("v3.4", 0, "engine"),
+        ("v3.5", 1, "engine"),
     ]
     import json
 
@@ -173,5 +180,5 @@ def test_migration_adds_the_schedule_section_as_a_derived_config_version(tmp_pat
     command.downgrade(cfg, "0007")
     command.upgrade(cfg, "head")  # idempotent for the config: the section is already there
     with eng.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM config_versions")).scalar() == 5
+        assert c.execute(text("SELECT count(*) FROM config_versions")).scalar() == 6
     eng.dispose()

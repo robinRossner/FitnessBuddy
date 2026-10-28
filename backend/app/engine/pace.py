@@ -112,6 +112,11 @@ FRAC_THRESHOLD, FRAC_INTERVAL, FRAC_REPETITION = 0.88, 0.98, 1.05
 _BAND = 0.015  # +-1.5 % pace band around a point target
 
 
+def easy_range_for_vdot(vdot: float) -> PaceRange:
+    """Daniels' easy range (59-74 % of VDOT): fast end first."""
+    return PaceRange(pace_at_fraction(vdot, FRAC_EASY_FAST), pace_at_fraction(vdot, FRAC_EASY_SLOW))
+
+
 class VdotPaceModel:
     name = "vdot"
 
@@ -166,9 +171,7 @@ class VdotPaceModel:
 
     # ---- paces
     def easy_pace(self, hr_ceiling: float | None = None) -> PaceRange:
-        return PaceRange(
-            pace_at_fraction(self.vdot, FRAC_EASY_FAST), pace_at_fraction(self.vdot, FRAC_EASY_SLOW)
-        )
+        return easy_range_for_vdot(self.vdot)
 
     def threshold_pace(self) -> float:
         return pace_at_fraction(self.vdot, FRAC_THRESHOLD)

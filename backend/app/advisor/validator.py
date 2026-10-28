@@ -384,6 +384,15 @@ def _up_risk(threshold: float):
     return risk
 
 
+def _down_risk(threshold: float):
+    """High when the value goes down below `threshold`, medium otherwise."""
+
+    def risk(cur: float, new: float) -> str:
+        return HIGH if new < cur and new < threshold - 1e-9 else MEDIUM
+
+    return risk
+
+
 def _int_spec(path: str, label: str, lo: int, hi: int, step: int, risk=None, doc: str = "") -> Spec:
     return Spec(
         path,
@@ -658,6 +667,47 @@ SPECS: tuple[Spec, ...] = (
         0.1,
         risk=_up_risk(1.1),
         doc="number 1.0..1.2, max step 0.1; raising above 1.1 is high risk",
+    ),
+    # ---- easy pace calibration (docs/spec/decisions.md "Easy pace calibration (2026-10-28)")
+    Spec(
+        "running.easy_calibration.enabled",
+        "Easy pace range calibrated from your easy runs",
+        "true or false (low risk: easy / long runs only, HR still leads, capped by max_vdot_gain)",
+        _path_current("running.easy_calibration.enabled"),
+        _bool_check,
+    ),
+    _num_spec(
+        "running.easy_calibration.max_vdot_gain",
+        "Easy pace calibration: largest gain over the quality VDOT",
+        0,
+        6,
+        2,
+        risk=_up_risk(4),
+        doc="number 0..6, max step 2; raising above 4 is high risk",
+    ),
+    _int_spec(
+        "running.easy_calibration.window_days",
+        "Easy pace calibration: window (days)",
+        14,
+        56,
+        14,
+    ),
+    _int_spec(
+        "running.easy_calibration.min_runs",
+        "Easy pace calibration: easy runs needed",
+        2,
+        8,
+        2,
+        risk=_down_risk(3),
+        doc="int 2..8, max step 2; lowering below 3 is high risk",
+    ),
+    _num_spec(
+        "running.easy_calibration.hr_margin_bpm",
+        "Easy pace calibration: HR margin below the easy ceiling (bpm)",
+        0,
+        8,
+        2,
+        unit=" bpm",
     ),
     _int_spec("running.long_run.step_back_every", "Long run step-back every N weeks", 3, 6, 1),
     _num_spec("running.long_run.step_back_pct", "Long run step-back (%)", 10, 30, 10, unit=" %"),

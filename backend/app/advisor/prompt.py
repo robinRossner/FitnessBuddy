@@ -172,7 +172,9 @@ The user message holds one JSON document, compact, keys sorted:
   stalled, deload, retest, rebuild), effective rep range, note], `stall_ladder` per lift [ladder
   steps taken, clean sessions without progress, N], `censored_misses_14d` [date, lift, reason],
   `deload` (the active window), `running` (quality session with phase / phase week / note, long
-  run with step-back flag, VDOT record, the weekly volume-cap reasoning).
+  run with step-back flag, VDOT record, `easy_pace` = the easy / long pace range and whether it
+  is calibrated from the athlete's easy runs (easy VDOT vs quality VDOT), the weekly volume-cap
+  reasoning).
 - `schedule`: `weeks` = the current and next week, each with `sessions` as
   [date, kind, status, km, moved_from] (`columns` names them; status proposed / approved are
   open and can be changed, done / skipped are closed), `missed_this_week`, `run_km_left_under_cap`

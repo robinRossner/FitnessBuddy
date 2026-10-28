@@ -288,9 +288,9 @@ The Friday quality session of the same week, abridged:
   - `adapts_on` (`[str]`, empty when not adaptive): short phrases for the app (free text, may change):
     `["pace of your last quality session", "training phase (quality cycle)", "VDOT updates",
     "today's readiness", "weekly volume cap", "recovery after lower-body days"]` (intervals),
-    `["your longest recent long run", "HR drift of the last long run", "step-back weeks", "today's
-    readiness", "weekly and single-run volume caps"]` (long run), `["today's readiness", "weekly and
-    single-run volume caps"]` (easy run), `["your reps at each load", "today's readiness", "censored
+    `["your longest recent long run", "HR drift of the last long run", "step-back weeks", "your recent
+    easy-run paces", "today's readiness", "weekly and single-run volume caps"]` (long run), `["your
+    recent easy-run paces", "today's readiness", "weekly and single-run volume caps"]` (easy run), `["your reps at each load", "today's readiness", "censored
     misses (readiness, hard runs, breaks)", "stall ladder and deload weeks"]` (upper / lower);
   - `moved_from` (`YYYY-MM-DD|null`): the original date if the session was moved or is a make-up;
   - `change_reason` (`str|null`): why, e.g. "Lower missed Tue → moved to Wed, replacing the easy run"
@@ -336,6 +336,13 @@ The Friday quality session of the same week, abridged:
     `last_easy_run` gains `exempt` (bool) and `notes` (`[str]`): the day after a lower-body
     session an HR fail is shown as a note, not a fail.
   - Long runs: `step_back` (bool) and `progression.drift` (`hold | cut | null`).
+- **Easy pace calibration (additive, optional; absent on older plans).** Easy and long runs:
+  `pace` gains `basis` (`calibrated | daniels`; `model` for a non-VDOT pace model) and `reason`
+  (one sentence, e.g. "Easy pace from your 4 easy runs of 28 days at HR <= 154 (5:11-5:36/km,
+  median 5:21): easy VDOT 44.8 vs 42.0 for quality sessions"). `min_s_per_km` / `max_s_per_km` /
+  `label` keep their meaning; with `calibrated` they come from the athlete's own easy runs instead
+  of the quality VDOT. Interval paces are unchanged. Rules: [decisions.md](../spec/decisions.md)
+  "Easy pace calibration (2026-10-28)".
 
 ## Errors
 

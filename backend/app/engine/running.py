@@ -54,6 +54,7 @@ class RunData:
     time_in_zones_s: dict[str, float] | None = None
     zone_floors: tuple[float, ...] | None = None  # Garmin z1..z5 floors valid for this run
     title: str | None = None
+    elevation_gain_m: float | None = None
 
     @property
     def km(self) -> float:

@@ -735,9 +735,9 @@ def test_migration_0011_adds_the_volume_hold_keys(tmp_path):
             ),
             {"c": json.dumps(content)},
         )
-    command.upgrade(acfg, "head")
+    command.upgrade(acfg, "0011")
     command.downgrade(acfg, "0010")
-    command.upgrade(acfg, "head")  # a second run changes nothing: the keys exist
+    command.upgrade(acfg, "0011")  # a second run changes nothing: the keys exist
     with eng.connect() as c:
         rows = c.execute(
             text("SELECT version, is_active, author, content FROM config_versions ORDER BY id")

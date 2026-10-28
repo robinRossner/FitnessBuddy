@@ -321,7 +321,8 @@ def progression_section(
     """What the deterministic engine thinks of each lift and the running block right now, from
     the plan of the next 7 days and the latest decisions: progression state, effective rep
     range and note per lift, stall-ladder position, censored misses (14 days), the deload /
-    retest window, the running phase, VDOT and the volume-cap reasoning."""
+    retest window, the running phase, VDOT, the easy-pace calibration and the volume-cap
+    reasoning."""
     lifts: dict[str, list] = {}
     run: dict[str, Any] = {}
     deload = None
@@ -400,6 +401,18 @@ def progression_section(
         }
     if vdot:
         run["vdot"] = vdot
+    easy = next(
+        (
+            r.output
+            for r in _latest(db, since, kind="running", subject_type="week")
+            if (r.output or {}).get("rule") == "running:easy_pace_calibration"
+        ),
+        None,
+    )
+    if easy:
+        run["easy_pace"] = {
+            k: easy.get(k) for k in ("basis", "vdot", "quality_vdot", "reason", "capped")
+        } | {"range": (easy.get("range") or {}).get("label")}
     return {
         "lifts": lifts,
         "lift_columns": ["state", "effective rep range", "note"],

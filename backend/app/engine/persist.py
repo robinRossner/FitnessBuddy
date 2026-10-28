@@ -305,11 +305,16 @@ def adaptive_fields(kind: str, status: str | None, prescription: dict | None = N
             "your longest recent long run",
             "HR drift of the last long run",
             "step-back weeks",
+            "your recent easy-run paces",
             "today's readiness",
             "weekly and single-run volume caps",
         ]
     elif kind == "easy_run":
-        on = ["today's readiness", "weekly and single-run volume caps"]
+        on = [
+            "your recent easy-run paces",
+            "today's readiness",
+            "weekly and single-run volume caps",
+        ]
     else:  # upper | lower
         on = [
             "your reps at each load",
