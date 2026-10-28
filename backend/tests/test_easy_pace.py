@@ -254,9 +254,9 @@ def test_migration_0013_adds_the_calibration_keys(tmp_path):
             ),
             {"c": json.dumps(content)},
         )
-    command.upgrade(acfg, "head")
+    command.upgrade(acfg, "0013")
     command.downgrade(acfg, "0012")
-    command.upgrade(acfg, "head")  # a second run changes nothing: the keys exist
+    command.upgrade(acfg, "0013")  # a second run changes nothing: the keys exist
     with eng.connect() as c:
         rows = c.execute(
             text("SELECT version, is_active, author, content FROM config_versions ORDER BY id")

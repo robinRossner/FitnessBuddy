@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import TYPE_CHECKING
 
 from app.db.session import session_scope
 from app.settings import get_settings
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
+    from app.engine.service import RunSummary
 
 log = logging.getLogger(__name__)
 _lock = threading.Lock()  # engine runs write plans: never two at once
@@ -32,6 +38,25 @@ def rerun_engine(reason: str = "sync push") -> None:
         log.warning("engine not run: %s", exc)
     except Exception:
         log.exception("engine re-run after %s failed", reason)
+
+
+def run_engine_now(db: Session, reason: str = "API") -> RunSummary:
+    """Reconcile + re-plan current and next week on `db` right now (the explicit
+    `POST /api/v1/engine/run`: runs even when ENGINE_AUTO_RUN is off, raises on errors), then the
+    Garmin workout push hook like every other re-run. Returns the `RunSummary`."""
+    from app.engine import service
+
+    with _lock:
+        summary = service.run_engine(db)
+        db.commit()
+    log.info(
+        "engine run (%s): config %s, %d week(s) planned",
+        reason,
+        summary.config_version,
+        len(summary.weeks),
+    )
+    push_runs_soon(f"engine run ({reason})")
+    return summary
 
 
 def push_runs_soon(reason: str) -> None:

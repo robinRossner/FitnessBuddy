@@ -307,9 +307,15 @@ def test_vdot_initial_record_is_logged_once():
     plan = generate_week(inputs())
     rec = [d for d in plan.decisions if d.rule == "running:vdot"]
     assert rec and rec[0].output["vdot_record"]["source"] == "initial"
-    again = generate_week(inputs(vdot_log=[V.VdotRecord(MON - timedelta(days=1), 42.0, "initial")]))
+    log = [V.VdotRecord(MON - timedelta(days=1), 42.0, "initial")]
+    raw = CFG.model_dump()  # the history's interval reps would measure a higher VDOT: off here
+    raw["running"]["vdot"]["from_intervals"] = {"enabled": False}
+    again = generate_week(inputs(vdot_log=log, cfg=CFG.__class__.model_validate(raw)))
     assert not [d for d in again.decisions if d.rule == "running:vdot"]
     assert again.pace["vdot"] == 42.0  # the stored record wins over the fit
+    measured = generate_week(inputs(vdot_log=log))
+    rec = [d for d in measured.decisions if d.rule == "running:vdot"]
+    assert [r.output["vdot_record"]["source"] for r in rec] == ["interval_reps"]
 
 
 def test_decisions_are_logged_with_rules_and_inputs():

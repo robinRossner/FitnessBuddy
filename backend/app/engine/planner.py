@@ -29,6 +29,7 @@ from statistics import fmean
 from typing import Any
 
 from app.engine import easy_pace as EP
+from app.engine import interval_vdot as IV
 from app.engine import lifting as L
 from app.engine import quality as Q
 from app.engine import running as R
@@ -386,6 +387,26 @@ class _Planner:
 
         plan = make(cur, step_ok)
         last_run = max((r.day for r in inp.runs if r.day < self.today), default=None)
+        # measured VDOT from recent interval reps (engine/interval_vdot.py)
+        self.rep_estimate = IV.estimate_from_reps(
+            inp.runs,
+            self.zones,
+            rc.vdot.from_intervals,
+            today=self.today,
+            after=V.last_drop_day(log),
+        )
+        best = self.rep_estimate.best
+        measured = (
+            V.Measured(
+                best.day,
+                best.vdot,
+                rc.vdot.from_intervals.max_step,
+                self.rep_estimate.reason,
+                {"best": best.as_dict(), "sessions": len(self.rep_estimate.sessions)},
+            )
+            if best is not None and log
+            else None
+        )
         upd = V.update_vdot(
             log,
             fitted,
@@ -397,6 +418,7 @@ class _Planner:
             pace_lever=plan.vdot_step,
             fails=fails,
             last_run_day=last_run,
+            measured=measured,
         )
         if plan.vdot_step and (upd.record is None or upd.record.delta <= 0):
             plan = make(upd.vdot, False)
@@ -544,6 +566,7 @@ class _Planner:
             "phase": self.phase.as_dict(),
             "vdot": round(self.vdot_update.vdot, 2),
             "vdot_reason": self.vdot_update.reason,
+            "vdot_from_intervals": self.rep_estimate.as_dict(),
             "quality": self.quality_plan.as_dict(),
             "long_run": getattr(self, "_long_info", {}),
             "easy_pace": self.easy_cal.as_dict() if self.easy_cal else None,

@@ -423,6 +423,16 @@ def _bool_check(value: Any, cur: Any, _ctx: Context, _g: dict[str, str]) -> Chec
     return Checked(value, LOW)
 
 
+def _switch_check(on_risk: str, off_risk: str):
+    """A true / false key whose risk depends on the direction (switching on vs off)."""
+
+    def check(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checked:
+        _bool_check(value, cur, ctx, g)
+        return Checked(value, on_risk if value else off_risk)
+
+    return check
+
+
 def _phase_spec(name: str, label: str, lo: int, hi: int, step: int) -> Spec:
     """Weeks of one quality-cycle phase: the override, else the phase's configured weeks."""
 
@@ -708,6 +718,60 @@ SPECS: tuple[Spec, ...] = (
         8,
         2,
         unit=" bpm",
+    ),
+    # ---- VDOT from interval reps (docs/spec/decisions.md "VDOT from interval reps (2026-10-28)")
+    Spec(
+        "running.vdot.from_intervals.enabled",
+        "Quality VDOT may rise to the value measured from interval reps",
+        "true or false (switching off is low risk: VDOT then rises only by races and inference; "
+        "switching on is medium: faster quality paces)",
+        _path_current("running.vdot.from_intervals.enabled"),
+        _switch_check(MEDIUM, LOW),
+    ),
+    _num_spec(
+        "running.vdot.from_intervals.max_step",
+        "VDOT from interval reps: largest single rise",
+        0.5,
+        4,
+        1,
+        risk=_up_risk(3),
+        doc="number 0.5..4, max step 1; raising above 3 is high risk",
+    ),
+    _int_spec(
+        "running.vdot.from_intervals.window_days",
+        "VDOT from interval reps: window (days)",
+        28,
+        84,
+        14,
+        risk=_up_risk(70),
+        doc="int 28..84, max step 14; raising above 70 is high risk",
+    ),
+    _int_spec(
+        "running.vdot.from_intervals.min_reps",
+        "VDOT from interval reps: work reps needed per session",
+        3,
+        8,
+        2,
+        risk=_down_risk(4),
+        doc="int 3..8, max step 2; lowering below 4 is high risk",
+    ),
+    _int_spec(
+        "running.vdot.from_intervals.age_free_days",
+        "VDOT from interval reps: days before evidence loses value",
+        14,
+        42,
+        7,
+        risk=_up_risk(28),
+        doc="int 14..42, max step 7; raising above 28 is high risk",
+    ),
+    _num_spec(
+        "running.vdot.from_intervals.age_discount_per_week",
+        "VDOT from interval reps: VDOT lost per week of age",
+        0,
+        1,
+        0.25,
+        risk=_down_risk(0.25),
+        doc="number 0..1, max step 0.25; lowering below 0.25 is high risk",
     ),
     _int_spec("running.long_run.step_back_every", "Long run step-back every N weeks", 3, 6, 1),
     _num_spec("running.long_run.step_back_pct", "Long run step-back (%)", 10, 30, 10, unit=" %"),

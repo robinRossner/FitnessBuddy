@@ -7,6 +7,12 @@ After that the VDOT moves only through records in decisions_log (`output.vdot_re
   sessions passed easily within `green_window_weeks` together with a rising aerobic-efficiency
   trend, or the pace lever of the quality session (its own green sessions). Each update is at
   most `max_step`, and all increases within 28 days at most `max_per_4w`. One update per week.
+* up, measured: the age-discounted VDOT of recent interval reps (engine/interval_vdot.py,
+  `Measured`) when it beats the current VDOT: straight up to it in one update, at most
+  `from_intervals.max_step`, not limited by `max_per_4w` (it is a measurement, not an
+  inference), but it uses up that 4-week room for the other paths. Only evidence after the last
+  drop counts, so a layoff / fail drop is never undone by older reps (no oscillation). Still at
+  most one update per week; re-runs are idempotent because the estimate only decays with age.
 * down: never after one bad session; only by the layoff table (once per break) or
   `fails_to_lower` genuine fails within 4 weeks (`fail_drop`).
 """
@@ -25,7 +31,9 @@ from app.engine.config import VdotConfig
 class VdotRecord:
     day: date
     vdot: float
-    source: str  # initial | effort | green_sessions | interval_pace | layoff | fails
+    source: (
+        str  # initial | effort | interval_reps | green_sessions | interval_pace | layoff | fails
+    )
     delta: float = 0.0
 
     def as_dict(self) -> dict[str, Any]:
@@ -45,8 +53,28 @@ class VdotUpdate:
     evidence: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class Measured:
+    """A measured VDOT (interval reps): the session day, its age-discounted VDOT, the largest
+    single step it may make, and a sentence + evidence for the decision log."""
+
+    day: date
+    vdot: float
+    max_step: float
+    why: str
+    evidence: dict[str, Any] = field(default_factory=dict)
+
+
+DROP_SOURCES = ("layoff", "fails")
+
+
 def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
+
+
+def last_drop_day(log: Sequence[VdotRecord]) -> date | None:
+    """The day of the last downward record (layoff / fails), if any."""
+    return max((r.day for r in log if r.source in DROP_SOURCES or r.delta < 0), default=None)
 
 
 def update_vdot(
@@ -61,6 +89,7 @@ def update_vdot(
     pace_lever: bool = False,
     fails: Sequence[date] = (),
     last_run_day: date | None = None,
+    measured: Measured | None = None,
 ) -> VdotUpdate:
     log = sorted(log, key=lambda r: r.day)
     if not log:
@@ -135,16 +164,40 @@ def update_vdot(
             "room_4w": room,
         }
     )
-    if candidate is None:
-        return VdotUpdate(cur, None, f"VDOT {cur:.1f} unchanged: no new evidence", ev)
-    step = min(candidate - cur, cfg.max_step, max(room, 0.0))
-    if step < 0.05:
+    # the inference / effort path: capped by max_step and the 4-week room
+    inferred: float | None = None
+    capped_out = False
+    if candidate is not None:
+        step = min(candidate - cur, cfg.max_step, max(room, 0.0))
+        if step >= 0.05:
+            inferred = round(cur + step, 2)
+        else:
+            capped_out = True
+    # the measured path: interval reps, up to their (age-discounted) value in one step
+    rep_new: float | None = None
+    if measured is not None:
+        drop = last_drop_day(log)
+        ev["interval_reps"] = {**measured.evidence, "vdot": round(measured.vdot, 2)}
+        if (drop is None or measured.day > drop) and measured.vdot >= cur + 0.05:
+            rep_new = round(min(measured.vdot, cur + measured.max_step), 2)
+    if measured is not None and rep_new is not None and (inferred is None or rep_new > inferred):
+        capped = rep_new < round(measured.vdot, 2)
+        rec = VdotRecord(today, rep_new, "interval_reps", rep_new - cur)
+        return VdotUpdate(
+            rep_new,
+            rec,
+            f"VDOT {cur:.1f} -> {rep_new:.1f} measured from interval reps: {measured.why}"
+            + (f" (capped at +{measured.max_step:g} per update)" if capped else ""),
+            ev,
+        )
+    if inferred is not None:
+        rec = VdotRecord(today, inferred, source, inferred - cur)
+        return VdotUpdate(inferred, rec, f"VDOT {cur:.1f} -> {inferred:.1f}: {why}", ev)
+    if capped_out:
         return VdotUpdate(
             cur,
             None,
             f"VDOT {cur:.1f} unchanged: {why}, but +{cfg.max_per_4w:g} in 4 weeks is used up",
             ev,
         )
-    new = round(cur + step, 2)
-    rec = VdotRecord(today, new, source, new - cur)
-    return VdotUpdate(new, rec, f"VDOT {cur:.1f} -> {new:.1f}: {why}", ev)
+    return VdotUpdate(cur, None, f"VDOT {cur:.1f} unchanged: no new evidence", ev)

@@ -60,6 +60,66 @@ class RunSummary:
     makeups: MakeupSummary = field(default_factory=MakeupSummary)
     weeks: list[WeekResult] = field(default_factory=list)
 
+    def as_dict(self) -> dict:
+        """Short JSON of an engine run (`POST /api/v1/engine/run`, docs/api/engine.md)."""
+        return {
+            "config_version": self.config_version,
+            "reconciled": dict(self.reconciled),
+            "makeups": [
+                {"kind": m.kind, "missed": m.missed_day.isoformat(), "action": m.action}
+                for m in self.makeups.results
+            ],
+            "weeks": [_week_json(w) for w in self.weeks],
+        }
+
+
+def _run_json(d) -> dict | None:
+    p = d.prescription or {}
+    if d.kind == "intervals" and p.get("structure"):
+        w = p["structure"].get("work") or {}
+        return {
+            "date": d.day.isoformat(),
+            "kind": d.kind,
+            "session_type": p["structure"].get("session_type"),
+            "reps": w.get("reps"),
+            "distance_m": w.get("distance_m"),
+            "pace_label": w.get("pace_label"),
+        }
+    if d.kind in ("easy_run", "long_run"):
+        pace = p.get("pace") or {}
+        return {
+            "date": d.day.isoformat(),
+            "kind": d.kind,
+            "distance_km": p.get("distance_km"),
+            "pace_label": pace.get("label"),
+            "pace_basis": pace.get("basis"),
+        }
+    return None
+
+
+def _week_json(w: WeekResult) -> dict:
+    run = w.plan.running or {}
+    easy = run.get("easy_pace") or {}
+    reps = run.get("vdot_from_intervals") or {}
+    r = w.persisted
+    return {
+        "week_start": w.plan.week_start.isoformat(),
+        "persisted": (
+            {"created": r.created, "updated": r.updated, "unchanged": r.unchanged}
+            if r is not None
+            else None
+        ),
+        "quality_vdot": run.get("vdot"),
+        "vdot_reason": run.get("vdot_reason"),
+        "vdot_from_intervals": {"vdot": reps.get("vdot"), "reason": reps.get("reason")},
+        "easy_pace": {
+            "basis": easy.get("basis"),
+            "vdot": easy.get("vdot"),
+            "reason": easy.get("reason"),
+        },
+        "runs": [x for x in (_run_json(d) for d in w.plan.days) if x is not None],
+    }
+
 
 def plan_week(
     db: Session,

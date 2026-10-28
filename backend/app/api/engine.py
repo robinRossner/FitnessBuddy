@@ -33,6 +33,7 @@ from app.api.auth import require_token
 from app.api.routes import get_db
 from app.engine import config_service as cs
 from app.engine import service
+from app.jobs import engine_jobs
 from app.settings import get_settings
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
@@ -121,3 +122,14 @@ def cancel_deload(body: DeloadCancel, db: Session = Depends(get_db)) -> dict:
         raise HTTPException(409, str(exc)) from None
     db.commit()
     return res.as_dict()
+
+
+@router.post("/engine/run")
+def run_engine(db: Session = Depends(get_db)) -> dict:
+    """Re-run the engine for the current and the next week now (docs/api/engine.md): reconcile,
+    re-plan, persist, then the Garmin workout push hook. Idempotent on unchanged data."""
+    try:
+        summary = engine_jobs.run_engine_now(db, "API")
+    except FileNotFoundError as exc:  # no program.yaml yet
+        raise HTTPException(409, str(exc)) from None
+    return summary.as_dict()

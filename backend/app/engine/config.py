@@ -200,6 +200,32 @@ class LayoffTier(_Model):
     pct: float
 
 
+class VdotFromIntervalsConfig(_Model):
+    """A measured VDOT from completed interval sessions (engine/interval_vdot.py).
+
+    A session counts when it has at least `min_reps` work reps of `rep_min_s`..`rep_max_s` and
+    >= `min_rep_m` (GPS junk laps drop out), run evenly (slowest - fastest <= `max_spread_pct`
+    of the median, last rep at most `max_fade_pct` slower than the first) and with a plausible
+    hard effort by HR (median rep peak HR >= `min_peak_hr_pct_lthr` x LTHR). Its median rep pace
+    is taken as (at most) the athlete's I pace: estimate = the VDOT whose I pace (98 %) it is.
+    Evidence older than `age_free_days` loses `age_discount_per_week` VDOT per week; only
+    sessions of the last `window_days` count. The best estimate may raise the quality VDOT in
+    one update by at most `max_step` (instead of the inference path's `max_step` / `max_per_4w`)."""
+
+    enabled: bool = True
+    window_days: int = 70
+    min_reps: int = 4
+    rep_min_s: float = 120
+    rep_max_s: float = 480
+    min_rep_m: float = 300
+    max_spread_pct: float = 8
+    max_fade_pct: float = 5
+    min_peak_hr_pct_lthr: float = 0.90
+    age_free_days: int = 28
+    age_discount_per_week: float = 0.25
+    max_step: float = 3.0
+
+
 class VdotConfig(_Model):
     seed_race: SeedRace = SeedRace()
     lookback_weeks: int = 12
@@ -223,6 +249,7 @@ class VdotConfig(_Model):
         LayoffTier(min_days=29, pct=5),
         LayoffTier(min_days=57, pct=8),
     )
+    from_intervals: VdotFromIntervalsConfig = VdotFromIntervalsConfig()
 
 
 class StridesConfig(_Model):

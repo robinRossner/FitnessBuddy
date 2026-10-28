@@ -194,6 +194,7 @@ def test_week_over_misses_older_than_a_week_get_no_trigger(world, db, env):
 
 def test_interval_progression_does_not_advance_after_a_missed_interval_session(world, db, env):
     plan(db, env, MON)
+    plan(db, env, MON)  # the VDOT update of the first run (from the world's interval reps) settles
     miss = row(db, MON, "fri_intervals").prescription["session"]["structure"]["work"]
     plan(db, env, NEXT_MON)  # Friday's intervals were skipped
     assert row(db, MON, "fri_intervals").status == "skipped"

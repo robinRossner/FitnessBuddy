@@ -388,7 +388,7 @@ def progression_section(
     )
     vdot = next(
         (
-            (r.output or {}).get("vdot_record")
+            {**(r.output or {})["vdot_record"], "reason": r.rationale}
             for r in _latest(db, datetime.now(UTC) - timedelta(days=60), kind="running")
             if (r.output or {}).get("vdot_record")
         ),

@@ -359,6 +359,10 @@ against the earlier valid changes of the same answer.
 | `running.easy_calibration.enabled` | true / false (easy / long pace range from the athlete's own easy runs) | **low** |
 | `running.easy_calibration.max_vdot_gain` | 0..6, +-2 (easy VDOT above the quality VDOT) | medium; raising above 4: high |
 | `running.easy_calibration.window_days` / `min_runs` / `hr_margin_bpm` | int 14..56, +-14 / int 2..8, +-2 / 0..8, +-2 | medium; `min_runs` below 3: high |
+| `running.vdot.from_intervals.enabled` | true / false (quality VDOT may rise to the value measured from interval reps) | off **low**, on medium |
+| `running.vdot.from_intervals.max_step` | 0.5..4, +-1 (largest single rise from reps) | medium; raising above 3: high |
+| `running.vdot.from_intervals.window_days` / `min_reps` | int 28..84, +-14 / int 3..8, +-2 | medium; window above 70 or `min_reps` below 4: high |
+| `running.vdot.from_intervals.age_free_days` / `age_discount_per_week` | int 14..42, +-7 / 0..1, +-0.25 | medium; free days above 28 or discount below 0.25: high |
 | `running.long_run.step_back_every` / `step_back_pct` / `drift_hold_pct` | int 3..6, +-1 / 10..30, +-10 / 3..10, +-2 | medium |
 | `running.vdot.max_step` / `max_per_4w` | 0.25..1.0, +-0.5 / 0.5..2.0, +-0.5 | medium; raising above 0.5 / 1.0: high |
 | `running.easy.strides.reps` | int 0..8, +-2 | **low** |

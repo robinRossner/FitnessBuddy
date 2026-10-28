@@ -49,3 +49,37 @@ Admin CLI with the same effect:
 ```
 uv run python -m app.cli engine deload cancel --week 2026-10-26 [--reason "..."] [--no-replan]
 ```
+
+## POST /api/v1/engine/run
+
+Re-run the engine now, exactly like the re-run after a Garmin sync or an app push (reconcile earlier
+plans, handle missed sessions, re-plan and store the current and the next week), then the Garmin
+workout push hook (server only, pushes only when the planned runs changed). It runs even when
+`ENGINE_AUTO_RUN` is off; two runs never overlap. No body. Idempotent: a second call on unchanged
+data stores nothing new (`updated: 0`).
+
+Response `200` (short summary, one entry per planned week):
+
+```json
+{"config_version": "v6.4", "reconciled": {"done": 1, "skipped": 0},
+ "makeups": [{"kind": "easy_run", "missed": "2026-10-28", "action": "dropped"}],
+ "weeks": [
+  {"week_start": "2026-10-26",
+   "persisted": {"created": 0, "updated": 2, "unchanged": 5},
+   "quality_vdot": 44.51,
+   "vdot_reason": "VDOT 42.4 -> 45.4 measured from interval reps: 6 x 800 m on 2026-08-26 at 4:22/km (...) (capped at +3 per update)",
+   "vdot_from_intervals": {"vdot": 45.8, "reason": "6 x 800 m on 2026-08-26 at 4:22/km (...): VDOT 45.8"},
+   "easy_pace": {"basis": "daniels", "vdot": 44.51, "reason": "Daniels easy pace for VDOT 45.1: ..."},
+   "runs": [
+    {"date": "2026-10-30", "kind": "intervals", "session_type": "threshold", "reps": 3,
+     "distance_m": 1000.0, "pace_label": "4:38"},
+    {"date": "2026-11-01", "kind": "long_run", "distance_km": 7.0, "pace_label": "5:19-6:22",
+     "pace_basis": "daniels"}]}]}
+```
+
+`quality_vdot` drives threshold / interval / 5k paces; `easy_pace.vdot` (>= `quality_vdot`) the easy
+and long run range (`basis`: `calibrated` from the athlete's easy runs or `daniels`).
+`vdot_from_intervals` is the current measured estimate from interval reps (`vdot: null` when no
+session qualifies). `persisted` is `null` only for weeks that were not stored. `409` when the program
+file is missing (`python -m app.cli engine program generate`).
+
