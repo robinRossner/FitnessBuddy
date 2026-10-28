@@ -241,12 +241,36 @@ struct RunKpiValues: Equatable {
     var vdotCurrent: Double?
     var vdotPrevious: Double?
     var vdotChange: Double?
+    var vdotSource: String? = nil
+    var vdotFit: Double? = nil
     var efficiencyCurrent: Double?
     var efficiencyChangePct: Double?
     var driftFlags: Int
     var runsThisWeek: Int
     var runsPlanned: Int?
     var kmThisWeek: Double
+}
+
+/// Why the engine changed the VDOT (`source` of a `vdot` point, engine/vdot.py). Unknown values show as-is.
+enum VdotSource {
+    static func label(_ source: String?) -> String {
+        switch source {
+        case "initial": "Starting estimate"
+        case "effort": "Race or hard effort"
+        case "interval_reps": "Measured from interval reps"
+        case "green_sessions": "Quality sessions passed easily"
+        case "interval_pace": "Quality sessions at top pace"
+        case "layoff": "Lowered after a break"
+        case "fails": "Lowered after missed paces"
+        case let other?: other.replacingOccurrences(of: "_", with: " ").capitalized
+        case nil: "Update"
+        }
+    }
+
+    /// The plan's VDOT history, newest first, one row per change.
+    static func history(_ points: [VdotPointDTO]) -> [VdotPointDTO] {
+        points.filter { $0.value != nil }.sorted { ($0.date, $0.id) > ($1.date, $1.id) }
+    }
 }
 
 enum RunStackTransforms {
@@ -299,6 +323,7 @@ enum RunStackTransforms {
 
         let week = stats.weekly.first { $0.weekStart == DayKey.weekStart(now, calendar: calendar) }
         return RunKpiValues(vdotCurrent: vdotNow, vdotPrevious: vdotThen, vdotChange: vdotChange,
+                            vdotSource: k?.vdotSource ?? stats.vdot.last?.source, vdotFit: k?.vdotFitCurrent,
                             efficiencyCurrent: effNow, efficiencyChangePct: effChange, driftFlags: flags,
                             runsThisWeek: k?.runsThisWeek ?? week?.runs ?? 0,
                             runsPlanned: k?.runsPlannedThisWeek ?? plannedRunsThisWeek,

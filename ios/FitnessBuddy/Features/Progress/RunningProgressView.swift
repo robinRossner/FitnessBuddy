@@ -91,8 +91,8 @@ private struct RunningTiles: View {
                            ? "Average pace of your easy runs over the last 4 weeks. No easy run with heart rate in that time."
                            : "Average pace of your \(overview.easyRuns) easy \(overview.easyRuns == 1 ? "run" : "runs") over the last 4 weeks, weighted by distance.")
             MetricTile(label: "VDOT", symbol: "bolt.fill", color: c,
-                       value: kpis.vdotCurrent.map { Fmt.number($0, maxFraction: 1) } ?? "–",
-                       info: "Jack Daniels' running fitness score from your recent hard efforts. Your training paces are derived from it. The trend is under Fitness.")
+                       value: kpis.vdotCurrent.map { Fmt.number($0, maxFraction: 2) } ?? "–",
+                       info: "Jack Daniels' running fitness score. Your plan's training paces (easy, threshold, intervals) come from this number. The trend is under Fitness.")
         }
     }
 }
@@ -253,11 +253,11 @@ private struct FitnessSection: View {
         let c = Domain.running.color
         let vdot = data.vdot.sorted { $0.date < $1.date }.compactMap(\.value)
         let efficiency = data.efficiency.sorted { $0.date < $1.date }.compactMap(\.efficiency)
-        PageSection("Fitness", info: "How your running fitness develops. VDOT moves after hard efforts; aerobic efficiency after easy and long runs.") {
+        PageSection("Fitness", info: "How your running fitness develops. VDOT is the number your plan's paces come from; it moves after races, hard efforts and interval sessions. Aerobic efficiency moves after easy and long runs.") {
             MetricCard(title: "VDOT", symbol: "bolt.fill", color: c,
-                       value: kpis.vdotCurrent.map { Fmt.number($0, maxFraction: 1) } ?? "–", unit: nil,
-                       time: kpis.vdotChange.map { d in abs(d) < 0.05 ? "Unchanged in 4 weeks" : "\(d > 0 ? "+" : "")\(Fmt.number(d, maxFraction: 1)) in 4 weeks" }
-                           ?? (kpis.vdotCurrent == nil ? "Needs a hard effort" : nil),
+                       value: kpis.vdotCurrent.map { Fmt.number($0, maxFraction: 2) } ?? "–", unit: nil,
+                       time: kpis.vdotChange.map { d in abs(d) < 0.05 ? "Unchanged in 4 weeks" : "\(d > 0 ? "+" : "")\(Fmt.number(d, maxFraction: 2)) in 4 weeks" }
+                           ?? (kpis.vdotCurrent == nil ? "Set with your first plan" : "Plan VDOT"),
                        sparkline: Array(vdot.suffix(12))) {
                 RunningRouteView(route: .vdot)
             }
@@ -288,7 +288,7 @@ struct RunningRouteView: View {
             Group {
                 if let data = running.value {
                     let kpis = RunStackTransforms.kpis(data)
-                    if route == .vdot { VdotDetailView(points: data.vdot, kpis: kpis) } else { EfficiencyDetailView(points: data.efficiency, kpis: kpis) }
+                    if route == .vdot { VdotDetailView(points: data.vdot, fit: data.vdotFit, kpis: kpis) } else { EfficiencyDetailView(points: data.efficiency, kpis: kpis) }
                 } else {
                     ScrollView { StatsPlaceholder(resource: running, symbol: "figure.run", emptyTitle: "running stats").pagePadding() }
                         .screenStyle()
@@ -303,50 +303,92 @@ struct RunningRouteView: View {
 
 private struct VdotDetailView: View {
     let points: [VdotPointDTO]
+    let fit: [VdotPointDTO]
     let kpis: RunKpiValues
 
-    var body: some View {
-        let c = Domain.running.color
-        let items = points.sorted { $0.date < $1.date }.compactMap { p -> (Date, Double)? in
+    private static func series(_ points: [VdotPointDTO]) -> [(Date, Double)] {
+        points.sorted { $0.date < $1.date }.compactMap { p -> (Date, Double)? in
             guard let d = DayKey.date(p.date), let v = p.value else { return nil }
             return (d, v)
         }
+    }
+
+    var body: some View {
+        let c = Domain.running.color
+        let items = Self.series(points)
+        // The plan's VDOT holds until the next change: draw it on to today.
+        let plan = items.last.map { last in last.0 < .now ? items + [(Date.now, last.1)] : items } ?? []
+        // Older backends send a per-run fit as `vdot` and no `vdot_fit`: nothing to compare then.
+        let fitItems = Self.series(fit)
+        let lows = (plan + fitItems).map(\.1)
+        let history = VdotSource.history(points)
         ScrollView {
             VStack(alignment: .leading, spacing: Kit.groupSpacing) {
                 Card {
-                    CardHeader(title: "VDOT Trend", symbol: "bolt.fill", color: c, time: items.isEmpty ? nil : "\(items.count) values")
+                    CardHeader(title: "VDOT Trend", symbol: "bolt.fill", color: c, time: items.isEmpty ? nil : "\(items.count) \(items.count == 1 ? "value" : "updates")",
+                               info: "The VDOT your plan uses. Your threshold, interval and easy paces are calculated from this number, so it is always the latest value in this chart.")
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        MetricText(value: kpis.vdotCurrent.map { Fmt.number($0, maxFraction: 1) } ?? "–", size: .largeTitle)
+                        MetricText(value: kpis.vdotCurrent.map { Fmt.number($0, maxFraction: 2) } ?? "–", size: .largeTitle)
                         if let d = kpis.vdotChange {
-                            Label("\(d > 0 ? "+" : "")\(Fmt.number(d, maxFraction: 1)) in 4 weeks", systemImage: changeSymbol(d))
+                            Label("\(d > 0 ? "+" : "")\(Fmt.number(d, maxFraction: 2)) in 4 weeks", systemImage: changeSymbol(d))
                                 .font(.footnote.weight(.semibold)).foregroundStyle(changeColor(d))
                         }
                     }
-                    if items.count < 2 {
-                        ChartEmpty(symbol: "speedometer", message: items.isEmpty ? "Your VDOT appears after a hard interval or tempo run." : "A trend needs a second data point.", height: 100)
+                    if items.isEmpty {
+                        ChartEmpty(symbol: "speedometer", message: "Your plan's VDOT appears once your training plan has been created.", height: 100)
                     } else {
-                        Chart(Array(items.enumerated()), id: \.offset) { _, item in
-                            AreaMark(x: .value("Date", item.0), yStart: .value("Low", (items.map(\.1).min() ?? 0) - 1), yEnd: .value("VDOT", item.1))
-                                .interpolationMethod(.stepEnd)
-                                .foregroundStyle(LinearGradient(colors: [c.opacity(0.3), c.opacity(0.02)], startPoint: .top, endPoint: .bottom))
-                            LineMark(x: .value("Date", item.0), y: .value("VDOT", item.1))
-                                .interpolationMethod(.stepEnd).foregroundStyle(c)
-                                .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                            PointMark(x: .value("Date", item.0), y: .value("VDOT", item.1)).foregroundStyle(c)
+                        Chart {
+                            ForEach(Array(plan.enumerated()), id: \.offset) { _, item in
+                                AreaMark(x: .value("Date", item.0), yStart: .value("Low", (lows.min() ?? 0) - 1), yEnd: .value("VDOT", item.1), series: .value("Series", "Plan VDOT"))
+                                    .interpolationMethod(.stepEnd)
+                                    .foregroundStyle(LinearGradient(colors: [c.opacity(0.3), c.opacity(0.02)], startPoint: .top, endPoint: .bottom))
+                                LineMark(x: .value("Date", item.0), y: .value("VDOT", item.1), series: .value("Series", "Plan VDOT"))
+                                    .interpolationMethod(.stepEnd).foregroundStyle(c)
+                                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                            }
+                            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                                PointMark(x: .value("Date", item.0), y: .value("VDOT", item.1)).foregroundStyle(c)
+                            }
+                            ForEach(Array(fitItems.enumerated()), id: \.offset) { _, item in
+                                LineMark(x: .value("Date", item.0), y: .value("VDOT", item.1), series: .value("Series", "Race-fit estimate"))
+                                    .interpolationMethod(.stepEnd).foregroundStyle(Color.secondary)
+                                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [4, 3]))
+                            }
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .chartYAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel() } }
                         .frame(height: 200)
-                        .accessibilityLabel("VDOT trend, \(items.count) values")
-                        .accessibilityValue("Latest \(Fmt.number(items.last?.1 ?? 0, maxFraction: 1))")
+                        .accessibilityLabel("Plan VDOT, \(items.count) values")
+                        .accessibilityValue("Latest \(Fmt.number(items.last?.1 ?? 0, maxFraction: 2))")
+                        HStack(spacing: 14) {
+                            Label("Plan VDOT", systemImage: "circle.fill").foregroundStyle(c)
+                            if !fitItems.isEmpty {
+                                Label("Race-fit estimate", systemImage: "circle.dotted").foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.caption).labelStyle(.titleAndIcon)
+                    }
+                }
+                if !history.isEmpty {
+                    PageSection("Changes") {
+                        Card {
+                            ForEach(Array(history.enumerated()), id: \.element.id) { i, p in
+                                if i > 0 { Divider() }
+                                VdotChangeRow(point: p)
+                            }
+                        }
                     }
                 }
                 PageSection("About VDOT") {
                     Card {
-                        Text("VDOT is one number for your current running fitness, estimated from your hardest recent efforts such as races, tempo runs and intervals. A higher VDOT means you can hold faster paces for the same effort.")
+                        Text("VDOT is one number for your current running fitness. Your plan's paces (easy, threshold and interval) are calculated from it, so a higher VDOT means faster paces in your plan.")
                             .font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                        Text("It only moves after a hard session, so it changes in steps rather than every day.")
+                        Text("It is raised after a race or hard effort, when your interval reps show you are faster than the plan assumed, or when quality sessions go easily. It is lowered after a long break or repeated missed paces. It changes in steps, not every day.")
                             .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        if !fitItems.isEmpty {
+                            Text("The dashed line is a race-fit estimate from your best sustained efforts. It averages reps and jogs, so it often sits below the plan's VDOT. It is shown for comparison only.")
+                                .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
@@ -354,6 +396,30 @@ private struct VdotDetailView: View {
         }
         .screenStyle()
         .navigationBarTitleDisplayMode(.large)
+    }
+}
+
+private struct VdotChangeRow: View {
+    let point: VdotPointDTO
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(VdotSource.label(point.source)).font(.subheadline.weight(.semibold))
+                Spacer()
+                if let d = point.delta, abs(d) >= 0.005 {
+                    Text("\(d > 0 ? "+" : "")\(Fmt.number(d, maxFraction: 2))").font(.subheadline.weight(.semibold))
+                        .foregroundStyle(changeColor(d))
+                }
+                Text(Fmt.number(point.value ?? 0, maxFraction: 2)).font(.subheadline.monospacedDigit())
+            }
+            Text(DayLabel.medium(point.date)).font(.caption).foregroundStyle(.secondary)
+            if let reason = point.reason, !reason.isEmpty {
+                Text(reason).font(.caption).foregroundStyle(.secondary).lineLimit(4).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 

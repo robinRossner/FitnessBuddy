@@ -294,10 +294,13 @@ struct RunKpisDTO: Codable, Sendable, Equatable {
     var runsThisWeek: Int?
     var runsPlannedThisWeek: Int?
     var kmThisWeek: Double?
+    /// Newer, additive: why the current VDOT is what it is (`VdotSource`) and the secondary race-fit estimate.
+    var vdotSource: String?
+    var vdotFitCurrent: Double?
 
     // The snake-case decoder turns `vdot_4w_ago` into `vdot4WAgo` (it capitalises the letter after a digit).
     enum CodingKeys: String, CodingKey {
-        case vdotCurrent, vdotChange, efficiencyCurrent, efficiencyChangePct, runsThisWeek, runsPlannedThisWeek, kmThisWeek
+        case vdotCurrent, vdotChange, vdotSource, vdotFitCurrent, efficiencyCurrent, efficiencyChangePct, runsThisWeek, runsPlannedThisWeek, kmThisWeek
         case vdot4wAgo = "vdot4WAgo", efficiency4wAgo = "efficiency4WAgo", easyHrDriftFlags4w = "easyHrDriftFlags4W"
     }
 }
@@ -315,11 +318,16 @@ struct EfficiencyPointDTO: Codable, Sendable, Equatable, Identifiable {
     var id: String { runId }
 }
 
+/// One point of `vdot` (the plan's VDOT, one per change in the engine's decision log) or `vdot_fit` (the
+/// secondary race-fit estimate, `date` + `value` only). `source` / `delta` / `reason` are additive: see `VdotSource`.
 struct VdotPointDTO: Codable, Sendable, Equatable, Identifiable {
     var date: String
     var value: Double?
+    var source: String?
+    var delta: Double?
+    var reason: String?
 
-    var id: String { date }
+    var id: String { "\(date)-\(source ?? "")" }
 }
 
 struct IntervalSessionDTO: Codable, Sendable, Equatable, Identifiable {
@@ -342,14 +350,18 @@ struct RunningStatsDTO: Codable, Sendable, Equatable {
     var generatedAt: Date?
     var weekly: [RunWeekDTO]
     var efficiency: [EfficiencyPointDTO]
+    /// The plan's VDOT as a step series (a point per change). Older backends send a per-run fit here instead.
     var vdot: [VdotPointDTO]
     var intervals: [IntervalSessionDTO]
     var kpis: RunKpisDTO?
+    /// Secondary: the per-run race-fit estimate (empty on older backends).
+    var vdotFit: [VdotPointDTO]
 
     init(generatedAt: Date? = nil, weekly: [RunWeekDTO] = [], efficiency: [EfficiencyPointDTO] = [],
-         vdot: [VdotPointDTO] = [], intervals: [IntervalSessionDTO] = [], kpis: RunKpisDTO? = nil) {
+         vdot: [VdotPointDTO] = [], intervals: [IntervalSessionDTO] = [], kpis: RunKpisDTO? = nil,
+         vdotFit: [VdotPointDTO] = []) {
         self.generatedAt = generatedAt; self.weekly = weekly; self.efficiency = efficiency
-        self.vdot = vdot; self.intervals = intervals; self.kpis = kpis
+        self.vdot = vdot; self.intervals = intervals; self.kpis = kpis; self.vdotFit = vdotFit
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -357,6 +369,7 @@ struct RunningStatsDTO: Codable, Sendable, Equatable {
         weekly = try c.decodeIfPresent([RunWeekDTO].self, forKey: .weekly) ?? []
         efficiency = try c.decodeIfPresent([EfficiencyPointDTO].self, forKey: .efficiency) ?? []
         vdot = try c.decodeIfPresent([VdotPointDTO].self, forKey: .vdot) ?? []
+        vdotFit = (try? c.decodeIfPresent([VdotPointDTO].self, forKey: .vdotFit)) ?? []
         intervals = try c.decodeIfPresent([IntervalSessionDTO].self, forKey: .intervals) ?? []
         // Newer, additive block: a shape change must not blank the charts.
         kpis = (try? c.decodeIfPresent(RunKpisDTO.self, forKey: .kpis)) ?? nil

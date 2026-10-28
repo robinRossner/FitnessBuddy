@@ -26,7 +26,8 @@ struct NewFieldDecodingTests {
     @Test func runningFixtureCarriesKpisAndRunDetail() throws {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
         let k = try #require(r.kpis)
-        #expect(k.vdotCurrent == 41.0 && k.vdot4wAgo == 41.0 && k.vdotChange == 0)
+        #expect(k.vdotCurrent == 44.51 && k.vdot4wAgo == 43.44 && k.vdotChange == 3.0)
+        #expect(k.vdotSource == "interval_reps" && k.vdotFitCurrent == 41.0)
         #expect(k.efficiency4wAgo == 1.2982 && k.efficiencyChangePct == -2.51 && k.easyHrDriftFlags4w?.value == 0)
         #expect(k.runsThisWeek == 1 && k.runsPlannedThisWeek == 3 && k.kmThisWeek == 8.13)
         let detail = try #require(r.weekly.last?.runsDetail)
@@ -295,6 +296,28 @@ struct RunningDashboardTests {
         let k = RunStackTransforms.kpis(withKpis, now: now)
         #expect(k.vdotCurrent == nil && k.vdotChange == nil)          // "needs a hard effort", not the seed value from the series
         #expect(k.runsThisWeek == 1 && k.runsPlanned == 3 && k.kmThisWeek == 8.13)
+    }
+
+    @Test func vdotTilesShowThePlanVdotAndItsSource() throws {
+        let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
+        let k = RunStackTransforms.kpis(r)
+        #expect(k.vdotCurrent == 44.51 && k.vdotCurrent == r.vdot.last?.value)   // the chart ends on the headline number
+        #expect(k.vdotSource == "interval_reps" && k.vdotFit == 41.0)
+        // an older backend without the new fields still decodes: no source, no secondary series
+        let old = try APICoding.makeDecoder().decode(RunningStatsDTO.self, from: Data(#"{"weekly":[],"vdot":[{"date":"2026-10-01","value":41.0}],"kpis":{"vdot_current":41.0}}"#.utf8))
+        #expect(old.vdot.first?.source == nil && old.vdotFit.isEmpty && old.kpis?.vdotSource == nil)
+    }
+
+    @Test func vdotHistoryIsNewestFirstWithReadableSources() {
+        let pts = [VdotPointDTO(date: "2026-10-19", value: 44.51, source: "interval_reps", delta: 3, reason: "r"),
+                   VdotPointDTO(date: "2026-09-14", value: 43.44, source: "initial", delta: 0),
+                   VdotPointDTO(date: "2026-10-19", value: 43.44, source: "initial", delta: 0),
+                   VdotPointDTO(date: "2026-10-26", value: nil, source: "effort")]
+        let h = VdotSource.history(pts)
+        #expect(h.map(\.date) == ["2026-10-19", "2026-10-19", "2026-09-14"])
+        #expect(Set(pts.map(\.id)).count == 4)                                 // two records on one day stay distinct
+        #expect(VdotSource.label("interval_reps") == "Measured from interval reps")
+        #expect(VdotSource.label("future_thing") == "Future Thing" && VdotSource.label(nil) == "Update")
     }
 
     @Test func kpisFallBackToTheSeriesWithoutTheBlock() {

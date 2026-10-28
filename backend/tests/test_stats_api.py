@@ -20,6 +20,7 @@ from app.db.catalog import BODY_REGIONS, load_catalog, region_of_muscle
 from app.db.models import (
     BodyMeasurement,
     DailyHealth,
+    DecisionLog,
     Exercise,
     ExerciseVariant,
     Gym,
@@ -46,8 +47,8 @@ AUTH = {"Authorization": f"Bearer {TOKEN}"}
 CFG_PATH = BACKEND_DIR / "config" / "engine.v3.yaml"
 
 NULL_KPIS = (
-    "vdot_current", "vdot_4w_ago", "vdot_change", "efficiency_current", "efficiency_4w_ago",
-    "efficiency_change_pct",
+    "vdot_current", "vdot_4w_ago", "vdot_change", "vdot_source", "vdot_fit_current",
+    "efficiency_current", "efficiency_4w_ago", "efficiency_change_pct",
 )  # fmt: skip
 CORRELATION_IDS = [
     "sleep_vs_lifting",
@@ -522,7 +523,8 @@ def test_running_efficiency_vdot_and_intervals(client, world):
     assert e["decoupling_pct"] == 0.0
     assert [x["date"] for x in body["efficiency"]] == sorted(x["date"] for x in body["efficiency"])
 
-    assert body["vdot"] and set(body["vdot"][0]) == {"date", "value"}
+    assert body["vdot"] == []  # the engine has not logged a VDOT yet (see the vdot tests)
+    assert body["vdot_fit"] and set(body["vdot_fit"][0]) == {"date", "value"}
     ivs = {i["run_id"]: i for i in body["intervals"]}
     assert set(ivs) == {world.interval.id, world.bad_interval.id}
     ok, bad = ivs[world.interval.id], ivs[world.bad_interval.id]
@@ -1087,8 +1089,10 @@ def test_running_kpis_this_week_and_efficiency(client, db, world):
     assert k["efficiency_4w_ago"] == pytest.approx(ago, abs=1e-4)
     assert k["efficiency_change_pct"] == pytest.approx((cur - ago) / ago * 100, abs=0.01)
     assert k["easy_hr_drift_flags_4w"] == 0
-    # no hard effort before 28 days ago (the HR-165 run is later): the old VDOT is unknown
-    assert k["vdot_current"] is not None and k["vdot_4w_ago"] is None and k["vdot_change"] is None
+    # no VDOT record in the decision log yet: the headline VDOT is unknown (the per-run fit is
+    # a separate, secondary number)
+    assert k["vdot_current"] is None and k["vdot_4w_ago"] is None and k["vdot_change"] is None
+    assert k["vdot_source"] is None and k["vdot_fit_current"] is not None
 
 
 def test_running_kpis_do_not_depend_on_the_chart_window(client, world):
@@ -1113,9 +1117,83 @@ def test_vdot_change_and_hr_drift_flags(client, db, world):
     cache.invalidate()
     k = client.get("/api/v1/stats/running?weeks=4").json()["kpis"]
     assert k["easy_hr_drift_flags_4w"] == 1
-    assert k["vdot_4w_ago"] is not None and k["vdot_current"] > k["vdot_4w_ago"]
-    assert k["vdot_change"] == pytest.approx(k["vdot_current"] - k["vdot_4w_ago"], abs=0.11)
-    assert k["vdot_change"] > 0
+    body = client.get("/api/v1/stats/running?weeks=4").json()
+    # the per-run fit rose after the faster 5 km effort, but it is only the secondary series
+    fit = {p["date"]: p["value"] for p in body["vdot_fit"]}
+    assert k["vdot_fit_current"] == fit[days_ago(2).isoformat()]
+    assert k["vdot_current"] is None  # no engine VDOT record
+
+
+def _vdot_record(db, day: date, vdot: float, source: str, delta: float, reason: str) -> None:
+    """A `running:vdot` decision as the planner writes it (engine/planner.py)."""
+    rec = {"day": day.isoformat(), "vdot": vdot, "source": source, "delta": delta}
+    db.add(
+        DecisionLog(
+            kind="running",
+            subject_type="vdot",
+            subject_id=day.isoformat(),
+            output={"vdot": vdot, "vdot_record": rec},
+            rationale=reason,
+        )
+    )
+
+
+def test_vdot_series_is_the_engine_state_from_the_decision_log(client, db, world):
+    _vdot_record(db, days_ago(60), 43.44, "initial", 0.0, "initial VDOT 41.0 from the fit")
+    _vdot_record(
+        db,
+        days_ago(10),
+        44.51,
+        "interval_reps",
+        3.0,
+        "VDOT 41.0 -> 45.1 measured from interval reps",
+    )
+    _vdot_record(db, days_ago(3), 45.9, "green_sessions", 0.5, "VDOT 45.4 -> 45.9: 2 passed")
+    # junk rows are ignored: no record, other subject
+    db.add(DecisionLog(kind="running", subject_type="vdot", output={"vdot": 1.0}))
+    db.add(
+        DecisionLog(
+            kind="running", subject_type="week", output={"vdot_record": {"day": "2026-10-01"}}
+        )
+    )
+    db.commit()
+    cache.invalidate()
+    body = strict_json(client.get("/api/v1/stats/running?weeks=2"))
+    assert [(p["date"], p["value"], p["source"], p["delta"]) for p in body["vdot"]] == [
+        (days_ago(60).isoformat(), 43.44, "initial", 0.0),
+        (days_ago(10).isoformat(), 44.51, "interval_reps", 3.0),
+        (days_ago(3).isoformat(), 45.9, "green_sessions", 0.5),
+    ]  # the whole history, not cut to the 2-week chart window
+    assert body["vdot"][1]["reason"].startswith("VDOT 41.0 -> 45.1 measured from interval reps")
+    k = body["kpis"]
+    assert k["vdot_current"] == 45.9 and k["vdot_source"] == "green_sessions"
+    assert k["vdot_4w_ago"] == 43.44 and k["vdot_change"] == pytest.approx(3.5)
+    assert body["vdot_fit"] and k["vdot_fit_current"] is not None  # secondary, may differ
+
+
+def test_vdot_current_equals_the_engine_state(client, db, world):
+    from app.engine import data as D
+
+    _vdot_record(db, days_ago(20), 43.44, "initial", 0.0, "initial")
+    _vdot_record(db, days_ago(6), 44.51, "interval_reps", 3.0, "measured")
+    _vdot_record(
+        db, days_ago(6), 44.51, "interval_reps", 3.0, "measured again"
+    )  # idempotent re-run
+    db.commit()
+    cache.invalidate()
+    body = client.get("/api/v1/stats/running").json()
+    log = D.load_vdot_log(db)  # what the planner takes as its VDOT state
+    assert len(body["vdot"]) == len(log) == 2
+    assert body["kpis"]["vdot_current"] == body["vdot"][-1]["value"] == log[-1].vdot == 44.51
+    assert body["vdot"][-1]["reason"] == "measured again"  # the latest decision of the day wins
+
+
+def test_vdot_record_before_the_4w_cutoff_only(client, db, world):
+    _vdot_record(db, days_ago(5), 44.0, "initial", 0.0, "initial")
+    db.commit()
+    cache.invalidate()
+    k = client.get("/api/v1/stats/running").json()["kpis"]
+    assert k["vdot_current"] == 44.0 and k["vdot_4w_ago"] is None and k["vdot_change"] is None
 
 
 def test_running_kpis_are_null_without_enough_runs(db, monkeypatch):

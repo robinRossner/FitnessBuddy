@@ -160,15 +160,18 @@ enum DemoStats {
             eff.append(EfficiencyPointDTO(date: day(60 - i * 4), runId: "run-e\(i)", type: "easy_run", distanceM: 7000 + fi * 150,
                                           avgHr: hr, avgPaceSPerKm: pace, efficiency: efficiency, decouplingPct: 3.1 - fi * 0.1))
         }
-        let vdot = [VdotPointDTO(date: day(62), value: 49.0), VdotPointDTO(date: day(41), value: 49.6), VdotPointDTO(date: day(20), value: 50.2), VdotPointDTO(date: day(6), value: 50.6)]
+        let vdot = [VdotPointDTO(date: day(62), value: 49.0, source: "initial", delta: 0, reason: "initial VDOT 49.0 from the pace model's fit"),
+                    VdotPointDTO(date: day(41), value: 49.6, source: "green_sessions", delta: 0.6, reason: "VDOT 49.0 -> 49.6: 2 quality sessions passed easily"),
+                    VdotPointDTO(date: day(20), value: 50.6, source: "interval_reps", delta: 1.0, reason: "VDOT 49.6 -> 50.6 measured from interval reps")]
+        let vdotFit = [VdotPointDTO(date: day(62), value: 48.6), VdotPointDTO(date: day(41), value: 49.2), VdotPointDTO(date: day(20), value: 49.5), VdotPointDTO(date: day(6), value: 49.7)]
         let intervals = (0..<5).map { i -> IntervalSessionDTO in
             IntervalSessionDTO(date: day(5 + i * 14), runId: "run-i\(i)", reps: 5 + i % 2, targetPaceSPerKm: 262, avgWorkPaceSPerKm: 262 + (i % 3 == 1 ? 8 : -2),
                                avgWorkHr: 168 + Double(i), targetHrLow: 164, targetHrHigh: 174, hrInRange: i != 3, recoveryOk: i != 2, passed: i == 3 ? false : (i % 3 == 1 ? false : true))
         }
         let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: eff.last?.efficiency, efficiency4wAgo: 1.24,
                               efficiencyChangePct: 4.6, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: 2, runsPlannedThisWeek: 3,
-                              kmThisWeek: weekly.last?.km)
-        return RunningStatsDTO(generatedAt: .now, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals, kpis: kpis)
+                              kmThisWeek: weekly.last?.km, vdotSource: "interval_reps", vdotFitCurrent: 49.7)
+        return RunningStatsDTO(generatedAt: .now, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals, kpis: kpis, vdotFit: vdotFit)
     }
 
     static func recentRuns() -> [RunSummaryDTO] {

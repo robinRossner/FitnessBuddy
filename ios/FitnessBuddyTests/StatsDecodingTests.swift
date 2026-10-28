@@ -40,7 +40,10 @@ struct StatsDecodingTests {
 
     @Test func runningFixture() throws {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
-        #expect(r.weekly.count == 26 && r.efficiency.count == 9 && r.vdot.count == 12 && r.intervals.count == 3)
+        #expect(r.weekly.count == 26 && r.efficiency.count == 9 && r.vdot.count == 2 && r.vdotFit.count == 12 && r.intervals.count == 3)
+        let step = try #require(r.vdot.last)
+        #expect(step.value == 44.51 && step.source == "interval_reps" && step.delta == 3.0 && step.reason?.contains("measured from interval reps") == true)
+        #expect(r.vdot.first?.source == "initial" && r.vdotFit[0].source == nil && r.vdotFit[0].value == 41.4)
         #expect(r.weekly.last?.timeInZonesS?["z1"] == 1639)
         #expect(r.efficiency[0].type == "easy" && r.efficiency[0].efficiency == 1.2948)
         #expect(r.intervals[0].passed == true && r.intervals[0].hrInRange == false && r.intervals[0].targetHrLow == 166)

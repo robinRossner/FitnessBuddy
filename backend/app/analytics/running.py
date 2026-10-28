@@ -1,7 +1,9 @@
 """`GET /stats/running`: weekly km + time in zones, efficiency, VDOT and interval evaluations.
 
-All rules come from the engine (`engine/running.py`, `hr.py`, `pace.py`); this module only loads
-the runs, calls those functions per run and shapes the result.
+All rules come from the engine (`engine/running.py`, `hr.py`, `pace.py`, `vdot.py`); this module
+only loads the runs, calls those functions per run and shapes the result. The headline VDOT is the
+engine's quality VDOT (the last `running:vdot` record of the decision log, the value the plan's
+paces come from); the per-run pace-model fit is kept as the secondary `vdot_fit` series.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from app.engine import running as R
 from app.engine.config import EngineConfig
 from app.engine.hr import HrZones, zones_from_config
 from app.engine.pace import VdotPaceModel, make_pace_model
+from app.engine.vdot import VdotRecord
 from app.settings import get_settings
 
 PLANNED_TYPES = {"easy_run": "easy", "long_run": "long", "intervals": "intervals"}
@@ -183,14 +186,42 @@ def _efficiency_kpis(ctx: Ctx, today: date) -> dict:
     }
 
 
-def _vdot_at(ctx: Ctx, day: date) -> float | None:
-    """The fitted VDOT on `day`; None while it is still only the seed race (no hard effort)."""
+def _fit_at(ctx: Ctx, day: date) -> float | None:
+    """The pace model's per-run fit on `day` (a race-fit estimate, NOT what the plan uses); None
+    while it is still only the seed race (no hard effort)."""
     model = model_at(ctx, day)
     return model.vdot if model.efforts_used else None
 
 
-def running_kpis(ctx: Ctx, today: date, week_runs: list[R.RunData], planned_runs: int) -> dict:
-    cur, ago = _vdot_at(ctx, today), _vdot_at(ctx, today - timedelta(days=KPI_WINDOW_DAYS))
+def vdot_state_at(history: list[tuple[VdotRecord, str | None]], day: date) -> VdotRecord | None:
+    """The engine's VDOT state on `day`: its last record on or before it."""
+    return next((rec for rec, _why in reversed(history) if rec.day <= day), None)
+
+
+def vdot_series(history: list[tuple[VdotRecord, str | None]]) -> list[dict]:
+    """The engine's VDOT as a step series: one point per record of the decision log."""
+    return [
+        {
+            "date": rec.day.isoformat(),
+            "value": num(rec.vdot, 2),
+            "source": rec.source,
+            "delta": num(rec.delta, 2),
+            "reason": why,
+        }
+        for rec, why in history
+    ]
+
+
+def running_kpis(
+    ctx: Ctx,
+    today: date,
+    week_runs: list[R.RunData],
+    planned_runs: int,
+    vdot_history: list[tuple[VdotRecord, str | None]],
+) -> dict:
+    now = vdot_state_at(vdot_history, today)
+    then = vdot_state_at(vdot_history, today - timedelta(days=KPI_WINDOW_DAYS))
+    cur, ago = (now.vdot if now else None), (then.vdot if then else None)
     since = today - timedelta(days=KPI_WINDOW_DAYS - 1)
     drift = [
         r
@@ -201,9 +232,11 @@ def running_kpis(ctx: Ctx, today: date, week_runs: list[R.RunData], planned_runs
         and d > ctx.rc.easy.decoupling_flag_pct
     ]
     return {
-        "vdot_current": num(cur, 1),
-        "vdot_4w_ago": num(ago, 1),
-        "vdot_change": num(cur - ago, 1) if cur is not None and ago is not None else None,
+        "vdot_current": num(cur, 2),
+        "vdot_4w_ago": num(ago, 2),
+        "vdot_change": num(cur - ago, 2) if cur is not None and ago is not None else None,
+        "vdot_source": now.source if now else None,
+        "vdot_fit_current": num(_fit_at(ctx, today), 1),
         **_efficiency_kpis(ctx, today),
         "easy_hr_drift_flags_4w": len(drift),
         "runs_this_week": len(week_runs),
@@ -278,13 +311,16 @@ def running_stats(db: Session, weeks: int) -> dict:
                     "passed": ev.passed,
                 }
             )
-    vdot = [
+    vdot_fit = [
         {"date": d.isoformat(), "value": num(model_at(ctx, d).vdot, 1)}
         for d in sorted({r.day for r in window})
     ]
+    vdot_history = D.load_vdot_history(db)
     this_week = common.week_start(today)
     planned_runs = planned.planned_counts(db, [this_week])[this_week][1]
-    kpis = running_kpis(ctx, today, [r for r in window if r.day >= this_week], planned_runs)
+    kpis = running_kpis(
+        ctx, today, [r for r in window if r.day >= this_week], planned_runs, vdot_history
+    )
     return {
         "generated_at": common.generated_at(),
         "kpis": kpis,
@@ -301,6 +337,7 @@ def running_stats(db: Session, weeks: int) -> dict:
             for b in weekly.values()
         ],
         "efficiency": efficiency,
-        "vdot": vdot,
+        "vdot": vdot_series([(rec, why) for rec, why in vdot_history if rec.day <= today]),
+        "vdot_fit": vdot_fit,
         "intervals": intervals,
     }

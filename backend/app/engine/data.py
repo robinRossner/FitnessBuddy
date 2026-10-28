@@ -411,7 +411,9 @@ def load_quality_log(db: Session, since: date, until: date) -> list[Q.QualityRec
     return out
 
 
-def load_vdot_log(db: Session) -> list[V.VdotRecord]:
+def load_vdot_history(db: Session) -> list[tuple[V.VdotRecord, str | None]]:
+    """The VDOT records of the decision log with their reason (the decision's rationale), oldest
+    first; the last one is the VDOT state the planner uses."""
     out = []
     for r in db.scalars(
         select(DecisionLog)
@@ -422,16 +424,23 @@ def load_vdot_log(db: Session) -> list[V.VdotRecord]:
         if not rec:
             continue
         out.append(
-            V.VdotRecord(
-                date.fromisoformat(rec["day"]),
-                float(rec["vdot"]),
-                rec.get("source") or "initial",
-                float(rec.get("delta") or 0.0),
+            (
+                V.VdotRecord(
+                    date.fromisoformat(rec["day"]),
+                    float(rec["vdot"]),
+                    rec.get("source") or "initial",
+                    float(rec.get("delta") or 0.0),
+                ),
+                r.rationale,
             )
         )
     # one record per (day, source): the latest wins
-    dedup = {(x.day, x.source): x for x in out}
-    return sorted(dedup.values(), key=lambda x: x.day)
+    dedup = {(x.day, x.source): (x, why) for x, why in out}
+    return sorted(dedup.values(), key=lambda p: p[0].day)
+
+
+def load_vdot_log(db: Session) -> list[V.VdotRecord]:
+    return [rec for rec, _why in load_vdot_history(db)]
 
 
 def load_cycle_start(db: Session) -> date | None:

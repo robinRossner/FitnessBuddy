@@ -229,9 +229,11 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 {
   "generated_at": "2026-10-25T11:24:36.071Z",
   "kpis": {
-    "vdot_current": 41.0,
-    "vdot_4w_ago": 41.0,
-    "vdot_change": 0.0,
+    "vdot_current": 44.51,
+    "vdot_4w_ago": 43.44,
+    "vdot_change": 3.0,
+    "vdot_source": "interval_reps",
+    "vdot_fit_current": 41.0,
     "efficiency_current": 1.2656,
     "efficiency_4w_ago": 1.2982,
     "efficiency_change_pct": -2.51,
@@ -273,6 +275,22 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   ],
   "vdot": [
     {
+      "date": "2026-09-14",
+      "value": 43.44,
+      "source": "initial",
+      "delta": 0.0,
+      "reason": "initial VDOT 41.0 from the pace model's fit"
+    },
+    {
+      "date": "2026-10-19",
+      "value": 44.51,
+      "source": "interval_reps",
+      "delta": 3.0,
+      "reason": "VDOT 42.4 -> 45.4 measured from interval reps: 6 x 800 m on 2026-08-26 ... (capped at +3 per update)"
+    }
+  ],
+  "vdot_fit": [
+    {
       "date": "2026-10-15",
       "value": 41.0
     },
@@ -304,9 +322,13 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 - `kpis` (top level): headline numbers for the running dashboard, always relative to today and
   independent of `weeks` (they look back 4 weeks plus the VDOT lookback even for `weeks=1`).
   `null` means there is not enough data:
-  - `vdot_current`, `vdot_4w_ago` (the estimate as the planner would have fitted it 28 days ago),
-    `vdot_change` (difference). `null` while the estimate is still only the seed race, i.e. no
-    hard effort (>= `vdot.min_effort_km`, HR high enough) in the lookback window.
+  - `vdot_current`: the engine's quality VDOT, the number the plan's paces (threshold, interval,
+    easy range) come from: the last `running:vdot` record of the decision log, identical to the
+    planner's VDOT state (2 decimals, e.g. 44.51). `vdot_4w_ago`: the record in force 28 days
+    ago, `vdot_change` (difference); `null` when there was no record yet then. All three are
+    `null` while the engine has not logged a VDOT (before its first run). `vdot_source`: the
+    `source` of the current record (see `vdot` below). `vdot_fit_current`: the secondary
+    race-fit estimate of today (see `vdot_fit`), `null` while it is only the seed race.
   - `efficiency_current`: mean `efficiency` of the last 3 easy or long runs. `efficiency_4w_ago`:
     mean of the 3 such runs closest to 28 days before today, other than the current 3 and
     within 14 days of that date. `efficiency_change_pct`: (current - 4w ago) / 4w ago in %.
@@ -341,8 +363,20 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   between the first and second half (positive = HR drifted up; `null` under 4 laps with HR).
   `type`: the linked plan's kind, else `intervals` if the title / laps show an interval session,
   else `long` from `running.long_run.min_km` (8 km), else `easy`.
-- `vdot`: one point per run day, the engine's VDOT estimate on that day (seed from the config,
-  raised by the best hard effort of the last `vdot.lookback_weeks`).
+- `vdot`: the engine's quality VDOT as a step series, oldest first: one point per change in the
+  decision log (`running:vdot`, see engine/vdot.py); the value holds until the next point (a chart
+  draws a step and extends the last value to today). The whole history is returned, independent
+  of `weeks`; it is empty before the engine's first run. Fields: `date` (the day of the
+  update), `value` (VDOT, 2 decimals), `source` (`initial` the pace model's fit anchors the first
+  record, `effort` a race / time trial / hard effort, `interval_reps` measured from interval
+  reps, `green_sessions` quality sessions passed easily, `interval_pace` the pace lever,
+  `layoff` after a break, `fails` after repeated missed quality paces), `delta` (change vs the
+  previous value, 0 for `initial`) and `reason` (the decision's rationale, a sentence, may be
+  `null`). Older builds read only `date` and `value`, so they now chart this series too.
+- `vdot_fit`: secondary, one point per run day in the window (`date`, `value`): the pace
+  model's race-fit estimate on that day (seed from the config, raised by the best hard effort of
+  the last `vdot.lookback_weeks`). It is NOT what the plan uses; it averages reps and jogs and
+  can sit well below the quality VDOT.
 - `intervals`: interval sessions (engine `split_intervals` / `evaluate_intervals`).
   `target_pace_s_per_km`: from the linked planned session, else the pace model's interval pace on
   that day. `target_hr_low/high`: the interval HR zone (z4 to z5a). `hr_in_range`, `recovery_ok`
