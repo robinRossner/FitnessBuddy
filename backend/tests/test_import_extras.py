@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from app.db.models import ExerciseVariant, TrainingSession
+from app.db.models import Exercise, ExerciseVariant, TrainingSession
 from app.db.types import SessionKind
 from app.importers.strong.importer import ImportOptions, run_import, session_uuid
 from app.importers.strong.mapping import read_mapping, write_mapping
@@ -122,6 +122,37 @@ def test_duration_cap_is_configurable_and_reimport_restores(db, env):
     assert res.duration_corrected == []
     assert _session(db, "2025-01-07").duration_s == 19 * 3600 + 22 * 60
     assert db.get(TrainingSession, session_uuid(datetime(2025, 1, 7, 9))).duration_s is not None
+
+
+def test_reimport_keeps_a_name_the_user_gave_in_the_app(db, env):
+    run_import(db, env)
+    db.commit()
+    bench = db.scalar(select(Exercise).where(Exercise.slug == "bench_press"))
+    v = db.scalar(select(ExerciseVariant).where(ExerciseVariant.exercise_id == bench.id))
+    row = db.scalar(select(ExerciseVariant).where(ExerciseVariant.name == "Squat (Barbell)"))
+    key, squat = v.key, row.exercise
+    v.name = "Flat Press (Barbell)"  # renamed in the app (PATCH /exercises/{id})
+    bench.edited_by_user = True
+    db.commit()
+    run_import(db, env)
+    db.commit()
+    db.refresh(v)
+    assert v.key == key and v.name == "Flat Press (Barbell)"
+    # a variant of an exercise the user did not edit still follows the mapping
+    row.name = "Squat (renamed by hand)"
+    db.commit()
+    run_import(db, env)
+    db.commit()
+    db.refresh(row)
+    assert row.name == "Squat (Barbell)" and not squat.edited_by_user
+    # an edited exercise whose variant still has the mapping name (muscle edit) resets as usual
+    squat.edited_by_user = True
+    row.name = "Squat (Barbell) @ stale"
+    db.commit()
+    run_import(db, env)
+    db.commit()
+    db.refresh(row)
+    assert row.name == "Squat (Barbell)"
 
 
 def test_inactive_variants_keep_data_but_leave_review_and_anomalies(db, env):

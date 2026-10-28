@@ -1,5 +1,6 @@
-"""APScheduler wiring: nightly full incremental Garmin sync + lighter daytime runs, and the advisor
-jobs (weekly review Sunday 20:00, daily trigger batch and outcome check).
+"""APScheduler wiring: nightly full incremental Garmin sync + lighter daytime runs, the push of
+planned runs to the watch (evening + early morning) and the advisor jobs (weekly review Sunday
+20:00, daily trigger batch and outcome check).
 
 Started from the FastAPI lifespan only when SCHEDULER_ENABLED=true. Jobs never raise into the
 scheduler: failures are logged (and recorded in `sync_state.last_error`).
@@ -68,9 +69,31 @@ def add_advisor_jobs(sched: BackgroundScheduler, settings: Settings) -> None:
     )
 
 
+def add_workout_push_jobs(sched: BackgroundScheduler, settings: Settings) -> None:
+    """Planned runs -> Garmin watch (app/garmin_workouts): in the evening so tomorrow morning's
+    run is on the watch before bed, and early in the morning (after the nightly sync) so a
+    readiness change still lands. The watch picks it up on its next phone sync."""
+    if not settings.garmin_push_workouts:
+        return
+    from app.garmin_workouts import push_job
+
+    for t in (x for x in settings.garmin_push_times.split(",") if x.strip()):
+        h, m = _hhmm(t)
+        sched.add_job(
+            push_job,
+            CronTrigger(hour=h, minute=m, timezone=settings.scheduler_tz),
+            id=f"garmin_workouts_{h:02d}{m:02d}",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=1800,
+            replace_existing=True,
+        )
+
+
 def build_scheduler(settings: Settings) -> BackgroundScheduler:
     sched = BackgroundScheduler(timezone=settings.scheduler_tz)
     add_advisor_jobs(sched, settings)
+    add_workout_push_jobs(sched, settings)
     h, m = _hhmm(settings.sync_nightly_time)
     sched.add_job(
         garmin_job,

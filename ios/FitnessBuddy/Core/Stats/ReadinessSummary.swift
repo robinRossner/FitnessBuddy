@@ -95,7 +95,8 @@ struct ReadinessSummary: Equatable, Sendable {
             if level == .unknown, let legacy { level = legacy.level }
             let headline = nonEmpty(today.headline) ?? level.title
             // The backend's own answer is trusted as is (an empty metric list means "no data", not "compute it yourself").
-            return ReadinessSummary(level: level, headline: headline, metrics: today.metrics, details: today.details)
+            return ReadinessSummary(level: level, headline: headline, metrics: today.metrics,
+                                    details: completeDetails(today.details, metrics: today.metrics))
         }
         if let legacy {
             return ReadinessSummary(level: legacy.level, headline: legacy.level.title,
@@ -106,6 +107,26 @@ struct ReadinessSummary: Equatable, Sendable {
                                     metrics: dayMetrics(day), details: fallbackDetails(legacy: nil, day: day))
         }
         return nil
+    }
+
+    /// The Why list must name every factor the score uses. Current backends already do; an older one
+    /// lists only the flagged factors, so a factor no line mentions is added from its metric (or "no data").
+    static func completeDetails(_ details: [String], metrics: [ReadinessMetricDTO]) -> [String] {
+        guard !details.isEmpty, !metrics.isEmpty else { return details }
+        let factors: [(key: String, label: String, words: [String])] = [
+            ("hrv", "HRV", ["hrv"]), ("rhr", "Resting HR", ["resting hr", "rhr"]), ("sleep", "Sleep", ["sleep"]),
+        ]
+        var out = details
+        for f in factors where !details.contains(where: { line in f.words.contains { line.lowercased().contains($0) } }) {
+            guard let m = metrics.first(where: { $0.key == f.key }), m.value != nil else {
+                out.append("\(f.label): no data")
+                continue
+            }
+            var line = "\(f.label) \(m.valueWithUnit)"
+            if let b = m.baselineText { line += " (baseline \(b))" }
+            out.append("\(line) - \(m.resolvedStatus == .ok ? "neutral" : "pulls it down")")
+        }
+        return out
     }
 
     private static func nonEmpty(_ s: String?) -> String? {

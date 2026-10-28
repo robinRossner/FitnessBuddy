@@ -85,6 +85,12 @@ def _baseline(
     return fmean(vals) if len(vals) >= cfg.min_baseline_days else None
 
 
+def _signed(x: float) -> str:
+    """'+2' / '-3' / '±0' (never '-0')."""
+    n = round(x)
+    return f"{n:+d}" if n else "±0"
+
+
 def _worse(a: str, b: str) -> str:
     return a if _RANK[a] >= _RANK[b] else b
 
@@ -111,7 +117,7 @@ def score_day(day: date, history: Iterable[HealthDay], cfg: ReadinessConfig) -> 
             base = _baseline(by_day, day, "hrv_ms", cfg)
             if base:
                 pct = (today.hrv_ms - base) / base * 100
-                detail = f"HRV {today.hrv_ms:.0f} ms ({pct:+.0f}% vs {base:.0f} baseline)"
+                detail = f"HRV {today.hrv_ms:.0f} ms ({_signed(pct)}% vs {base:.0f} baseline)"
                 if pct <= cfg.hrv.red_pct:
                     level = RED
                 elif pct <= cfg.hrv.yellow_pct:
@@ -145,7 +151,7 @@ def score_day(day: date, history: Iterable[HealthDay], cfg: ReadinessConfig) -> 
                     Signal(
                         "rhr",
                         level,
-                        f"resting HR {today.resting_hr:.0f} ({diff:+.0f} vs {base:.0f})",
+                        f"resting HR {today.resting_hr:.0f} ({_signed(diff)} vs {base:.0f})",
                         today.resting_hr,
                         base,
                     )

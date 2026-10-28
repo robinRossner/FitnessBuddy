@@ -1234,11 +1234,16 @@ def test_readiness_view_headlines_status_and_details():
     yellow = readiness_view(Readiness(d, "yellow", True, "x", [hrv, rhr, sleep]), 8.0)
     assert (yellow["level"], yellow["headline"]) == ("yellow", "Take it easier")
     assert [m["status"] for m in yellow["metrics"]] == ["warn", "warn", "ok"]
-    assert yellow["details"] == ["HRV 61 ms (-12% vs 70 baseline)", "Resting HR 50 (+5 vs 45)"]
+    assert yellow["details"] == [
+        "HRV 61 ms (-12% vs 70 baseline) - pulls it down a bit",
+        "Resting HR 50 (+5 vs 45) - pulls it down a bit",
+        "Sleep 8.0 h, score 85 (usual 8.0 h) - neutral",
+    ]
     assert yellow["metrics"][2]["delta_pct"] == 0.0
 
     minor = readiness_view(Readiness(d, "green", True, "x", [hrv, sleep]), None)
     assert minor["headline"] == "Ready" and minor["details"][-1].startswith("Only a minor flag")
+    assert minor["details"][-2] == "Resting HR: no data"  # missing factors are listed too
 
     short_night = Signal("sleep", "red", "sleep 4.0 h", 4.0)
     sn = readiness_view(Readiness(d, "yellow", True, "x", [short_night]), 7.0)

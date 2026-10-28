@@ -119,6 +119,7 @@ struct APIClient: Sendable {
         static let syncPull = apiBase + "/sync/pull"
         static func variantHistory(_ id: Int) -> String { apiBase + "/variants/\(id)/history" }
         static func exerciseRest(variantId: Int) -> String { apiBase + "/exercises/\(variantId)/rest" }
+        static let garminWorkoutsPush = apiBase + "/garmin/workouts/push"
     }
 
     func health() async throws -> HealthDTO {
@@ -158,6 +159,18 @@ struct APIClient: Sendable {
         try await send(path: Endpoints.variantHistory(id), query: [URLQueryItem(name: "limit", value: String(limit))])
     }
 
+    /// Sends the planned runs to Garmin now (scheduled on their day; the watch gets them on its next
+    /// sync with the phone). `date` also sends that day's run when it is beyond the automatic window.
+    /// Contract: docs/api/garmin.md.
+    func pushWorkoutsToGarmin(date: String? = nil) async throws -> GarminPushResultDTO {
+        let body = try JSONSerialization.data(withJSONObject: date.map { ["date": $0] } ?? [String: String]())
+        var req = try makeRequest(path: Endpoints.garminWorkoutsPush, query: [], method: "POST", authorized: true, body: body)
+        req.timeoutInterval = 60  // the server talks to Garmin (about one request per second)
+        let respData = try await execute(req)
+        do { return try APICoding.makeDecoder().decode(GarminPushResultDTO.self, from: respData) }
+        catch { throw APIError.decoding(error) }
+    }
+
     // MARK: Transport
 
     func makeRequest(path: String, query: [URLQueryItem], method: String, authorized: Bool, body: Data?) throws -> URLRequest {
@@ -190,7 +203,10 @@ struct APIClient: Sendable {
     }
 
     private func raw(path: String, query: [URLQueryItem], method: String, authorized: Bool, body: Data?) async throws -> Data {
-        let req = try makeRequest(path: path, query: query, method: method, authorized: authorized, body: body)
+        try await execute(try makeRequest(path: path, query: query, method: method, authorized: authorized, body: body))
+    }
+
+    private func execute(_ req: URLRequest) async throws -> Data {
         let (respData, response): (Data, URLResponse)
         do { (respData, response) = try await session.data(for: req) }
         catch { throw APIError.transport(error) }
@@ -207,5 +223,29 @@ struct APIClient: Sendable {
         let respData = try await raw(path: path, query: query, method: method, authorized: authorized, body: body)
         do { return try APICoding.makeDecoder().decode(T.self, from: respData) }
         catch { throw APIError.decoding(error) }
+    }
+}
+
+/// Response of `POST /api/v1/garmin/workouts/push` (docs/api/garmin.md), reduced to what the app shows.
+struct GarminPushResultDTO: Decodable, Sendable, Equatable {
+    struct Item: Decodable, Sendable, Equatable {
+        let date: String
+        /// uploaded | updated | unchanged | scheduled | deleted | failed
+        let action: String
+        let name: String?
+        let reason: String?
+    }
+
+    struct Day: Decodable, Sendable, Equatable {
+        let date: String
+        let items: [Item]
+    }
+
+    let counts: [String: Int]
+    let days: [Day]
+
+    /// What happened to the workouts of one day (deletions of older ones excluded).
+    func items(on date: String) -> [Item] {
+        days.first { $0.date == date }?.items.filter { $0.action != "deleted" } ?? []
     }
 }

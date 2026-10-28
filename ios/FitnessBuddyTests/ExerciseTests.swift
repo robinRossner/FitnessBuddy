@@ -101,6 +101,67 @@ struct ExerciseSettingsTests {
         #expect(create?["increment_kg"] == nil)
     }
 
+    @Test func renameSendsOnlyTheName() throws {
+        let body = try JSONSerialization.jsonObject(with: APICoding.makeEncoder().encode(
+            ExercisePatchRequest(name: "Pec Fly"))) as? [String: Any]
+        #expect(body?["name"] as? String == "Pec Fly" && body?.keys.contains("muscle_group") == false)
+        let muscle = try JSONSerialization.jsonObject(with: APICoding.makeEncoder().encode(
+            ExercisePatchRequest(muscleGroup: "abs"))) as? [String: Any]
+        #expect(muscle?["muscle_group"] as? String == "abs" && muscle?.keys.contains("name") == false)
+    }
+
+    @Test func editableNameDropsTheGymAndTheTypeLabel() {
+        #expect(ExerciseOptions.editableName(variantName: "Pec Deck (Machine) @ Gym 3", equipmentType: "machine_stack") == "Pec Deck")
+        #expect(ExerciseOptions.editableName(variantName: "Squat (Smith Machine)", equipmentType: "smith") == "Squat")
+        #expect(ExerciseOptions.editableName(variantName: "Pull Up", equipmentType: "bodyweight") == "Pull Up")
+        #expect(ExerciseOptions.editableName(variantName: "Row (Cable)", equipmentType: "barbell") == "Row (Cable)")  // another label
+        #expect(ExerciseOptions.editableName(variantName: "Sled Push", equipmentType: "other") == "Sled Push")
+        #expect(ExerciseOptions.cleanName("  Pec \n  Fly ") == "Pec Fly")
+    }
+
+    @Test func renameAnswerCarriesTheRenamedVariants() throws {
+        let json = #"""
+        {"id": 7, "name": "Pec Fly", "muscle_group": "chest", "movement_pattern": "other",
+         "variants": [{"id": 70, "exercise_id": 7, "name": "Pec Fly (Machine) @ Gym 3", "gym_id": 3, "equipment_type": "machine_stack"}]}
+        """#
+        let answer = try APICoding.makeDecoder().decode(ExerciseRenameResponse.self, from: Data(json.utf8))
+        #expect(answer.exercise.name == "Pec Fly" && answer.variants.map(\.name) == ["Pec Fly (Machine) @ Gym 3"])
+        let plain = try APICoding.makeDecoder().decode(ExerciseRenameResponse.self, from: Data(#"{"id": 7, "name": "X"}"#.utf8))
+        #expect(plain.variants.isEmpty)
+    }
+
+    @MainActor
+    @Test func renameUpdatesTheCacheAndTheSetsOfThisDevice() throws {
+        let ctx = try makeContext()
+        let ex = CachedExercise(id: 7, name: "Pec Deck", muscleGroup: "chest")
+        let v = CachedVariant(id: 70, exerciseId: 7, name: "Pec Deck (Machine) @ Gym 3", gymId: 3, equipmentType: "machine_stack")
+        let set = LocalSet(sessionId: UUID(), variantId: 70, variantName: v.name, exerciseOrder: 0, setOrder: 0)
+        ctx.insert(ex); ctx.insert(v); ctx.insert(set)
+        let answer = try APICoding.makeDecoder().decode(ExerciseRenameResponse.self, from: Data(#"""
+            {"id": 7, "name": "Pec Fly", "muscle_group": "chest",
+             "variants": [{"id": 70, "exercise_id": 7, "name": "Pec Fly (Machine) @ Gym 3", "gym_id": 3, "equipment_type": "machine_stack"}]}
+            """#.utf8))
+        ExerciseLibrary.apply(answer, in: ctx)
+        #expect(ex.name == "Pec Fly" && v.name == "Pec Fly (Machine) @ Gym 3" && set.variantName == v.name)
+    }
+
+    @MainActor
+    @Test func aPulledVariantRenameReachesTheSetsOfThatVariant() throws {
+        let ctx = try makeContext()
+        let v = CachedVariant(id: 70, exerciseId: 7, name: "Pec Deck (Machine) @ Gym 3", gymId: 3, equipmentType: "machine_stack")
+        let dirty = LocalSet(sessionId: UUID(), variantId: 70, variantName: v.name, exerciseOrder: 0, setOrder: 0)
+        dirty.weightKg = 40  // an unsynced edit of this device
+        let other = LocalSet(sessionId: UUID(), variantId: 71, variantName: "Pec Deck (Machine) @ Gym 3", exerciseOrder: 0, setOrder: 0)
+        let custom = LocalSet(sessionId: UUID(), variantId: 70, variantName: "Something else", exerciseOrder: 1, setOrder: 0)
+        ctx.insert(v); ctx.insert(dirty); ctx.insert(other); ctx.insert(custom)
+        let updatedAt = dirty.updatedAt
+        let dto = VariantDTO(id: 70, exerciseId: 7, name: "Pec Fly (Machine) @ Gym 3", gymId: 3, equipmentType: "machine_stack")
+        SyncMerge.upsert(variant: dto, existing: v, in: ctx)
+        #expect(v.name == "Pec Fly (Machine) @ Gym 3" && dirty.variantName == v.name)
+        #expect(dirty.dirty && dirty.weightKg == 40 && dirty.updatedAt == updatedAt)  // the edit is untouched, not re-pushed
+        #expect(other.variantName == "Pec Deck (Machine) @ Gym 3" && custom.variantName == "Something else")
+    }
+
     @Test func pulledExerciseFieldsAreOptional() throws {
         let json = #"{"id": 1, "name": "Bench Press", "muscle_group": "chest", "movement_pattern": "horizontal_push"}"#
         let old = try APICoding.makeDecoder().decode(ExerciseDTO.self, from: Data(json.utf8))

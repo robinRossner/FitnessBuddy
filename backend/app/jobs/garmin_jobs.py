@@ -42,6 +42,9 @@ def on_new_data(report: SyncReport) -> None:
                 summary.config_version,
                 len(summary.weeks),
             )
+            from app.jobs.engine_jobs import push_runs_soon
+
+            push_runs_soon("Garmin sync")
     except FileNotFoundError as exc:  # no program.yaml yet
         log.warning("engine not run: %s", exc)
     except Exception:

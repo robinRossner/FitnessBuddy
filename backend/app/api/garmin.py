@@ -1,4 +1,5 @@
-"""Garmin-derived read endpoints (bearer-token protected): activities ("runs") and daily health."""
+"""Garmin endpoints (bearer-token protected): activities ("runs"), daily health, and the push of
+planned runs to the watch (`POST /garmin/workouts/push`, docs/api/garmin.md)."""
 
 from __future__ import annotations
 
@@ -6,13 +7,16 @@ from datetime import date, datetime, time, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app import garmin_workouts
 from app.api.auth import require_token
 from app.api.routes import get_db
 from app.db.models import DailyHealth, Run
+from app.settings import get_settings
+from app.sources.garmin.errors import GarminError, SourceUnavailable
 from app.sources.garmin.mapping import RUN_TYPES
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
@@ -138,3 +142,35 @@ def daily_health(
     if to:
         q = q.where(DailyHealth.day <= to)
     return list(db.scalars(q.order_by(DailyHealth.day)))
+
+
+class WorkoutPushIn(BaseModel):
+    # also push this day's run (e.g. "Send to watch" on a later day); JSON key `date`
+    day: date | None = Field(default=None, alias="date")
+    dry_run: bool = False
+
+
+@router.post("/garmin/workouts/push")
+def push_workouts(body: WorkoutPushIn | None = None, db: Session = Depends(get_db)) -> dict:
+    """Upload / update / delete our Garmin workouts now (also runs every evening and early
+    morning). 503: push disabled or no Garmin login configured; 502: Garmin refused or failed."""
+    body = body or WorkoutPushIn()
+    s = get_settings()
+    today = garmin_workouts.user_today(s)
+    if body.day is not None and not (
+        today <= body.day <= today + timedelta(days=garmin_workouts.HORIZON_DAYS)
+    ):
+        raise HTTPException(
+            422, f"date must be between today and {garmin_workouts.HORIZON_DAYS} days ahead"
+        )
+    if not body.dry_run and not s.garmin_push_workouts:
+        raise HTTPException(503, "pushing workouts to Garmin is disabled (GARMIN_PUSH_WORKOUTS)")
+    try:
+        report = garmin_workouts.push_workouts(
+            db, s, today=today, extra_day=body.day, dry_run=body.dry_run
+        )
+    except SourceUnavailable as exc:
+        raise HTTPException(503, str(exc)) from None
+    except GarminError as exc:
+        raise HTTPException(502, str(exc)) from None
+    return report.as_dict()

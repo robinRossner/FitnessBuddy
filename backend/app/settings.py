@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     garmin_since: date = date(2023, 1, 1)  # default backfill start
     garmin_sync_overlap_days: int = 3  # incremental sync re-reads this many days
     garmin_download_fit: bool = True  # store the original .FIT (needed for laps)
+    # Planned runs -> Garmin Connect workouts on the watch (app/garmin_workouts.py, needs
+    # GARMIN_EMAIL/GARMIN_PASSWORD; docs/api/garmin.md). Window = today + this many days ahead.
+    garmin_push_workouts: bool = True
+    garmin_push_days: int = 2
+    garmin_push_times: str = "19:45,05:00"  # scheduler_tz; after the 19:30 / 03:30 syncs
+    garmin_push_after_engine: bool = True  # also push when an engine re-run changed a run
 
     # Scheduler (APScheduler in the FastAPI process); off by default locally.
     scheduler_enabled: bool = False

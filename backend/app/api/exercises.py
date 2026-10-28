@@ -3,7 +3,7 @@
 PUT   /api/v1/exercises/{variant_id}/rest      body {"rest_s": 30..600 | null}
 POST  /api/v1/exercises                        a new exercise + its first variant
 POST  /api/v1/exercises/{exercise_id}/variants a variant by equipment (at a gym for machines)
-PATCH /api/v1/exercises/{exercise_id}          the muscle group
+PATCH /api/v1/exercises/{exercise_id}          the name and / or muscle group
 
 
 Sets the rest timer of the variant's exercise (all variants of one exercise share it; the setting
@@ -118,6 +118,7 @@ class VariantBody(BaseModel):
 
 class ExercisePatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    name: Annotated[str, Field(min_length=1, max_length=100)] | None = None
     muscle_group: str | None = None
 
 
@@ -152,7 +153,10 @@ def create_exercise(body: ExerciseBody, db: Session = Depends(get_db)) -> dict[s
         settings=settings,
     )
     db.commit()
-    return {"exercise": exercise_out(ex), "variant": variant_out(v, program_rep_ranges(settings))}
+    return {
+        "exercise": exercise_out(ex),
+        "variant": variant_out(v, program_rep_ranges(settings, db)),
+    }
 
 
 @router.post("/exercises/{exercise_id}/variants")
@@ -168,14 +172,23 @@ def add_variant(
     db.commit()
     if v.gym_id is not None:
         rerun_engine("machine set up")  # a program exercise may stop being "set up this machine"
-    return variant_out(v, program_rep_ranges(settings))
+    return variant_out(v, program_rep_ranges(settings, db))
 
 
 @router.patch("/exercises/{exercise_id}")
 def patch_exercise(
     exercise_id: int, body: ExercisePatch, db: Session = Depends(get_db)
 ) -> dict[str, Any]:
+    settings = get_settings()
     ex = _exercise(db, exercise_id)
-    _xcall(xs.update_exercise, db, ex, body.model_dump(exclude_unset=True))
+    _, renamed, plan_changed = _xcall(
+        xs.update_exercise, db, ex, body.model_dump(exclude_unset=True), settings
+    )
     db.commit()
-    return exercise_out(ex)
+    if plan_changed:
+        rerun_engine("exercise renamed")  # the plan line points at the new variant name
+    out = exercise_out(ex)
+    if renamed:  # additive: the variants that got the new name (pull shape)
+        rep_ranges = program_rep_ranges(settings, db)
+        out["variants"] = [variant_out(v, rep_ranges) for v in renamed]
+    return out

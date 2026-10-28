@@ -521,9 +521,9 @@ readiness `unknown` when Garmin has nothing).
     ],
     "details": [
       "All signals normal",
-      "HRV 66 ms (-6% vs 70 baseline)",
-      "Resting HR 53 (+1 vs 52)",
-      "Sleep 7.4 h, score 84"
+      "HRV 66 ms (-6% vs 70 baseline) - neutral",
+      "Resting HR 53 (+1 vs 52) - neutral",
+      "Sleep 7.4 h, score 84 (usual 7.6 h) - neutral"
     ]
   }
 }
@@ -552,9 +552,15 @@ readiness `unknown` when Garmin has nothing).
     sleep hours of the previous 7 nights, `null` with fewer than 3), `delta_pct` (value vs
     baseline, `null` without baseline) and `status`: `ok` | `warn` | `bad` (the signal's green /
     yellow / red).
-  - `details`: the full explanation, one line per item (the lines that `days[].readiness.reason`
-    joins with `;`, with the engine's notes such as "Short night alone: yellow"). With no data:
-    `["No data"]`.
+  - `details`: the Why list, one line per item: first (only when nothing is flagged) `"All
+    signals normal"`, then **one line for every factor the score uses** (`HRV`, `Resting HR`,
+    `Sleep`), each with its value vs the personal baseline and its effect on the score, ending in
+    `- pulls it down` (red), `- pulls it down a bit` (yellow) or `- neutral` (green; a factor
+    never raises the score). Order: decisive factor first (red, then yellow, then neutral; ties
+    in the order hrv, rhr, sleep), a factor with no data that day last as `"<Label>: no data"`.
+    Sleep lines add `(usual 8.3 h)` when the 7-night baseline is known. The engine's note
+    (`"Only a minor flag, so no change"`, `"Short night alone: yellow"`) closes the list. With no
+    data at all: `["No data"]`. (`days[].readiness.reason` is unchanged: flagged signals only.)
 
 ## GET /stats/correlations?days=120
 

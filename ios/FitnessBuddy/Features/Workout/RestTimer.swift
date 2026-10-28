@@ -15,7 +15,7 @@ enum RestTimerEvent: Equatable {
 enum WorkoutNotifications {
     static let restId = "rest-timer"
     static let finishReminderId = "finish-reminder"
-    /// Two rings of a boxing bell, in the app bundle (also used as the notification sound).
+    /// A short double ring of a boxing bell (under a second), in the app bundle (also used as the notification sound).
     static let bellFile = "boxing_bell.wav"
     /// After the last set's rest ends with nothing logged, remind to press Finish this much later.
     static let finishReminderDelay: TimeInterval = 180
@@ -188,24 +188,36 @@ final class RestTimer {
     }
 }
 
-/// Rings the bell inside the app. Ambient audio: follows the ring/silent switch on the speaker, plays through
-/// headphones, and mixes with (never stops) music.
+/// Rings the bell inside the app, on top of whatever else is playing. Playback + mix-with-others: the bell is heard
+/// over Spotify / Apple Music (also with the silent switch on) and never pauses or ducks them. The session is released
+/// again once the bell has rung so it does not linger as the app's audio claim.
 @MainActor
 final class BellPlayer {
     private var player: AVAudioPlayer?
+    private var releaseTask: Task<Void, Never>?
 
     func play() {
         guard !AppEnvironment.isRunningTests else { return }
         if player == nil {
             let name = (WorkoutNotifications.bellFile as NSString).deletingPathExtension
-            guard let url = Bundle.main.url(forResource: name, withExtension: "wav") else { return }
+            let ext = (WorkoutNotifications.bellFile as NSString).pathExtension
+            guard let url = Bundle.main.url(forResource: name, withExtension: ext) else { return }
             player = try? AVAudioPlayer(contentsOf: url)
             player?.prepareToPlay()
         }
-        try? AVAudioSession.sharedInstance().setCategory(.ambient)
-        try? AVAudioSession.sharedInstance().setActive(true)
-        player?.currentTime = 0
-        player?.play()
+        guard let player else { return }
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        try? session.setActive(true)
+        player.currentTime = 0
+        player.play()
+        releaseTask?.cancel()
+        releaseTask = Task {
+            try? await Task.sleep(for: .seconds(player.duration + 0.3))
+            guard !Task.isCancelled else { return }
+            // no notifyOthersOnDeactivation: nothing was interrupted, so there is nothing for others to resume
+            try? session.setActive(false)
+        }
     }
 }
 

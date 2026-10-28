@@ -1,7 +1,8 @@
 """GarminSource backed by python-garminconnect (login based fallback).
 
 Used only when GARMIN_EMAIL / GARMIN_PASSWORD are set and GARMIN_SOURCE selects it (or `auto`
-and the Personal API failed). Garmin blocks/429s repeated SSO logins, so:
+and the Personal API failed). `GarminConnectLogin` is also the login of the workout push
+(`app.garmin_workouts`). Garmin blocks/429s repeated SSO logins, so:
 - login happens lazily, at most once per process; a failure is remembered and re-raised
   without trying again;
 - tokens are persisted in `garmin_connect_token_dir` (python-garminconnect's own token file),
@@ -15,6 +16,7 @@ produce identical rows.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Callable, Iterable
 from datetime import date, timedelta
@@ -56,6 +58,119 @@ def _default_factory(email: str, password: str):
     return Garmin(email, password)
 
 
+def translate_error(exc: Exception) -> Exception:
+    """python-garminconnect exception -> our GarminError family (type names only, no secrets)."""
+    name = type(exc).__name__
+    if "TooManyRequests" in name:
+        return RateLimitedError("python-garminconnect: rate limited (429)")
+    if "Authentication" in name:
+        return SourceUnavailable("python-garminconnect: authentication failed")
+    if "NotFound" in name:
+        return NotFoundError("python-garminconnect: not found")
+    if "Connection" in name:
+        return ServerError(f"python-garminconnect: connection error ({name})")
+    return GarminError(f"python-garminconnect: {name}")
+
+
+class GarminConnectLogin:
+    """The one python-garminconnect login path (sync fallback and workout push).
+
+    Lazy: the first `client()` call logs in (resuming the token file in `token_dir` when it is
+    still valid, so usually no SSO round trip). A failed login is remembered and re-raised
+    without contacting Garmin again: forever (`retry_after_s=None`, one sync run) or until
+    `retry_after_s` has passed (the long-lived shared login of the workout push), because Garmin
+    SSO answers repeated logins with 429.
+    """
+
+    def __init__(
+        self,
+        email: str,
+        password: str,
+        token_dir: Path,
+        *,
+        client_factory: Callable[[str, str], Any] = _default_factory,
+        retry_after_s: float | None = None,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        install_log_redaction()
+        register_secret(password)
+        self._email, self._password = email, password
+        self._token_dir = token_dir
+        self._factory = client_factory
+        self._retry_after_s = retry_after_s
+        self._clock = clock
+        self._lock = threading.Lock()
+        self.api: Any = None
+        self._error: SourceUnavailable | None = None
+        self._failed_at: float | None = None
+
+    def client(self) -> Any:
+        with self._lock:
+            if self._error is not None:
+                expired = (
+                    self._retry_after_s is not None
+                    and self._failed_at is not None
+                    and self._clock() - self._failed_at >= self._retry_after_s
+                )
+                if not expired:
+                    raise self._error  # never hammer Garmin SSO after a failed login
+                self._error = self._failed_at = None
+            if self.api is None:
+                try:
+                    api = self._factory(self._email, self._password)
+                    self._token_dir.mkdir(parents=True, exist_ok=True)
+                    api.login(str(self._token_dir))
+                except Exception as exc:
+                    self._error = SourceUnavailable(
+                        f"python-garminconnect login failed ({type(exc).__name__}); "
+                        "not retrying for now"
+                    )
+                    self._failed_at = self._clock()
+                    raise self._error from None
+                self.api = api
+            return self.api
+
+    def forget(self) -> None:
+        """Drop the logged-in client (its tokens stopped working); the next call logs in again."""
+        with self._lock:
+            self.api = None
+
+
+_shared: dict[tuple[str, str], GarminConnectLogin] = {}
+_shared_lock = threading.Lock()
+
+
+def shared_login(
+    email: str,
+    password: str,
+    token_dir: Path,
+    *,
+    retry_after_s: float = 6 * 3600,
+    client_factory: Callable[[str, str], Any] = _default_factory,
+) -> GarminConnectLogin:
+    """Process-wide login for long-lived callers (the workout push runs several times a day in
+    the server process): one client, and a failed login blocks new attempts for `retry_after_s`."""
+    key = (email, str(token_dir))
+    with _shared_lock:
+        login = _shared.get(key)
+        if login is None:
+            login = GarminConnectLogin(
+                email,
+                password,
+                token_dir,
+                client_factory=client_factory,
+                retry_after_s=retry_after_s,
+            )
+            _shared[key] = login
+        return login
+
+
+def reset_shared_logins() -> None:
+    """Tests: forget every process-wide login."""
+    with _shared_lock:
+        _shared.clear()
+
+
 class PythonGarminConnectSource:
     name = "garminconnect"
 
@@ -69,15 +184,13 @@ class PythonGarminConnectSource:
         client_factory: Callable[[str, str], Any] = _default_factory,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
-        install_log_redaction()
-        register_secret(password)
-        self._email, self._password = email, password
-        self._token_dir = token_dir
-        self._factory = client_factory
+        self._login = GarminConnectLogin(email, password, token_dir, client_factory=client_factory)
         self._pace_s = pace_s
         self._sleep = sleep
-        self._api: Any = None
-        self._login_error: SourceUnavailable | None = None
+
+    @property
+    def _api(self) -> Any:
+        return self._login.api
 
     def max_window_days(self, kind: str) -> int:
         return WINDOWS[kind]
@@ -85,21 +198,7 @@ class PythonGarminConnectSource:
     # ------------------------------------------------------------------ plumbing
 
     def _client(self) -> Any:
-        if self._login_error is not None:
-            raise self._login_error  # never retry a failed login in the same process
-        if self._api is None:
-            try:
-                api = self._factory(self._email, self._password)
-                self._token_dir.mkdir(parents=True, exist_ok=True)
-                api.login(str(self._token_dir))
-            except Exception as exc:
-                self._login_error = SourceUnavailable(
-                    f"python-garminconnect login failed ({type(exc).__name__}); "
-                    "not retrying in this run"
-                )
-                raise self._login_error from None
-            self._api = api
-        return self._api
+        return self._login.client()
 
     def _call(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api = self._client()
@@ -111,16 +210,7 @@ class PythonGarminConnectSource:
 
     @staticmethod
     def _translate(exc: Exception) -> Exception:
-        name = type(exc).__name__
-        if "TooManyRequests" in name:
-            return RateLimitedError("python-garminconnect: rate limited (429)")
-        if "Authentication" in name:
-            return SourceUnavailable("python-garminconnect: authentication failed")
-        if "NotFound" in name:
-            return NotFoundError("python-garminconnect: not found")
-        if "Connection" in name:
-            return ServerError(f"python-garminconnect: connection error ({name})")
-        return GarminError(f"python-garminconnect: {name}")
+        return translate_error(exc)
 
     # ------------------------------------------------------------------ activities
 

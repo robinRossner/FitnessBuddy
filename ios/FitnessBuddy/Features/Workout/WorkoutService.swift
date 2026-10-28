@@ -182,8 +182,30 @@ struct WorkoutService {
         save()
     }
 
-    func skipExercise(in session: LocalSession, order: Int) {
+    /// Removes the exercise with all its sets, the same way a single set delete does (tombstones for anything the
+    /// server may know). The remaining exercises keep their relative order.
+    func deleteExercise(in session: LocalSession, order: Int) {
         for set in sets(of: session) where set.exerciseOrder == order { remove(set) }
+        session.touch()
+        save()
+    }
+
+    /// Puts the exercises in a new order. `orders` lists the current `exerciseOrder` values in the wanted sequence;
+    /// the sets are renumbered 1...n (the order is the sets' `exercise_order`, which the sync push upserts).
+    func moveExercises(in session: LocalSession, orders: [Int]) {
+        let all = sets(of: session)
+        // exercises missing from `orders` (added meanwhile) go last, in their current order
+        let present = Set(all.map(\.exerciseOrder))
+        let sequence = orders.filter(present.contains) + present.subtracting(orders).sorted()
+        let newOrder = Dictionary(sequence.enumerated().map { ($1, $0 + 1) }, uniquingKeysWith: { a, _ in a })
+        var changed = false
+        for set in all {
+            guard let n = newOrder[set.exerciseOrder], n != set.exerciseOrder else { continue }
+            set.exerciseOrder = n
+            set.touch()
+            changed = true
+        }
+        guard changed else { return }
         session.touch()
         save()
     }

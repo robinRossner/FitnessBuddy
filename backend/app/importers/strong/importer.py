@@ -262,9 +262,17 @@ class VariantResolver:
         if v is None:
             v = ExerciseVariant()
             self.db.add(v)
+        # a variant the user renamed in the app keeps its name (the gym suffix then stays as it was)
+        renamed = (
+            v.id is not None
+            and v.exercise is not None
+            and v.exercise.edited_by_user
+            and v.name.split(" @ ")[0] != m.variant_name
+        )
         v.deleted_at = None  # revive a tombstoned variant that is in use again
         v.key = key
-        v.name = name
+        if not renamed:
+            v.name = name
         v.gym_id = gym_row.id if gym_row else None
         v.exercise = self.exercises[m.canonical_exercise]
         v.equipment_type = eq

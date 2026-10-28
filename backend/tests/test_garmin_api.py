@@ -117,6 +117,8 @@ def test_scheduler_jobs_and_default_off():
             "garmin_day_1130",
             "garmin_day_1530",
             "garmin_day_1930",
+            "garmin_workouts_1945",
+            "garmin_workouts_0500",
             "advisor_weekly",
             "advisor_triggers",
             "advisor_outcomes",

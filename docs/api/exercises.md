@@ -79,8 +79,14 @@ right away and the next pull confirms it.
   `"<Name> (<Machine|Plate Loaded|Cable|Smith Machine>) @ <gym>"`, everything else generic as
   `"<Name> (<Barbell|Dumbbell|Bodyweight>)"` / `"<Name>"` for `other`.
 - `201` `{"exercise": Exercise, "variant": Variant}` (the pull shapes, see `docs/api/sync.md`).
-  `409` if an exercise with that name (case-insensitive) exists, `422` for an invalid body, `404`
-  for an unknown gym.
+  `422` for an invalid body, `404` for an unknown gym.
+- **Names may repeat when the equipment differs.** If an exercise with that name
+  (case-insensitive) exists and has no variant with this equipment yet (at this gym for machines),
+  the variant is added to that exercise and the existing exercise is returned (its muscle and
+  `timed` win over the request's): the same movement keeps its history together. Only the same
+  name **and** equipment (at the same gym for machines) is a duplicate: `409`. One edge: a gym has
+  one machine per exercise, so a machine of another type at a gym where the same-named exercise
+  already has one becomes its own `Exercise` row with the same name (slug `user_<name>_2`).
 
 ### POST /api/v1/exercises/{exercise_id}/variants
 
@@ -99,11 +105,32 @@ them) and re-run the engine. Generic variants get a deterministic key too
 ### PATCH /api/v1/exercises/{exercise_id}
 
 ```json
-{"muscle_group": "shoulders"}
+{"name": "Pec Fly", "muscle_group": "shoulders"}
 ```
 
--> `200` Exercise. Marks the exercise `edited_by_user`, so a later catalog sync keeps the user's
-muscle. `404` / `422` as above.
+Both keys are optional (at least one is useful), `name` is 1..100 characters (whitespace is
+collapsed). -> `200` Exercise. Marks the exercise `edited_by_user`, so a later catalog sync keeps
+the user's name and muscle. `404` / `422` as above.
+
+**Rename.** The exercise and all its live variants get the new name, so it shows everywhere:
+each variant becomes `"<name> (<Machine|Plate Loaded|Cable|Smith Machine|Barbell|Dumbbell|Bodyweight>)"`
+(just `"<name>"` for `other`) and keeps its `" @ <gym>"` suffix. A custom variant name (e.g. a
+machine named in the gym settings) is replaced too. Ids, keys and sets do not change, so history
+and progression stay attached. If the exercise is in the lifting program, the plan line finds its
+variant by name, so the rename also writes `exercise_overrides.<slug>.variant` as a config version
+(`author: "user"`, rolled back like any other) and re-runs the engine.
+
+The response is the Exercise plus an additive `variants` list (pull shape) with the variants that
+were renamed, so the app updates its cache at once; the next pull carries the same rows
+(`server_seq`). The `name` of a variant is unique per gym and an exercise name may repeat across
+exercises, but only with other equipment:
+
+- `409` if another exercise of that name (case-insensitive) already has a live variant with the
+  same equipment at the same gym (for generic equipment: the same equipment), or a variant with the
+  new name already exists at that gym. Nothing is changed then.
+
+Catalog exercises: the catalog sync no longer overwrites the name of an `edited_by_user` exercise
+(it still updates its other fields). A muscle edit sets the same flag, so it also keeps the name.
 
 ### Variant settings: PATCH /api/v1/variants/{id}
 
@@ -124,5 +151,9 @@ progression use it instead of the weight ladder and the equipment default (a pro
 - Add / Swap exercise: every exercise, in sections by body region, searchable. An exercise without a
   usable variant at the current gym shows "Not set up here yet"; picking it asks for the equipment
   and calls `POST /exercises/{id}/variants`. "New exercise" calls `POST /exercises`.
-- "Edit exercise" (exercise menu in the workout): muscle (`PATCH /exercises/{id}`), type and weight
-  step (`PATCH /variants/{id}`).
+- "Edit exercise" (exercise menu in the workout): name and muscle (`PATCH /exercises/{id}`, the name
+  field is the displayed name without the equipment label, which is added again), type and weight
+  step (`PATCH /variants/{id}`). The renamed variants from the answer are written to the local cache
+  right away.
+- "New exercise" has no client-side duplicate check: the server decides (a same name with other
+  equipment is added as a variant of the existing exercise, see above) and its `409` text is shown.

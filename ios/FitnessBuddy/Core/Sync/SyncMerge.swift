@@ -72,6 +72,7 @@ enum SyncMerge {
     static func upsert(variant v: VariantDTO, existing: CachedVariant?, in ctx: ModelContext) -> CachedVariant {
         let ladder = v.weightLadder ?? []
         if let e = existing {
+            if e.name != v.name { relabelSets(ofVariant: e.id, from: e.name, to: v.name, in: ctx) }
             e.exerciseId = v.exerciseId ?? e.exerciseId
             e.name = v.name
             e.gymId = v.gymId
@@ -93,6 +94,14 @@ enum SyncMerge {
         e.incrementKg = v.incrementKg
         ctx.insert(e)
         return e
+    }
+
+    /// Sets keep their own copy of the variant name for display; a renamed variant (pulled from the server) updates it.
+    /// Only the local-only copy changes: the set stays clean or dirty as it was, so nothing is pushed or overwritten.
+    /// A set whose copy is something else than the old name (unknown, or empty) is left as it is.
+    private static func relabelSets(ofVariant id: Int, from old: String, to new: String, in ctx: ModelContext) {
+        let sets = (try? ctx.fetch(FetchDescriptor<LocalSet>(predicate: #Predicate { $0.variantId == id }))) ?? []
+        for set in sets where set.variantName == old { set.variantName = new }
     }
 
     // MARK: Sessions

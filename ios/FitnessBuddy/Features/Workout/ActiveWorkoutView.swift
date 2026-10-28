@@ -19,6 +19,8 @@ struct ActiveWorkoutView: View {
     @State private var notesShown: Set<Int> = []
     @State private var confirmFinish = false
     @State private var confirmDiscard = false
+    @State private var showReorder = false
+    @State private var deleteOrder: Int?
 
     init(session: LocalSession) {
         self.session = session
@@ -103,6 +105,13 @@ struct ActiveWorkoutView: View {
                 if let order = swapOrder { service.swapExercise(in: session, order: order, to: variant) }
             }
         }
+        .sheet(isPresented: $showReorder) {
+            ExerciseReorderSheet(items: groups.map { group in
+                let first = group.sets.first
+                let name = first?.variantName.isEmpty == false ? first!.variantName : variantsById[first?.variantId ?? -1]?.name ?? "Exercise"
+                return ExerciseReorderSheet.Item(order: group.order, name: name.withoutGymSuffix)
+            }) { service.moveExercises(in: session, orders: $0) }
+        }
         .sheet(item: $setupTarget) { MachineSetupSheet(target: $0) }
         .sheet(item: Binding(get: { editVariantId.flatMap { variantsById[$0] } }, set: { if $0 == nil { editVariantId = nil } })) { variant in
             ExerciseEditSheet(variant: variant, exercise: exercises.first { $0.id == variant.exerciseId })
@@ -123,6 +132,16 @@ struct ActiveWorkoutView: View {
         .onChange(of: uncompletedCount) { _, open in
             // a set was added or un-ticked: this is no longer the end of the workout
             if open > 0 { env.restTimer.cancelFinishReminder() }
+        }
+        .confirmationDialog("Delete this exercise?", isPresented: Binding(get: { deleteOrder != nil }, set: { if !$0 { deleteOrder = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete exercise and its sets", role: .destructive) {
+                if let order = deleteOrder { service.deleteExercise(in: session, order: order) }
+                deleteOrder = nil
+            }
+            Button("Cancel", role: .cancel) { deleteOrder = nil }
+        } message: {
+            Text("All its sets are removed from this workout.")
         }
         .confirmationDialog("Discard this workout?", isPresented: $confirmDiscard, titleVisibility: .visible) {
             Button("Discard workout", role: .destructive) { env.discardWorkout(session) }
@@ -182,6 +201,13 @@ struct ActiveWorkoutView: View {
                     Text((group.first?.variantName.isEmpty == false ? group.first!.variantName : variant?.name ?? "Exercise")
                         .withoutGymSuffix)
                         .font(.title3.weight(.bold)).foregroundStyle(Color.primary)
+                        .contentShape(Rectangle())
+                        // hold the name to rearrange the exercises
+                        .onLongPressGesture(minimumDuration: 0.4) {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            showReorder = true
+                        }
+                        .accessibilityHint("Hold to reorder exercises")
                     if group.first?.isBaseline == true {
                         Text(SetupRules.baselineNote).font(.caption).foregroundStyle(Domain.lifting.color).textCase(nil)
                     }
@@ -221,9 +247,10 @@ struct ActiveWorkoutView: View {
                     }
                     Button("Rest time", systemImage: "timer") { restPickerOrder = order }
                     Button("Add note", systemImage: "note.text") { notesShown.insert(order) }
-                    Button("Skip exercise", systemImage: "forward.end", role: .destructive) {
-                        service.skipExercise(in: session, order: order)
+                    if groups.count > 1 {
+                        Button("Reorder exercises", systemImage: "arrow.up.arrow.down") { showReorder = true }
                     }
+                    Button("Delete exercise", systemImage: "trash", role: .destructive) { deleteOrder = order }
                 } label: {
                     Image(systemName: "ellipsis.circle").font(.title3).frame(width: 44, height: 44).contentShape(Rectangle())
                 }
@@ -265,6 +292,48 @@ struct ActiveWorkoutView: View {
 private struct RestPickerTarget: Identifiable {
     let order: Int
     var id: Int { order }
+}
+
+// MARK: - Reorder exercises
+
+/// The exercise names only (no sets, so the list is short) with drag handles. Done applies the new sequence.
+struct ExerciseReorderSheet: View {
+    struct Item: Identifiable, Equatable {
+        let order: Int
+        let name: String
+        var id: Int { order }
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var items: [Item]
+    @State private var editMode: EditMode = .active
+    let onDone: ([Int]) -> Void
+
+    init(items: [Item], onDone: @escaping ([Int]) -> Void) {
+        _items = State(initialValue: items)
+        self.onDone = onDone
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(items) { item in
+                    Text(item.name).font(.body.weight(.medium)).frame(minHeight: 36, alignment: .leading)
+                }
+                .onMove { items.move(fromOffsets: $0, toOffset: $1) }
+            }
+            .environment(\.editMode, $editMode)
+            .navigationTitle("Reorder exercises")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { onDone(items.map(\.order)); dismiss() }.fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
 }
 
 // MARK: - Rest time picker

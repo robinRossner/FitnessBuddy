@@ -233,12 +233,13 @@ struct NewExerciseSheet: View {
 
 // MARK: - Edit exercise
 
-/// Muscle (whole exercise), type and load step (this variant). Rest time has its own picker.
+/// Name and muscle (whole exercise), type and load step (this variant). Rest time has its own picker.
 struct ExerciseEditSheet: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     let variant: CachedVariant
     let exercise: CachedExercise?
+    @State private var name: String
     @State private var muscle: String
     @State private var equipment: String
     @State private var increment: Double?
@@ -248,18 +249,44 @@ struct ExerciseEditSheet: View {
     init(variant: CachedVariant, exercise: CachedExercise?) {
         self.variant = variant
         self.exercise = exercise
+        _name = State(initialValue: ExerciseOptions.editableName(variantName: variant.name, equipmentType: variant.equipmentType))
         _muscle = State(initialValue: exercise?.muscleGroup ?? "chest")
         _equipment = State(initialValue: variant.equipmentType)
         _increment = State(initialValue: variant.incrementKg)
     }
 
+    private var initialName: String {
+        ExerciseOptions.editableName(variantName: variant.name, equipmentType: variant.equipmentType)
+    }
+    private var nameChanged: Bool {
+        exercise != nil && ExerciseOptions.cleanName(name) != ExerciseOptions.cleanName(initialName)
+    }
+    private var nameValid: Bool { !ExerciseOptions.cleanName(name).isEmpty }
+
     private var changed: Bool {
-        (exercise != nil && muscle != exercise?.muscleGroup) || equipment != variant.equipmentType || increment != variant.incrementKg
+        nameChanged || (exercise != nil && muscle != exercise?.muscleGroup) || equipment != variant.equipmentType
+            || increment != variant.incrementKg
+    }
+
+    private var nameFooter: String {
+        let shown = ExerciseOptions.cleanName(name)
+        let label = ExerciseOptions.nameLabel(equipment).map { " (\($0))" } ?? ""
+        return nameChanged
+            ? "Shown as \u{201C}\(shown)\(label)\u{201D}, for every setup of this exercise."
+            : "Renames every setup of this exercise (gym machines, barbell, dumbbell). History stays."
     }
 
     var body: some View {
         NavigationStack {
             Form {
+                if exercise != nil {
+                    Section {
+                        TextField("Name", text: $name)
+                            .textInputAutocapitalization(.words)
+                    } footer: {
+                        Text(nameFooter)
+                    }
+                }
                 Section {
                     if exercise != nil { MusclePicker(selection: $muscle) }
                     Picker("Type", selection: $equipment) {
@@ -283,7 +310,7 @@ struct ExerciseEditSheet: View {
                     Button { Task { await save() } } label: {
                         if saving { ProgressView() } else { Text("Save").fontWeight(.semibold) }
                     }
-                    .disabled(saving || !changed || !env.exercises.canWrite)
+                    .disabled(saving || !changed || !nameValid || !env.exercises.canWrite)
                 }
             }
             .interactiveDismissDisabled(saving)
@@ -299,6 +326,10 @@ struct ExerciseEditSheet: View {
             }
             if equipment != variant.equipmentType || increment != variant.incrementKg {
                 try await env.exercises.setVariant(variant.id, equipmentType: equipment, incrementKg: increment)
+            }
+            // last, so the new name carries the (possibly new) type label
+            if let exercise, nameChanged {
+                try await env.exercises.rename(exerciseId: exercise.id, to: name)
             }
             env.sync.request(.manual)
             dismiss()

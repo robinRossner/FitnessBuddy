@@ -22,7 +22,7 @@ bodyweight = typer.Typer(no_args_is_help=True, help="Bodyweight log")
 stats = typer.Typer(no_args_is_help=True, help="Derived stats")
 cli.add_typer(bodyweight, name="bodyweight")
 advisor = typer.Typer(no_args_is_help=True, help="Claude advisor (docs/api/coach.md)")
-garmin = typer.Typer(no_args_is_help=True, help="Garmin sync (read-only towards Garmin)")
+garmin = typer.Typer(no_args_is_help=True, help="Garmin sync (read-only) + workout push")
 cli.add_typer(stats, name="stats")
 cli.add_typer(garmin, name="garmin")
 cli.add_typer(advisor, name="advisor")
@@ -217,6 +217,54 @@ def garmin_reparse() -> None:
     s = get_settings()
     sync = GarminSync(get_session_factory(), None, s)
     typer.echo(f"reparsed: {sync.reparse()}")
+
+
+@garmin.command("push-workouts")
+def garmin_push_workouts(
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="build and print, never contact Garmin (no login)")
+    ] = False,
+    day: Annotated[
+        datetime | None, typer.Option("--date", formats=["%Y-%m-%d"], help="also push this day")
+    ] = None,
+    today: Annotated[
+        datetime | None, typer.Option(formats=["%Y-%m-%d"], help="pretend today is this date")
+    ] = None,
+    show_json: Annotated[bool, typer.Option("--json/--no-json", help="print workout JSON")] = True,
+) -> None:
+    """Planned runs -> Garmin workouts scheduled on their day (docs/api/garmin.md)."""
+    import json as _json
+
+    from app import garmin_workouts as gw
+    from app.sources.garmin.errors import GarminError
+
+    s = get_settings()
+    try:
+        with session_scope() as db:
+            report = gw.push_workouts(
+                db,
+                s,
+                today=today.date() if today else None,
+                extra_day=day.date() if day else None,
+                dry_run=dry_run,
+            )
+    except GarminError as exc:
+        raise _fail(exc) from None
+    w = report.as_dict()["window"]
+    typer.echo(
+        f"window {w['from']} .. {w['to']}"
+        + ("  (dry run, Garmin not contacted)" if dry_run else "")
+    )
+    for it in sorted(report.items, key=lambda i: (i.date, i.action)):
+        extra = f"  ({it.reason})" if it.reason else ""
+        typer.echo(f"  {it.date}  {it.action:<9} {it.name or ''}{extra}")
+    if not report.items:
+        typer.echo("  nothing to do: no open planned runs in the window")
+    typer.echo("counts: " + ", ".join(f"{k}={v}" for k, v in report.counts.items() if v))
+    if show_json:
+        for spec in report.workouts:
+            typer.echo(f"\n# {spec.name}  (planned session {spec.run.planned_session_id})")
+            typer.echo(_json.dumps(spec.payload(), indent=2))
 
 
 engine = typer.Typer(no_args_is_help=True, help="Deterministic training engine")

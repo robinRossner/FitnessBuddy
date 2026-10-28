@@ -165,3 +165,78 @@ def test_deload_trigger_day_is_when_the_streak_reached_the_limit():
     colors = reds(0, 1, 2, 3, 4, 5)  # 6 red days
     st = deload_status(colors, TODAY, TODAY, 4)
     assert st.trigger_day == TODAY - timedelta(days=2) and st.streak == 6
+
+
+# ---- the Why list (analytics.health._details): every factor, decisive first
+
+
+def why(sleep_baseline_h=8.0, **kw):
+    from app.analytics.health import readiness_view
+
+    return readiness_view(score(**kw), sleep_baseline_h)["details"]
+
+
+def factor_lines(lines):
+    return [ln for ln in lines if ln.startswith(("HRV", "Resting HR", "Sleep"))]
+
+
+def test_why_lists_every_factor_when_all_normal():
+    lines = why()
+    assert lines[0] == "All signals normal"
+    assert [ln.split(" ")[0] for ln in factor_lines(lines)] == ["HRV", "Resting", "Sleep"]
+    assert all(ln.endswith("neutral") for ln in factor_lines(lines))
+    assert "baseline" in lines[1] and "usual 8.0 h" in lines[3]
+
+
+def test_why_keeps_the_other_factors_when_one_is_red():
+    lines = why(hrv_ms=44.0)  # -37 %: red, rhr and sleep normal
+    assert len(factor_lines(lines)) == 3
+    assert lines[0].startswith("HRV 44 ms") and lines[0].endswith("pulls it down")
+    assert lines[1].startswith("Resting HR") and lines[1].endswith("neutral")
+    assert lines[2].startswith("Sleep") and lines[2].endswith("neutral")
+
+
+def test_why_puts_the_decisive_factor_first():
+    lines = why(resting_hr=62.0, sleep_s=5.5 * 3600, sleep_score=70)  # rhr +9 red, sleep yellow
+    f = factor_lines(lines)
+    assert [ln.split(" ")[0] for ln in f] == ["Resting", "Sleep", "HRV"]
+    assert f[0].endswith("pulls it down") and f[1].endswith("pulls it down a bit")
+    assert f[2].endswith("neutral")
+
+
+def test_why_minor_flag_still_lists_all_three_and_the_note():
+    lines = why(hrv_ms=61.0)  # single yellow -> green with a note
+    assert len(factor_lines(lines)) == 3
+    assert lines[0].endswith("pulls it down a bit")
+    assert lines[-1] == "Only a minor flag, so no change"
+
+
+def test_why_missing_factor_gets_a_no_data_line():
+    day = HealthDay(TODAY, hrv_ms=70.0, sleep_s=8 * 3600, sleep_score=85)  # no resting HR
+    from app.analytics.health import readiness_view
+
+    lines = readiness_view(score_day(TODAY, [*baseline(), day], CFG), 8.0)["details"]
+    assert lines[-1] == "Resting HR: no data"
+    assert len(factor_lines(lines)) == 3
+
+
+def test_why_missing_flagged_and_unflagged_order():
+    day = HealthDay(TODAY, hrv_ms=44.0, sleep_s=8 * 3600)  # hrv red, no resting HR
+    from app.analytics.health import readiness_view
+
+    lines = readiness_view(score_day(TODAY, [*baseline(), day], CFG), None)["details"]
+    f = factor_lines(lines)
+    assert f[0].startswith("HRV 44") and f[1].startswith("Sleep") and f[2] == "Resting HR: no data"
+    assert "usual" not in f[1]  # no sleep baseline known
+
+
+def test_why_no_data_at_all():
+    r = score_day(TODAY, [], CFG)
+    from app.analytics.health import readiness_view
+
+    assert readiness_view(r, None)["details"] == ["No data"]
+
+
+def test_zero_resting_hr_diff_is_not_negative_zero():
+    r = score(resting_hr=53.4)
+    assert "±0 vs 53" in next(s.detail for s in r.signals if s.name == "rhr")

@@ -6,8 +6,12 @@
   becomes a machine at a gym (`gym_service.create_machine`, same identity and revive rules);
   barbell / dumbbell / bodyweight / other variants are generic (`gym_id` null) with their own
   deterministic key, so adding one twice returns the same variant.
-* Edits: the muscle of an exercise (`edited_by_user` keeps it through catalog syncs), the
-  equipment type and load step of a variant.
+* Names may repeat when the equipment differs: creating "Row" as a cable when a barbell "Row"
+  exists adds a variant to that exercise (only the same name AND equipment, at the same gym for
+  machines, is a duplicate). Renaming an exercise renames its variants with it and keeps the
+  plan pointing at them.
+* Edits: the name and muscle of an exercise (`edited_by_user` keeps them through catalog syncs),
+  the equipment type and load step of a variant.
 """
 
 from __future__ import annotations
@@ -108,6 +112,28 @@ def _gym_for(db: Session, gym_id: int | None, settings: Settings) -> Gym:
     return gym
 
 
+def _slot(db: Session, ex: Exercise, equipment_type: str, gym: Gym | None) -> str:
+    """Can `ex` take a variant with this equipment (at `gym` for machines)? "same": it has one
+    already; "taken": another machine type is set up at that gym (one machine per exercise and
+    gym); "free": add it."""
+    here = [
+        v
+        for v in db.scalars(
+            select(ExerciseVariant).where(
+                ExerciseVariant.exercise_id == ex.id,
+                ExerciseVariant.gym_id == gym.id
+                if gym is not None
+                else ExerciseVariant.gym_id.is_(None),
+                ExerciseVariant.deleted_at.is_(None),
+                ExerciseVariant.active.is_(True),
+            )
+        )
+    ]
+    if any(gs._val(v.equipment_type) == equipment_type for v in here):
+        return "same"
+    return "taken" if gym is not None and here else "free"
+
+
 def create_exercise(
     db: Session,
     *,
@@ -125,23 +151,35 @@ def create_exercise(
         raise ExerciseError(422, "name must not be empty")
     _check_muscle(muscle_group)
     _check_equipment(equipment_type)
-    clash = db.scalar(select(Exercise).where(func.lower(Exercise.name) == name.lower()))
-    if clash is not None:
-        raise ExerciseError(409, f"an exercise named {clash.name!r} already exists: add a variant")
-    ex = Exercise(
-        slug=_slug(db, name),
-        name=name,
-        primary_muscle=muscle_group,
-        secondary_muscles=[],
-        movement_pattern=_PATTERN.get(muscle_group, "other"),
-        default_equipment_type=EquipmentType(equipment_type),
-        e1rm_meaningful=not timed,
-        is_timed=timed,
-        bodyweight_loaded=equipment_type == "bodyweight",
-        edited_by_user=True,
+    gym = _gym_for(db, gym_id, settings) if equipment_type in GYM_BOUND_EQUIPMENT else None
+    same_name = list(
+        db.scalars(
+            select(Exercise).where(func.lower(Exercise.name) == name.lower()).order_by(Exercise.id)
+        )
     )
-    db.add(ex)
-    db.flush()
+    slots = [(e, _slot(db, e, equipment_type, gym)) for e in same_name]
+    for e, slot in slots:
+        if slot == "same":
+            where = f" at {gym.name}" if gym is not None else ""
+            raise ExerciseError(409, f"{e.name!r} ({equipment_type}) already exists{where}")
+    # The same name with other equipment is the same movement: it gets a variant (history stays
+    # grouped). Its muscle and timed flag win over the request's.
+    ex = next((e for e, slot in slots if slot == "free"), None)
+    if ex is None:  # no same-named exercise, or each already has another machine at this gym
+        ex = Exercise(
+            slug=_slug(db, name),
+            name=name,
+            primary_muscle=muscle_group,
+            secondary_muscles=[],
+            movement_pattern=_PATTERN.get(muscle_group, "other"),
+            default_equipment_type=EquipmentType(equipment_type),
+            e1rm_meaningful=not timed,
+            is_timed=timed,
+            bodyweight_loaded=equipment_type == "bodyweight",
+            edited_by_user=True,
+        )
+        db.add(ex)
+        db.flush()
     v = add_variant(db, ex, equipment_type=equipment_type, gym_id=gym_id, settings=settings)
     if increment_kg is not None:
         v.increment_kg = increment_kg
@@ -234,13 +272,111 @@ def add_variant(
     return v
 
 
-def update_exercise(db: Session, ex: Exercise, fields: dict[str, Any]) -> Exercise:
+def update_exercise(
+    db: Session, ex: Exercise, fields: dict[str, Any], settings: Settings
+) -> tuple[Exercise, list[ExerciseVariant], bool]:
+    """Apply PATCH fields. Returns (exercise, renamed variants, plan changed): the plan changed
+    when a program variant got a new name, so the caller re-runs the engine."""
     if fields.get("muscle_group") is not None:
         _check_muscle(fields["muscle_group"])
+    renamed: list[ExerciseVariant] = []
+    plan_changed = False
+    if fields.get("name") is not None:
+        name = " ".join(fields["name"].split())
+        if not name:
+            raise ExerciseError(422, "name must not be empty")
+        if name != ex.name:
+            renamed, plan_changed = _rename(db, ex, name, settings)
+    if fields.get("muscle_group") is not None:
         ex.primary_muscle = fields["muscle_group"]
         ex.edited_by_user = True
     db.flush()
-    return ex
+    return ex, renamed, plan_changed
+
+
+def _rename(
+    db: Session, ex: Exercise, name: str, settings: Settings
+) -> tuple[list[ExerciseVariant], bool]:
+    """Rename the exercise and all its live variants to "<name> (<equipment>)" (keeping the
+    " @ gym" suffix), so the new name shows everywhere. Identity does not change: ids, keys and
+    history stay. A program exercise's plan line finds its variant by name, so that line gets the
+    new name as a config override (`exercise_overrides.<slug>.variant`, a "user" config version).
+    `edited_by_user` makes the catalog sync keep the name."""
+    from app.engine import config_service as cs
+
+    live = list(
+        db.scalars(
+            select(ExerciseVariant)
+            .where(ExerciseVariant.exercise_id == ex.id, ExerciseVariant.deleted_at.is_(None))
+            .order_by(ExerciseVariant.id)
+        )
+    )
+    # a true duplicate: another exercise of that name already has this equipment (at this gym)
+    for v in live:
+        if not v.active:
+            continue
+        twin = db.scalar(
+            select(Exercise.name)
+            .join(ExerciseVariant, ExerciseVariant.exercise_id == Exercise.id)
+            .where(
+                func.lower(Exercise.name) == name.lower(),
+                Exercise.id != ex.id,
+                ExerciseVariant.gym_id == v.gym_id
+                if v.gym_id is not None
+                else ExerciseVariant.gym_id.is_(None),
+                ExerciseVariant.equipment_type == v.equipment_type,
+                ExerciseVariant.deleted_at.is_(None),
+                ExerciseVariant.active.is_(True),
+            )
+        )
+        if twin is not None:
+            raise ExerciseError(
+                409, f"{twin!r} ({gs._val(v.equipment_type)}) already exists: pick another name"
+            )
+    plan = gs.program_entries(db, settings).get(ex.slug)
+    target = {  # variant id -> (new base, new full name)
+        v.id: (
+            variant_name(name, gs._val(v.equipment_type)),
+            variant_name(name, gs._val(v.equipment_type)) + v.name[len(gs.base_name(v)) :],
+        )
+        for v in live
+    }
+    if len({(target[v.id][1], v.gym_id) for v in live}) < len(live):
+        raise ExerciseError(409, "two variants would get the same name")
+    changes: list[tuple[ExerciseVariant, str, str]] = []  # (variant, new base, new full name)
+    for v in live:
+        new_base, full = target[v.id]
+        if full == v.name:
+            continue
+        clash = db.scalar(
+            select(ExerciseVariant.id).where(
+                ExerciseVariant.name == full,
+                ExerciseVariant.gym_id == v.gym_id
+                if v.gym_id is not None
+                else ExerciseVariant.gym_id.is_(None),
+                ExerciseVariant.id.not_in(list(target)),
+            )
+        )
+        if clash is not None:
+            raise ExerciseError(409, f"a variant named {full!r} already exists")
+        changes.append((v, new_base, full))
+
+    plan_changed = False
+    if plan is not None:
+        hit = next((new for v, new, _ in changes if gs.base_name(v) == plan.variant), None)
+        if hit is not None:
+            cs.ensure_seeded(db, settings.engine_config_path)
+            cs.create_version(
+                db, {f"exercise_overrides.{ex.slug}.variant": hit}, author="user",
+                reason=f"{ex.name} renamed to {name}: the plan follows",
+            )  # fmt: skip
+            plan_changed = True
+    for v, _, full in changes:
+        v.name = full
+    ex.name = name
+    ex.edited_by_user = True
+    db.flush()
+    return [v for v, _, _ in changes], plan_changed
 
 
 def check_increment(value: float | None) -> float | None:

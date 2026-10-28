@@ -133,4 +133,54 @@ struct WorkoutServiceTests {
         #expect(!svc.previousPerformance(variantId: variantId, excluding: nil).isEmpty)
         #expect(svc.previousPerformance(variantId: -1, excluding: nil).isEmpty)
     }
+
+    private func threeExercises(_ svc: WorkoutService, _ ctx: ModelContext) -> LocalSession {
+        let session = svc.startEmpty(gymId: nil)
+        for (id, name) in [(1, "Squat"), (2, "Bench"), (3, "Row")] {
+            let v = CachedVariant(id: id, exerciseId: id, name: name, gymId: 3, equipmentType: "barbell")
+            ctx.insert(v)
+            svc.addExercise(v, to: session, setCount: 2)
+        }
+        return session
+    }
+
+    @Test func movingExercisesRenumbersAndMarksSetsDirty() throws {
+        let ctx = try makeContext()
+        let svc = WorkoutService(context: ctx)
+        let session = threeExercises(svc, ctx)
+        for s in svc.sets(of: session) { s.dirty = false; s.completedAt = .now }  // as if pushed
+        svc.moveExercises(in: session, orders: [3, 1, 2])
+        let sets = svc.sets(of: session)
+        #expect(sets.map(\.variantId) == [3, 3, 1, 1, 2, 2])
+        #expect(sets.map(\.exerciseOrder) == [1, 1, 2, 2, 3, 3])
+        #expect(sets.map(\.setOrder) == [1, 2, 1, 2, 1, 2])
+        #expect(sets.allSatisfy { $0.dirty })
+        #expect(try Outbox.collect(in: ctx).sets.count == 6)
+        // an exercise missing from the list keeps its place at the end
+        svc.moveExercises(in: session, orders: [3, 2])  // order 1 (missing) goes last
+        #expect(svc.sets(of: session).map(\.variantId) == [2, 2, 1, 1, 3, 3])
+    }
+
+    @Test func movingToTheSameOrderChangesNothing() throws {
+        let ctx = try makeContext()
+        let svc = WorkoutService(context: ctx)
+        let session = threeExercises(svc, ctx)
+        for s in svc.sets(of: session) { s.dirty = false }
+        svc.moveExercises(in: session, orders: [1, 2, 3])
+        #expect(svc.sets(of: session).allSatisfy { !$0.dirty })
+    }
+
+    @Test func deletingAnExerciseRemovesAllItsSets() throws {
+        let ctx = try makeContext()
+        let svc = WorkoutService(context: ctx)
+        let session = threeExercises(svc, ctx)
+        let sets = svc.sets(of: session)
+        sets.filter { $0.exerciseOrder == 1 }.forEach { $0.hasBeenPushed = true }  // server knows these: tombstones
+        svc.deleteExercise(in: session, order: 1)
+        svc.deleteExercise(in: session, order: 2)  // never pushed: just vanishes
+        #expect(svc.sets(of: session).map(\.variantId) == [3, 3])
+        let all = try ctx.fetch(FetchDescriptor<LocalSet>())
+        #expect(all.count == 4)
+        #expect(all.filter { $0.deletedAt != nil && $0.dirty }.count == 2)
+    }
 }

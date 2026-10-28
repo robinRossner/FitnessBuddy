@@ -124,7 +124,9 @@ struct IntervalsBody: View {
 /// Opened by tapping a run card: the whole structure, HR and pace ranges, distance and notes.
 struct RunDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var env
     let item: PlanItemDTO
+    @State private var sendState: SendState = .idle
 
     private var session: PrescriptionDTO? { item.session }
     private var type: String { session?.type ?? item.kind }
@@ -137,13 +139,7 @@ struct RunDetailSheet: View {
                     if let st = session?.structure, type == "intervals" { structure(st) }
                     whyItMayChange
                     notes
-                    Button {} label: {
-                        Label("Send to watch (coming soon)", systemImage: "applewatch")
-                            .frame(maxWidth: .infinity, minHeight: 34)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(true)
-                    .accessibilityHint("Not available yet")
+                    sendToWatch
                 }
                 .padding(16)
             }
@@ -153,6 +149,82 @@ struct RunDetailSheet: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    // MARK: Send to watch (Garmin)
+
+    enum SendState: Equatable {
+        case idle, sending
+        case sent(String)
+        case failed(String)
+    }
+
+    /// Open runs from today on can be sent; past or finished ones cannot.
+    private var canSend: Bool {
+        item.date >= AppClock.todayString && item.planStatus != .done && item.planStatus != .skipped
+            && env.settings.isConfigured
+    }
+
+    private var sendToWatch: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                Task { await send() }
+            } label: {
+                HStack(spacing: 8) {
+                    if sendState == .sending { ProgressView().controlSize(.small) }
+                    Label(sendState == .sending ? "Sending to watch…" : "Send to watch", systemImage: "applewatch")
+                }
+                .frame(maxWidth: .infinity, minHeight: 34)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!canSend || sendState == .sending)
+            .accessibilityHint("Uploads this run to Garmin Connect, scheduled on its day")
+            switch sendState {
+            case .sent(let text):
+                Label(text, systemImage: "checkmark.circle.fill")
+                    .font(.footnote).foregroundStyle(.green).fixedSize(horizontal: false, vertical: true)
+            case .failed(let text):
+                Label(text, systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            default:
+                EmptyView()
+            }
+            Text("Runs are sent to your Garmin watch automatically the evening before.")
+                .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func send() async {
+        if SyncState.current(in: env.container.mainContext).demoActive {
+            sendState = .failed("Not available with demo data.")
+            return
+        }
+        guard let client = env.settings.makeClient() else {
+            sendState = .failed(APIError.message(for: APIError.notConfigured))
+            return
+        }
+        sendState = .sending
+        do {
+            let result = try await client.pushWorkoutsToGarmin(date: item.date)
+            sendState = Self.outcome(of: result, on: item.date)
+        } catch {
+            sendState = .failed(APIError.message(for: error))
+        }
+    }
+
+    static func outcome(of result: GarminPushResultDTO, on date: String) -> SendState {
+        let items = result.items(on: date)
+        if let failed = items.first(where: { $0.action == "failed" }) {
+            return .failed("Garmin: \(failed.reason ?? "upload failed")")
+        }
+        guard let first = items.first else {
+            return .failed("Nothing to send for this day (no open run).")
+        }
+        let name = first.name ?? "the run"
+        if items.allSatisfy({ $0.action == "unchanged" }) {
+            return .sent("Already on your watch as “\(name)”.")
+        }
+        return .sent("Sent as “\(name)”. Your watch gets it on its next sync with the phone.")
     }
 
     private var summary: some View {

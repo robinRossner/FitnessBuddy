@@ -75,19 +75,38 @@ def _sleep_baseline_h(rows: dict[date, DailyHealth], day: date) -> float | None:
     return mean(vals) if len(vals) >= SLEEP_BASELINE_MIN_DAYS else None
 
 
-def _details(r: Readiness) -> list[str]:
-    """The explanation lines behind `Readiness.reason`, one per line, first letter capitalised."""
+FACTORS = (("hrv", "HRV"), ("rhr", "Resting HR"), ("sleep", "Sleep"))  # every factor the score uses
+_EFFECT = {GREEN: "neutral", YELLOW: "pulls it down a bit", RED: "pulls it down"}
+_SEVERITY = {RED: 0, YELLOW: 1, GREEN: 2}  # decisive factor first; factors without data last
+
+
+def _details(r: Readiness, sleep_baseline_h: float | None = None) -> list[str]:
+    """The Why lines: one per factor the score uses (HRV, resting HR, sleep), with its value vs the
+    personal baseline and what it did to the score; red first, then yellow, neutral, no data.
+    Leading / trailing lines carry the engine's overall note."""
     if not r.known:
         return ["No data"]
+    signals = {s.name: s for s in r.signals}
+    rows: list[tuple[int, str]] = []
+    for key, label in FACTORS:
+        sig = signals.get(key)
+        if sig is None:
+            rows.append((3, f"{label}: no data"))
+            continue
+        text = sig.detail[:1].upper() + sig.detail[1:]
+        if key == "sleep" and sig.value is not None and sleep_baseline_h:
+            text += f" (usual {sleep_baseline_h:.1f} h)"
+        rows.append((_SEVERITY[sig.level], f"{text} - {_EFFECT[sig.level]}"))
+    rows.sort(key=lambda row: row[0])  # stable: ties keep the hrv, rhr, sleep order
+    lines = [text for _, text in rows]
     flagged = [s for s in r.signals if s.level != GREEN]
-    lines = [s.detail for s in flagged] if flagged else [s.detail for s in r.signals]
     if not flagged:
-        lines.insert(0, "all signals normal")
+        lines.insert(0, "All signals normal")
     elif r.color == GREEN:
-        lines.append("only a minor flag, so no change")
+        lines.append("Only a minor flag, so no change")
     elif r.color == YELLOW and any(s.level == RED for s in flagged):
-        lines.append("short night alone: yellow")
-    return [ln[:1].upper() + ln[1:] for ln in lines]
+        lines.append("Short night alone: yellow")
+    return lines
 
 
 METRICS = (("hrv", "HRV", "ms"), ("rhr", "Resting HR", "bpm"), ("sleep", "Sleep", "h"))
@@ -96,7 +115,8 @@ METRICS = (("hrv", "HRV", "ms"), ("rhr", "Resting HR", "bpm"), ("sleep", "Sleep"
 def readiness_view(r: Readiness, sleep_baseline_h: float | None) -> dict:
     """Compact readiness for the Today / Health screens (`readiness_today`).
 
-    `metrics` has one entry per signal the engine scored (hrv, rhr, sleep), in that order.
+    `metrics` has one entry per signal the engine scored (hrv, rhr, sleep), in that order;
+    `details` lists every factor, including those without data.
     """
     signals = {s.name: s for s in r.signals}
     metrics = []
@@ -122,7 +142,7 @@ def readiness_view(r: Readiness, sleep_baseline_h: float | None) -> dict:
         "level": level,
         "headline": HEADLINE[level],
         "metrics": metrics,
-        "details": _details(r),
+        "details": _details(r, sleep_baseline_h),
     }
 
 

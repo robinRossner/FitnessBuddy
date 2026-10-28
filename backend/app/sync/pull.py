@@ -39,6 +39,7 @@ from app.engine import config_service as cs
 from app.engine import rest, service
 from app.engine.config import EngineConfig
 from app.engine.persist import planned_to_dict
+from app.engine.program import apply_overrides
 from app.settings import Settings
 
 PAGE_SIZE = 2000
@@ -166,12 +167,16 @@ def gym_out(g: Gym) -> dict[str, Any]:
     return {"id": g.id, "name": g.name, "deleted_at": iso_z(g.deleted_at)}
 
 
-def program_rep_ranges(settings: Settings) -> dict[str, list[int]]:
-    """Per-exercise rep range overrides from program.yaml, keyed by variant name without gym."""
+def program_rep_ranges(settings: Settings, db: Session | None = None) -> dict[str, list[int]]:
+    """Per-exercise rep range overrides from program.yaml, keyed by variant name without gym.
+    With `db` the config's `exercise_overrides` apply (rep_range, and a renamed variant)."""
     try:
         prog = service.get_program(settings)
     except (FileNotFoundError, ValueError):
         return {}
+    cfg = service.active_config(db, settings) if db is not None else None
+    if cfg is not None:
+        prog = apply_overrides(prog, cfg.exercise_overrides)
     return {
         e.variant: list(e.rep_range)
         for items in prog.days.values()
@@ -298,7 +303,7 @@ def pull(
     else:
         next_cur = Cursor(last)
 
-    rep_ranges = program_rep_ranges(settings)
+    rep_ranges = program_rep_ranges(settings, db)
     plan_cfg = service.active_config(db, settings)
     out: dict[str, Any] = {
         "cursor": next_cur.encode(),

@@ -27,7 +27,18 @@ def rerun_engine(reason: str = "sync push") -> None:
             summary.config_version,
             len(summary.weeks),
         )
+        push_runs_soon(f"engine re-run after {reason}")
     except FileNotFoundError as exc:  # no program.yaml yet
         log.warning("engine not run: %s", exc)
     except Exception:
         log.exception("engine re-run after %s failed", reason)
+
+
+def push_runs_soon(reason: str) -> None:
+    """Changed planned runs -> Garmin watch, in the background (only in the server process)."""
+    try:
+        from app.garmin_workouts import push_soon
+
+        push_soon(reason)
+    except Exception:
+        log.exception("could not start the Garmin workout push")

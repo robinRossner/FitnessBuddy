@@ -130,6 +130,24 @@ struct ReadinessSummaryTests {
         #expect(ReadinessSummary.make(today: nil, legacy: nil, day: nil) == nil)
     }
 
+    @Test func whyListNamesEveryFactorEvenFromAnOlderBackend() throws {
+        let metrics = [ReadinessMetricDTO(key: "hrv", label: "HRV", value: 51, unit: "ms", baseline: 79, deltaPct: -36, status: .bad),
+                       ReadinessMetricDTO(key: "sleep", label: "Sleep", value: 5.1, unit: "h", baseline: 7.9, deltaPct: nil, status: .bad)]
+        // an old backend lists only the flagged factors; resting HR has no metric, so it becomes a "no data" line
+        let old = ["HRV 51 ms (-36% vs 79 baseline)", "Sleep 5.1 h, score 41"]
+        let dto = ReadinessTodayDTO(level: "red", headline: "Recover", metrics: metrics, details: old)
+        let s = try #require(ReadinessSummary.make(today: dto, legacy: nil, day: nil))
+        #expect(s.details == old + ["Resting HR: no data"])
+        // a complete list (current backend) is left untouched, as are the empty / no-data answers
+        let full = old + ["Resting HR 54 (+2 vs 52) - neutral"]
+        #expect(ReadinessSummary.completeDetails(full, metrics: metrics) == full)
+        #expect(ReadinessSummary.completeDetails(["No data"], metrics: []) == ["No data"])
+        #expect(ReadinessSummary.completeDetails([], metrics: metrics).isEmpty)
+        // a missing line for a factor that has a metric is rebuilt from it
+        let rhr = ReadinessMetricDTO(key: "rhr", label: "Resting HR", value: 54, unit: "bpm", baseline: 52, deltaPct: 3.8, status: .ok)
+        #expect(ReadinessSummary.completeDetails(old, metrics: metrics + [rhr]).last == "Resting HR 54 bpm (baseline 52 bpm) - neutral")
+    }
+
     @Test func noDataFromTheBackendStaysEmpty() throws {
         let dto = ReadinessTodayDTO(level: "unknown", headline: "No data", metrics: [], details: ["No data"])
         let s = try #require(ReadinessSummary.make(today: dto, legacy: nil, day: nil))

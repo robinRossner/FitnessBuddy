@@ -40,6 +40,35 @@ enum ExerciseOptions {
     static func equipmentLabel(_ key: String?) -> String {
         equipment.first { $0.key == key }?.label ?? (key ?? "").replacingOccurrences(of: "_", with: " ").capitalized
     }
+
+    /// The label the backend puts in brackets after an exercise name, "Pec Deck (Machine)"; nil: none (`other`).
+    static func nameLabel(_ key: String?) -> String? {
+        switch key {
+        case "barbell": "Barbell"
+        case "dumbbell": "Dumbbell"
+        case "machine_stack": "Machine"
+        case "plate_loaded": "Plate Loaded"
+        case "cable": "Cable"
+        case "bodyweight": "Bodyweight"
+        case "smith": "Smith Machine"
+        default: nil
+        }
+    }
+
+    /// What the edit sheet offers as the name: the variant's name without the gym and without its own equipment
+    /// label (the server adds the label again when it renames).
+    static func editableName(variantName: String, equipmentType: String?) -> String {
+        let base = variantName.withoutGymSuffix
+        if let label = nameLabel(equipmentType), base.hasSuffix(" (\(label))"), base.count > label.count + 3 {
+            return String(base.dropLast(label.count + 3))
+        }
+        return base
+    }
+
+    /// A typed name the way the server stores it: trimmed, inner whitespace collapsed.
+    static func cleanName(_ name: String) -> String {
+        name.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
 }
 
 /// One line of the exercise picker: a variant usable at the current gym, or an exercise that has none here yet
@@ -142,8 +171,28 @@ struct VariantAddRequest: Encodable, Sendable {
     var gymId: Int?
 }
 
+/// `PATCH /exercises/{id}`: only the keys that are set are sent.
 struct ExercisePatchRequest: Encodable, Sendable {
-    var muscleGroup: String
+    var name: String?
+    var muscleGroup: String?
+
+    init(name: String? = nil, muscleGroup: String? = nil) {
+        self.name = name
+        self.muscleGroup = muscleGroup
+    }
+}
+
+/// The exercise, plus the variants a rename gave a new name (absent otherwise).
+struct ExerciseRenameResponse: Decodable, Sendable {
+    var exercise: ExerciseDTO
+    var variants: [VariantDTO]
+
+    private enum CodingKeys: String, CodingKey { case variants }
+
+    init(from decoder: Decoder) throws {
+        exercise = try ExerciseDTO(from: decoder)
+        variants = try decoder.container(keyedBy: CodingKeys.self).decodeIfPresent([VariantDTO].self, forKey: .variants) ?? []
+    }
 }
 
 /// `PATCH /variants/{id}` with the equipment type and the load step; `increment_kg: null` resets the step, so the
@@ -222,6 +271,30 @@ struct ExerciseLibrary {
     func setMuscle(exerciseId: Int, muscle: String) async throws {
         let dto = try decode(ExerciseDTO.self, try await send("PATCH", ExerciseEndpoints.exercise(exerciseId), ExercisePatchRequest(muscleGroup: muscle)))
         SyncMerge.upsert(exercise: dto, existing: cachedExercise(dto.id), in: context)
+        try? context.save()
+    }
+
+    /// Renames the exercise; the server gives its variants the new name too ("<name> (<type>) @ gym") and answers with
+    /// them.
+    func rename(exerciseId: Int, to name: String) async throws {
+        let body = ExercisePatchRequest(name: ExerciseOptions.cleanName(name))
+        let response = try decode(ExerciseRenameResponse.self, try await send("PATCH", ExerciseEndpoints.exercise(exerciseId), body))
+        Self.apply(response, in: context)
+    }
+
+    /// Writes a rename answer into the cache. The sets of this device keep their own copy of the variant name, so
+    /// they get the new one too.
+    static func apply(_ response: ExerciseRenameResponse, in context: ModelContext) {
+        let id = response.exercise.id
+        let existing = try? context.fetch(FetchDescriptor<CachedExercise>(predicate: #Predicate { $0.id == id })).first
+        SyncMerge.upsert(exercise: response.exercise, existing: existing, in: context)
+        for dto in response.variants {
+            let variantId = dto.id
+            let cached = try? context.fetch(FetchDescriptor<CachedVariant>(predicate: #Predicate { $0.id == variantId })).first
+            let variant = SyncMerge.upsert(variant: dto, existing: cached, in: context)
+            let sets = (try? context.fetch(FetchDescriptor<LocalSet>(predicate: #Predicate { $0.variantId == variantId }))) ?? []
+            for set in sets where set.variantName != variant.name { set.variantName = variant.name }
+        }
         try? context.save()
     }
 
