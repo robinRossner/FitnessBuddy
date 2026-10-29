@@ -121,7 +121,7 @@ struct ActiveWorkoutView: View {
         }
         .confirmationDialog("Finish workout?", isPresented: $confirmFinish, titleVisibility: .visible) {
             let drop = uncompletedCount > 0
-            let changed = TemplateChange.offer(for: session, sets: sets, dropUnchecked: drop, in: context)
+            let changed = TemplateChange.offer(for: session, sets: sets, in: context)
             let finishTitle = drop ? "Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")" : "Finish workout"
             if let changed {
                 Button("\(finishTitle), update template") { env.finishWorkout(session, updateTemplate: changed) }
@@ -131,8 +131,7 @@ struct ActiveWorkoutView: View {
             }
             Button("Keep going", role: .cancel) {}
         } message: {
-            let drop = uncompletedCount > 0
-            let changed = TemplateChange.offer(for: session, sets: sets, dropUnchecked: drop, in: context) != nil
+            let changed = TemplateChange.offer(for: session, sets: sets, in: context) != nil
             Text("\(completedCount) set\(completedCount == 1 ? "" : "s") logged. It is saved and can't be resumed."
                  + (changed ? " You changed the exercises from the plan's \(session.kind) template." : ""))
         }

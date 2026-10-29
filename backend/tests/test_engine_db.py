@@ -335,6 +335,34 @@ def test_variant_resolution_and_exposures(db, world):
     assert D.load_exposures(db, world["bench"].id, before=TODAY - timedelta(days=7)) != exps
 
 
+def test_generic_variant_kept_unless_gym_has_same_equipment(db, world):
+    """A picked generic variant stays when the gym only has another kind of that exercise; a
+    renamed machine of the same equipment still replaces it."""
+    gym, bench = world["gym"], world["bench"]
+    smith = ExerciseVariant(
+        exercise_id=bench.exercise_id,
+        gym_id=gym.id,
+        key="bs",
+        name="Smith Bench @ Gym 3",
+        equipment_type="smith",
+        load_convention="total",
+    )
+    db.add(smith)
+    db.flush()
+    assert D.resolve_variant(db, "Bench Press (Barbell)", gym, "bench_press").id == bench.id
+    rack = ExerciseVariant(
+        exercise_id=bench.exercise_id,
+        gym_id=gym.id,
+        key="br",
+        name="Rack Bench @ Gym 3",
+        equipment_type="barbell",
+        load_convention="total",
+    )
+    db.add(rack)
+    db.flush()
+    assert D.resolve_variant(db, "Bench Press (Barbell)", gym, "bench_press").id == rack.id
+
+
 def test_weightless_sets_of_loaded_exercises_are_not_exposures(db, world):
     """A set ticked without a weight (machine not set up, nothing entered) is not history."""
     latest = db.scalars(select(TrainingSession).order_by(TrainingSession.started_at_local)).all()

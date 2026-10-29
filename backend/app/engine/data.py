@@ -86,7 +86,9 @@ def resolve_variant(
 ) -> ExerciseVariant | None:
     """Generic variant `base_name`, or the machine at `gym`: named "<base_name> @ <gym>", else
     (given `exercise_slug`) the active variant of that exercise at the gym, so a renamed machine
-    still resolves. Gym-specific variants must be active (a deactivated machine is "not set up")."""
+    still resolves. When the generic variant exists, only a gym variant with the same equipment
+    replaces it (a picked "Incline Bench Press (Dumbbell)" stays dumbbell at a gym with a Smith).
+    Gym-specific variants must be active (a deactivated machine is "not set up")."""
     names = [base_name] + ([f"{base_name} @ {gym.name}"] if gym else [])
     rows = list(
         db.scalars(
@@ -111,6 +113,8 @@ def resolve_variant(
                 .order_by(ExerciseVariant.id)
             )
         )
+        if rows:
+            here = [v for v in here if v.equipment_type == rows[0].equipment_type]
         if here:
             return here[0]
     return rows[0] if rows else None
