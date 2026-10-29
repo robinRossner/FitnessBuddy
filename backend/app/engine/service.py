@@ -19,7 +19,14 @@ from app.engine.decisions import log_decision
 from app.engine.hr import zones_from_config
 from app.engine.makeup import MakeupSummary, handle_missed
 from app.engine.planner import WeekPlan, generate_week
-from app.engine.program import Program, derive_program, load_program, render_program
+from app.engine.program import (
+    Program,
+    derive_program,
+    load_program,
+    render_program,
+    seed_live_program,
+    write_program_text,
+)
 from app.engine.readiness import Readiness, score_day
 from app.engine.rest import annotate_session
 from app.settings import Settings, get_settings
@@ -39,12 +46,10 @@ def user_today(settings: Settings | None = None) -> date:
 
 
 def get_program(settings: Settings | None = None) -> Program:
-    path = (settings or get_settings()).program_path
-    if not path.exists():
-        raise FileNotFoundError(
-            f"{path} does not exist: run `python -m app.cli engine program generate`"
-        )
-    return load_program(path)
+    """The live program (next to the database), seeded from the repo's program.yaml on first use."""
+    s = settings or get_settings()
+    seed_live_program(s.live_program_path, s.program_path)
+    return load_program(s.live_program_path)
 
 
 @dataclass
@@ -349,8 +354,7 @@ def generate_program(
     program = derive_program(sessions)
     text = render_program(program, gym=gym.name if gym else None)
     if write:
-        s.program_path.parent.mkdir(parents=True, exist_ok=True)
-        s.program_path.write_text(text, encoding="utf-8")
+        write_program_text(s.live_program_path, text)
     return program, text
 
 

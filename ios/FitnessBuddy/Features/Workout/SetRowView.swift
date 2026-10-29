@@ -138,6 +138,8 @@ struct StepperField: View {
 
     @State private var text = ""
     @FocusState private var focused: Bool
+    /// Set by +/-: the typed text was flushed already, so losing focus must not re-commit the stale buffer.
+    @State private var skipBlurCommit = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -152,9 +154,12 @@ struct StepperField: View {
                     .accessibilityLabel(title)
                 Text(unit).font(.caption2).foregroundStyle(.secondary)
             }
-            .frame(minWidth: 40)
+            .frame(minWidth: 40, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { focused = true }
             stepButton("plus", "Increase \(title.lowercased())", increment)
         }
+        .frame(height: 48)
         .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             if highlighted {
@@ -162,9 +167,14 @@ struct StepperField: View {
             }
         }
         .onAppear { text = format(value) }
-        .onChange(of: value) { _, new in if !focused { text = format(new) } }
+        // external changes (steppers, service) refresh the buffer; typing that already matches is left alone
+        .onChange(of: value) { _, new in
+            if Double(Self.clean(text)) != new, !(new == nil && text.isEmpty) { text = format(new) }
+        }
         .onChange(of: focused) { _, isFocused in
-            if !isFocused { commitText() }
+            if !isFocused {
+                if skipBlurCommit { skipBlurCommit = false; text = format(value) } else { commitText() }
+            }
         }
         // typed numbers count at once, so ticking the set while the keyboard is still up logs what was typed
         .onChange(of: text) { _, new in
@@ -177,10 +187,22 @@ struct StepperField: View {
     }
 
     private func stepButton(_ symbol: String, _ label: String, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            // flush what was typed, end editing, then step the committed value in the same tap
+            let wasFocused = focused
+            let cleaned = Self.clean(text)
+            if wasFocused {
+                if cleaned.isEmpty { commit(nil) } else if let v = Double(cleaned) { commit(v) }
+                skipBlurCommit = true
+                focused = false
+            }
+            action()
+            if !wasFocused { text = format(value) }
+        } label: {
             Image(systemName: symbol)
                 .font(.footnote.weight(.bold))
-                .frame(width: 30, height: 48)
+                .frame(width: 34)
+                .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

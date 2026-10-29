@@ -230,11 +230,14 @@ final class AppEnvironment {
         }
     }
 
-    func finishWorkout(_ session: LocalSession) {
+    /// `template`: the performed structure to save as the plan's new upper/lower template (nil = keep it).
+    func finishWorkout(_ session: LocalSession, updateTemplate template: [TemplateExercise]? = nil) {
+        let kind = session.kind
         restTimer.cancel()
         restTimer.cancelFinishReminder()
         if let summary = workout.finish(session) {
             finishedSummary = summary
+            if let template { TemplateSync.enqueue(kind: kind, exercises: template) }
             sync.request(.workoutFinished)
         }
     }

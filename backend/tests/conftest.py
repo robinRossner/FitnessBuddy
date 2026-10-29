@@ -75,3 +75,9 @@ def options(imports_dir: Path, mapping_path: Path) -> ImportOptions:
         tz="Europe/Vienna",
         apply=True,
     )
+
+
+@pytest.fixture(autouse=True)
+def _live_program_in_tmp(tmp_path: Path, monkeypatch):
+    """The live program file (next to the DB by default) never points at the real backend/var."""
+    monkeypatch.setenv("PROGRAM_LIVE_PATH", str(tmp_path / "live" / "program.yaml"))

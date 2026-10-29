@@ -36,7 +36,12 @@ class Settings(BaseSettings):
     engine_config_path: Path = (
         BACKEND_DIR / "config" / "engine.v3.yaml"
     )  # SEED only, see config_service
+    # SEED only: the live program is `live_program_path` (next to the database, see below)
     program_path: Path = BACKEND_DIR / "data" / "program" / "program.yaml"
+    # The live program file (the engine reads it, the app's "Update template" and `engine program
+    # generate` write it). Default: `program.yaml` in the database's directory (the persistent
+    # volume: backend/var locally, /app/var = deploy/data on the server).
+    program_live_path: Path | None = None
     engine_auto_run: bool = True  # run the engine after a Garmin sync brought new data
 
     # Strong sessions longer than this are considered bad data: duration is stored as NULL.
@@ -98,6 +103,16 @@ class Settings(BaseSettings):
     advisor_weekly_time: str = "20:00"  # every Sunday, scheduler_tz
     advisor_trigger_time: str = "18:30"  # daily (not Sundays): batch open advisor_triggers
     advisor_outcome_time: str = "04:15"  # daily: outcomes of changes applied 21-28 days ago
+
+    @property
+    def live_program_path(self) -> Path:
+        if self.program_live_path is not None:
+            return self.program_live_path
+        from sqlalchemy.engine import make_url
+
+        db = make_url(self.database_url).database
+        base = Path(db).parent if db and db != ":memory:" else BACKEND_DIR / "var"
+        return base / "program.yaml"
 
     @property
     def advisor_api_key(self) -> str | None:

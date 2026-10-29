@@ -4,6 +4,7 @@ PUT   /api/v1/exercises/{variant_id}/rest      body {"rest_s": 30..600 | null}
 POST  /api/v1/exercises                        a new exercise + its first variant
 POST  /api/v1/exercises/{exercise_id}/variants a variant by equipment (at a gym for machines)
 PATCH /api/v1/exercises/{exercise_id}          the name and / or muscle group
+PUT   /api/v1/program/{kind}                   the lifting template of a day kind
 
 
 Sets the rest timer of the variant's exercise (all variants of one exercise share it; the setting
@@ -30,7 +31,8 @@ from app.engine import config_service as cs
 from app.engine import rest
 from app.engine import service as engine
 from app.engine.config import REST_MAX_S, REST_MIN_S, EngineConfig
-from app.jobs.engine_jobs import rerun_engine
+from app.engine.program import KINDS, apply_overrides, set_kind_slots
+from app.jobs.engine_jobs import rerun_engine, run_engine_now
 from app.settings import get_settings
 from app.sync.pull import exercise_out, program_rep_ranges, variant_out
 
@@ -89,6 +91,112 @@ def put_rest(variant_id: int, body: RestBody, db: Session = Depends(get_db)) -> 
         "rest_s": rest.resolve_rest_s(new_cfg, exercise.slug),
         "is_default": rest.override_for(new_cfg, exercise.slug) is None,
         "config_version": row.version,
+    }
+
+
+# --------------------------------------------------------------------------- program template
+
+
+CARRY = ("rep_range", "increment_kg", "note")
+
+
+class TemplateSlot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    variant_id: int
+    sets: Annotated[int, Field(strict=True, ge=1, le=10)] | None = None
+
+
+class TemplateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    exercises: Annotated[list[TemplateSlot], Field(min_length=1, max_length=30)]
+
+
+def _slot_out(pe: Any) -> dict[str, Any]:
+    return {
+        "exercise": pe.exercise,
+        "variant": pe.variant,
+        "sets": pe.sets,
+        "rep_range": list(pe.rep_range) if pe.rep_range else None,
+    }
+
+
+def _slot_dict(pe: Any) -> dict[str, Any]:
+    slot: dict[str, Any] = {"exercise": pe.exercise, "variant": pe.variant, "sets": pe.sets}
+    if pe.rep_range:
+        slot["rep_range"] = list(pe.rep_range)
+    if pe.increment_kg:
+        slot["increment_kg"] = pe.increment_kg
+    if not pe.active:
+        slot["active"] = False
+    if pe.note:
+        slot["note"] = pe.note
+    return slot
+
+
+@router.put("/program/{kind}")
+def put_program(kind: str, body: TemplateBody, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The exercise list the user actually did becomes the template of that day kind: only
+    `days.<kind>` of the live program file is rewritten (backup first), then the engine re-plans.
+    Idempotent: an identical list writes nothing."""
+    if kind not in KINDS:
+        raise HTTPException(422, f"kind must be one of {list(KINDS)}")
+    settings = get_settings()
+    try:
+        program = engine.get_program(settings)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(409, f"no program: {exc}") from None
+    current = program.days.get(kind, [])
+    old = {pe.exercise: pe for pe in current}
+    slots: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in body.exercises:
+        variant = db.get(ExerciseVariant, item.variant_id)
+        if variant is None or variant.deleted_at is not None:
+            raise HTTPException(404, f"variant {item.variant_id} not found")
+        exercise = db.get(Exercise, variant.exercise_id)
+        if exercise is None:  # pragma: no cover - FK guarantees it
+            raise HTTPException(404, "exercise not found")
+        if exercise.slug in seen:
+            raise HTTPException(422, f"exercise {exercise.slug!r} appears twice")
+        seen.add(exercise.slug)
+        prev = old.get(exercise.slug)
+        slot: dict[str, Any] = {
+            "exercise": exercise.slug,
+            "variant": variant.name.split(" @ ")[0],
+            "sets": item.sets or (prev.sets if prev else 3),
+        }
+        if prev is not None:  # rep_range / increment_kg / note carry over
+            slot.update({k: v for k, v in _slot_dict(prev).items() if k in CARRY})
+        slots.append(slot)
+    cs.ensure_seeded(db, settings.engine_config_path)
+    cfg = cs.load_active(db)[0]
+    # A per-exercise `variant` override (a rename writes one) would win over the picked variant:
+    # point it at the picked name (not unset: the exercise's other day kind may rely on it).
+    stale = {
+        s["exercise"]: s["variant"]
+        for s in slots
+        if (cfg.exercise_overrides.get(s["exercise"]) or {}).get("variant")
+        not in (None, s["variant"])
+    }
+    backup = None
+    file_changed = slots != [_slot_dict(pe) for pe in current]
+    if file_changed:
+        backup = set_kind_slots(settings.live_program_path, kind, slots)
+    if stale:
+        cs.create_version(
+            db, {f"exercise_overrides.{slug}.variant": name for slug, name in stale.items()},
+            author="user",
+            reason=f"Template update ({kind}): variant override follows the picked variant",
+        )  # fmt: skip
+        db.commit()
+    if file_changed or stale:
+        run_engine_now(db, "template update")
+    cfg = cs.load_active(db)[0]
+    effective = apply_overrides(engine.get_program(settings), cfg.exercise_overrides)
+    return {
+        "kind": kind,
+        "exercises": [_slot_out(pe) for pe in effective.days.get(kind, []) if pe.active],
+        "backup": backup.name if backup else None,
     }
 
 

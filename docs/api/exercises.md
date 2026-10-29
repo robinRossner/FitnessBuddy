@@ -34,6 +34,36 @@ Response `200`:
 exercise has no override. `404` for an unknown or deleted variant, `401` without a valid token,
 `422` for an invalid body.
 
+## PUT /api/v1/program/{kind}
+
+"Update template" after a finished strength workout: the exercise list the user actually did
+becomes the lifting template of that day kind. `kind` is `upper` or `lower` (else `422`). Bearer
+token like the other APIs.
+
+```json
+{"exercises": [{"variant_id": 122, "sets": 3}, {"variant_id": 57}]}
+```
+
+- `exercises`: non-empty, in order. `variant_id` is the integer `ExerciseVariant.id` (JSON number,
+  as in `/sync/pull`); `sets` is optional (1..10; default: the old slot's sets, else 3). An unknown
+  or deleted variant is `404`; the same exercise twice is `422`.
+- The server rewrites only `days.<kind>` of the **live program file** (comments and the other keys
+  stay), after copying the old file to `program.backups/program_YYYYmmdd-HHMMSS.yaml` (last 20 are
+  kept) and writes atomically. Slots are `{exercise, variant (name without " @ gym"), sets}`;
+  `rep_range` / `increment_kg` / `note` carry over from the old slot of the same exercise.
+  The live file is `program.yaml` next to the database (`backend/var/` locally, `deploy/data/` =
+  `/app/var` on the server, so a deploy never overwrites it).
+- Then the engine re-plans (as `POST /engine/run`): future planned sessions use the new list.
+- **Idempotent**: an identical list writes nothing (`backup` is `null`).
+
+Response `200`:
+
+```json
+{"kind": "upper",
+ "exercises": [{"exercise": "chest_fly", "variant": "Chest Fly (Machine)", "sets": 3, "rep_range": [10, 15]}],
+ "backup": "program_20261029-101500.yaml"}
+```
+
 ## Where the value shows up
 
 - **Plan items** (`/plan/today`, `/plan/week`, `planned_sessions` in pull): every lifting exercise

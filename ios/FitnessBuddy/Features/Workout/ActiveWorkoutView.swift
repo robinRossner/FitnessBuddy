@@ -120,14 +120,21 @@ struct ActiveWorkoutView: View {
             restPickerSheet(order: target.order)
         }
         .confirmationDialog("Finish workout?", isPresented: $confirmFinish, titleVisibility: .visible) {
-            if uncompletedCount > 0 {
-                Button("Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")") { env.finishWorkout(session) }
+            let drop = uncompletedCount > 0
+            let changed = TemplateChange.offer(for: session, sets: sets, dropUnchecked: drop, in: context)
+            let finishTitle = drop ? "Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")" : "Finish workout"
+            if let changed {
+                Button("\(finishTitle), update template") { env.finishWorkout(session, updateTemplate: changed) }
+                Button("\(finishTitle), keep template") { env.finishWorkout(session) }
             } else {
-                Button("Finish workout") { env.finishWorkout(session) }
+                Button(finishTitle) { env.finishWorkout(session) }
             }
             Button("Keep going", role: .cancel) {}
         } message: {
-            Text("\(completedCount) set\(completedCount == 1 ? "" : "s") logged. It is saved and can't be resumed.")
+            let drop = uncompletedCount > 0
+            let changed = TemplateChange.offer(for: session, sets: sets, dropUnchecked: drop, in: context) != nil
+            Text("\(completedCount) set\(completedCount == 1 ? "" : "s") logged. It is saved and can't be resumed."
+                 + (changed ? " You changed the exercises from the plan's \(session.kind) template." : ""))
         }
         .onChange(of: uncompletedCount) { _, open in
             // a set was added or un-ticked: this is no longer the end of the workout

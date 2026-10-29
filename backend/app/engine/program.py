@@ -1,8 +1,10 @@
-"""The lifting program (data/program/program.yaml): which exercises, in which order, how many sets.
+"""The lifting program (live copy `settings.live_program_path`, seeded from
+data/program/program.yaml): which exercises, in which order, how many sets.
 
 The user trains a fixed Upper / Lower / Upper week; both upper days are the same full-upper
 session. The file is generated once from recent history (`engine program generate`) and is then
-the user's to edit; the engine only reads it. Per-exercise optional keys: `rep_range: [8, 15]`,
+the user's to edit (the app's "Update template" rewrites a day's list); the engine only reads it.
+Per-exercise optional keys: `rep_range: [8, 15]`,
 `sets`, `increment_kg` (flat load step instead of the equipment default), `active: false`,
 `note`. `variant` is the variant name WITHOUT the gym suffix: the engine picks the generic
 variant or the one at the current gym.
@@ -11,10 +13,12 @@ variant or the one at the current gym.
 from __future__ import annotations
 
 import math
+import os
+import shutil
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from statistics import fmean, median
 from typing import Any
@@ -22,6 +26,7 @@ from typing import Any
 import yaml
 
 KINDS = ("upper", "lower")
+BACKUPS_KEEP = 20
 
 
 @dataclass
@@ -74,6 +79,82 @@ def load_program(path: Path) -> Program:
             )
         days[str(kind)] = out
     return Program(days, data.get("generated") or {})
+
+
+def seed_live_program(live: Path, seed: Path) -> None:
+    """First use: the live copy starts as a copy of the repo's program.yaml (the seed). Editing the
+    seed afterwards has no effect; delete the live file to re-seed."""
+    if live.exists():
+        return
+    if not seed.exists():
+        raise FileNotFoundError(
+            f"{seed} does not exist: run `python -m app.cli engine program generate`"
+        )
+    live.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_write(live, seed.read_text(encoding="utf-8"))
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def backup_program(live: Path, *, keep: int = BACKUPS_KEEP) -> Path | None:
+    """Copy the live file to `program.backups/program_YYYYmmdd-HHMMSS.yaml` (last `keep` stay)."""
+    if not live.exists():
+        return None
+    folder = live.with_name("program.backups")
+    folder.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    target = folder / f"program_{stamp}.yaml"
+    n = 1
+    while target.exists():  # several writes within one second
+        target = folder / f"program_{stamp}-{n}.yaml"
+        n += 1
+    shutil.copy2(live, target)
+    for old in sorted(folder.glob("program_*.yaml"))[:-keep]:
+        old.unlink(missing_ok=True)
+    return target
+
+
+def write_program_text(live: Path, text: str) -> Path | None:
+    """Replace the live file with `text` (a backup of the old one first, atomic rename)."""
+    backup = backup_program(live)
+    live.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_write(live, text)
+    return backup
+
+
+def set_kind_slots(live: Path, kind: str, slots: list[dict[str, Any]]) -> Path | None:
+    """Rewrite only `days.<kind>` of the live file (comments and other keys stay), after a backup.
+    Returns the backup path."""
+    from ruamel.yaml import YAML
+    from ruamel.yaml.comments import CommentedMap, CommentedSeq
+
+    yml = YAML()  # round trip: keeps comments and the flow style of the slots
+    yml.width = 4096
+    data = yml.load(live.read_text(encoding="utf-8")) or CommentedMap()
+    if data.get("days") is None:
+        data["days"] = CommentedMap()
+    seq = CommentedSeq()
+    for slot in slots:
+        m = CommentedMap()
+        for k, v in slot.items():
+            if isinstance(v, list):
+                inner = CommentedSeq(v)
+                inner.fa.set_flow_style()
+                v = inner
+            m[k] = v
+        m.fa.set_flow_style()
+        seq.append(m)
+    data["days"][kind] = seq
+    backup = backup_program(live)
+    tmp = live.with_name(live.name + ".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        yml.dump(data, f)
+    os.replace(tmp, live)
+    return backup
 
 
 def apply_overrides(program: Program, overrides: dict[str, Any] | None) -> Program:

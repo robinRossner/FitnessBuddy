@@ -454,7 +454,7 @@ def engine_program_generate(
         _program, text = service.generate_program(db, weeks=weeks, settings=s, write=write)
     typer.echo(text)
     if write:
-        typer.echo(f"written to {s.program_path}")
+        typer.echo(f"written to {s.live_program_path}")
 
 
 @engine_config.command("show")

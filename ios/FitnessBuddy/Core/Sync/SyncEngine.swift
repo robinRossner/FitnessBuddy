@@ -51,6 +51,10 @@ actor SyncEngine {
         try Task.checkCancellation()
         report.pushed += try await RestSync.push(using: client, container: container)
 
+        // 1c. template changes chosen at Finish (before the plan refresh below, which then shows the new structure)
+        try Task.checkCancellation()
+        report.pushed += try await TemplateSync.push(using: client)
+
         // 2. pull (merge + cursor commit per page)
         var cursor = SyncState.current(in: ModelContext(container)).cursor
         for _ in 0..<maxPullPages {

@@ -119,6 +119,7 @@ struct APIClient: Sendable {
         static let syncPull = apiBase + "/sync/pull"
         static func variantHistory(_ id: Int) -> String { apiBase + "/variants/\(id)/history" }
         static func exerciseRest(variantId: Int) -> String { apiBase + "/exercises/\(variantId)/rest" }
+        static func program(kind: String) -> String { apiBase + "/program/\(kind)" }
         static let garminWorkoutsPush = apiBase + "/garmin/workouts/push"
     }
 
@@ -153,6 +154,12 @@ struct APIClient: Sendable {
     func setRest(variantId: Int, restS: Int?) async throws -> RestResponseDTO {
         try await send(path: Endpoints.exerciseRest(variantId: variantId), method: "PUT",
                        body: try APICoding.makeEncoder().encode(RestRequestDTO(restS: restS)))
+    }
+
+    /// Replaces the upper/lower template with the performed structure (server re-runs the engine).
+    func updateProgram(kind: String, exercises: [TemplateExercise]) async throws {
+        let body = try APICoding.makeEncoder().encode(TemplateUpdateRequest(exercises: exercises))
+        _ = try await raw(path: Endpoints.program(kind: kind), query: [], method: "PUT", authorized: true, body: body)
     }
 
     func variantHistory(id: Int, limit: Int = 10) async throws -> [VariantHistoryEntryDTO] {
