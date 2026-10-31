@@ -43,7 +43,7 @@ The first Let's Encrypt certificate needs DNS and ports 80/443 working; Caddy re
 ## 4. Update later
 
 ```sh
-deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (`alembic -c apps/fitness/alembic.ini upgrade head` in the container), health check
+deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (the container entrypoint runs `alembic -c apps/fitness/alembic.ini upgrade head` and `alembic -c apps/receipts/alembic.ini upgrade head`), health check
 ```
 
 Server data is never touched without `--with-db` / `--with-env`. `--with-db` replaces the server
@@ -54,7 +54,8 @@ written data you want to keep, unless you pulled it first.
 
 ## 5. Restore from backup
 
-Backups: `deploy/backups/fitness_<ts>.db.gz`, nightly, 30 days.
+Backups: `deploy/backups/fitness_<ts>.db.gz` and `receipts_<ts>.db.gz`, nightly, 30 days (plus the
+photo mirror, see section 10).
 
 ```sh
 ssh ubuntu@HOST
@@ -65,6 +66,9 @@ gunzip -c backups/fitness_YYYYMMDD_HHMMSS.db.gz > data/fitness.db
 rm -f data/fitness.db-wal data/fitness.db-shm
 docker compose up -d backend
 ```
+
+Restoring `receipts.db` works the same way (`data/receipts.db`, `receipts_*.db.gz`); see section 10
+for the receipt photos that belong to it.
 
 Copy a backup to the Mac: `scp ubuntu@HOST:/opt/fitnessbuddy/deploy/backups/fitness_*.db.gz ~/Backups/`.
 The VM disk is the only copy of server-side data, so pull one now and then.
@@ -156,7 +160,8 @@ Notes:
 
 - Container runs as the ssh user's uid (`APP_UID`/`APP_GID` in `deploy/.env`, written by
   `push.sh`), so the host backup cron can read the WAL database.
-- Paths inside the container: DB `/app/var/fitness.db`, FIT files `/app/var/fit`, python-garminconnect
+- Paths inside the container: DBs `/app/var/fitness.db` and `/app/var/receipts.db`, receipt photos
+  not yet archived `/app/var/receipts_photos`, FIT files `/app/var/fit`, python-garminconnect
   tokens `/app/var/garminconnect`, Personal API token cache `/app/var/garmin_token.json`, all in `./data`.
 - Logs: `ssh ubuntu@HOST 'cd /opt/fitnessbuddy/deploy && docker compose logs -f backend'`.
 - One-off Strong imports: run them locally and push the DB with `--with-db`.
@@ -165,7 +170,9 @@ Notes:
 
 The nightly server backups live on the same VM as the database, so this Mac keeps an offsite copy.
 `deploy/pull-backup.sh` takes a fresh snapshot on the server, downloads it to
-`~/Backups/FitnessBuddy/db/`, verifies it (gzip, `PRAGMA integrity_check`, row counts), mirrors the
+`~/Backups/FitnessBuddy/db/`, verifies it (gzip, `PRAGMA integrity_check`, row counts), does the same
+for the receipts database (`receipts_db/`) and mirrors the not-yet-archived receipt photos
+(`receipts_photos_pending/`, an `rsync --delete` mirror), mirrors the
 Garmin FIT files to `~/Backups/FitnessBuddy/fit/`, keeps the newest 12 copies and shows a macOS
 notification. A launchd agent runs it at login and daily; the script only copies when the newest
 local copy is older than 7 days, so the copy is at most about a week old whenever the Mac is on.
@@ -181,3 +188,95 @@ tail ~/Library/Logs/FitnessBuddy/backup.log
 Restore from a Mac copy: `gunzip -c ~/Backups/FitnessBuddy/db/fitness_<stamp>.db.gz > /tmp/fitness.db`,
 then follow "Restore from backup" above with that file. Remove the job with
 `launchctl bootout gui/$(id -u)/com.robinrossner.fitnessbuddy.backup`.
+
+## 10. Receipts app (receipts.db, photos, archive, Mac data)
+
+The same container serves the Receipts app (`/api/v1/receipts/...`, contract in
+`docs/api/receipts.md`). Its data sits next to the fitness data in `deploy/data`:
+
+| What | Path on the host | In the container |
+|---|---|---|
+| database | `data/receipts.db` | `/app/var/receipts.db` |
+| photos **not yet archived** | `data/receipts_photos/<xx>/<uuid>.jpg` | `/app/var/receipts_photos` |
+
+Configuration (all optional except the token; `backend/.env`, see `backend/.env.example`):
+`RECEIPTS_API_TOKEN` (made by `make-prod-env.sh`), `RECEIPTS_LLM_PROVIDER=auto|claude_code|api`
+(uses `CLAUDE_CODE_OAUTH_TOKEN`, i.e. the subscription, if set, else `ANTHROPIC_API_KEY`; without
+either, uploads are stored and extraction waits), `RECEIPTS_LLM_MODEL` (default
+`claude-haiku-5-5`, the model the Mac app uses; change it here, e.g. `claude-opus-5-5`),
+`RECEIPTS_MAX_PHOTO_BYTES`, `RECEIPTS_ARCHIVE_REMINDER_DAYS` (30), `RECEIPTS_DISK_WARNING_FREE_MB`
+(2048), `RECEIPTS_NOTIFY_URL`. The extraction runs inside the single uvicorn worker (one photo at a
+time, the queue is in `receipts.db`, a restart re-queues interrupted jobs). The `claude -p` call
+never receives `ANTHROPIC_API_KEY`, like the advisor.
+
+### Photo retention: the laptop is the archive
+
+A receipt photo stays on the server only until the Mac archive client has stored a verified copy
+and confirmed its sha256 (`POST /receipts/{id}/archive-confirm`); only that confirmation deletes
+the file. **Nothing deletes a photo because of its age.** Until then the server holds the only
+copy besides the phone's.
+
+- `GET /api/v1/receipts/status` shows `unarchived_count`, `unarchived_bytes`, free disk,
+  `archive_overdue` (no archive sync for 30 days while photos wait) and `disk_warning`
+  (< 2 GB free). The clients show these.
+- A daily job (09:00) sends a reminder when either flag is set, at most every 3 days. **Delivery
+  needs `RECEIPTS_NOTIFY_URL`** (install the ntfy app on the phone, subscribe to a hard-to-guess
+  topic, set `RECEIPTS_NOTIFY_URL=https://ntfy.sh/<topic>`). The backend has no other notification
+  channel (`apps/fitness/notify` is empty), so without it the reminder is only a line in
+  `docker compose logs backend` and the status flags are the only signal.
+
+### Backup of receipts
+
+`deploy/backup.sh` (03:15) now also writes `backups/receipts_<ts>.db.gz` (integrity checked, 30
+days) and refreshes **one** mirror, `backups/receipts_photos_pending/`, with `rsync -a --delete`
+of `data/receipts_photos`. Why a mirror and not dated copies: the photos folder contains exactly the
+photos that are not archived yet, so a mirror that follows deletions is as large as the photos
+themselves and can never bring back a photo the laptop already archived, whereas dated copies would
+grow without bound and keep archived photos for 30 days. The script refuses (exit 1, a line in the
+backup log) when the disk could not hold the mirror. `deploy/pull-backup.sh` pulls the receipts
+snapshot and the mirror to the Mac as well, so unarchived photos have an offsite copy too (the
+Mac mirror loses a photo at the next pull after it was archived).
+
+Gap, stated plainly: between two nightly backups a freshly uploaded photo exists once on the
+server (and on the phone that took it). Archived photos are not in any server backup by design:
+the laptop archive is their only copy, so keep the Mac archive folder in Time Machine / your own
+backup.
+
+Restore after a lost or damaged server: restore `receipts.db` as in section 5, then put the photos
+back without overwriting anything newer:
+
+```sh
+cd /opt/fitnessbuddy/deploy
+docker compose stop backend
+gunzip -c backups/receipts_YYYYMMDD_HHMMSS.db.gz > data/receipts.db && rm -f data/receipts.db-wal data/receipts.db-shm
+rsync -a --ignore-existing backups/receipts_photos_pending/ data/receipts_photos/
+docker compose up -d backend      # the daily job removes files of receipts that are archived in this DB
+```
+
+A receipt whose photo was archived after the snapshot was taken may point at a file that is gone:
+the laptop holds it, and `archive-confirm` for it is then a no-op.
+
+### Migrating the Mac app's data (one-off)
+
+`python -m apps.receipts.migrate_mac_data --db <Mac receipts.db> --archive <receipts_archive/>`
+is a dry run (prints what would be added, writes nothing); add `--apply` to write. It gives every
+Mac row a stable UUID, is idempotent (rows already there are left alone, so a rerun never undoes
+later edits), marks receipts whose photo it finds under `--archive` as `archived` with the file's
+sha256 and does **not** upload any photo. It reads only the two paths you give it: work on a copy
+of the Mac data, not on `~/Library/Application Support/ReceiptsApp/` while the app runs.
+
+```sh
+# on the Mac, in backend/ (writes the local backend/var/receipts.db; dry run first)
+uv run python -m apps.receipts.migrate_mac_data --db ~/Desktop/mac-copy/receipts.db --archive ~/Desktop/mac-copy/receipts_archive
+uv run python -m apps.receipts.migrate_mac_data --db ... --archive ... --apply
+# first seed of the server (only while the server has no receipts yet: it REPLACES data/receipts.db)
+ssh ubuntu@HOST 'cd /opt/fitnessbuddy/deploy && docker compose stop backend'
+sqlite3 backend/var/receipts.db ".backup /tmp/receipts-seed.db"
+scp /tmp/receipts-seed.db ubuntu@HOST:/opt/fitnessbuddy/deploy/data/receipts.db
+ssh ubuntu@HOST 'cd /opt/fitnessbuddy/deploy && docker compose up -d backend'
+```
+
+Once phones have uploaded receipts, do not replace the server file again: copy the Mac database
+(and a folder with the archive files you want hashed) to `deploy/data/mac-import/` and run the same
+command inside the container instead
+(`docker compose exec backend python -m apps.receipts.migrate_mac_data --db /app/var/mac-import/receipts.db --archive /app/var/mac-import/receipts_archive --apply`).
