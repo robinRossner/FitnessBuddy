@@ -34,6 +34,10 @@ __pycache__/
 clients/fitness-ios/**/xcuserdata/
 clients/fitness-ios/**/DerivedData/
 
+# Swift packages (clients/receipts-apple)
+.build/
+.swiftpm/
+
 # deploy runtime data
 deploy/data/
 deploy/imports/
