@@ -47,7 +47,7 @@ and `no_deload` (the week has no deload: nothing is written). Both of the latter
 Admin CLI with the same effect:
 
 ```
-uv run python -m app.cli engine deload cancel --week 2026-10-26 [--reason "..."] [--no-replan]
+uv run python -m apps.fitness.cli engine deload cancel --week 2026-10-26 [--reason "..."] [--no-replan]
 ```
 
 ## POST /api/v1/engine/run
@@ -81,5 +81,5 @@ Response `200` (short summary, one entry per planned week):
 and long run range (`basis`: `calibrated` from the athlete's easy runs or `daniels`).
 `vdot_from_intervals` is the current measured estimate from interval reps (`vdot: null` when no
 session qualifies). `persisted` is `null` only for weeks that were not stored. `409` when the program
-file is missing (`python -m app.cli engine program generate`).
+file is missing (`python -m apps.fitness.cli engine program generate`).
 

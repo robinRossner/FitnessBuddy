@@ -87,7 +87,7 @@ buttons stay a one-off change of the current rest.
 
 ## New exercises and variants (user-managed)
 
-The app can add exercises that are not in `data/catalog/exercises.yaml` and set up any exercise at
+The app can add exercises that are not in `apps/fitness/data/catalog/exercises.yaml` and set up any exercise at
 the current gym (e.g. a new gym with no machines yet). Bearer token like the other APIs. All three
 calls are online-only in the app (never queued); the app writes the answer into its local cache
 right away and the next pull confirms it.

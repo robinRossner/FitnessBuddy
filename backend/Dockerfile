@@ -43,7 +43,8 @@ WORKDIR /app
 COPY . .
 
 # All mutable state lives in /app/var (DB, var/fit, var/garminconnect, var/garmin_token.json);
-# BACKEND_DIR resolves to /app, so the settings defaults already point there.
+# BACKEND_DIR (core/settings.py) resolves to /app, so the settings defaults already point there.
+# Layout in the image: /app/server.py, /app/core, /app/apps/fitness (code, Alembic, data, config).
 # compose may run the container as another uid (the host user) so the bind mount stays writable
 # for both the app and the host-side backup cron.
 RUN useradd --uid 1000 --no-create-home app \

@@ -2,7 +2,7 @@
 
 The official Personal API is pull-only, so planned runs reach the watch through
 python-garminconnect (`GARMIN_EMAIL` / `GARMIN_PASSWORD`, the same login and token cache as the sync
-fallback). Code: `backend/app/garmin_workouts.py`.
+fallback). Code: `backend/apps/fitness/garmin_workouts.py`.
 
 ## What lands on the watch
 
@@ -51,7 +51,7 @@ A second push with no plan change reports everything `unchanged` and writes noth
   Garmin request). Server process only (`SCHEDULER_ENABLED`), so local runs and tests never contact
   Garmin.
 - On demand: the endpoint below (the app's "Send to watch") and
-  `uv run python -m app.cli garmin push-workouts [--dry-run] [--date YYYY-MM-DD] [--today YYYY-MM-DD]`.
+  `uv run python -m apps.fitness.cli garmin push-workouts [--dry-run] [--date YYYY-MM-DD] [--today YYYY-MM-DD]`.
   `--dry-run` prints the workouts and their JSON without contacting Garmin (no login).
 
 Errors are logged without secrets and never break the sync or engine jobs. A failed login is

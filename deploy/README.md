@@ -1,7 +1,8 @@
 # Deploy runbook (Oracle Cloud Always Free ARM VM)
 
 Stack: FastAPI backend (single uvicorn worker, SQLite, in-process scheduler) + Caddy (automatic
-HTTPS) in Docker Compose. Code goes from the Mac to the VM with rsync; the server needs no git
+HTTPS) in Docker Compose. Code goes from the Mac to the VM with rsync (`push.sh` syncs `backend/` only: `server.py`,
+`core/`, `apps/`; `clients/` is never deployed); the server needs no git
 credentials. State lives in `/opt/fitnessbuddy/deploy/data` (DB, `fit/`, `garminconnect/`).
 
 ## 1. Oracle Cloud console (once)
@@ -42,7 +43,7 @@ The first Let's Encrypt certificate needs DNS and ports 80/443 working; Caddy re
 ## 4. Update later
 
 ```sh
-deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (alembic upgrade head), health check
+deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (`alembic -c apps/fitness/alembic.ini upgrade head` in the container), health check
 ```
 
 Server data is never touched without `--with-db` / `--with-env`. `--with-db` replaces the server

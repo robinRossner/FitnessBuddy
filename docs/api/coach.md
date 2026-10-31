@@ -16,7 +16,7 @@ becomes a new engine config version (author `advisor`, with its reason) that can
   parameter change (`"3"` = `"p3"`) for older clients.
 - Real payloads (a copy of the real database, "today" pinned to 2026-10-25, Claude replaced by a
   canned answer) are in [`examples/coach_*.json`](examples/), regenerated with
-  `cd backend && uv run python -m scripts.gen_coach_examples`:
+  `cd backend && uv run python -m apps.fitness.scripts.gen_coach_examples`:
   `coach_proposals.json`, `coach_proposal_detail.json`, `coach_ask_response.json`,
   `coach_approve_response.json`, `coach_history.json`, `coach_settings.json`, `coach_plan_today.json`,
   and for schedule changes `coach_ask_schedule_response.json` / `coach_proposal_schedule_detail.json`
@@ -296,7 +296,7 @@ plan items (see [sync.md](sync.md#plan-json-plantoday-planweek-and-planned_sessi
 
 ## Missed sessions
 
-Not Claude: the engine's own policy (`app/engine/makeup.py`, thresholds in the config `schedule`
+Not Claude: the engine's own policy (`apps/fitness/engine/makeup.py`, thresholds in the config `schedule`
 section, config version with defaults added by migration 0008). When a planned session of the current
 week passes without a matching activity it is `skipped` and:
 
@@ -405,4 +405,4 @@ stores them on the proposal (`cost_usd`).
 `ADVISOR_MAX_TOKENS`, `ADVISOR_MAX_RETRIES`, `ADVISOR_WEEKLY_TIME`, `ADVISOR_TRIGGER_TIME`,
 `ADVISOR_OUTCOME_TIME` (see `backend/.env.example`); `SCHEDULER_ENABLED=true` for the scheduled jobs.
 The key is never logged (log redaction covers `sk-ant-` patterns) and never returned by any endpoint
-(`api_key_configured` is a boolean). CLI: `uv run python -m app.cli advisor {status|run|input}`.
+(`api_key_configured` is a boolean). CLI: `uv run python -m apps.fitness.cli advisor {status|run|input}`.

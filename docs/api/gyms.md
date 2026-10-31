@@ -8,7 +8,7 @@ of that gym and enter the weight steps of each stack. Sessions and plans then us
 machines. Bearer token like the other APIs, snake_case, base path `/api/v1`.
 
 Real examples (from a copy of the live database): `docs/api/examples/gyms_list.json`,
-`docs/api/examples/gym_machines.json` (regenerate: `uv run python -m scripts.gen_gym_examples`).
+`docs/api/examples/gym_machines.json` (regenerate: `uv run python -m apps.fitness.scripts.gen_gym_examples`).
 
 ## Where the current gym lives
 
