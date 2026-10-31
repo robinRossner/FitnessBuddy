@@ -81,3 +81,17 @@ def options(imports_dir: Path, mapping_path: Path) -> ImportOptions:
 def _live_program_in_tmp(tmp_path: Path, monkeypatch):
     """The live program file (next to the DB by default) never points at the real backend/var."""
     monkeypatch.setenv("PROGRAM_LIVE_PATH", str(tmp_path / "live" / "program.yaml"))
+
+
+@pytest.fixture(autouse=True)
+def _auth_throttle_off(monkeypatch):
+    """Tests send many bad tokens from one fake client; the throttle is tested on its own."""
+    from core.auth import get_throttle, get_trusted_proxies
+    from core.settings import get_core_settings
+
+    monkeypatch.setenv("AUTH_MAX_FAILURES", "1000000")
+    for cached in (get_core_settings, get_throttle, get_trusted_proxies):
+        cached.cache_clear()
+    yield
+    for cached in (get_core_settings, get_throttle, get_trusted_proxies):
+        cached.cache_clear()

@@ -24,8 +24,27 @@ class CoreSettings(BaseSettings):
         extra="ignore",
     )
 
-    # Shared bearer token for the write endpoints. Unset => those endpoints refuse.
+    # One bearer token per app (core/auth.py). `api_token` is the fitness app's (the name stays so
+    # the installed iPhone app and existing .env.production files keep working); the receipts
+    # router accepts only `receipts_api_token`. Unset => that app's endpoints answer 503.
     api_token: SecretStr | None = None
+    receipts_api_token: SecretStr | None = None
+
+    # Interactive API docs (/docs, /redoc, /openapi.json): 404 unless enabled (dev only).
+    docs_enabled: bool = False
+
+    # Throttle for wrong or missing bearer tokens (core/throttle.py): after `auth_max_failures`
+    # failures within `auth_failure_window_s` seconds from one client IP, requests from that IP
+    # without a valid token get 429. A valid token is never throttled.
+    auth_max_failures: int = 20
+    auth_failure_window_s: int = 600
+    # Comma-separated IPs / CIDRs of reverse proxies whose X-Forwarded-For header is believed
+    # (the right-most entry is then the client IP); any other peer is used as is. The default is
+    # the private ranges: in deploy/docker-compose.yml the backend is only reachable from Caddy,
+    # whose container sits in a Docker bridge network (172.16.0.0/12 by default, any RFC 1918 range
+    # when the daemon is configured otherwise). Caddy replaces a client-sent X-Forwarded-For with
+    # the real address. Local dev (peer 127.0.0.1) is not trusted, so the header is ignored there.
+    trusted_proxy_ips: str = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
 
     # Scheduler (APScheduler in the FastAPI process); off by default locally.
     scheduler_enabled: bool = False

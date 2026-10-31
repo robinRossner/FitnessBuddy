@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from apps.fitness import __version__
 from apps.fitness.router import include_fitness_routes
 from apps.fitness.settings import get_settings
+from core.settings import get_core_settings
 
 log = logging.getLogger(__name__)
 
@@ -37,5 +38,20 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             scheduler.shutdown(wait=False)
 
 
-app = FastAPI(title="FitnessBuddy", version=__version__, lifespan=lifespan)
-include_fitness_routes(app)
+def create_app(docs_enabled: bool | None = None) -> FastAPI:
+    """The shared app. `/docs`, `/redoc` and `/openapi.json` exist only with DOCS_ENABLED (dev)."""
+    if docs_enabled is None:
+        docs_enabled = get_core_settings().docs_enabled
+    app = FastAPI(
+        title="FitnessBuddy",
+        version=__version__,
+        lifespan=lifespan,
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url="/redoc" if docs_enabled else None,
+        openapi_url="/openapi.json" if docs_enabled else None,
+    )
+    include_fitness_routes(app)
+    return app
+
+
+app = create_app()
