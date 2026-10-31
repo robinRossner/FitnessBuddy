@@ -1,7 +1,7 @@
 """Regenerate docs/api/examples/gyms_list.json and gym_machines.json by calling the real gym
 endpoints (FastAPI TestClient) against a COPY of the real database (read-only calls only).
 
-    cd backend && uv run python -m scripts.gen_gym_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_gym_examples [--db var/fitness.db]
 
 The live database is never written. gym_machines.json is the machine list of the current gym.
 """
@@ -19,9 +19,9 @@ from sqlalchemy.orm import sessionmaker
 
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.session import make_engine
-from apps.fitness.main import app
 from apps.fitness.settings import BACKEND_DIR, REPO_ROOT
 from core.auth import get_api_token
+from server import app
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 TOKEN = "example-token"

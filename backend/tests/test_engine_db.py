@@ -37,10 +37,10 @@ from apps.fitness.engine.program import (
     load_program,
     render_program,
 )
-from apps.fitness.main import app
 from apps.fitness.settings import FITNESS_DIR, Settings
 from apps.fitness.stats import rebuild_stats
 from core.auth import get_api_token
+from server import app
 
 TODAY = date(2026, 10, 26)  # Monday
 

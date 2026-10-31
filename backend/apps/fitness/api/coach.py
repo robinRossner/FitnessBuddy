@@ -29,7 +29,7 @@ from apps.fitness.jobs.advisor_jobs import run_consultation
 from apps.fitness.settings import get_settings
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1/coach", dependencies=[Depends(require_token)])
+router = APIRouter(prefix="/coach", dependencies=[Depends(require_token)])
 
 Status = Literal["pending", "applied", "rejected", "all"]
 

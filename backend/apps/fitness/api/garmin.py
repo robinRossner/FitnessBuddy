@@ -19,7 +19,7 @@ from apps.fitness.sources.garmin.errors import GarminError, SourceUnavailable
 from apps.fitness.sources.garmin.mapping import RUN_TYPES
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+router = APIRouter(dependencies=[Depends(require_token)])
 
 
 class _Out(BaseModel):

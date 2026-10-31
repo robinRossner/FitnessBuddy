@@ -16,11 +16,11 @@ from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import PlannedSession, Run
 from apps.fitness.db.types import Source
 from apps.fitness.jobs.scheduler import build_scheduler
-from apps.fitness.main import app
 from apps.fitness.settings import Settings
 from apps.fitness.sources.garmin.errors import SourceUnavailable
 from apps.fitness.sources.garmin.python_garminconnect import GarminConnectLogin
 from core.auth import get_api_token
+from server import app
 
 TODAY = date(2026, 10, 28)  # a Wednesday
 TOKEN = "test-token"

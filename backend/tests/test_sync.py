@@ -22,9 +22,9 @@ from apps.fitness.db.models import (
 )
 from apps.fitness.db.types import iso_z
 from apps.fitness.importers.strong.importer import run_import
-from apps.fitness.main import app
 from apps.fitness.settings import get_settings
 from core.auth import get_api_token
+from server import app
 
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}

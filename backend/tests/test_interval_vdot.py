@@ -321,7 +321,7 @@ def test_engine_run_endpoint_replans_and_returns_a_summary(client, monkeypatch):
     from fastapi.testclient import TestClient
 
     from apps.fitness.jobs import engine_jobs
-    from apps.fitness.main import app
+    from server import app
 
     pushes: list[str] = []
     monkeypatch.setattr(engine_jobs, "push_runs_soon", pushes.append)

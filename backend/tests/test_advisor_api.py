@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.fitness.main import app
+from server import app
 from tests.advisor_helpers import (
     AUTH,
     KEY,

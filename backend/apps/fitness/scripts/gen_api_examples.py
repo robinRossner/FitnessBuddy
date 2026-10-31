@@ -1,7 +1,7 @@
 """Regenerate docs/api/examples/*.json by calling the real endpoints (FastAPI TestClient) against
 a COPY of the real database, so the shapes, ids and numbers are exactly what the server emits.
 
-    cd backend && uv run python -m scripts.gen_api_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_api_examples [--db var/fitness.db]
 
 The live database is never written; the engine re-run hook is stubbed. Lists in the pull example
 are trimmed (newest 3 sessions + their sets) to keep the fixture small.
@@ -23,9 +23,9 @@ from fastapi.testclient import TestClient
 
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.session import make_engine
-from apps.fitness.main import app
 from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT
 from core.auth import get_api_token
+from server import app
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 TOKEN = "example-token"

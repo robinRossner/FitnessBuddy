@@ -25,7 +25,7 @@ from apps.fitness.jobs.engine_jobs import rerun_engine
 from apps.fitness.settings import get_settings
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+router = APIRouter(dependencies=[Depends(require_token)])
 
 Name = Annotated[str, Field(min_length=1, max_length=120)]
 Equipment = Literal["machine_stack", "cable", "smith", "plate_loaded", "other"]

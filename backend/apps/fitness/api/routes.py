@@ -15,7 +15,7 @@ from apps.fitness.db.session import get_session_factory
 from core.auth import require_token
 
 public_router = APIRouter()  # /health only
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+router = APIRouter(dependencies=[Depends(require_token)])
 
 
 def get_db() -> Iterator[Session]:

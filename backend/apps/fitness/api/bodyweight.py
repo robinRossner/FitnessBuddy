@@ -23,7 +23,7 @@ from apps.fitness.db.types import MeasurementSource, utcnow
 from apps.fitness.settings import get_settings
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1/bodyweight", dependencies=[Depends(require_token)])
+router = APIRouter(prefix="/bodyweight", dependencies=[Depends(require_token)])
 
 
 class MeasurementIn(BaseModel):

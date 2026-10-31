@@ -1,7 +1,8 @@
 """Regenerate docs/api/examples/stats_*.json by calling the real stats endpoints (FastAPI
 TestClient) against a COPY of the real database, with "today" pinned to 2026-10-25.
 
-    cd backend && uv run python -m scripts.gen_stats_examples [--db var/fitness.db] [--time]
+    cd backend && uv run python -m apps.fitness.scripts.gen_stats_examples [--db var/fitness.db]
+    [--time]
 
 The live database is never written. Long arrays are trimmed (newest kept) and say so in `_note`,
 so every file stays small. `--time` also prints cold / warm timings of each endpoint.
@@ -25,9 +26,9 @@ from apps.fitness.analytics import cache
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.session import make_engine
 from apps.fitness.engine import config_service as cs
-from apps.fitness.main import app
 from apps.fitness.settings import BACKEND_DIR, REPO_ROOT, get_settings
 from core.auth import get_api_token
+from server import app
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 TODAY = date(2026, 10, 25)

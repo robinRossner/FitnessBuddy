@@ -21,7 +21,7 @@ from apps.fitness.analytics import cache, correlations, health, lifts, run_analy
 from apps.fitness.api.routes import get_db
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+router = APIRouter(dependencies=[Depends(require_token)])
 
 Weeks = Annotated[int, Query(ge=1, le=520, description="number of weeks, ending this week")]
 Days = Annotated[int, Query(ge=1, le=3650, description="number of days, ending today")]

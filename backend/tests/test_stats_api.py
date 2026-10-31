@@ -36,10 +36,10 @@ from apps.fitness.engine.config import load_engine_config
 from apps.fitness.engine.hr import zones_from_config
 from apps.fitness.engine.program import Program, ProgramExercise
 from apps.fitness.engine.readiness import Readiness, Signal
-from apps.fitness.main import app
 from apps.fitness.settings import FITNESS_DIR
 from apps.fitness.stats import rebuild_stats
 from core.auth import get_api_token
+from server import app
 
 TODAY = date(2026, 10, 25)  # a Sunday: the current week starts Monday 2026-10-19
 TOKEN = "test-token"

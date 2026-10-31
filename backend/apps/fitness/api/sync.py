@@ -28,8 +28,8 @@ from core.auth import require_token
 
 log = logging.getLogger(__name__)
 
-public = APIRouter(prefix="/api/v1")
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+public = APIRouter()
+router = APIRouter(dependencies=[Depends(require_token)])
 
 
 @public.get("/health")

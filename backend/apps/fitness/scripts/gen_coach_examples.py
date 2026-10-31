@@ -2,7 +2,7 @@
 TestClient) against a COPY of the real database, with "today" pinned to 2026-10-25 and Claude
 replaced by a canned answer (no network, no API key needed, nothing is written to the live DB).
 
-    cd backend && uv run python -m scripts.gen_coach_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_coach_examples [--db var/fitness.db]
 
 Walk-through: "Ask coach" about a stalled lift -> a pending proposal with a valid rep-range change,
 a valid weekly-volume change and one invalid change (a weight, which is never allowed); a second
@@ -47,9 +47,9 @@ from apps.fitness.analytics import cache  # noqa: E402
 from apps.fitness.api.routes import get_db  # noqa: E402
 from apps.fitness.db import session as dbsession  # noqa: E402
 from apps.fitness.db.session import make_engine  # noqa: E402
-from apps.fitness.main import app  # noqa: E402
 from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT, get_settings  # noqa: E402
 from core.auth import get_api_token  # noqa: E402
+from server import app  # noqa: E402
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 

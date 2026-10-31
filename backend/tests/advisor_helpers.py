@@ -27,11 +27,11 @@ from apps.fitness.db.models import (
 )
 from apps.fitness.db.types import Source
 from apps.fitness.engine import config_service as cs
-from apps.fitness.main import app
 from apps.fitness.settings import FITNESS_DIR, Settings, get_settings
 from apps.fitness.stats import rebuild_stats
 from core.auth import get_api_token
 from core.settings import get_core_settings
+from server import app
 
 TODAY = date(2026, 10, 25)  # a Sunday; the week starts Monday 2026-10-19
 TOKEN = "test-token"

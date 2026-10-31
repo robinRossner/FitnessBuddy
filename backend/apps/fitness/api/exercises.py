@@ -36,7 +36,7 @@ from apps.fitness.settings import get_settings
 from apps.fitness.sync.pull import exercise_out, program_rep_ranges, variant_out
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+router = APIRouter(dependencies=[Depends(require_token)])
 
 
 class RestBody(BaseModel):

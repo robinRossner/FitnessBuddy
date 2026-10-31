@@ -12,9 +12,9 @@ from apps.fitness.db.models import DailyHealth, Lap, Run
 from apps.fitness.db.types import Source
 from apps.fitness.garmin_sync import run_id
 from apps.fitness.jobs.scheduler import build_scheduler
-from apps.fitness.main import app
 from apps.fitness.settings import Settings
 from core.auth import get_api_token
+from server import app
 
 TOKEN = "test-token"
 
@@ -154,7 +154,7 @@ def test_lifespan_starts_and_stops_scheduler_when_enabled(monkeypatch):
             events.append("stop")
 
     monkeypatch.setattr(
-        "apps.fitness.main.get_settings", lambda: Settings(_env_file=None, scheduler_enabled=True)
+        "server.get_settings", lambda: Settings(_env_file=None, scheduler_enabled=True)
     )
     monkeypatch.setattr("apps.fitness.jobs.scheduler.build_scheduler", lambda s: FakeScheduler())
     with TestClient(app):

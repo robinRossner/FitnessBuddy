@@ -36,7 +36,7 @@ from apps.fitness.jobs import engine_jobs
 from apps.fitness.settings import get_settings
 from core.auth import require_token
 
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
+router = APIRouter(dependencies=[Depends(require_token)])
 
 
 def _today() -> date:
