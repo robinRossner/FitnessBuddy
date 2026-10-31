@@ -144,6 +144,9 @@ def test_lifespan_starts_and_stops_scheduler_when_enabled(monkeypatch):
     events = []
 
     class FakeScheduler:
+        def add_job(self, *args, **kwargs):  # the receipts app registers its daily job too
+            pass
+
         def start(self):
             events.append("start")
 
