@@ -15,6 +15,9 @@ services:
       DATABASE_URL: sqlite:////app/var/fitness.db
     volumes:
       - ./data:/app/var
+    # Only Caddy can reach the backend (no published port), so the peer of every request is the Caddy
+    # container in this network's private range, which core/settings.py trusts by default for
+    # X-Forwarded-For (the client IP behind the failed-token throttle); no configuration needed.
     expose:
       - "8000"
     healthcheck:

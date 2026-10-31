@@ -69,16 +69,44 @@ docker compose up -d backend
 Copy a backup to the Mac: `scp ubuntu@HOST:/opt/fitnessbuddy/deploy/backups/fitness_*.db.gz ~/Backups/`.
 The VM disk is the only copy of server-side data, so pull one now and then.
 
-## 6. Rotate the API token
+## 6. Rotate the API tokens
+
+Each app has its own bearer token: `API_TOKEN` (FitnessBuddy; the name stays so the installed iPhone
+keeps working) and `RECEIPTS_API_TOKEN` (Receipts). A token opens only its own app's routes, so
+rotate them separately. `make-prod-env.sh` keeps both existing tokens and generates one that is
+missing (the first run after this change adds `RECEIPTS_API_TOKEN` and leaves `API_TOKEN` alone).
 
 ```sh
-rm backend/.env.production && deploy/make-prod-env.sh      # new API_TOKEN (all other keys re-copied from backend/.env)
+# FitnessBuddy only: delete the API_TOKEN line, keep everything else (including RECEIPTS_API_TOKEN)
+sed -i '' '/^API_TOKEN=/d' backend/.env.production && deploy/make-prod-env.sh
 deploy/push.sh ubuntu@HOST --with-env                      # restarts the backend with the new token
 deploy/copy-token.sh                                        # paste into the iPhone app
+
+# Receipts only: same with RECEIPTS_API_TOKEN
+sed -i '' '/^RECEIPTS_API_TOKEN=/d' backend/.env.production && deploy/make-prod-env.sh
+deploy/push.sh ubuntu@HOST --with-env
+deploy/copy-token.sh receipts                               # paste into the Receipts app
+
+# Both at once (all other keys are re-copied from backend/.env)
+rm backend/.env.production && deploy/make-prod-env.sh
 ```
 
-(Editing only `API_TOKEN` by hand in `.env.production` also works; `make-prod-env.sh` keeps an
-existing token.)
+(Editing a token by hand in `.env.production` also works. `copy-token.sh [fitness|receipts]`
+copies the chosen token to the clipboard without printing it; `fitness` is the default.)
+A token that is unset on the server makes that app's endpoints answer 503.
+
+Hardening that needs no configuration:
+
+- `/docs`, `/redoc` and `/openapi.json` answer 404; set `DOCS_ENABLED=true` in `backend/.env` for
+  local development only (`make-prod-env.sh` always writes `DOCS_ENABLED=false` into
+  `.env.production`, whatever `backend/.env` says).
+- Wrong or missing tokens are counted per client IP in memory: after 20 failures in 10 minutes
+  (`AUTH_MAX_FAILURES`, `AUTH_FAILURE_WINDOW_S`) that IP gets 429 with `Retry-After` until the
+  oldest failure ages out. A valid token always works, even from a throttled IP; health checks are
+  never throttled; a backend restart clears the counters. The client IP is the last
+  `X-Forwarded-For` entry (the one Caddy adds) when the connection comes from a private address
+  (the Caddy container; override with `TRUSTED_PROXY_IPS`, comma-separated IPs/CIDRs), otherwise the
+  connection's own address, so clients cannot spoof it.
 
 ## 7. Garmin Personal API key renewal
 
