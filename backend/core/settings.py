@@ -24,11 +24,8 @@ class CoreSettings(BaseSettings):
         extra="ignore",
     )
 
-    # One bearer token per app (core/auth.py). `api_token` is the fitness app's (the name stays so
-    # the installed iPhone app and existing .env.production files keep working); the receipts
-    # router accepts only `receipts_api_token`. Unset => that app's endpoints answer 503.
+    # Bearer token of the fitness app (core/auth.py). Unset => its endpoints answer 503.
     api_token: SecretStr | None = None
-    receipts_api_token: SecretStr | None = None
 
     # Interactive API docs (/docs, /redoc, /openapi.json): 404 unless enabled (dev only).
     docs_enabled: bool = False

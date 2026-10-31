@@ -1,4 +1,4 @@
-"""Moved to core/redact.py (shared with the receipts app); re-exported here for existing imports."""
+"""Moved to core/redact.py; re-exported here for existing imports."""
 
 from core.redact import RedactingFilter as RedactingFilter
 from core.redact import install_log_redaction as install_log_redaction

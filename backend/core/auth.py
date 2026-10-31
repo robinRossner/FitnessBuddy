@@ -1,9 +1,8 @@
-"""Shared-secret bearer auth, one token per app, for every endpoint except the public health checks.
+"""Shared-secret bearer auth for every endpoint except the public health checks.
 
 `token_dependency` builds the FastAPI dependency of one app: it accepts only that app's token, so
-a token of another app gets 401. Fitness uses `require_token` (env `API_TOKEN`, unchanged so the
-installed iPhone app keeps working), receipts will use `require_receipts_token`
-(`RECEIPTS_API_TOKEN`). An unset token answers 503.
+any other bearer value gets 401. Fitness uses `require_token` (env `API_TOKEN`, unchanged so the
+installed iPhone app keeps working). An unset token answers 503.
 
 Wrong or missing tokens are counted per client IP (core/throttle.py); past the limit they get 429
 with `Retry-After`. A valid token always succeeds, even from a throttled IP.
@@ -24,11 +23,6 @@ from core.throttle import FailureThrottle, Network, client_ip, parse_networks
 
 def get_api_token() -> str | None:
     token = get_core_settings().api_token
-    return token.get_secret_value() if token else None
-
-
-def get_receipts_api_token() -> str | None:
-    token = get_core_settings().receipts_api_token
     return token.get_secret_value() if token else None
 
 
@@ -76,5 +70,4 @@ def token_dependency(env_name: str, get_token: Callable[[], str | None]) -> Call
     return require
 
 
-require_token = token_dependency("API_TOKEN", get_api_token)  # fitness
-require_receipts_token = token_dependency("RECEIPTS_API_TOKEN", get_receipts_api_token)
+require_token = token_dependency("API_TOKEN", get_api_token)

@@ -1,5 +1,4 @@
-"""Code shared by every app served from this backend (fitness, later receipts).
-
-Only app-independent plumbing lives here: bearer auth, the shared settings (paths, API token,
-scheduler switches, Claude credentials) and scheduler helpers. Core never imports from `apps`.
+"""App-independent plumbing of the backend: bearer auth, the shared settings (paths, API token,
+scheduler switches, Claude credentials), db helpers, log redaction and scheduler helpers. Core never
+imports from `apps`.
 """

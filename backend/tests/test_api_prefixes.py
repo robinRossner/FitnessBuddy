@@ -18,20 +18,14 @@ from server import app
 
 LEGACY = "/api/v1"
 FITNESS = "/api/v1/fitness"
-RECEIPTS = "/api/v1/receipts"  # the receipts app: its own token and tests (test_receipts_auth.py)
 PUBLIC = {"/health", f"{LEGACY}/health", f"{FITNESS}/health"}
 TOKEN = "prefix-test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 
-def _operations(*, receipts: bool = False) -> list[tuple[str, str]]:
+def _operations() -> list[tuple[str, str]]:
     paths = app.openapi()["paths"]
-    return sorted(
-        (m.upper(), p)
-        for p, item in paths.items()
-        for m in item
-        if receipts or not p.startswith(RECEIPTS + "/")
-    )
+    return sorted((m.upper(), p) for p, item in paths.items() for m in item)
 
 
 def _fill(path: str) -> str:
@@ -51,12 +45,9 @@ def client(db, monkeypatch):
 
 
 def test_every_legacy_route_has_a_fitness_twin():
-    ops = set(_operations(receipts=True))
-    assert any(p.startswith(RECEIPTS + "/") for _, p in ops)  # mounted, but not a fitness prefix
-    ops_fitness = set(_operations())
-    legacy = {
-        (m, p) for m, p in ops_fitness if p.startswith(LEGACY + "/") and not p.startswith(FITNESS)
-    }
+    ops = set(_operations())
+    assert not any(p.startswith(LEGACY + "/receipts") for _, p in ops)  # receipts moved out
+    legacy = {(m, p) for m, p in ops if p.startswith(LEGACY + "/") and not p.startswith(FITNESS)}
     assert len(legacy) > 40
     for method, path in legacy:
         assert (method, FITNESS + path.removeprefix(LEGACY)) in ops, (method, path)

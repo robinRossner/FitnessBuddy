@@ -12,8 +12,8 @@ from apps.fitness.db.session import make_engine
 from apps.fitness.importers.strong.importer import ImportOptions
 from apps.fitness.settings import FITNESS_DIR
 
-# advisor fixtures (world, fake, client, ...); receipts fixtures (rfactory, rclient, FakeProvider)
-pytest_plugins = ("tests.advisor_helpers", "tests.receipts_helpers")
+# advisor fixtures (world, fake, client, ...)
+pytest_plugins = ("tests.advisor_helpers",)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

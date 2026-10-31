@@ -1,26 +1,20 @@
-"""Per-app bearer tokens, the failed-attempt throttle, the non-ASCII guard and hidden API docs."""
+"""The bearer token, the failed-attempt throttle, the non-ASCII guard and hidden API docs."""
 
 from __future__ import annotations
 
 import pytest
-from fastapi import APIRouter, Depends
+from fastapi import Depends
 from fastapi.testclient import TestClient
 
 from apps.fitness.api.routes import get_db
-from core.auth import (
-    get_throttle,
-    get_trusted_proxies,
-    require_receipts_token,
-    token_dependency,
-)
+from core.auth import get_throttle, get_trusted_proxies, token_dependency
 from core.settings import get_core_settings
 from core.throttle import FailureThrottle, client_ip, parse_networks
 from server import create_app
 
 FITNESS_TOKEN = "fitness-test-token"
-RECEIPTS_TOKEN = "receipts-test-token"
+OTHER_TOKEN = "some-other-token"  # any token but the fitness one
 FITNESS_URL = "/api/v1/variants"  # a real fitness route (needs the db fixture)
-RECEIPTS_URL = "/test-receipts/ping"
 
 
 def bearer(token: str) -> dict[str, str]:
@@ -44,12 +38,9 @@ def _settings_env(monkeypatch, **env: str) -> None:
 
 @pytest.fixture
 def app(db, monkeypatch):
-    """The real app (with the db fixture) plus a test-only receipts router."""
-    _settings_env(monkeypatch, API_TOKEN=FITNESS_TOKEN, RECEIPTS_API_TOKEN=RECEIPTS_TOKEN)
+    """The real app (with the db fixture)."""
+    _settings_env(monkeypatch, API_TOKEN=FITNESS_TOKEN)
     app = create_app(docs_enabled=False)
-    receipts = APIRouter(dependencies=[Depends(require_receipts_token)])
-    receipts.add_api_route(RECEIPTS_URL, lambda: {"ok": True})
-    app.include_router(receipts)
     app.dependency_overrides[get_db] = lambda: db
     return app
 
@@ -70,24 +61,20 @@ def client_at(app, host: str = "203.0.113.9") -> TestClient:
 # --- per-app tokens ----------------------------------------------------------------------
 
 
-def test_each_token_opens_only_its_own_app(app):
-    client = client_at(app)
-    assert client.get(FITNESS_URL, headers=bearer(FITNESS_TOKEN)).status_code == 200
-    assert client.get(RECEIPTS_URL, headers=bearer(RECEIPTS_TOKEN)).json() == {"ok": True}
-    assert client.get(FITNESS_URL, headers=bearer(RECEIPTS_TOKEN)).status_code == 401
-    assert client.get(RECEIPTS_URL, headers=bearer(FITNESS_TOKEN)).status_code == 401
-    # also under the app-scoped fitness prefix
-    assert client.get("/api/v1/fitness/variants", headers=bearer(RECEIPTS_TOKEN)).status_code == 401
-
-
-def test_unset_token_is_503_for_that_app_only(app, monkeypatch):
-    monkeypatch.delenv("RECEIPTS_API_TOKEN")
-    monkeypatch.setenv("RECEIPTS_API_TOKEN", "")
+def test_only_the_fitness_token_opens_the_fitness_api(app, monkeypatch):
+    # a retired RECEIPTS_API_TOKEN left in the environment opens nothing here
+    monkeypatch.setenv("RECEIPTS_API_TOKEN", OTHER_TOKEN)
     get_core_settings.cache_clear()
     client = client_at(app)
-    r = client.get(RECEIPTS_URL, headers=bearer(RECEIPTS_TOKEN))
-    assert r.status_code == 503 and "RECEIPTS_API_TOKEN" in r.json()["detail"]
     assert client.get(FITNESS_URL, headers=bearer(FITNESS_TOKEN)).status_code == 200
+    assert client.get(FITNESS_URL, headers=bearer(OTHER_TOKEN)).status_code == 401
+    # also under the app-scoped fitness prefix
+    assert client.get("/api/v1/fitness/variants", headers=bearer(OTHER_TOKEN)).status_code == 401
+
+
+def test_receipts_routes_are_gone(app):
+    client = client_at(app)
+    assert client.get("/api/v1/receipts/status", headers=bearer(FITNESS_TOKEN)).status_code == 404
 
 
 def test_unset_fitness_token_is_503(app, monkeypatch):
@@ -118,7 +105,6 @@ def test_token_dependency_accepts_only_its_getter_token():
 def test_non_ascii_authorization_header_is_401_not_500(app, raw):
     client = client_at(app)
     assert client.get(FITNESS_URL, headers={"Authorization": raw}).status_code == 401
-    assert client.get(RECEIPTS_URL, headers={"Authorization": raw}).status_code == 401
 
 
 # --- throttle ----------------------------------------------------------------------------
@@ -131,7 +117,7 @@ def test_throttle_answers_429_with_retry_after_after_the_limit(app, clock):
     r = client.get(FITNESS_URL, headers=bearer("nope"))
     assert r.status_code == 429
     assert r.headers["Retry-After"] == "60"
-    assert client.get(RECEIPTS_URL).status_code == 429  # missing token too, any app
+    assert client.get(FITNESS_URL).status_code == 429  # a missing token too
     clock.now += 25
     assert client.get(FITNESS_URL).headers["Retry-After"] == "35"
     # another IP is not affected
@@ -144,7 +130,6 @@ def test_valid_token_always_succeeds_from_a_throttled_ip(app, clock):
         client.get(FITNESS_URL, headers=bearer("nope"))
     assert client.get(FITNESS_URL, headers=bearer("nope")).status_code == 429
     assert client.get(FITNESS_URL, headers=bearer(FITNESS_TOKEN)).status_code == 200
-    assert client.get(RECEIPTS_URL, headers=bearer(RECEIPTS_TOKEN)).status_code == 200
     assert client.get(FITNESS_URL, headers=bearer("nope")).status_code == 429  # still throttled
 
 

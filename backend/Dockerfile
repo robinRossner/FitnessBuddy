@@ -33,9 +33,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH" \
     HOME=/tmp \
     DISABLE_AUTOUPDATER=1 \
-    DATABASE_URL=sqlite:////app/var/fitness.db \
-    RECEIPTS_DATABASE_URL=sqlite:////app/var/receipts.db \
-    RECEIPTS_PHOTOS_DIR=/app/var/receipts_photos
+    DATABASE_URL=sqlite:////app/var/fitness.db
 
 COPY --from=builder /opt/venv /opt/venv
 # world-executable, so it also runs as the host uid compose passes in (HOME=/tmp is writable)
@@ -44,15 +42,14 @@ COPY --from=claude-cli /usr/local/bin/claude /usr/local/bin/claude
 WORKDIR /app
 COPY . .
 
-# All mutable state lives in /app/var (fitness.db, receipts.db, var/receipts_photos, var/fit,
-# var/garminconnect, var/garmin_token.json);
+# All mutable state lives in /app/var (fitness.db, var/fit, var/garminconnect,
+# var/garmin_token.json);
 # BACKEND_DIR (core/settings.py) resolves to /app, so the settings defaults already point there.
-# Layout in the image: /app/server.py, /app/core, /app/apps/fitness and /app/apps/receipts (code,
-# Alembic, data, config).
+# Layout in the image: /app/server.py, /app/core and /app/apps/fitness (code, Alembic, data, config).
 # compose may run the container as another uid (the host user) so the bind mount stays writable
 # for both the app and the host-side backup cron.
 RUN useradd --uid 1000 --no-create-home app \
-    && mkdir -p /app/var/fit /app/var/garminconnect /app/var/receipts_photos \
+    && mkdir -p /app/var/fit /app/var/garminconnect \
     && chown -R app /app/var \
     && chmod +x /app/docker-entrypoint.sh
 USER app

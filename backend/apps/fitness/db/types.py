@@ -6,7 +6,7 @@ from enum import StrEnum
 
 from sqlalchemy import Enum
 
-# Shared helpers live in core/db.py (receipts uses them too); re-exported so imports of
+# Shared helpers live in core/db.py; re-exported so imports of
 # `apps.fitness.db.types.UTCDateTime` (Alembic revisions, models) keep working.
 from core.db import UTCDateTime as UTCDateTime
 from core.db import iso_z as iso_z
