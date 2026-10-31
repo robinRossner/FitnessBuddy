@@ -8,11 +8,12 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.db.session import make_engine
-from app.importers.strong.importer import ImportOptions
-from app.settings import BACKEND_DIR
+from apps.fitness.db.session import make_engine
+from apps.fitness.importers.strong.importer import ImportOptions
+from apps.fitness.settings import FITNESS_DIR
 
-pytest_plugins = ("tests.advisor_helpers",)  # advisor fixtures: world, fake, client, ...
+# advisor fixtures (world, fake, client, ...)
+pytest_plugins = ("tests.advisor_helpers",)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -34,8 +35,8 @@ Mystery Exercise,,,,,unmapped,
 def session_factory(tmp_path: Path):
     """sessionmaker bound to a fresh, fully migrated SQLite database."""
     url = f"sqlite:///{tmp_path / 'test.db'}"
-    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    cfg = Config(str(FITNESS_DIR / "alembic.ini"))
+    cfg.set_main_option("script_location", str(FITNESS_DIR / "alembic"))
     cfg.attributes["url"] = url
     command.upgrade(cfg, "head")
     engine = make_engine(url)
@@ -70,8 +71,8 @@ def options(imports_dir: Path, mapping_path: Path) -> ImportOptions:
     return ImportOptions(
         paths=[imports_dir],
         mapping_path=mapping_path,
-        catalog_path=BACKEND_DIR / "data" / "catalog" / "exercises.yaml",
-        engine_config_path=BACKEND_DIR / "config" / "engine.v2.yaml",
+        catalog_path=FITNESS_DIR / "data" / "catalog" / "exercises.yaml",
+        engine_config_path=FITNESS_DIR / "config" / "engine.v2.yaml",
         tz="Europe/Vienna",
         apply=True,
     )
@@ -81,3 +82,17 @@ def options(imports_dir: Path, mapping_path: Path) -> ImportOptions:
 def _live_program_in_tmp(tmp_path: Path, monkeypatch):
     """The live program file (next to the DB by default) never points at the real backend/var."""
     monkeypatch.setenv("PROGRAM_LIVE_PATH", str(tmp_path / "live" / "program.yaml"))
+
+
+@pytest.fixture(autouse=True)
+def _auth_throttle_off(monkeypatch):
+    """Tests send many bad tokens from one fake client; the throttle is tested on its own."""
+    from core.auth import get_throttle, get_trusted_proxies
+    from core.settings import get_core_settings
+
+    monkeypatch.setenv("AUTH_MAX_FAILURES", "1000000")
+    for cached in (get_core_settings, get_throttle, get_trusted_proxies):
+        cached.cache_clear()
+    yield
+    for cached in (get_core_settings, get_throttle, get_trusted_proxies):
+        cached.cache_clear()

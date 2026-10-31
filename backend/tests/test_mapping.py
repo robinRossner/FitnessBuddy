@@ -1,5 +1,5 @@
-from app.db.catalog import load_catalog
-from app.importers.strong.mapping import (
+from apps.fitness.db.catalog import load_catalog
+from apps.fitness.importers.strong.mapping import (
     MappingRow,
     merge_mapping,
     read_mapping,
@@ -7,9 +7,9 @@ from app.importers.strong.mapping import (
     validate_mapping,
     write_mapping,
 )
-from app.settings import BACKEND_DIR
+from apps.fitness.settings import FITNESS_DIR
 
-CATALOG = load_catalog(BACKEND_DIR / "data" / "catalog" / "exercises.yaml")
+CATALOG = load_catalog(FITNESS_DIR / "data" / "catalog" / "exercises.yaml")
 
 
 def test_merge_preserves_user_edits_and_adds_new_names(tmp_path):
@@ -70,6 +70,6 @@ def test_validate_mapping():
 
 
 def test_shipped_mapping_is_valid():
-    rows = read_mapping(BACKEND_DIR / "data" / "catalog" / "strong_mapping.csv")
+    rows = read_mapping(FITNESS_DIR / "data" / "catalog" / "strong_mapping.csv")
     assert len(rows) >= 68
     assert validate_mapping(rows, CATALOG) == []

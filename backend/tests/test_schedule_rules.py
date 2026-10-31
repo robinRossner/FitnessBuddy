@@ -1,11 +1,11 @@
-"""The hard scheduling rules as pure functions (app/engine/schedule_rules.py)."""
+"""The hard scheduling rules as pure functions (apps/fitness/engine/schedule_rules.py)."""
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 
-from app.engine.config import EngineConfig
-from app.engine.schedule_rules import (
+from apps.fitness.engine.config import EngineConfig
+from apps.fitness.engine.schedule_rules import (
     Edit,
     Layout,
     Rules,
@@ -134,11 +134,11 @@ def test_volume_problem_only_when_the_change_adds_minimum_km():
 
 
 def test_v4_seed_file_carries_the_schedule_defaults():
-    from app.engine.config import ScheduleConfig, load_engine_config
-    from app.settings import BACKEND_DIR
+    from apps.fitness.engine.config import ScheduleConfig, load_engine_config
+    from apps.fitness.settings import FITNESS_DIR
 
-    v4 = load_engine_config(BACKEND_DIR / "config" / "engine.v4.yaml")
-    v3 = load_engine_config(BACKEND_DIR / "config" / "engine.v3.yaml")
+    v4 = load_engine_config(FITNESS_DIR / "config" / "engine.v4.yaml")
+    v3 = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml")
     assert v4.version == "v4" and v3.schedule == {}
     assert v4.schedule_cfg == ScheduleConfig()  # the file documents exactly the code defaults
     assert v3.schedule_cfg == ScheduleConfig()  # a version without the section behaves the same

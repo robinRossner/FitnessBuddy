@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Offsite copy of the server database to this Mac (run by launchd, see deploy/README.md section 9).
-# Takes a fresh snapshot on the server with backup.sh, downloads it, verifies it locally and
-# mirrors the Garmin FIT files. Runs at most once per MIN_AGE_DAYS, so launchd can call it daily
+# Offsite copy of the server databases to this Mac (run by launchd, see deploy/README.md section 9).
+# Takes a fresh snapshot on the server with backup.sh, downloads the fitness snapshot,
+# verifies it locally and mirrors the Garmin FIT files. Runs at most once per MIN_AGE_DAYS, so launchd can call it daily
 # and at login: whenever the Mac is on, the copy is never more than about a week old.
 #   bash deploy/pull-backup.sh            # weekly check (skips if a recent copy exists)
 #   bash deploy/pull-backup.sh --force    # copy now

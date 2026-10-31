@@ -2,8 +2,8 @@
 
 from datetime import date, timedelta
 
-from app.engine.config import ReadinessConfig, load_engine_config
-from app.engine.readiness import (
+from apps.fitness.engine.config import ReadinessConfig, load_engine_config
+from apps.fitness.engine.readiness import (
     GREEN,
     RED,
     YELLOW,
@@ -13,9 +13,9 @@ from app.engine.readiness import (
     red_streak,
     score_day,
 )
-from app.settings import BACKEND_DIR
+from apps.fitness.settings import FITNESS_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v3.yaml").readiness_cfg
+CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml").readiness_cfg
 TODAY = date(2026, 10, 20)
 
 
@@ -171,7 +171,7 @@ def test_deload_trigger_day_is_when_the_streak_reached_the_limit():
 
 
 def why(sleep_baseline_h=8.0, **kw):
-    from app.analytics.health import readiness_view
+    from apps.fitness.analytics.health import readiness_view
 
     return readiness_view(score(**kw), sleep_baseline_h)["details"]
 
@@ -213,7 +213,7 @@ def test_why_minor_flag_still_lists_all_three_and_the_note():
 
 def test_why_missing_factor_gets_a_no_data_line():
     day = HealthDay(TODAY, hrv_ms=70.0, sleep_s=8 * 3600, sleep_score=85)  # no resting HR
-    from app.analytics.health import readiness_view
+    from apps.fitness.analytics.health import readiness_view
 
     lines = readiness_view(score_day(TODAY, [*baseline(), day], CFG), 8.0)["details"]
     assert lines[-1] == "Resting HR: no data"
@@ -222,7 +222,7 @@ def test_why_missing_factor_gets_a_no_data_line():
 
 def test_why_missing_flagged_and_unflagged_order():
     day = HealthDay(TODAY, hrv_ms=44.0, sleep_s=8 * 3600)  # hrv red, no resting HR
-    from app.analytics.health import readiness_view
+    from apps.fitness.analytics.health import readiness_view
 
     lines = readiness_view(score_day(TODAY, [*baseline(), day], CFG), None)["details"]
     f = factor_lines(lines)
@@ -232,7 +232,7 @@ def test_why_missing_flagged_and_unflagged_order():
 
 def test_why_no_data_at_all():
     r = score_day(TODAY, [], CFG)
-    from app.analytics.health import readiness_view
+    from apps.fitness.analytics.health import readiness_view
 
     assert readiness_view(r, None)["details"] == ["No data"]
 

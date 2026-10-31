@@ -1,7 +1,8 @@
 # Deploy runbook (Oracle Cloud Always Free ARM VM)
 
 Stack: FastAPI backend (single uvicorn worker, SQLite, in-process scheduler) + Caddy (automatic
-HTTPS) in Docker Compose. Code goes from the Mac to the VM with rsync; the server needs no git
+HTTPS) in Docker Compose. Code goes from the Mac to the VM with rsync (`push.sh` syncs `backend/` only: `server.py`,
+`core/`, `apps/`; `ios/` is never deployed); the server needs no git
 credentials. State lives in `/opt/fitnessbuddy/deploy/data` (DB, `fit/`, `garminconnect/`).
 
 ## 1. Oracle Cloud console (once)
@@ -42,7 +43,7 @@ The first Let's Encrypt certificate needs DNS and ports 80/443 working; Caddy re
 ## 4. Update later
 
 ```sh
-deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (alembic upgrade head), health check
+deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (the container entrypoint runs `alembic -c apps/fitness/alembic.ini upgrade head`), health check
 ```
 
 Server data is never touched without `--with-db` / `--with-env`. `--with-db` replaces the server
@@ -70,14 +71,31 @@ The VM disk is the only copy of server-side data, so pull one now and then.
 
 ## 6. Rotate the API token
 
+The bearer token is `API_TOKEN` (the name stays so the installed iPhone keeps working).
+`make-prod-env.sh` keeps an existing token and generates one when it is missing.
+
 ```sh
-rm backend/.env.production && deploy/make-prod-env.sh      # new API_TOKEN (all other keys re-copied from backend/.env)
+# delete the API_TOKEN line, keep everything else
+sed -i '' '/^API_TOKEN=/d' backend/.env.production && deploy/make-prod-env.sh
 deploy/push.sh ubuntu@HOST --with-env                      # restarts the backend with the new token
 deploy/copy-token.sh                                        # paste into the iPhone app
 ```
 
-(Editing only `API_TOKEN` by hand in `.env.production` also works; `make-prod-env.sh` keeps an
-existing token.)
+(Editing the token by hand in `.env.production` also works. `copy-token.sh` copies it to the
+clipboard without printing it.) A token that is unset on the server makes the endpoints answer 503.
+
+Hardening that needs no configuration:
+
+- `/docs`, `/redoc` and `/openapi.json` answer 404; set `DOCS_ENABLED=true` in `backend/.env` for
+  local development only (`make-prod-env.sh` always writes `DOCS_ENABLED=false` into
+  `.env.production`, whatever `backend/.env` says).
+- Wrong or missing tokens are counted per client IP in memory: after 20 failures in 10 minutes
+  (`AUTH_MAX_FAILURES`, `AUTH_FAILURE_WINDOW_S`) that IP gets 429 with `Retry-After` until the
+  oldest failure ages out. A valid token always works, even from a throttled IP; health checks are
+  never throttled; a backend restart clears the counters. The client IP is the last
+  `X-Forwarded-For` entry (the one Caddy adds) when the connection comes from a private address
+  (the Caddy container; override with `TRUSTED_PROXY_IPS`, comma-separated IPs/CIDRs), otherwise the
+  connection's own address, so clients cannot spoof it.
 
 ## 7. Garmin Personal API key renewal
 
@@ -152,3 +170,25 @@ tail ~/Library/Logs/FitnessBuddy/backup.log
 Restore from a Mac copy: `gunzip -c ~/Backups/FitnessBuddy/db/fitness_<stamp>.db.gz > /tmp/fitness.db`,
 then follow "Restore from backup" above with that file. Remove the job with
 `launchctl bootout gui/$(id -u)/com.robinrossner.fitnessbuddy.backup`.
+
+## 10. Caddy and the Receipts server
+
+The Receipts server is a separate project (repository `~/Projects/Receipts App`, deployed from its
+own `deploy/` to `/opt/receipts`, own data and backups). It shares only this VM and this stack's
+Caddy: `deploy/Caddyfile` sends `/api/v1/receipts/*` to `receipts-backend:8000` (a container of the
+Receipts stack that joins this stack's Docker network `deploy_default` under that alias) and
+everything else to `backend:8000`. Caddy starts even when `receipts-backend` is down; that path then
+answers 502.
+
+- The compose project name is pinned (`name: deploy` in `docker-compose.yml`), so the network
+  `deploy_default` and the `caddy_data` volume (the certificates) keep their names.
+  Check on the VM: `docker compose ls`, `docker network ls | grep deploy_default`,
+  `docker volume ls | grep caddy_data` (expect `deploy_caddy_data`).
+- `push.sh` validates the Caddyfile with the caddy image before restarting anything, and recreates
+  only the caddy container when its Caddyfile changed (a rsync-replaced single-file bind mount is
+  otherwise not noticed by compose).
+- Old receipts data from the time both apps shared this server may still sit in `data/receipts.db*`,
+  `data/receipts_photos/` and `backups/receipts_*` / `backups/receipts_photos_pending/`. Nothing here
+  reads, writes or deletes them any more (`push.sh` never touches `data/` or `backups/`); they are
+  removed by hand, after the Receipts server has been verified (see the Receipts repository's
+  `deploy/README.md`, "Removing the old copy").

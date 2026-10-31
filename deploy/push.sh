@@ -185,9 +185,26 @@ rssh "chmod 600 $REMOTE_DIR/deploy/data/garmin_token.json 2>/dev/null || true"
 rssh "sudo -n chown -R \$(id -u):\$(id -g) $REMOTE_DIR/deploy/data $REMOTE_DIR/deploy/backups" \
   || warn "could not chown deploy/data (sudo -n failed); permissions may be wrong"
 
+# ---------- Caddyfile check ----------
+# Caddy must not be left running a config that fails to load. `validate` does no DNS lookups, so it
+# passes even while the receipts-backend upstream is down.
+info "validating deploy/Caddyfile with the caddy image"
+rssh "cd $REMOTE_DIR/deploy && docker run --rm -e DOMAIN=$(printf '%q' "$DOMAIN") -v \"\$PWD/Caddyfile\":/etc/caddy/Caddyfile:ro caddy:2.10 caddy validate --config /etc/caddy/Caddyfile" >/dev/null \
+  || die "deploy/Caddyfile does not validate; nothing was restarted"
+
 # ---------- start ----------
 info "docker compose up -d --build (first build on ARM takes a few minutes)"
 rssh "cd $REMOTE_DIR/deploy && docker compose up -d --build" || die "docker compose up failed"
+
+# rsync replaces files by rename, and a single-file bind mount keeps pointing at the OLD file, so
+# compose does not notice a changed Caddyfile. Recreate only caddy when the container's copy
+# differs (caddy_data keeps the certificates).
+host_sum="$(rssh "sha256sum $REMOTE_DIR/deploy/Caddyfile" | cut -d' ' -f1)"
+ctr_sum="$(rssh "cd $REMOTE_DIR/deploy && docker compose exec -T caddy sha256sum /etc/caddy/Caddyfile" 2>/dev/null | cut -d' ' -f1 || true)"
+if [[ -n "$host_sum" && "$host_sum" != "$ctr_sum" ]]; then
+  info "Caddyfile changed: recreating the caddy container (certificates stay in the caddy_data volume)"
+  rssh "cd $REMOTE_DIR/deploy && docker compose up -d --force-recreate --no-deps caddy" || die "could not recreate caddy"
+fi
 
 info "waiting for backend health"
 healthy=0

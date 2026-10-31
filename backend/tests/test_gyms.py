@@ -6,17 +6,17 @@ from pathlib import Path
 import pytest
 from sqlalchemy import func, select
 
-from app.db.models import (
+from apps.fitness.db.models import (
     ExerciseSessionStats,
     ExerciseVariant,
     Gym,
     TrainingSession,
     WorkoutSet,
 )
-from app.gyms import GymConfigError, GymPeriods, GymSpec, load_gyms
-from app.importers.strong.importer import ImportOptions, run_import, variant_uuid
-from app.importers.strong.report import weight_jumps
-from app.settings import BACKEND_DIR
+from apps.fitness.gyms import GymConfigError, GymPeriods, GymSpec, load_gyms
+from apps.fitness.importers.strong.importer import ImportOptions, run_import, variant_uuid
+from apps.fitness.importers.strong.report import weight_jumps
+from apps.fitness.settings import FITNESS_DIR
 
 HEADER = "Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,RPE"
 MAPPING = """\
@@ -67,8 +67,8 @@ def env(tmp_path: Path):
     opts = ImportOptions(
         paths=[d],
         mapping_path=mapping,
-        catalog_path=BACKEND_DIR / "data" / "catalog" / "exercises.yaml",
-        engine_config_path=BACKEND_DIR / "config" / "engine.v2.yaml",
+        catalog_path=FITNESS_DIR / "data" / "catalog" / "exercises.yaml",
+        engine_config_path=FITNESS_DIR / "config" / "engine.v2.yaml",
         gyms_path=gyms,
         apply=True,
     )

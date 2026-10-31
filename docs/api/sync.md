@@ -5,6 +5,9 @@ Base URL `https://<host>/api/v1`, JSON only.
 
 - Auth: `Authorization: Bearer <API_TOKEN>` on every `/api/v1/*` endpoint except
   `GET /api/v1/health` (the legacy `GET /health` is public too).
+- Prefixes: every path in the API docs is also served under `/api/v1/fitness/...` (e.g.
+  `/api/v1/fitness/sync/pull`) with the same behaviour and auth; the app keeps using `/api/v1/...`
+  until it is switched. Only `GET /health` has no `/api/v1` form.
 - Conventions: snake_case keys; ids are **lowercase** UUID strings (Swift's `UUID().uuidString` is
   uppercase: lowercase it before sending; uppercase input is tolerated but the response echoes the
   lowercase form); weights in kg; catalog ids (`variant_id`, `gym_id`, ...) are integers.
@@ -380,10 +383,10 @@ All additive unless noted:
 
 ## Example fixtures
 
-Produced by `backend/scripts/gen_api_examples.py` (real endpoints via FastAPI `TestClient` against
+Produced by `backend/apps/fitness/scripts/gen_api_examples.py` (real endpoints via FastAPI `TestClient` against
 a copy of the real database, with "today" pinned to Monday 2026-10-26; the current engine is run on
 the copy first, so the plans show its output; the live database is not touched):
 `plan_today.json`, `plan_week.json`, `sync_pull.json` (snapshot; sessions trimmed to the newest 3,
 a `_note` key says so), `sync_pull_incremental.json` (changes caused by the example push),
 `sync_push_request.json`, `sync_push_response.json`, `variant_history.json`.
-Regenerate: `cd backend && uv run python -m scripts.gen_api_examples`.
+Regenerate: `cd backend && uv run python -m apps.fitness.scripts.gen_api_examples`.

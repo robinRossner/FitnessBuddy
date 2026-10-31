@@ -7,12 +7,12 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.engine import lifting as L
-from app.engine.config import load_engine_config
-from app.engine.increments import previous_load, round_down_load
-from app.settings import BACKEND_DIR
+from apps.fitness.engine import lifting as L
+from apps.fitness.engine.config import load_engine_config
+from apps.fitness.engine.increments import previous_load, round_down_load
+from apps.fitness.settings import FITNESS_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v6.yaml")
+CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")
 D0 = date(2026, 9, 1)
 
 

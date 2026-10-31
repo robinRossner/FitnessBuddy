@@ -6,17 +6,17 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.engine import interval_vdot as IV
-from app.engine import quality as Q
-from app.engine import running as R
-from app.engine import vdot as V
-from app.engine.config import VdotConfig, VdotFromIntervalsConfig, load_engine_config
-from app.engine.hr import zones_from_config
-from app.engine.pace import FRAC_INTERVAL, FRAC_THRESHOLD, pace_at_fraction, vdot_for_pace
-from app.engine.planner import PlanInputs, generate_week
-from app.settings import BACKEND_DIR
+from apps.fitness.engine import interval_vdot as IV
+from apps.fitness.engine import quality as Q
+from apps.fitness.engine import running as R
+from apps.fitness.engine import vdot as V
+from apps.fitness.engine.config import VdotConfig, VdotFromIntervalsConfig, load_engine_config
+from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.engine.pace import FRAC_INTERVAL, FRAC_THRESHOLD, pace_at_fraction, vdot_for_pace
+from apps.fitness.engine.planner import PlanInputs, generate_week
+from apps.fitness.settings import FITNESS_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v6.yaml")
+CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")
 RC = CFG.running_cfg
 ZONES = zones_from_config(CFG)  # LTHR 171: Z3 from 157, Z5 from 174; peak-HR floor 157.5
 IC = VdotFromIntervalsConfig()  # 70 d window, >= 4 reps of 2-8 min, -0.25 / week after 28 d
@@ -255,7 +255,7 @@ def test_planner_without_interval_sessions_is_unchanged():
 
 
 def test_keys_are_on_the_advisor_allowlist():
-    from app.advisor import validator as VA
+    from apps.fitness.advisor import validator as VA
 
     def check(param, value):
         return VA.validate_change(param, value, VA.Context(CFG.model_dump()))
@@ -280,11 +280,11 @@ def test_migration_0014_adds_the_keys(tmp_path):
     from alembic.config import Config
     from sqlalchemy import create_engine, text
 
-    from app.engine.config import EngineConfig
+    from apps.fitness.engine.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
-    acfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    acfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    acfg = Config(str(FITNESS_DIR / "alembic.ini"))
+    acfg.set_main_option("script_location", str(FITNESS_DIR / "alembic"))
     acfg.attributes["url"] = url
     command.upgrade(acfg, "0013")
     content = {"version": "v6.1", "running": {"vdot": {"max_step": 0.5}}}
@@ -320,8 +320,8 @@ def test_migration_0014_adds_the_keys(tmp_path):
 def test_engine_run_endpoint_replans_and_returns_a_summary(client, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from app.jobs import engine_jobs
-    from app.main import app
+    from apps.fitness.jobs import engine_jobs
+    from server import app
 
     pushes: list[str] = []
     monkeypatch.setattr(engine_jobs, "push_runs_soon", pushes.append)

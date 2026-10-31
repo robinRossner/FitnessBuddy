@@ -66,12 +66,12 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 - `name`: the variant name without the gym suffix (the gym is in `gym_name`; `null` = generic
   variant that is the same in every gym). `muscle_group` is the exercise's primary muscle.
 - `body_region`: coarse region for dashboards, one of `Chest` | `Back` | `Shoulders` | `Arms` |
-  `Legs` | `Core` | `Other`. It is stored per exercise in `data/catalog/exercises.yaml`
+  `Legs` | `Core` | `Other`. It is stored per exercise in `apps/fitness/data/catalog/exercises.yaml`
   (`body_region`); rear delts count as Shoulders, lats and traps as Back, biceps / triceps /
   forearms as Arms, glutes / hamstrings / quads / calves / adductors as Legs, abs as Core,
   anything else (e.g. cardio) as Other. Exercises that are not in the catalog derive it from
   `muscle_group` by the same table.
-- `in_program`: `true` when the variant is one the active exercises of `data/program/program.yaml`
+- `in_program`: `true` when the variant is one the active exercises of `apps/fitness/data/program/program.yaml`
   resolve to at the current gym (the generic variant or the one bound to that gym, exactly as the
   planner picks it). `false` for variants of other gyms, exercises not in the program and when
   there is no program file.

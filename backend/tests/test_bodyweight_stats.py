@@ -6,11 +6,11 @@ from datetime import datetime
 import pytest
 from sqlalchemy import select
 
-from app.bodyweight import upsert_measurement
-from app.db.models import ExerciseSessionStats, ExerciseVariant
-from app.importers.strong.importer import ImportOptions, run_import
-from app.settings import BACKEND_DIR
-from app.stats import rebuild_stats
+from apps.fitness.bodyweight import upsert_measurement
+from apps.fitness.db.models import ExerciseSessionStats, ExerciseVariant
+from apps.fitness.importers.strong.importer import ImportOptions, run_import
+from apps.fitness.settings import FITNESS_DIR
+from apps.fitness.stats import rebuild_stats
 
 HEADER = "Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,RPE"
 MAPPING = """\
@@ -43,8 +43,8 @@ def imported(db, tmp_path):
     opts = ImportOptions(
         paths=[d],
         mapping_path=mapping,
-        catalog_path=BACKEND_DIR / "data" / "catalog" / "exercises.yaml",
-        engine_config_path=BACKEND_DIR / "config" / "engine.v2.yaml",  # fallback 82 kg
+        catalog_path=FITNESS_DIR / "data" / "catalog" / "exercises.yaml",
+        engine_config_path=FITNESS_DIR / "config" / "engine.v2.yaml",  # fallback 82 kg
         apply=True,
     )
     run_import(db, opts)

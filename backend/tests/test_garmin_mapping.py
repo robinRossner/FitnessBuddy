@@ -7,11 +7,11 @@ from datetime import UTC, date, datetime
 import httpx
 import pytest
 
-from app.sources.garmin import mapping
-from app.sources.garmin.errors import BadRequestError, NotFoundError
-from app.sources.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
-from app.sources.garmin.personal_api import PersonalApiSource
-from app.sources.garmin.personal_client import TOKEN_PATH, PersonalApiClient
+from apps.fitness.sources.garmin import mapping
+from apps.fitness.sources.garmin.errors import BadRequestError, NotFoundError
+from apps.fitness.sources.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
+from apps.fitness.sources.garmin.personal_api import PersonalApiSource
+from apps.fitness.sources.garmin.personal_client import TOKEN_PATH, PersonalApiClient
 from tests.garmin_fakes import (
     SAMPLE_LAPS,
     activity_raw,

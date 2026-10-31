@@ -6,13 +6,13 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import func, select
 
-from app.db.models import AthleteMetric, ConfigVersion, DecisionLog
-from app.engine import config_service as cs
-from app.engine.config import EngineConfig
-from app.engine.hr import zones_from_config
-from app.settings import BACKEND_DIR
+from apps.fitness.db.models import AthleteMetric, ConfigVersion, DecisionLog
+from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.config import EngineConfig
+from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.settings import FITNESS_DIR
 
-V3_PATH = BACKEND_DIR / "config" / "engine.v3.yaml"
+V3_PATH = FITNESS_DIR / "config" / "engine.v3.yaml"
 
 
 @pytest.fixture
@@ -153,7 +153,7 @@ def test_on_new_data_hook_applies_garmin_values_and_never_raises(seeded, monkeyp
     from contextlib import contextmanager
     from types import SimpleNamespace
 
-    from app.jobs import garmin_jobs
+    from apps.fitness.jobs import garmin_jobs
 
     @contextmanager
     def scope():
@@ -170,12 +170,12 @@ def test_on_new_data_hook_applies_garmin_values_and_never_raises(seeded, monkeyp
     assert "LTHR 171→179" in active.reason
     # a failing engine run must not break the sync
     monkeypatch.setattr(garmin_jobs, "get_settings", lambda: SimpleNamespace(engine_auto_run=True))
-    monkeypatch.setattr("app.engine.service.run_engine", lambda *a, **k: 1 / 0)
+    monkeypatch.setattr("apps.fitness.engine.service.run_engine", lambda *a, **k: 1 / 0)
     garmin_jobs.on_new_data(SimpleNamespace(results=[]))
 
 
 def test_decision_log_dedupes_per_rule_on_a_shared_subject(seeded):
-    from app.engine.decisions import log_decision
+    from apps.fitness.engine.decisions import log_decision
 
     kw = {"kind": "running", "subject_type": "week", "subject_id": "w1", "rationale": "x"}
     for _ in range(2):  # two rules on one subject, logged alternately: still one row each

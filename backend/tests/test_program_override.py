@@ -6,9 +6,9 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from app.engine import service as engine
-from app.engine.program import BACKUPS_KEEP, backup_program
-from app.settings import get_settings
+from apps.fitness.engine import service as engine
+from apps.fitness.engine.program import BACKUPS_KEEP, backup_program
+from apps.fitness.settings import get_settings
 from tests.advisor_helpers import PROGRAM_YAML, TODAY
 
 
@@ -25,7 +25,7 @@ def backups(env) -> list:
 
 
 def test_live_path_defaults_next_to_the_database(tmp_path):
-    from app.settings import Settings
+    from apps.fitness.settings import Settings
 
     s = Settings(database_url=f"sqlite:///{tmp_path}/data/fitness.db", program_live_path=None)
     assert s.live_program_path == tmp_path / "data" / "program.yaml"
@@ -126,7 +126,7 @@ def test_duplicate_exercise_is_422(world, client):
 
 
 def test_variant_override_follows_the_picked_variant(world, db, env, client):
-    from app.engine import config_service as cs
+    from apps.fitness.engine import config_service as cs
 
     cs.ensure_seeded(db, env.engine_config_path)
     cs.create_version(

@@ -11,15 +11,15 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.sources.garmin.errors import (
+from apps.fitness.sources.garmin.errors import (
     BadRequestError,
     KeyExpiredError,
     NotFoundError,
     RateLimitedError,
     ServerError,
 )
-from app.sources.garmin.personal_client import TOKEN_PATH, PersonalApiClient, jwt_claims
-from app.sources.garmin.redact import redact
+from apps.fitness.sources.garmin.personal_client import TOKEN_PATH, PersonalApiClient, jwt_claims
+from apps.fitness.sources.garmin.redact import redact
 
 KEY = "test-api-key-0123456789"
 BASE = "https://personal.example.test"

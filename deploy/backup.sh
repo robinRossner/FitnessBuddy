@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Nightly consistent SQLite snapshot (safe while the app runs in WAL mode).
+# Nightly consistent SQLite snapshot (safe while the app runs in WAL mode) of fitness.db.
 # Installed by deploy/bootstrap.sh; manual equivalent (crontab -e):
 #   15 3 * * * /opt/fitnessbuddy/deploy/backup.sh >> /var/log/fitnessbuddy-backup.log 2>&1
-# Requires the sqlite3 CLI on the host (apt install sqlite3).
+# Requires the sqlite3 and rsync CLIs on the host (apt install sqlite3 rsync).
+#
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"

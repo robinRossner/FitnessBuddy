@@ -6,12 +6,12 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from app.db.models import Exercise, ExerciseVariant, TrainingSession
-from app.db.types import SessionKind
-from app.importers.strong.importer import ImportOptions, run_import, session_uuid
-from app.importers.strong.mapping import read_mapping, write_mapping
-from app.importers.strong.report import build_report
-from app.settings import BACKEND_DIR
+from apps.fitness.db.models import Exercise, ExerciseVariant, TrainingSession
+from apps.fitness.db.types import SessionKind
+from apps.fitness.importers.strong.importer import ImportOptions, run_import, session_uuid
+from apps.fitness.importers.strong.mapping import read_mapping, write_mapping
+from apps.fitness.importers.strong.report import build_report
+from apps.fitness.settings import FITNESS_DIR
 
 HEADER = "Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,RPE"
 MAPPING = """\
@@ -64,8 +64,8 @@ def env(tmp_path: Path):
     return ImportOptions(
         paths=[d],
         mapping_path=mapping,
-        catalog_path=BACKEND_DIR / "data" / "catalog" / "exercises.yaml",
-        engine_config_path=BACKEND_DIR / "config" / "engine.v2.yaml",
+        catalog_path=FITNESS_DIR / "data" / "catalog" / "exercises.yaml",
+        engine_config_path=FITNESS_DIR / "config" / "engine.v2.yaml",
         apply=True,
     )
 
@@ -172,7 +172,7 @@ def test_inactive_variants_keep_data_but_leave_review_and_anomalies(db, env):
 def _count_sets(db, variant_id: int) -> int:
     from sqlalchemy import func
 
-    from app.db.models import WorkoutSet
+    from apps.fitness.db.models import WorkoutSet
 
     return db.scalar(
         select(func.count()).select_from(WorkoutSet).where(WorkoutSet.variant_id == variant_id)

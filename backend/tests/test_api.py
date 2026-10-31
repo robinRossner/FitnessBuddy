@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.importers.strong.importer import run_import
-from app.main import app
+from apps.fitness.api.routes import get_db
+from apps.fitness.importers.strong.importer import run_import
+from core.auth import get_api_token
+from server import app
 
 
 def test_health_and_sessions(db, options):

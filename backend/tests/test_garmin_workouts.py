@@ -1,4 +1,4 @@
-"""Planned runs -> Garmin workouts (app/garmin_workouts.py) against a fake python-garminconnect
+"""Planned runs -> Garmin workouts (fitness/garmin_workouts.py) against a fake python-garminconnect
 client: workout JSON per run type, names, idempotency, replace on change, cleanup of past / done /
 removed workouts, foreign workouts untouched, scheduler wiring, endpoint auth. No network."""
 
@@ -11,16 +11,16 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app import garmin_workouts as gw
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.db.models import PlannedSession, Run
-from app.db.types import Source
-from app.jobs.scheduler import build_scheduler
-from app.main import app
-from app.settings import Settings
-from app.sources.garmin.errors import SourceUnavailable
-from app.sources.garmin.python_garminconnect import GarminConnectLogin
+from apps.fitness import garmin_workouts as gw
+from apps.fitness.api.routes import get_db
+from apps.fitness.db.models import PlannedSession, Run
+from apps.fitness.db.types import Source
+from apps.fitness.jobs.scheduler import build_scheduler
+from apps.fitness.settings import Settings
+from apps.fitness.sources.garmin.errors import SourceUnavailable
+from apps.fitness.sources.garmin.python_garminconnect import GarminConnectLogin
+from core.auth import get_api_token
+from server import app
 
 TODAY = date(2026, 10, 28)  # a Wednesday
 TOKEN = "test-token"
@@ -446,7 +446,7 @@ def test_push_if_changed_skips_garmin_when_nothing_changed(db, fake, session_fac
         finally:
             s.close()
 
-    monkeypatch.setattr("app.db.session.session_scope", scope)
+    monkeypatch.setattr("apps.fitness.db.session.session_scope", scope)
     monkeypatch.setattr(gw, "user_today", lambda s: TODAY)
     add_planned(db, P1, TODAY + timedelta(days=1), "easy_run", easy(5.0))
     assert gw.push_if_changed("test", settings()) is not None
@@ -517,7 +517,7 @@ def test_job_never_raises(monkeypatch):
         raise SourceUnavailable("python-garminconnect login failed (X)")
 
     monkeypatch.setattr(gw, "push_workouts", boom)
-    monkeypatch.setattr("app.db.session.get_session_factory", lambda: None)
+    monkeypatch.setattr("apps.fitness.db.session.get_session_factory", lambda: None)
     gw.push_job()  # logged, not raised
 
 
@@ -540,7 +540,7 @@ def test_scheduler_has_evening_and_morning_push():
 
 @pytest.fixture
 def client(db, fake, monkeypatch):
-    monkeypatch.setattr("app.api.garmin.get_settings", lambda: settings())
+    monkeypatch.setattr("apps.fitness.api.garmin.get_settings", lambda: settings())
     monkeypatch.setattr(gw, "user_today", lambda s: TODAY)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_api_token] = lambda: TOKEN
@@ -578,5 +578,7 @@ def test_endpoint_date_and_errors(client, monkeypatch):
     monkeypatch.setattr(gw, "client_provider", no_login)
     r = client.post("/api/v1/garmin/workouts/push", headers=AUTH)
     assert r.status_code == 503 and "login failed" in r.json()["detail"]
-    monkeypatch.setattr("app.api.garmin.get_settings", lambda: settings(garmin_push_workouts=False))
+    monkeypatch.setattr(
+        "apps.fitness.api.garmin.get_settings", lambda: settings(garmin_push_workouts=False)
+    )
     assert client.post("/api/v1/garmin/workouts/push", headers=AUTH).status_code == 503

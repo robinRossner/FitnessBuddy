@@ -9,11 +9,11 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
 
-from app.db.models import PlannedSession
-from app.engine import data as D
-from app.engine import persist as P
-from app.engine import service as engine
-from app.settings import BACKEND_DIR
+from apps.fitness.db.models import PlannedSession
+from apps.fitness.engine import data as D
+from apps.fitness.engine import persist as P
+from apps.fitness.engine import service as engine
+from apps.fitness.settings import FITNESS_DIR
 from tests.advisor_helpers import TODAY
 
 NEXT = date(2026, 10, 26)
@@ -126,8 +126,8 @@ def test_a_late_import_cancels_the_makeup_and_the_template_returns(world, db, en
 
 def test_migration_adds_the_schedule_section_as_a_derived_config_version(tmp_path):
     url = f"sqlite:///{tmp_path / 'm.db'}"
-    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    cfg = Config(str(FITNESS_DIR / "alembic.ini"))
+    cfg.set_main_option("script_location", str(FITNESS_DIR / "alembic"))
     cfg.attributes["url"] = url
     command.upgrade(cfg, "0007")
     eng = create_engine(url)

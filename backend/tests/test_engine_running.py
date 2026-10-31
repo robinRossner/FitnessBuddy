@@ -5,14 +5,14 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.engine import running as R
-from app.engine.config import load_engine_config
-from app.engine.hr import zones_from_config
-from app.settings import BACKEND_DIR
+from apps.fitness.engine import running as R
+from apps.fitness.engine.config import load_engine_config
+from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.settings import FITNESS_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v3.yaml")
+CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml")
 RC = CFG.running_cfg
-RC6 = load_engine_config(BACKEND_DIR / "config" / "engine.v6.yaml").running_cfg
+RC6 = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml").running_cfg
 ZONES = zones_from_config(CFG)  # easy <= 156, intervals 166-179
 D = date(2026, 10, 20)
 FLOORS = (98.0, 117.0, 137.0, 156.0, 176.0)  # Garmin zone floors

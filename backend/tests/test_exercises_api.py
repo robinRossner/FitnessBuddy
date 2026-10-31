@@ -8,20 +8,24 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 
-from app import gym_service as gs
-from app.db.catalog import CatalogExercise, sync_catalog
-from app.db.models import Exercise, ExerciseVariant
-from app.db.types import EquipmentType
-from app.engine import data
-from app.exercise_service import generic_variant_key, is_user_generic_variant
+from apps.fitness import gym_service as gs
+from apps.fitness.db.catalog import CatalogExercise, sync_catalog
+from apps.fitness.db.models import Exercise, ExerciseVariant
+from apps.fitness.db.types import EquipmentType
+from apps.fitness.engine import data
+from apps.fitness.exercise_service import generic_variant_key, is_user_generic_variant
 from tests.advisor_helpers import AUTH
 
 
 @pytest.fixture
 def reruns(monkeypatch) -> list[str]:
     calls: list[str] = []
-    monkeypatch.setattr("app.api.exercises.rerun_engine", lambda reason="": calls.append(reason))
-    monkeypatch.setattr("app.api.gyms.rerun_engine", lambda reason="": calls.append(reason))
+    monkeypatch.setattr(
+        "apps.fitness.api.exercises.rerun_engine", lambda reason="": calls.append(reason)
+    )
+    monkeypatch.setattr(
+        "apps.fitness.api.gyms.rerun_engine", lambda reason="": calls.append(reason)
+    )
     return calls
 
 
@@ -313,7 +317,7 @@ def test_rename_keeps_the_plan_pointing_at_the_variant(client, world, db, env):
 
 
 def test_renamed_program_variant_keeps_its_rep_range_in_the_pull(client, world, db, env):
-    from app.engine import config_service as cs
+    from apps.fitness.engine import config_service as cs
 
     cs.ensure_seeded(db, env.engine_config_path)
     cs.create_version(

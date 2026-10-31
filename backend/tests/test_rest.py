@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import pytest
 
-from app.advisor import validator as V
-from app.engine import config_service as cs
-from app.engine import rest as R
-from app.engine import service as engine
-from app.engine.config import EngineConfig, load_engine_config
-from app.engine.program import load_program
-from app.settings import BACKEND_DIR, get_settings
+from apps.fitness.advisor import validator as V
+from apps.fitness.engine import config_service as cs
+from apps.fitness.engine import rest as R
+from apps.fitness.engine import service as engine
+from apps.fitness.engine.config import EngineConfig, load_engine_config
+from apps.fitness.engine.program import load_program
+from apps.fitness.settings import FITNESS_DIR, get_settings
 from tests.advisor_helpers import PROGRAM_YAML, TODAY
 
 # --------------------------------------------------------------------------- config
@@ -22,7 +22,7 @@ def test_default_rest_is_two_minutes_even_without_the_section():
     assert cfg.lifting_cfg.rest_default_s == 120
     assert R.resolve_rest_s(cfg, "squat") == 120
     assert R.resolve_rest_s(cfg, None) == 120
-    v5 = load_engine_config(BACKEND_DIR / "config" / "engine.v5.yaml")
+    v5 = load_engine_config(FITNESS_DIR / "config" / "engine.v5.yaml")
     assert v5.lifting == {"rest_default_s": 120}
 
 

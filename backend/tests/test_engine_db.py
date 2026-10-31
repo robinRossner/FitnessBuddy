@@ -9,9 +9,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.db.models import (
+from apps.fitness.api.routes import get_db
+from apps.fitness.db.models import (
     AdvisorTrigger,
     DailyHealth,
     DecisionLog,
@@ -24,12 +23,12 @@ from app.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from app.db.types import Source
-from app.engine import config_service as cs
-from app.engine import data as D
-from app.engine import persist as P
-from app.engine import service
-from app.engine.program import (
+from apps.fitness.db.types import Source
+from apps.fitness.engine import config_service as cs
+from apps.fitness.engine import data as D
+from apps.fitness.engine import persist as P
+from apps.fitness.engine import service
+from apps.fitness.engine.program import (
     ExerciseUse,
     Program,
     ProgramExercise,
@@ -38,9 +37,10 @@ from app.engine.program import (
     load_program,
     render_program,
 )
-from app.main import app
-from app.settings import BACKEND_DIR, Settings
-from app.stats import rebuild_stats
+from apps.fitness.settings import FITNESS_DIR, Settings
+from apps.fitness.stats import rebuild_stats
+from core.auth import get_api_token
+from server import app
 
 TODAY = date(2026, 10, 26)  # Monday
 
@@ -136,7 +136,7 @@ def utc(d: datetime) -> datetime:
 @pytest.fixture
 def world(db, tmp_path):
     """A small training history around TODAY: gym, variants, upper/lower sessions, runs, health."""
-    cs.ensure_seeded(db, BACKEND_DIR / "config" / "engine.v3.yaml")
+    cs.ensure_seeded(db, FITNESS_DIR / "config" / "engine.v3.yaml")
     gym = Gym(key="gym3", name="Gym 3")
     db.add(gym)
     ex_bench = Exercise(
@@ -522,7 +522,7 @@ def test_stall_ladder_step_is_persisted_and_remembered(db, world, program, setti
 
 
 def _legacy_reset(db, variant, load: float, reps: list[int], reset_load: float) -> None:
-    from app.engine.decisions import log_decision
+    from apps.fitness.engine.decisions import log_decision
 
     log_decision(
         db,
@@ -699,7 +699,7 @@ def test_deload_cancel_api(client, db, world, program, settings):
 def test_deload_cancel_cli(db, world, program, settings, monkeypatch):
     from typer.testing import CliRunner
 
-    from app import cli
+    from apps.fitness import cli
 
     _stall_week(db, world)
     monkeypatch.setattr(service, "user_today", lambda settings=None: TODAY)
@@ -746,11 +746,11 @@ def test_migration_0011_adds_the_volume_hold_keys(tmp_path):
     from alembic.config import Config
     from sqlalchemy import create_engine, text
 
-    from app.engine.config import EngineConfig
+    from apps.fitness.engine.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
-    acfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    acfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    acfg = Config(str(FITNESS_DIR / "alembic.ini"))
+    acfg.set_main_option("script_location", str(FITNESS_DIR / "alembic"))
     acfg.attributes["url"] = url
     command.upgrade(acfg, "0010")
     content = {"version": "v6", "running": {"volume": {"cap_abs_km": 3.0}}}
@@ -785,11 +785,11 @@ def test_migration_0010_adds_the_v2_keys_and_retires_v1_stall_triggers(tmp_path)
     from alembic.config import Config
     from sqlalchemy import create_engine, text
 
-    from app.engine.config import EngineConfig
+    from apps.fitness.engine.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
-    acfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    acfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    acfg = Config(str(FITNESS_DIR / "alembic.ini"))
+    acfg.set_main_option("script_location", str(FITNESS_DIR / "alembic"))
     acfg.attributes["url"] = url
     command.upgrade(acfg, "0009")
     content = {
