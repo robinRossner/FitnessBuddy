@@ -2,7 +2,7 @@
 
 Stack: FastAPI backend (single uvicorn worker, SQLite, in-process scheduler) + Caddy (automatic
 HTTPS) in Docker Compose. Code goes from the Mac to the VM with rsync (`push.sh` syncs `backend/` only: `server.py`,
-`core/`, `apps/`; `clients/` is never deployed); the server needs no git
+`core/`, `apps/`; `ios/` is never deployed); the server needs no git
 credentials. State lives in `/opt/fitnessbuddy/deploy/data` (DB, `fit/`, `garminconnect/`).
 
 ## 1. Oracle Cloud console (once)

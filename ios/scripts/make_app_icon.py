@@ -5,12 +5,12 @@ Design: three concentric activity-style rings on a deep navy field, in the app's
 (outer lifting orange, middle running teal, inner coach purple). Purely geometric, no text,
 no SF Symbols, no third-party assets.
 
-Run from the repo root or clients/fitness-ios/:
-    uv run --with pillow python clients/fitness-ios/scripts/make_app_icon.py [--preview]
+Run from the repo root or ios/:
+    uv run --with pillow python ios/scripts/make_app_icon.py [--preview]
 
 Writes icon-1024.png, icon-1024-dark.png, icon-1024-tinted.png into
-clients/fitness-ios/FitnessBuddy/Resources/Assets.xcassets/AppIcon.appiconset/ and Contents.json next to them.
---preview also writes clients/fitness-ios/docs/screenshots/app-icon-preview.png (light/dark/tinted at 1024, 180, 60).
+ios/FitnessBuddy/Resources/Assets.xcassets/AppIcon.appiconset/ and Contents.json next to them.
+--preview also writes ios/docs/screenshots/app-icon-preview.png (light/dark/tinted at 1024, 180, 60).
 """
 import json
 import math

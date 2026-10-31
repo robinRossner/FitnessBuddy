@@ -12,9 +12,7 @@ backend/
   apps/receipts/       Receipts: photo upload, extraction queue (Claude vision), sync, photo archive,
                        Alembic (own receipts.db), Mac data migration
   tests/
-clients/
-  fitness-ios/         SwiftUI app (XcodeGen `project.yml`)
-  receipts-apple/      Receipts Mac app (Swift package, imported with its history)
+ios/       FitnessBuddy SwiftUI app (XcodeGen `project.yml`)
 deploy/    docker-compose + Caddy + nightly SQLite backup, push/bootstrap scripts (see deploy/README.md)
 docs/      spec & decisions (docs/spec/decisions.md)
 imports/   your raw exports + import reports (gitignored)
@@ -25,6 +23,13 @@ installed iOS app) and, identically, under `/api/v1/fitness/...`; `/health` is u
 Receipts API lives under `/api/v1/receipts/...` with its own token (`docs/api/receipts.md`). Each app
 has its own SQLite file and Alembic setup in `backend/var/` (`fitness.db`, `receipts.db`; in the
 container `/app/var/...`); receipt photos not yet archived on the laptop are in `receipts_photos/`.
+
+The Receipts apps (Mac, iPhone, paused Android) are **not** in this repo: they live in
+`~/Projects/Receipts App` and only share this server. This repo holds the shared server
+(including `backend/apps/receipts` and the API contract `docs/api/receipts.md`), the deploy setup and the
+fitness app; deploys of the server, for both apps, happen from here. Two backend tests read that repo's
+Swift sources (prompt pinning, taxonomy drift): `RECEIPTS_APP_DIR` points at it (default
+`$HOME/Projects/Receipts App`); they skip with a reason when it is absent.
 
 ## Setup
 

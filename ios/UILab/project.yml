@@ -1,6 +1,6 @@
 # UI experiments: throwaway SwiftUI front ends with hardcoded data (Shared/ = placeholder data + kit).
 # Separate from the real app (../project.yml is untouched); each variant installs as its own app.
-# cd clients/fitness-ios/UILab && xcodegen generate && open FitnessBuddyUILab.xcodeproj
+# cd ios/UILab && xcodegen generate && open FitnessBuddyUILab.xcodeproj
 name: FitnessBuddyUILab
 options:
   bundleIdPrefix: com.robinrossner
