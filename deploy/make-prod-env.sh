@@ -43,6 +43,15 @@ pattern="^(export[[:space:]]+)?($(echo "$OVERRIDE_KEYS" | tr ' ' '|'))[[:space:]
 grep -Ev "$pattern" "$SRC" > "$tmp" || true
 # make sure the copy ends with a newline before appending
 [[ ! -s "$tmp" || -z "$(tail -c1 "$tmp")" ]] || echo >> "$tmp"
+# Keys set only in .env.production (e.g. CLAUDE_CODE_OAUTH_TOKEN) must survive a re-run.
+if [[ -f "$DST" ]]; then
+  while IFS= read -r line; do
+    [[ "$line" =~ ^(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]] || continue
+    key="${BASH_REMATCH[2]}"
+    [[ " $OVERRIDE_KEYS " == *" $key "* ]] && continue
+    grep -Eq "^(export[[:space:]]+)?$key[[:space:]]*=" "$SRC" || printf '%s\n' "$line" >> "$tmp"
+  done < "$DST"
+fi
 {
   echo "# --- production overrides (deploy/make-prod-env.sh) ---"
   echo "API_TOKEN=$api_token"
