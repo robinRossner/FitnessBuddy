@@ -42,6 +42,7 @@ clients/fitness-ios/**/DerivedData/
 deploy/data/
 deploy/imports/
 clients/fitness-ios/Config/Local.xcconfig
+clients/receipts-apple/Config/Local.xcconfig
 clients/fitness-ios/**/*.xcuserstate
 clients/fitness-ios/build/
 clients/fitness-ios/FitnessBuddy.xcodeproj/
