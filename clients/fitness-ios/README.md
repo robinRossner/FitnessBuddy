@@ -7,7 +7,7 @@ engine pushes dirty records and pulls changes when a connection is available.
 
 ```sh
 brew install xcodegen
-cd ios
+cd clients/fitness-ios
 cp Config/Local.xcconfig.example Config/Local.xcconfig   # put your DEVELOPMENT_TEAM in it (gitignored)
 xcodegen generate                                        # project.yml is the source of truth
 open FitnessBuddy.xcodeproj
@@ -27,7 +27,7 @@ The icon (three activity-style rings in the lifting orange / running teal / coac
 (iOS 18 single-size 1024 px: light, dark = transparent background, tinted = grayscale). Regenerate after changing it:
 
 ```sh
-uv run --with pillow python ios/scripts/make_app_icon.py --preview   # --preview also writes docs/screenshots/app-icon-preview.png
+uv run --with pillow python clients/fitness-ios/scripts/make_app_icon.py --preview   # --preview also writes docs/screenshots/app-icon-preview.png
 ```
 
 ## First run
