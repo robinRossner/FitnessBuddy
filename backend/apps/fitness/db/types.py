@@ -2,42 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, TypeDecorator
+from sqlalchemy import Enum
 
-
-class UTCDateTime(TypeDecorator[datetime]):
-    """Stores aware datetimes as naive UTC (SQLite has no tz); returns aware UTC datetimes."""
-
-    impl = DateTime
-    cache_ok = True
-
-    def process_bind_param(self, value: datetime | None, dialect) -> datetime | None:
-        if value is None:
-            return None
-        if value.tzinfo is None:
-            raise ValueError("UTCDateTime requires an aware datetime")
-        return value.astimezone(UTC).replace(tzinfo=None)
-
-    def process_result_value(self, value: datetime | None, dialect) -> datetime | None:
-        if value is None:
-            return None
-        return value.replace(tzinfo=UTC)
-
-
-def utcnow() -> datetime:
-    return datetime.now(UTC)
-
-
-def iso_z(value: datetime | None) -> str | None:
-    """Wire format of every timestamp the sync API emits: UTC, millisecond precision, `Z`."""
-    if value is None:
-        return None
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=UTC)
-    return value.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+# Shared helpers live in core/db.py (receipts uses them too); re-exported so imports of
+# `apps.fitness.db.types.UTCDateTime` (Alembic revisions, models) keep working.
+from core.db import UTCDateTime as UTCDateTime
+from core.db import iso_z as iso_z
+from core.db import utcnow as utcnow
 
 
 def str_enum(enum_cls: type[StrEnum], name: str) -> Enum:

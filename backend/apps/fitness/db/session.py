@@ -4,31 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from pathlib import Path
 
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from apps.fitness.settings import get_settings
-
-
-def _sqlite_pragmas(dbapi_conn, _record) -> None:  # pragma: no cover - trivial
-    cur = dbapi_conn.cursor()
-    cur.execute("PRAGMA journal_mode=WAL")
-    cur.execute("PRAGMA foreign_keys=ON")
-    cur.execute("PRAGMA busy_timeout=5000")
-    cur.execute("PRAGMA synchronous=NORMAL")
-    cur.close()
+from core.db import make_engine as core_make_engine
 
 
 def make_engine(url: str | None = None) -> Engine:
-    url = url or get_settings().database_url
-    if url.startswith("sqlite:///") and ":memory:" not in url:
-        Path(url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(url, future=True)
-    if engine.dialect.name == "sqlite":
-        event.listen(engine, "connect", _sqlite_pragmas)
-    return engine
+    return core_make_engine(url or get_settings().database_url)
 
 
 _engine: Engine | None = None
