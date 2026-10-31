@@ -9,7 +9,8 @@ backend/
   server.py            shared FastAPI entry point (`uvicorn server:app`)
   core/                app-independent code: bearer auth, shared settings, scheduler helpers
   apps/fitness/        FitnessBuddy: API, models, engine, advisor, importers, Alembic, data, config
-  apps/receipts/       (later) the Receipts backend
+  apps/receipts/       Receipts: photo upload, extraction queue (Claude vision), sync, photo archive,
+                       Alembic (own receipts.db), Mac data migration
   tests/
 clients/
   fitness-ios/         SwiftUI app (XcodeGen `project.yml`)
@@ -20,8 +21,10 @@ imports/   your raw exports + import reports (gitignored)
 ```
 
 One backend process serves both personal apps. Fitness routes live under `/api/v1/...` (the
-installed iOS app) and, identically, under `/api/v1/fitness/...`; `/health` is unprefixed. The DB
-stays `backend/var/fitness.db` (`/app/var/fitness.db` in the container).
+installed iOS app) and, identically, under `/api/v1/fitness/...`; `/health` is unprefixed. The
+Receipts API lives under `/api/v1/receipts/...` with its own token (`docs/api/receipts.md`). Each app
+has its own SQLite file and Alembic setup in `backend/var/` (`fitness.db`, `receipts.db`; in the
+container `/app/var/...`); receipt photos not yet archived on the laptop are in `receipts_photos/`.
 
 ## Setup
 
@@ -31,6 +34,7 @@ cd backend
 uv sync                       # Python 3.12 venv + deps
 cp .env.example .env          # optional
 uv run alembic -c apps/fitness/alembic.ini upgrade head   # creates backend/var/fitness.db
+uv run alembic -c apps/receipts/alembic.ini upgrade head  # creates backend/var/receipts.db
 ```
 
 ## Import Strong history
@@ -157,7 +161,7 @@ after pulling this step (adds `server_seq`, `sync_seq`, `sets.completed_at`).
 ```sh
 cd backend && uv run uvicorn server:app --reload
 # public: GET /health, /api/v1/health (also under /api/v1/fitness/...). Everything else needs `Authorization: Bearer $API_TOKEN`
-# (fitness token; the receipts app will use its own RECEIPTS_API_TOKEN). Set DOCS_ENABLED=true in .env for /docs locally:
+# (fitness token; the receipts app uses its own RECEIPTS_API_TOKEN, docs/api/receipts.md). Set DOCS_ENABLED=true in .env for /docs locally:
 # GET /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
 # bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
 # GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),
