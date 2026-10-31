@@ -12,6 +12,8 @@ struct AskCoachContext: Identifiable, Equatable {
     var id: String { scope.rawValue + "|" + (refId ?? "") }
 
     static let general = AskCoachContext(scope: .general, refId: nil, subject: "Training in general", allowsScopeSwitch: true)
+    /// The backend accepts any day of the week as `ref_id`, so today identifies this week.
+    static var thisWeek: AskCoachContext { .init(scope: .week, refId: AppClock.todayString, subject: "This week", allowsScopeSwitch: true) }
     static func lift(id: Int, name: String) -> AskCoachContext { .init(scope: .lift, refId: String(id), subject: name) }
     static func run(id: String, name: String) -> AskCoachContext { .init(scope: .run, refId: id, subject: name) }
 
@@ -92,8 +94,7 @@ struct AskCoachSheet: View {
 
     private var scopeBinding: Binding<CoachScope> {
         Binding(get: { context.scope }, set: { newScope in
-            context.scope = newScope
-            context.subject = newScope == .week ? "This week" : "Training in general"
+            context = newScope == .week ? .thisWeek : .general
         })
     }
 

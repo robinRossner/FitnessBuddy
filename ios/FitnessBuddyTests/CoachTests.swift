@@ -137,6 +137,11 @@ struct CoachDecodingTests {
         #expect(again == v)
     }
 
+    @Test func askContextsCarryTheRefTheirScopeNeeds() {
+        #expect(AskCoachContext.thisWeek.scope == .week && AskCoachContext.thisWeek.refId == AppClock.todayString)
+        #expect(AskCoachContext.general.scope == .general && AskCoachContext.general.refId == nil)
+    }
+
     @Test func requestsEncodeSnakeCase() throws {
         let ask = try JSONEncoder().encode(CoachAskRequest(scope: .lift, refId: "127", question: "Why?"))
         #expect(String(decoding: ask, as: UTF8.self).contains(#""ref_id":"127""#))
