@@ -2,11 +2,11 @@
 
 from datetime import date, timedelta
 
-from app.engine import scheduling as S
-from app.engine.config import load_engine_config
-from app.settings import BACKEND_DIR
+from apps.fitness.engine import scheduling as S
+from apps.fitness.engine.config import load_engine_config
+from apps.fitness.settings import FITNESS_DIR
 
-TEMPLATE = load_engine_config(BACKEND_DIR / "config" / "engine.v3.yaml").weekly_template
+TEMPLATE = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml").weekly_template
 MON = date(2026, 10, 26)
 
 

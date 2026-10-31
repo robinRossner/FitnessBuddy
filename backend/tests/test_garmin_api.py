@@ -7,14 +7,14 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.db.models import DailyHealth, Lap, Run
-from app.db.types import Source
-from app.garmin_sync import run_id
-from app.jobs.scheduler import build_scheduler
-from app.main import app
-from app.settings import Settings
+from apps.fitness.api.auth import get_api_token
+from apps.fitness.api.routes import get_db
+from apps.fitness.db.models import DailyHealth, Lap, Run
+from apps.fitness.db.types import Source
+from apps.fitness.garmin_sync import run_id
+from apps.fitness.jobs.scheduler import build_scheduler
+from apps.fitness.main import app
+from apps.fitness.settings import Settings
 
 TOKEN = "test-token"
 
@@ -134,7 +134,7 @@ def test_scheduler_jobs_and_default_off():
 
 def test_lifespan_does_not_start_scheduler_by_default(monkeypatch):
     started = []
-    monkeypatch.setattr("app.jobs.scheduler.build_scheduler", lambda s: started.append(s))
+    monkeypatch.setattr("apps.fitness.jobs.scheduler.build_scheduler", lambda s: started.append(s))
     with TestClient(app):
         pass
     assert started == []
@@ -154,16 +154,16 @@ def test_lifespan_starts_and_stops_scheduler_when_enabled(monkeypatch):
             events.append("stop")
 
     monkeypatch.setattr(
-        "app.main.get_settings", lambda: Settings(_env_file=None, scheduler_enabled=True)
+        "apps.fitness.main.get_settings", lambda: Settings(_env_file=None, scheduler_enabled=True)
     )
-    monkeypatch.setattr("app.jobs.scheduler.build_scheduler", lambda s: FakeScheduler())
+    monkeypatch.setattr("apps.fitness.jobs.scheduler.build_scheduler", lambda s: FakeScheduler())
     with TestClient(app):
         assert events == ["start"]
     assert events == ["start", "stop"]
 
 
 def test_engine_hook_is_a_harmless_placeholder():
-    from app.garmin_sync import SyncReport
-    from app.jobs.garmin_jobs import on_new_data
+    from apps.fitness.garmin_sync import SyncReport
+    from apps.fitness.jobs.garmin_jobs import on_new_data
 
     assert on_new_data(SyncReport()) is None

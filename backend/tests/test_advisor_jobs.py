@@ -9,12 +9,12 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy import select
 
-from app.advisor import claude, service
-from app.db.models import AdvisorConsultation, AdvisorTrigger
-from app.engine import config_service as cs
-from app.jobs import advisor_jobs
-from app.jobs.scheduler import build_scheduler
-from app.settings import Settings
+from apps.fitness.advisor import claude, service
+from apps.fitness.db.models import AdvisorConsultation, AdvisorTrigger
+from apps.fitness.engine import config_service as cs
+from apps.fitness.jobs import advisor_jobs
+from apps.fitness.jobs.scheduler import build_scheduler
+from apps.fitness.settings import Settings
 from tests.advisor_helpers import TODAY, FakeClient
 
 VIENNA = ZoneInfo("Europe/Vienna")
@@ -102,7 +102,7 @@ def test_jobs_never_raise(db, world, no_rerun, env, pin_session_factory, monkeyp
 
     monkeypatch.setattr(service, "run_trigger_batch", broken)
     advisor_jobs.trigger_job(env)  # logged, not raised
-    monkeypatch.setattr("app.advisor.outcomes.run_outcome_check", broken)
+    monkeypatch.setattr("apps.fitness.advisor.outcomes.run_outcome_check", broken)
     advisor_jobs.outcome_job(env)
 
 
@@ -115,7 +115,7 @@ def test_trigger_job_batches_on_weekdays_but_not_on_sunday(
     db.commit()
     advisor_jobs.trigger_job(env)  # TODAY is a Sunday: the weekly review takes the triggers
     assert fake.calls == []
-    monkeypatch.setattr("app.analytics.common.today", lambda: TODAY + timedelta(days=1))
+    monkeypatch.setattr("apps.fitness.analytics.common.today", lambda: TODAY + timedelta(days=1))
     advisor_jobs.trigger_job(env)
     assert len(fake.calls) == 1
     db.expire_all()
@@ -134,7 +134,7 @@ def test_trigger_job_retries_consultations_that_waited_for_a_key(
         status="awaiting_key",
     )
     db.commit()
-    monkeypatch.setattr("app.analytics.common.today", lambda: TODAY + timedelta(days=1))
+    monkeypatch.setattr("apps.fitness.analytics.common.today", lambda: TODAY + timedelta(days=1))
     advisor_jobs.trigger_job(env)
     db.expire_all()
     assert db.get(AdvisorConsultation, c.id).status == "pending"

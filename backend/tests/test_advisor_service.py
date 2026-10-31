@@ -11,11 +11,11 @@ import httpx2
 import pytest
 from sqlalchemy import select
 
-from app.advisor import claude, service, summary
-from app.advisor.prompt import SYSTEM_PROMPT
-from app.db.models import AdvisorChange, AdvisorConsultation, AdvisorTrigger
-from app.engine import config_service as cs
-from app.settings import get_settings
+from apps.fitness.advisor import claude, service, summary
+from apps.fitness.advisor.prompt import SYSTEM_PROMPT
+from apps.fitness.db.models import AdvisorChange, AdvisorConsultation, AdvisorTrigger
+from apps.fitness.engine import config_service as cs
+from apps.fitness.settings import get_settings
 from tests.advisor_helpers import (
     KEY,
     TODAY,
@@ -116,7 +116,7 @@ def test_cache_read_is_priced_at_the_read_rate(db, world, no_rerun, monkeypatch)
 
 
 def test_session_overrides_with_weights_or_paces_are_dropped(db, world, fake, no_rerun):
-    from app.advisor.schema import SessionOverride
+    from apps.fitness.advisor.schema import SessionOverride
 
     fake.output = make_output(
         proposed_changes=[],
@@ -139,7 +139,7 @@ def test_session_overrides_with_weights_or_paces_are_dropped(db, world, fake, no
 
 
 def test_duplicate_and_excess_changes_are_invalid(db, world, fake, no_rerun):
-    from app.advisor.schema import ProposedChange
+    from apps.fitness.advisor.schema import ProposedChange
 
     one = ProposedChange(
         param="strength.stall_exposures", **{"from": 3}, to=4, reason="r", risk="low"
@@ -157,7 +157,7 @@ def test_answer_without_changes_is_closed_not_pending(db, world, fake, no_rerun)
 
 
 def test_all_invalid_changes_end_rejected(db, world, fake, no_rerun):
-    from app.advisor.schema import ProposedChange
+    from apps.fitness.advisor.schema import ProposedChange
 
     bad = ProposedChange(
         param="running.heart_rate.lthr", **{"from": 171}, to=180, reason="r", risk="low"
@@ -346,7 +346,7 @@ def test_auto_low_risk_applies_only_what_the_validator_calls_low(db, world, fake
 
 
 def test_auto_low_risk_ignores_the_risk_claude_states(db, world, fake, no_rerun):
-    from app.advisor.schema import ProposedChange
+    from apps.fitness.advisor.schema import ProposedChange
 
     _set_mode(db, "auto-low-risk")
     sneaky = ProposedChange(  # Claude says low, the validator says medium
@@ -471,8 +471,8 @@ def test_reject_after_partial_approval_keeps_the_applied_part(db, world, fake, n
 
 
 def test_applied_overrides_reach_the_engine_inputs(db, world, fake, no_rerun, env):
-    from app.engine import data as D
-    from app.engine import service as engine_service
+    from apps.fitness.engine import data as D
+    from apps.fitness.engine import service as engine_service
 
     c = consult(db)
     service.approve(db, c, None)
@@ -491,9 +491,9 @@ def test_applied_overrides_reach_the_engine_inputs(db, world, fake, no_rerun, en
 
 
 def test_swap_override_changes_the_program_variant(db, world, fake, no_rerun, env):
-    from app.advisor.schema import ProposedChange
-    from app.engine import data as D
-    from app.engine import service as engine_service
+    from apps.fitness.advisor.schema import ProposedChange
+    from apps.fitness.engine import data as D
+    from apps.fitness.engine import service as engine_service
 
     fake.output = make_output(
         proposed_changes=[
@@ -669,7 +669,7 @@ def test_a_failed_call_releases_its_triggers(db, world, no_rerun, monkeypatch):
 def test_old_and_recently_consulted_triggers_are_dismissed(db, world, fake, no_rerun):
     from datetime import timedelta
 
-    from app.db.types import utcnow
+    from apps.fitness.db.types import utcnow
 
     old = _trigger(db, "rule_conflict", "old", payload={"conflict": "x"})
     old.created_at = utcnow() - timedelta(days=30)
@@ -807,7 +807,7 @@ def test_ask_validates_its_target(db, world):
 def test_stale_running_consultations_are_failed(db, world, no_rerun):
     from datetime import timedelta
 
-    from app.db.types import utcnow
+    from apps.fitness.db.types import utcnow
 
     c = service.create_consultation(db, kind="ask", trigger_info={"type": "ask"}, status="running")
     c.updated_at = utcnow() - timedelta(hours=2)

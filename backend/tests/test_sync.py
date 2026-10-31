@@ -11,9 +11,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select, text
 
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.db.models import (
+from apps.fitness.api.auth import get_api_token
+from apps.fitness.api.routes import get_db
+from apps.fitness.db.models import (
     BodyMeasurement,
     ExerciseSessionStats,
     ExerciseVariant,
@@ -21,10 +21,10 @@ from app.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from app.db.types import iso_z
-from app.importers.strong.importer import run_import
-from app.main import app
-from app.settings import get_settings
+from apps.fitness.db.types import iso_z
+from apps.fitness.importers.strong.importer import run_import
+from apps.fitness.main import app
+from apps.fitness.settings import get_settings
 
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
@@ -43,7 +43,7 @@ def uid() -> str:
 def engine_hook(monkeypatch) -> MagicMock:
     """The engine re-run is mocked everywhere (it would otherwise open the real database)."""
     hook = MagicMock()
-    monkeypatch.setattr("app.api.sync.rerun_engine", hook)
+    monkeypatch.setattr("apps.fitness.api.sync.rerun_engine", hook)
     return hook
 
 
@@ -372,7 +372,7 @@ def test_engine_rerun_triggered_only_by_applied_training_data(client, squat_id, 
 
 
 def test_rerun_engine_never_raises(monkeypatch):
-    from app.jobs import engine_jobs
+    from apps.fitness.jobs import engine_jobs
 
     class _Boom:
         def __enter__(self):
@@ -625,7 +625,7 @@ def test_every_write_path_stamps_server_seq_and_e1rm_rebuilds_do_not(client, db,
 
 
 def test_stats_rebuild_keeps_client_visible_state(client, db, squat_id):
-    from app.stats import rebuild_with_config
+    from apps.fitness.stats import rebuild_with_config
 
     s = session()
     st = wset(s["id"], squat_id)
@@ -646,7 +646,7 @@ def test_stats_rebuild_keeps_client_visible_state(client, db, squat_id):
 
 
 def test_partial_stats_rebuild_leaves_other_variants_alone(client, db, squat_id):
-    from app.stats import rebuild_with_config
+    from apps.fitness.stats import rebuild_with_config
 
     other = db.scalar(select(ExerciseVariant.id).where(ExerciseVariant.id != squat_id))
     n_total = db.scalar(select(func.count()).select_from(ExerciseSessionStats))

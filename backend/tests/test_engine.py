@@ -3,13 +3,13 @@ from dataclasses import dataclass
 import pytest
 from pydantic import ValidationError
 
-from app.engine.config import IncrementConfig, load_engine_config
-from app.engine.increments import next_load
-from app.engine.pace import PaceModel
-from app.settings import BACKEND_DIR
-from app.sources.garmin.base import GarminSource
+from apps.fitness.engine.config import IncrementConfig, load_engine_config
+from apps.fitness.engine.increments import next_load
+from apps.fitness.engine.pace import PaceModel
+from apps.fitness.settings import FITNESS_DIR
+from apps.fitness.sources.garmin.base import GarminSource
 
-CONFIG = load_engine_config(BACKEND_DIR / "config" / "engine.v1.yaml")
+CONFIG = load_engine_config(FITNESS_DIR / "config" / "engine.v1.yaml")
 
 
 @dataclass

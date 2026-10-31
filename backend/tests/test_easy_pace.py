@@ -3,17 +3,17 @@ easy runs, and the planner using it for easy / long runs only (quality paces unc
 
 from datetime import date, timedelta
 
-from app.engine import easy_pace as EP
-from app.engine import quality as Q
-from app.engine import running as R
-from app.engine import vdot as V
-from app.engine.config import EasyCalibrationConfig, load_engine_config
-from app.engine.hr import zones_from_config
-from app.engine.pace import FRAC_EASY_FAST, easy_range_for_vdot, vdot_for_pace
-from app.engine.planner import PlanInputs, generate_week
-from app.settings import BACKEND_DIR
+from apps.fitness.engine import easy_pace as EP
+from apps.fitness.engine import quality as Q
+from apps.fitness.engine import running as R
+from apps.fitness.engine import vdot as V
+from apps.fitness.engine.config import EasyCalibrationConfig, load_engine_config
+from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.engine.pace import FRAC_EASY_FAST, easy_range_for_vdot, vdot_for_pace
+from apps.fitness.engine.planner import PlanInputs, generate_week
+from apps.fitness.settings import FITNESS_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v6.yaml")
+CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")
 RC = CFG.running_cfg
 ZONES = zones_from_config(CFG)  # easy ceiling 156 (LTHR 171)
 CAL = EasyCalibrationConfig()  # window 28 d, 3 runs, >= 25 min, HR <= 154, +4 VDOT max
@@ -213,7 +213,7 @@ def test_planner_without_enough_easy_runs_keeps_daniels():
 
 
 def test_calibration_keys_are_on_the_advisor_allowlist():
-    from app.advisor import validator as VA
+    from apps.fitness.advisor import validator as VA
 
     def check(param, value):
         return VA.validate_change(param, value, VA.Context(CFG.model_dump()))
@@ -237,11 +237,11 @@ def test_migration_0013_adds_the_calibration_keys(tmp_path):
     from alembic.config import Config
     from sqlalchemy import create_engine, text
 
-    from app.engine.config import EngineConfig
+    from apps.fitness.engine.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
-    acfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    acfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    acfg = Config(str(FITNESS_DIR / "alembic.ini"))
+    acfg.set_main_option("script_location", str(FITNESS_DIR / "alembic"))
     acfg.attributes["url"] = url
     command.upgrade(acfg, "0012")
     content = {"version": "v6.1", "running": {"easy_calibration": {"max_vdot_gain": 2.0}}}

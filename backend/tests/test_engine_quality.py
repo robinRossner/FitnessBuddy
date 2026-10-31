@@ -1,16 +1,16 @@
-"""The Friday quality cycle (phases, lever order) and VDOT hysteresis (app/engine/quality.py,
-app/engine/vdot.py; docs/research/running-progression.md sections 2-3)."""
+"""The Friday quality cycle (phases, lever order) and VDOT hysteresis (fitness/engine/quality.py,
+apps/fitness/engine/vdot.py; docs/research/running-progression.md sections 2-3)."""
 
 from datetime import date, timedelta
 
 import pytest
 
-from app.engine import quality as Q
-from app.engine import vdot as V
-from app.engine.config import load_engine_config
-from app.settings import BACKEND_DIR
+from apps.fitness.engine import quality as Q
+from apps.fitness.engine import vdot as V
+from apps.fitness.engine.config import load_engine_config
+from apps.fitness.settings import FITNESS_DIR
 
-CFG = load_engine_config(BACKEND_DIR / "config" / "engine.v6.yaml")
+CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")
 RC = CFG.running_cfg
 START = date(2026, 1, 5)  # a Monday
 

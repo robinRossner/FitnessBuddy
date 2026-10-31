@@ -5,7 +5,7 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from app.db.models import (
+from apps.fitness.db.models import (
     ConfigVersion,
     ExerciseNameMapping,
     ExerciseSessionStats,
@@ -15,9 +15,9 @@ from app.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from app.db.types import Fidelity, SessionKind, SetType
-from app.importers.strong.importer import run_import, session_uuid, set_uuid
-from app.importers.strong.report import build_report
+from apps.fitness.db.types import Fidelity, SessionKind, SetType
+from apps.fitness.importers.strong.importer import run_import, session_uuid, set_uuid
+from apps.fitness.importers.strong.report import build_report
 
 FIX = Path(__file__).parent / "fixtures"
 

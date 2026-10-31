@@ -7,12 +7,12 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
-from app.advisor import outcomes, service, summary
-from app.advisor.schema import ProposedChange
-from app.db.models import Outcome
-from app.engine import config_service as cs
-from app.jobs import advisor_jobs
-from app.stats import rebuild_stats
+from apps.fitness.advisor import outcomes, service, summary
+from apps.fitness.advisor.schema import ProposedChange
+from apps.fitness.db.models import Outcome
+from apps.fitness.engine import config_service as cs
+from apps.fitness.jobs import advisor_jobs
+from apps.fitness.stats import rebuild_stats
 from tests.advisor_helpers import TODAY, days_ago, make_output
 
 
@@ -92,7 +92,7 @@ def test_worse_and_neutral(db, world, fake, no_rerun, env):
 
 def test_worse_when_the_best_of_the_window_drops(db, world, fake, no_rerun, env):
     # change applied 22 days ago; remove the sessions of the after window and add a weak one
-    from app.db.models import TrainingSession
+    from apps.fitness.db.models import TrainingSession
 
     applied_change(db, world, 22, fake_client=fake)
     for s in db.scalars(select(TrainingSession)):
@@ -117,7 +117,7 @@ def test_nothing_before_21_days_and_only_once(db, world, fake, no_rerun, env):
 
 def test_no_data_waits_until_28_days_then_is_neutral(db, world, fake, no_rerun, env):
     # a lift with no sessions at all after the change
-    from app.db.models import TrainingSession
+    from apps.fitness.db.models import TrainingSession
 
     applied_change(db, world, 21, fake_client=fake)
     for s in db.scalars(select(TrainingSession)):
@@ -172,7 +172,7 @@ def test_outcomes_reach_history_and_the_next_advisor_input(db, world, fake, no_r
     _c, v = applied_change(db, world, 22, fake_client=fake)
     bench_session(world, days_ago(2), 80.0)
     outcomes.run_outcome_check(db, env, today=TODAY)
-    from app.advisor.serialize import history_json
+    from apps.fitness.advisor.serialize import history_json
 
     top = history_json(db)["versions"][0]
     assert top["version"] == v.version

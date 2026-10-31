@@ -6,9 +6,9 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 
-from app.advisor import claude, service
-from app.advisor.providers.base import AdvisorCallError, ClaudeResult
-from app.db.models import AdvisorTrigger
+from apps.fitness.advisor import claude, service
+from apps.fitness.advisor.providers.base import AdvisorCallError, ClaudeResult
+from apps.fitness.db.models import AdvisorTrigger
 from tests.advisor_helpers import make_output
 from tests.test_advisor_service import consult
 

@@ -11,13 +11,13 @@ import yaml
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.analytics import cache, common, correlations
-from app.analytics.health import bodyweight_change_pct, readiness_view
-from app.analytics.zones import collapse, time_in_zones
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.db.catalog import BODY_REGIONS, load_catalog, region_of_muscle
-from app.db.models import (
+from apps.fitness.analytics import cache, common, correlations
+from apps.fitness.analytics.health import bodyweight_change_pct, readiness_view
+from apps.fitness.analytics.zones import collapse, time_in_zones
+from apps.fitness.api.auth import get_api_token
+from apps.fitness.api.routes import get_db
+from apps.fitness.db.catalog import BODY_REGIONS, load_catalog, region_of_muscle
+from apps.fitness.db.models import (
     BodyMeasurement,
     DailyHealth,
     DecisionLog,
@@ -30,21 +30,21 @@ from app.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from app.db.types import Source
-from app.engine import running as R
-from app.engine import service
-from app.engine.config import load_engine_config
-from app.engine.hr import zones_from_config
-from app.engine.program import Program, ProgramExercise
-from app.engine.readiness import Readiness, Signal
-from app.main import app
-from app.settings import BACKEND_DIR
-from app.stats import rebuild_stats
+from apps.fitness.db.types import Source
+from apps.fitness.engine import running as R
+from apps.fitness.engine import service
+from apps.fitness.engine.config import load_engine_config
+from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.engine.program import Program, ProgramExercise
+from apps.fitness.engine.readiness import Readiness, Signal
+from apps.fitness.main import app
+from apps.fitness.settings import FITNESS_DIR
+from apps.fitness.stats import rebuild_stats
 
 TODAY = date(2026, 10, 25)  # a Sunday: the current week starts Monday 2026-10-19
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
-CFG_PATH = BACKEND_DIR / "config" / "engine.v3.yaml"
+CFG_PATH = FITNESS_DIR / "config" / "engine.v3.yaml"
 
 NULL_KPIS = (
     "vdot_current", "vdot_4w_ago", "vdot_change", "vdot_source", "vdot_fit_current",
@@ -85,7 +85,7 @@ def _fresh_cache():
 
 
 def _client(db, monkeypatch) -> TestClient:
-    monkeypatch.setattr("app.analytics.common.today", lambda: TODAY)
+    monkeypatch.setattr("apps.fitness.analytics.common.today", lambda: TODAY)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_api_token] = lambda: TOKEN
     return TestClient(app, headers=AUTH)
@@ -224,7 +224,7 @@ def interval_laps(work_hr: float = 168, pace: float = 250, reps: int = 4):
 
 @pytest.fixture
 def world(db, monkeypatch):
-    from app.engine import config_service as cs
+    from apps.fitness.engine import config_service as cs
 
     cs.ensure_seeded(db, CFG_PATH)
     w = World(db)
@@ -412,7 +412,7 @@ def test_lifts_summary_shape_filtering_sort_and_stall(client, world):
 
 
 def test_open_lift_stall_trigger_marks_stalled(client, db, world):
-    from app.db.models import AdvisorTrigger
+    from apps.fitness.db.models import AdvisorTrigger
 
     assert (
         next(
@@ -640,7 +640,7 @@ def test_pace_ok_is_true_unless_slower_than_the_tolerance(client, db, world):
 
 
 def test_pace_tolerance_follows_the_config_version(client, db, world):
-    from app.engine import config_service as cs
+    from apps.fitness.engine import config_service as cs
 
     run = _planned_interval_run(db, world, 20, 262)  # 4.8 % slower than the 250 target
     assert client.get(f"/api/v1/runs/{run.id}/analysis").json()["laps"][1]["pace_ok"] is False
@@ -961,7 +961,7 @@ def test_in_program_needs_the_variant_of_the_current_gym(client, db, world, monk
 
 
 def test_catalog_has_a_valid_coarse_body_region_for_every_exercise():
-    catalog = load_catalog(BACKEND_DIR / "data" / "catalog" / "exercises.yaml")
+    catalog = load_catalog(FITNESS_DIR / "data" / "catalog" / "exercises.yaml")
     assert catalog and all(c.body_region in BODY_REGIONS for c in catalog.values())
     region = {slug: c.body_region for slug, c in catalog.items()}
     assert region["bench_press"] == "Chest" and region["reverse_fly"] == "Shoulders"  # rear delts
@@ -971,7 +971,7 @@ def test_catalog_has_a_valid_coarse_body_region_for_every_exercise():
     assert region["plank"] == "Core" and region["cardio"] == "Other"
     for c in catalog.values():  # the explicit value agrees with the muscle mapping
         assert c.body_region == region_of_muscle(c.primary_muscle), c.slug
-    raw = yaml.safe_load((BACKEND_DIR / "data" / "catalog" / "exercises.yaml").read_text())
+    raw = yaml.safe_load((FITNESS_DIR / "data" / "catalog" / "exercises.yaml").read_text())
     assert all("body_region" in e for e in raw["exercises"])
 
 
@@ -1172,7 +1172,7 @@ def test_vdot_series_is_the_engine_state_from_the_decision_log(client, db, world
 
 
 def test_vdot_current_equals_the_engine_state(client, db, world):
-    from app.engine import data as D
+    from apps.fitness.engine import data as D
 
     _vdot_record(db, days_ago(20), 43.44, "initial", 0.0, "initial")
     _vdot_record(db, days_ago(6), 44.51, "interval_reps", 3.0, "measured")
@@ -1197,7 +1197,7 @@ def test_vdot_record_before_the_4w_cutoff_only(client, db, world):
 
 
 def test_running_kpis_are_null_without_enough_runs(db, monkeypatch):
-    from app.engine import config_service as cs
+    from apps.fitness.engine import config_service as cs
 
     cs.ensure_seeded(db, CFG_PATH)
     w = World(db)

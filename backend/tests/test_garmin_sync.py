@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import func, select
 
-from app.db.models import (
+from apps.fitness.db.models import (
     AthleteMetric,
     BodyMeasurement,
     DailyHealth,
@@ -17,10 +17,10 @@ from app.db.models import (
     Run,
     SyncState,
 )
-from app.garmin_sync import GarminSync, chunk_ranges, run_id, weight_id
-from app.settings import Settings
-from app.sources.garmin import mapping
-from app.sources.garmin.base import (
+from apps.fitness.garmin_sync import GarminSync, chunk_ranges, run_id, weight_id
+from apps.fitness.settings import Settings
+from apps.fitness.sources.garmin import mapping
+from apps.fitness.sources.garmin.base import (
     ACTIVITIES,
     DAILY_SUMMARY,
     HRV,
@@ -29,7 +29,7 @@ from app.sources.garmin.base import (
     ActivityDetail,
     LapData,
 )
-from app.sources.garmin.errors import (
+from apps.fitness.sources.garmin.errors import (
     GarminError,
     NotFoundError,
     RateLimitedError,

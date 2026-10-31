@@ -10,22 +10,24 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from app import gym_service as gs
-from app.db.models import Exercise, ExerciseVariant, Gym
-from app.db.types import utcnow
-from app.engine import config_service as cs
-from app.engine import lifting as L
-from app.engine import service as engine
-from app.engine.config import EngineConfig
-from app.importers.strong.importer import ImportOptions, run_import, variant_uuid
-from app.settings import BACKEND_DIR
+from apps.fitness import gym_service as gs
+from apps.fitness.db.models import Exercise, ExerciseVariant, Gym
+from apps.fitness.db.types import utcnow
+from apps.fitness.engine import config_service as cs
+from apps.fitness.engine import lifting as L
+from apps.fitness.engine import service as engine
+from apps.fitness.engine.config import EngineConfig
+from apps.fitness.importers.strong.importer import ImportOptions, run_import, variant_uuid
+from apps.fitness.settings import FITNESS_DIR
 from tests.advisor_helpers import AUTH, TODAY
 
 
 @pytest.fixture
 def reruns(monkeypatch) -> list[str]:
     calls: list[str] = []
-    monkeypatch.setattr("app.api.gyms.rerun_engine", lambda reason="": calls.append(reason))
+    monkeypatch.setattr(
+        "apps.fitness.api.gyms.rerun_engine", lambda reason="": calls.append(reason)
+    )
     return calls
 
 
@@ -594,8 +596,8 @@ def imp(tmp_path: Path):
     return ImportOptions(
         paths=[d],
         mapping_path=tmp_path / "strong_mapping.csv",
-        catalog_path=BACKEND_DIR / "data" / "catalog" / "exercises.yaml",
-        engine_config_path=BACKEND_DIR / "config" / "engine.v2.yaml",
+        catalog_path=FITNESS_DIR / "data" / "catalog" / "exercises.yaml",
+        engine_config_path=FITNESS_DIR / "config" / "engine.v2.yaml",
         gyms_path=tmp_path / "gyms.yaml",
         apply=True,
     )

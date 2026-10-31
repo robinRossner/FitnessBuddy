@@ -2,9 +2,9 @@
 
 import pytest
 
-from app.engine.config import EngineConfig, HeartRateConfig, load_engine_config
-from app.engine.hr import compute_zones, zones_from_config
-from app.engine.pace import (
+from apps.fitness.engine.config import EngineConfig, HeartRateConfig, load_engine_config
+from apps.fitness.engine.hr import compute_zones, zones_from_config
+from apps.fitness.engine.pace import (
     FRAC_INTERVAL,
     FRAC_THRESHOLD,
     PaceModel,
@@ -17,9 +17,9 @@ from app.engine.pace import (
     vdot_for_pace,
     vdot_from_race,
 )
-from app.settings import BACKEND_DIR
+from apps.fitness.settings import FITNESS_DIR
 
-V3 = load_engine_config(BACKEND_DIR / "config" / "engine.v3.yaml")
+V3 = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml")
 
 
 def test_vdot_known_table_values():
@@ -105,5 +105,5 @@ def test_zones_follow_lthr_and_fall_back_to_max_hr():
     assert z178.easy_high == 158  # 0.89 * 178 = 158.4
     no_lthr = compute_zones(HeartRateConfig(**{**hr.model_dump(), "lthr": None}))
     assert no_lthr.easy_basis == "hrmax" and no_lthr.easy_high == 152  # floor(0.8 * 190)
-    v2 = load_engine_config(BACKEND_DIR / "config" / "engine.v2.yaml")
+    v2 = load_engine_config(FITNESS_DIR / "config" / "engine.v2.yaml")
     assert zones_from_config(v2).easy_high == 153  # 0.8 * 192

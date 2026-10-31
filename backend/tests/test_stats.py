@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.stats import (
+from apps.fitness.stats import (
     E1RMContext,
     SetLike,
     aggregate_session,

@@ -5,12 +5,12 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.bodyweight import BodyweightTimeline, bodyweight_at, manual_id, upsert_measurement
-from app.db.models import BodyMeasurement
-from app.db.types import MeasurementSource
-from app.main import app
+from apps.fitness.api.auth import get_api_token
+from apps.fitness.api.routes import get_db
+from apps.fitness.bodyweight import BodyweightTimeline, bodyweight_at, manual_id, upsert_measurement
+from apps.fitness.db.models import BodyMeasurement
+from apps.fitness.db.types import MeasurementSource
+from apps.fitness.main import app
 
 TZ = "Europe/Vienna"
 

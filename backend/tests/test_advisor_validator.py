@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import pytest
 
-from app.advisor import validator as V
-from app.engine import config_service as cs
-from app.engine.program import load_program
-from app.settings import get_settings
+from apps.fitness.advisor import validator as V
+from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.program import load_program
+from apps.fitness.settings import get_settings
 from tests.advisor_helpers import PROGRAM_YAML
 
 
@@ -322,7 +322,7 @@ def test_session_overrides_may_not_prescribe_weights_or_paces():
 
 
 def test_prompt_lists_every_allowlisted_param():
-    from app.advisor.prompt import SYSTEM_PROMPT
+    from apps.fitness.advisor.prompt import SYSTEM_PROMPT
 
     for spec in V.SPECS:
         assert spec.template in SYSTEM_PROMPT

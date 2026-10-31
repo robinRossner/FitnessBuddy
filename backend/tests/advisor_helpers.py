@@ -10,13 +10,13 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app.advisor import claude
-from app.advisor.schema import AdvisorOutput, ProposedChange, SessionOverride
-from app.analytics import cache
-from app.api.auth import get_api_token
-from app.api.routes import get_db
-from app.db import session as dbsession
-from app.db.models import (
+from apps.fitness.advisor import claude
+from apps.fitness.advisor.schema import AdvisorOutput, ProposedChange, SessionOverride
+from apps.fitness.analytics import cache
+from apps.fitness.api.auth import get_api_token
+from apps.fitness.api.routes import get_db
+from apps.fitness.db import session as dbsession
+from apps.fitness.db.models import (
     DailyHealth,
     Exercise,
     ExerciseVariant,
@@ -26,16 +26,16 @@ from app.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from app.db.types import Source
-from app.engine import config_service as cs
-from app.main import app
-from app.settings import BACKEND_DIR, Settings, get_settings
-from app.stats import rebuild_stats
+from apps.fitness.db.types import Source
+from apps.fitness.engine import config_service as cs
+from apps.fitness.main import app
+from apps.fitness.settings import FITNESS_DIR, Settings, get_settings
+from apps.fitness.stats import rebuild_stats
 
 TODAY = date(2026, 10, 25)  # a Sunday; the week starts Monday 2026-10-19
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
-CFG_PATH = BACKEND_DIR / "config" / "engine.v3.yaml"
+CFG_PATH = FITNESS_DIR / "config" / "engine.v3.yaml"
 KEY = "sk-ant-test-0000000000000000"
 
 PROGRAM_YAML = """\
@@ -328,8 +328,8 @@ def interval_laps(work_hr: float = 168, pace: float = 250, reps: int = 4):
 
 
 def build_world(db, monkeypatch) -> World:
-    monkeypatch.setattr("app.analytics.common.today", lambda: TODAY)
-    monkeypatch.setattr("app.engine.service.user_today", lambda settings=None: TODAY)
+    monkeypatch.setattr("apps.fitness.analytics.common.today", lambda: TODAY)
+    monkeypatch.setattr("apps.fitness.engine.service.user_today", lambda settings=None: TODAY)
     cs.ensure_seeded(db, CFG_PATH)
     w = World(db)
     # ten weeks of Upper / Lower; bench flat for the last four weeks (stalled)
@@ -384,9 +384,9 @@ def logs(db, caplog):
     import logging
 
     for name, lg in logging.root.manager.loggerDict.items():
-        if name.startswith("app.") and isinstance(lg, logging.Logger):
+        if name.startswith("apps.") and isinstance(lg, logging.Logger):
             lg.disabled = False
-    caplog.set_level(logging.INFO, logger="app")
+    caplog.set_level(logging.INFO, logger="apps")
     return caplog
 
 
@@ -412,7 +412,7 @@ def no_rerun(monkeypatch) -> list[str]:
     """Replace the engine re-run after an applied change by a recorder."""
     calls: list[str] = []
     monkeypatch.setattr(
-        "app.advisor.service.rerun_engine_after_change", lambda: calls.append("rerun")
+        "apps.fitness.advisor.service.rerun_engine_after_change", lambda: calls.append("rerun")
     )
     return calls
 

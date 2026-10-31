@@ -8,14 +8,14 @@ from datetime import date, timedelta
 import pytest
 from sqlalchemy import select
 
-from app.advisor import service as advisor
-from app.advisor import validator as V
-from app.advisor.prompt import SYSTEM_PROMPT
-from app.advisor.schema import ProposedChange, ScheduleChange
-from app.db.models import AdvisorScheduleChange, DecisionLog, PlannedSession
-from app.engine import config_service as cs
-from app.engine import data as D
-from app.engine import service as engine
+from apps.fitness.advisor import service as advisor
+from apps.fitness.advisor import validator as V
+from apps.fitness.advisor.prompt import SYSTEM_PROMPT
+from apps.fitness.advisor.schema import ProposedChange, ScheduleChange
+from apps.fitness.db.models import AdvisorScheduleChange, DecisionLog, PlannedSession
+from apps.fitness.engine import config_service as cs
+from apps.fitness.engine import data as D
+from apps.fitness.engine import service as engine
 from tests.advisor_helpers import AUTH, TODAY, make_output  # noqa: F401
 
 NEXT = date(2026, 10, 26)  # Monday after TODAY (a Sunday)
@@ -475,7 +475,7 @@ def test_prompt_describes_schedule_changes_and_stays_free_of_dates():
 
 
 def test_input_carries_the_schedule_section(planned, db, env):
-    from app.advisor import summary
+    from apps.fitness.advisor import summary
 
     doc = summary.build_input(
         db, trigger={"type": "ask", "title": "t", "detail": "d"}, question="q", settings=env
@@ -490,7 +490,7 @@ def test_input_carries_the_schedule_section(planned, db, env):
 
 
 def test_missed_session_trigger_is_a_proposal_trigger_type(db):
-    from app.db.models import AdvisorTrigger
+    from apps.fitness.db.models import AdvisorTrigger
 
     t = AdvisorTrigger(type="missed_session", dedupe_key="m:1", day=date(2026, 10, 30),
                        payload={"missed": {"kind": "intervals"}, "reason": "no slot",

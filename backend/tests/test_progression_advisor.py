@@ -8,14 +8,14 @@ from types import SimpleNamespace
 
 import yaml
 
-from app.advisor import prompt, summary
-from app.advisor import service as S
-from app.advisor import validator as V
-from app.engine import service as engine
-from app.settings import BACKEND_DIR
+from apps.fitness.advisor import prompt, summary
+from apps.fitness.advisor import service as S
+from apps.fitness.advisor import validator as V
+from apps.fitness.engine import service as engine
+from apps.fitness.settings import FITNESS_DIR
 from tests.advisor_helpers import TODAY
 
-V6 = yaml.safe_load((BACKEND_DIR / "config" / "engine.v6.yaml").read_text())
+V6 = yaml.safe_load((FITNESS_DIR / "config" / "engine.v6.yaml").read_text())
 
 
 def check(param, value):

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from app.db.types import SessionKind, SetType
-from app.importers.strong.parser import (
+from apps.fitness.db.types import SessionKind, SetType
+from apps.fitness.importers.strong.parser import (
     ParseError,
     assign_blocks,
     derive_session_kind,
