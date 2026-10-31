@@ -156,7 +156,8 @@ after pulling this step (adds `server_seq`, `sync_seq`, `sets.completed_at`).
 
 ```sh
 cd backend && uv run uvicorn server:app --reload
-# public: GET /health, /api/v1/health (also under /api/v1/fitness/...). Everything else needs `Authorization: Bearer $API_TOKEN`:
+# public: GET /health, /api/v1/health (also under /api/v1/fitness/...). Everything else needs `Authorization: Bearer $API_TOKEN`
+# (fitness token; the receipts app will use its own RECEIPTS_API_TOKEN). Set DOCS_ENABLED=true in .env for /docs locally:
 # GET /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
 # bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
 # GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),
