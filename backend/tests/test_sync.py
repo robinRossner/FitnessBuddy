@@ -11,7 +11,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select, text
 
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import (
     BodyMeasurement,
@@ -25,6 +24,7 @@ from apps.fitness.db.types import iso_z
 from apps.fitness.importers.strong.importer import run_import
 from apps.fitness.main import app
 from apps.fitness.settings import get_settings
+from core.auth import get_api_token
 
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}

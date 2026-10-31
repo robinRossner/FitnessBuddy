@@ -18,8 +18,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from apps.fitness.analytics import cache, correlations, health, lifts, run_analysis, running, volume
-from apps.fitness.api.auth import require_token
 from apps.fitness.api.routes import get_db
+from core.auth import require_token
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
 

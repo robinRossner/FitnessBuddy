@@ -14,7 +14,6 @@ from sqlalchemy import select
 from apps.fitness.analytics import cache, common, correlations
 from apps.fitness.analytics.health import bodyweight_change_pct, readiness_view
 from apps.fitness.analytics.zones import collapse, time_in_zones
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.catalog import BODY_REGIONS, load_catalog, region_of_muscle
 from apps.fitness.db.models import (
@@ -40,6 +39,7 @@ from apps.fitness.engine.readiness import Readiness, Signal
 from apps.fitness.main import app
 from apps.fitness.settings import FITNESS_DIR
 from apps.fitness.stats import rebuild_stats
+from core.auth import get_api_token
 
 TODAY = date(2026, 10, 25)  # a Sunday: the current week starts Monday 2026-10-19
 TOKEN = "test-token"

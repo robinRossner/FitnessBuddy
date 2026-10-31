@@ -23,7 +23,6 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from apps.fitness import exercise_service as xs
-from apps.fitness.api.auth import require_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import Exercise, ExerciseVariant, PlannedSession
 from apps.fitness.db.types import utcnow
@@ -35,6 +34,7 @@ from apps.fitness.engine.program import KINDS, apply_overrides, set_kind_slots
 from apps.fitness.jobs.engine_jobs import rerun_engine, run_engine_now
 from apps.fitness.settings import get_settings
 from apps.fitness.sync.pull import exercise_out, program_rep_ranges, variant_out
+from core.auth import require_token
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
 

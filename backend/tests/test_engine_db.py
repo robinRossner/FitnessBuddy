@@ -9,7 +9,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import (
     AdvisorTrigger,
@@ -41,6 +40,7 @@ from apps.fitness.engine.program import (
 from apps.fitness.main import app
 from apps.fitness.settings import FITNESS_DIR, Settings
 from apps.fitness.stats import rebuild_stats
+from core.auth import get_api_token
 
 TODAY = date(2026, 10, 26)  # Monday
 

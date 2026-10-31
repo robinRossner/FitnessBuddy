@@ -7,7 +7,6 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import DailyHealth, Lap, Run
 from apps.fitness.db.types import Source
@@ -15,6 +14,7 @@ from apps.fitness.garmin_sync import run_id
 from apps.fitness.jobs.scheduler import build_scheduler
 from apps.fitness.main import app
 from apps.fitness.settings import Settings
+from core.auth import get_api_token
 
 TOKEN = "test-token"
 

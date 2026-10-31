@@ -1,4 +1,4 @@
-"""Shared-secret bearer auth for every endpoint except the public health checks."""
+"""Shared-secret bearer auth for every endpoint except the public health checks (all apps)."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException
 
-from apps.fitness.settings import get_settings
+from core.settings import get_core_settings
 
 
 def get_api_token() -> str | None:
-    token = get_settings().api_token
+    token = get_core_settings().api_token
     return token.get_secret_value() if token else None
 
 

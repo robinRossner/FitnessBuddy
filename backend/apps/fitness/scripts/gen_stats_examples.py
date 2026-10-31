@@ -22,12 +22,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
 from apps.fitness.analytics import cache
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.session import make_engine
 from apps.fitness.engine import config_service as cs
 from apps.fitness.main import app
 from apps.fitness.settings import BACKEND_DIR, REPO_ROOT, get_settings
+from core.auth import get_api_token
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 TODAY = date(2026, 10, 25)

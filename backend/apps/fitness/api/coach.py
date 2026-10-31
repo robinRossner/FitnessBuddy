@@ -23,11 +23,11 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.advisor import claude, service
 from apps.fitness.advisor.serialize import history_json, proposal_json
-from apps.fitness.api.auth import require_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import AdvisorConsultation
 from apps.fitness.jobs.advisor_jobs import run_consultation
 from apps.fitness.settings import get_settings
+from core.auth import require_token
 
 router = APIRouter(prefix="/api/v1/coach", dependencies=[Depends(require_token)])
 

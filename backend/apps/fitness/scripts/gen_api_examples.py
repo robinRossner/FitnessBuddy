@@ -21,11 +21,11 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.session import make_engine
 from apps.fitness.main import app
 from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT
+from core.auth import get_api_token
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 TOKEN = "example-token"

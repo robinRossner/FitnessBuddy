@@ -12,7 +12,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from apps.fitness import garmin_workouts as gw
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import PlannedSession, Run
 from apps.fitness.db.types import Source
@@ -21,6 +20,7 @@ from apps.fitness.main import app
 from apps.fitness.settings import Settings
 from apps.fitness.sources.garmin.errors import SourceUnavailable
 from apps.fitness.sources.garmin.python_garminconnect import GarminConnectLogin
+from core.auth import get_api_token
 
 TODAY = date(2026, 10, 28)  # a Wednesday
 TOKEN = "test-token"

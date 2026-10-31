@@ -10,9 +10,9 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.fitness.api.auth import require_token
 from apps.fitness.db.models import ExerciseSessionStats, ExerciseVariant, TrainingSession
 from apps.fitness.db.session import get_session_factory
+from core.auth import require_token
 
 public_router = APIRouter()  # /health only
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])

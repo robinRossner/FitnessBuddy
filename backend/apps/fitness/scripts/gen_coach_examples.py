@@ -44,12 +44,12 @@ from apps.fitness.advisor.schema import (  # noqa: E402
     SessionOverride,
 )
 from apps.fitness.analytics import cache  # noqa: E402
-from apps.fitness.api.auth import get_api_token  # noqa: E402
 from apps.fitness.api.routes import get_db  # noqa: E402
 from apps.fitness.db import session as dbsession  # noqa: E402
 from apps.fitness.db.session import make_engine  # noqa: E402
 from apps.fitness.main import app  # noqa: E402
 from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT, get_settings  # noqa: E402
+from core.auth import get_api_token  # noqa: E402
 
 OUT = REPO_ROOT / "docs" / "api" / "examples"
 

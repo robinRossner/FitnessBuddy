@@ -19,11 +19,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from apps.fitness import gym_service as gs
-from apps.fitness.api.auth import require_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import Exercise, ExerciseVariant
 from apps.fitness.jobs.engine_jobs import rerun_engine
 from apps.fitness.settings import get_settings
+from core.auth import require_token
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_token)])
 

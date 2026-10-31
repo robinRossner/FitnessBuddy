@@ -15,7 +15,6 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from apps.fitness import __version__
-from apps.fitness.api.auth import require_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import ExerciseVariant
 from apps.fitness.db.types import iso_z, utcnow
@@ -25,6 +24,7 @@ from apps.fitness.sync import history as history_mod
 from apps.fitness.sync import pull as pull_mod
 from apps.fitness.sync import push as push_mod
 from apps.fitness.sync.schemas import PushRequest, PushResponse
+from core.auth import require_token
 
 log = logging.getLogger(__name__)
 

@@ -1,4 +1,5 @@
-"""Application settings, loaded from environment / `.env` via pydantic-settings.
+"""Fitness settings: the shared `core.settings.CoreSettings` (API token, scheduler switches,
+Claude credentials) plus everything fitness-specific, loaded from environment / `.env`.
 
 Secrets (Garmin password, API keys) are `SecretStr` so they never end up in logs or reprs.
 """
@@ -11,20 +12,14 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from core.settings import BACKEND_DIR, REPO_ROOT, CoreSettings
 
 FITNESS_DIR = Path(__file__).resolve().parent  # backend/apps/fitness: data, config, alembic
-BACKEND_DIR = FITNESS_DIR.parents[1]  # backend/: var/, .env, Dockerfile
-REPO_ROOT = BACKEND_DIR.parent
+# BACKEND_DIR (var/, .env) and REPO_ROOT (imports/) come from core.settings.
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=(BACKEND_DIR / ".env", REPO_ROOT / ".env"),
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
+class Settings(CoreSettings):
     database_url: str = f"sqlite:///{BACKEND_DIR / 'var' / 'fitness.db'}"
     user_tz: str = "Europe/Vienna"
     default_gym_name: str = "Main gym"
@@ -48,8 +43,8 @@ class Settings(BaseSettings):
     # Strong sessions longer than this are considered bad data: duration is stored as NULL.
     strong_max_duration_h: float = 4.0
 
-    # Shared bearer token for the write endpoints (bodyweight). Unset => those endpoints refuse.
-    api_token: SecretStr | None = None
+    # api_token (bearer auth), scheduler_enabled / scheduler_tz and the Claude credentials
+    # (anthropic_api_key, claude_code_oauth_token) are inherited from core.settings.CoreSettings.
 
     # Strong exports without unit columns: unit the app was set to when exporting.
     strong_default_weight_unit: str = "kg"
@@ -79,20 +74,16 @@ class Settings(BaseSettings):
     garmin_push_times: str = "19:45,05:00"  # scheduler_tz; after the 19:30 / 03:30 syncs
     garmin_push_after_engine: bool = True  # also push when an engine re-run changed a run
 
-    # Scheduler (APScheduler in the FastAPI process); off by default locally.
-    scheduler_enabled: bool = False
-    scheduler_tz: str = "Europe/Vienna"
+    # Scheduler job times (the switch itself is core's `scheduler_enabled`).
     sync_nightly_time: str = "03:30"  # full incremental sync
     sync_day_times: str = "07:30,11:30,15:30,19:30"  # lighter runs (activities + today's health)
 
-    # Claude advisor (app/advisor). No credential => consultations wait with status `awaiting_key`.
+    # Claude advisor (apps/fitness/advisor). No credential => consultations wait as `awaiting_key`.
     # Two providers: `api` (Messages API, paid per token, ANTHROPIC_API_KEY) and `claude_code`
     # (headless `claude -p` billed to a Claude Pro/Max subscription through the long-lived
     # CLAUDE_CODE_OAUTH_TOKEN of `claude setup-token`). auto = claude_code if that token is set,
     # else api if a key is set, else awaiting_key.
     advisor_provider: Literal["api", "claude_code", "auto"] = "auto"
-    anthropic_api_key: SecretStr | None = None
-    claude_code_oauth_token: SecretStr | None = None
     advisor_cli_path: str = "claude"  # the Claude Code binary (looked up on PATH)
     advisor_cli_timeout_s: float = 300.0
     advisor_cli_effort: str = "high"  # `claude --effort`: low | medium | high | xhigh | max

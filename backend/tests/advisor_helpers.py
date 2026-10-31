@@ -13,7 +13,6 @@ from fastapi.testclient import TestClient
 from apps.fitness.advisor import claude
 from apps.fitness.advisor.schema import AdvisorOutput, ProposedChange, SessionOverride
 from apps.fitness.analytics import cache
-from apps.fitness.api.auth import get_api_token
 from apps.fitness.api.routes import get_db
 from apps.fitness.db import session as dbsession
 from apps.fitness.db.models import (
@@ -31,6 +30,8 @@ from apps.fitness.engine import config_service as cs
 from apps.fitness.main import app
 from apps.fitness.settings import FITNESS_DIR, Settings, get_settings
 from apps.fitness.stats import rebuild_stats
+from core.auth import get_api_token
+from core.settings import get_core_settings
 
 TODAY = date(2026, 10, 25)  # a Sunday; the week starts Monday 2026-10-19
 TOKEN = "test-token"
@@ -168,15 +169,18 @@ def configure(monkeypatch, tmp_path, *, key: str | None = KEY, **env: str) -> Se
     for k, v in env.items():
         monkeypatch.setenv(k.upper(), v)
     get_settings.cache_clear()
+    get_core_settings.cache_clear()
     return get_settings()
 
 
 @pytest.fixture(autouse=True)
 def _clean_settings():
     get_settings.cache_clear()
+    get_core_settings.cache_clear()
     cache.invalidate()
     yield
     get_settings.cache_clear()
+    get_core_settings.cache_clear()
     app.dependency_overrides.clear()
 
 
