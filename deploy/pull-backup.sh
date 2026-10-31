@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Offsite copy of the server databases to this Mac (run by launchd, see deploy/README.md section 9).
-# Takes a fresh snapshot on the server with backup.sh, downloads the fitness and receipts snapshots,
-# verifies them locally and mirrors the Garmin FIT files and the not-yet-archived receipt photos
-# (a mirror that follows deletions: it never holds a photo the laptop archive already confirmed). Runs at most once per MIN_AGE_DAYS, so launchd can call it daily
+# Takes a fresh snapshot on the server with backup.sh, downloads the fitness snapshot,
+# verifies it locally and mirrors the Garmin FIT files. Runs at most once per MIN_AGE_DAYS, so launchd can call it daily
 # and at login: whenever the Mac is on, the copy is never more than about a week old.
 #   bash deploy/pull-backup.sh            # weekly check (skips if a recent copy exists)
 #   bash deploy/pull-backup.sh --force    # copy now
@@ -19,7 +18,7 @@ log() { echo "$(date '+%Y-%m-%dT%H:%M:%S') $*"; }
 notify() { osascript -e "display notification \"$1\" with title \"FitnessBuddy backup\"" >/dev/null 2>&1 || true; }
 fail() { log "FAILED: $*"; notify "Backup failed: $*"; exit 1; }
 
-mkdir -p "$DEST/db" "$DEST/fit" "$DEST/receipts_db" "$DEST/receipts_photos_pending"
+mkdir -p "$DEST/db" "$DEST/fit"
 
 if [[ "${1:-}" != "--force" ]]; then
   newest="$(find "$DEST/db" -name 'fitness_*.db.gz' -mtime -"$MIN_AGE_DAYS" | head -1)"
@@ -45,28 +44,11 @@ gunzip -c "$local_file" > "$tmp" || fail "gzip check"
 [[ "$(sqlite3 "$tmp" 'PRAGMA integrity_check;')" == "ok" ]] || fail "integrity check"
 counts="$(sqlite3 "$tmp" "select (select count(*) from sessions) || ' sessions, ' || (select count(*) from sets) || ' sets, ' || (select count(*) from runs) || ' runs';")"
 
-# Receipts: snapshot of receipts.db (skipped when the server has none yet) + the pending photos.
-receipts_file="$(sed -n 's/.*receipts snapshot ok: //p' <<<"$out" | tail -1)"
-receipts_counts="no receipts database on the server yet"
-if [[ -n "$receipts_file" ]]; then
-  rlocal="$DEST/receipts_db/$(basename "$receipts_file")"
-  scp -q -o BatchMode=yes "$HOST:$receipts_file" "$rlocal.part" || fail "receipts download"
-  mv "$rlocal.part" "$rlocal"
-  rtmp="$(mktemp -t fbrcheck)"
-  gunzip -c "$rlocal" > "$rtmp" || fail "receipts gzip check"
-  [[ "$(sqlite3 "$rtmp" 'PRAGMA integrity_check;')" == "ok" ]] || fail "receipts integrity check"
-  receipts_counts="$(sqlite3 "$rtmp" "select (select count(*) from receipts) || ' receipts, ' || (select count(*) from receipts where photo_location = 'server') || ' photos on the server';")"
-  rm -f "$rtmp"
-  ls -1t "$DEST"/receipts_db/receipts_*.db.gz | tail -n +"$((KEEP + 1))" | while read -r old; do rm -f "$old"; done
-  rsync -a --delete -e "ssh -o BatchMode=yes" "$HOST:$REMOTE_DIR/backups/receipts_photos_pending/" \
-    "$DEST/receipts_photos_pending/" || log "warning: receipts photo mirror failed"
-fi
-
 # Raw Garmin FIT files (re-fetchable from Garmin, but cheap to keep).
 rsync -a -e "ssh -o BatchMode=yes" "$HOST:$REMOTE_DIR/data/fit/" "$DEST/fit/" || log "warning: FIT mirror failed"
 
 # Keep the newest $KEEP copies.
 ls -1t "$DEST"/db/fitness_*.db.gz | tail -n +"$((KEEP + 1))" | while read -r old; do rm -f "$old"; done
 
-log "ok: $(basename "$local_file") ($(du -h "$local_file" | cut -f1)), $counts; receipts: $receipts_counts"
-notify "Saved $(basename "$local_file"): $counts; receipts: $receipts_counts"
+log "ok: $(basename "$local_file") ($(du -h "$local_file" | cut -f1)), $counts"
+notify "Saved $(basename "$local_file"): $counts"

@@ -6,11 +6,9 @@ Garmin sync, training engine + plans; step 4 adds the sync API for the iOS app.
 
 ```
 backend/
-  server.py            shared FastAPI entry point (`uvicorn server:app`)
-  core/                app-independent code: bearer auth, shared settings, scheduler helpers
+  server.py            FastAPI entry point (`uvicorn server:app`)
+  core/                app-independent code: bearer auth, settings, scheduler helpers
   apps/fitness/        FitnessBuddy: API, models, engine, advisor, importers, Alembic, data, config
-  apps/receipts/       Receipts: photo upload, extraction queue (Claude vision), sync, photo archive,
-                       Alembic (own receipts.db), Mac data migration
   tests/
 ios/       FitnessBuddy SwiftUI app (XcodeGen `project.yml`)
 deploy/    docker-compose + Caddy + nightly SQLite backup, push/bootstrap scripts (see deploy/README.md)
@@ -18,18 +16,12 @@ docs/      spec & decisions (docs/spec/decisions.md)
 imports/   your raw exports + import reports (gitignored)
 ```
 
-One backend process serves both personal apps. Fitness routes live under `/api/v1/...` (the
-installed iOS app) and, identically, under `/api/v1/fitness/...`; `/health` is unprefixed. The
-Receipts API lives under `/api/v1/receipts/...` with its own token (`docs/api/receipts.md`). Each app
-has its own SQLite file and Alembic setup in `backend/var/` (`fitness.db`, `receipts.db`; in the
-container `/app/var/...`); receipt photos not yet archived on the laptop are in `receipts_photos/`.
+Fitness routes live under `/api/v1/...` (the installed iOS app) and, identically, under
+`/api/v1/fitness/...`; `/health` is unprefixed. The SQLite file and Alembic setup are in
+`backend/var/` (`fitness.db`; in the container `/app/var/...`).
 
-The Receipts apps (Mac, iPhone, paused Android) are **not** in this repo: they live in
-`~/Projects/Receipts App` and only share this server. This repo holds the shared server
-(including `backend/apps/receipts` and the API contract `docs/api/receipts.md`), the deploy setup and the
-fitness app; deploys of the server, for both apps, happen from here. Two backend tests read that repo's
-Swift sources (prompt pinning, taxonomy drift): `RECEIPTS_APP_DIR` points at it (default
-`$HOME/Projects/Receipts App`); they skip with a reason when it is absent.
+The Receipts server is a separate project with its own repository and deployment (see
+`deploy/README.md` section 10 for how it shares the VM's Caddy).
 
 ## Setup
 
@@ -39,7 +31,6 @@ cd backend
 uv sync                       # Python 3.12 venv + deps
 cp .env.example .env          # optional
 uv run alembic -c apps/fitness/alembic.ini upgrade head   # creates backend/var/fitness.db
-uv run alembic -c apps/receipts/alembic.ini upgrade head  # creates backend/var/receipts.db
 ```
 
 ## Import Strong history
@@ -166,7 +157,7 @@ after pulling this step (adds `server_seq`, `sync_seq`, `sets.completed_at`).
 ```sh
 cd backend && uv run uvicorn server:app --reload
 # public: GET /health, /api/v1/health (also under /api/v1/fitness/...). Everything else needs `Authorization: Bearer $API_TOKEN`
-# (fitness token; the receipts app uses its own RECEIPTS_API_TOKEN, docs/api/receipts.md). Set DOCS_ENABLED=true in .env for /docs locally:
+# Set DOCS_ENABLED=true in .env for /docs locally:
 # GET /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
 # bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
 # GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),

@@ -25,11 +25,6 @@ else
 fi
 latest="$(ls -1t backups/fitness_*.db.gz 2>/dev/null | head -n1 || true)"
 [ -z "$latest" ] || echo "newest file: $latest ($(du -h "$latest" | cut -f1))"
-latest="$(ls -1t backups/receipts_*.db.gz 2>/dev/null | head -n1 || true)"
-[ -z "$latest" ] || echo "newest receipts file: $latest ($(du -h "$latest" | cut -f1))"
-if [ -d data/receipts_photos ]; then
-  echo "receipt photos waiting for the laptop archive: $(find data/receipts_photos -type f ! -name '.*' | wc -l | tr -d ' ') files, $(du -sh data/receipts_photos | cut -f1)"
-fi
 
 echo; echo "== disk"
 df -h / | tail -n +1

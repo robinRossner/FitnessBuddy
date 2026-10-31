@@ -1,7 +1,14 @@
 # Production stack for a single Oracle Cloud Always Free ARM VM.
 #   cd deploy && docker compose up -d --build
-# DBs (fitness.db, receipts.db) and the not-yet-archived receipt photos live in ./data (host bind
-# mount) so deploy/backup.sh can snapshot them from the host.
+# The DB (fitness.db) and the other state live in ./data (host bind mount) so deploy/backup.sh can
+# snapshot it from the host.
+#
+# The project name is pinned to what compose derived from the directory name (/opt/fitnessbuddy/deploy
+# -> `deploy`), so the network `deploy_default` and the volumes `deploy_caddy_data` / `deploy_caddy_config`
+# (Caddy's certificates!) keep their names. The Receipts server (separate repository, own
+# stack in /opt/receipts) attaches to `deploy_default`.
+name: deploy
+
 services:
   backend:
     build:
@@ -14,8 +21,6 @@ services:
       - ../backend/.env.production         # created by deploy/make-prod-env.sh (gitignored)
     environment:
       DATABASE_URL: sqlite:////app/var/fitness.db
-      RECEIPTS_DATABASE_URL: sqlite:////app/var/receipts.db
-      RECEIPTS_PHOTOS_DIR: /app/var/receipts_photos
     volumes:
       - ./data:/app/var
     # Only Caddy can reach the backend (no published port), so the peer of every request is the Caddy

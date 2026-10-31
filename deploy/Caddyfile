@@ -1,11 +1,30 @@
 # Automatic HTTPS (Let's Encrypt) for $DOMAIN; open ports 80/443 in the OCI security list
 # and in the VM firewall (iptables/firewalld) first.
+#
+# Two backends behind one domain:
+#   /api/v1/receipts/*  -> receipts-backend:8000, the Receipts server. It is NOT part of this
+#                          repository: it lives in the "Receipts App" repository (~/Projects/Receipts App,
+#                          deployed from its own deploy/ to /opt/receipts) and joins this stack's
+#                          Docker network under the alias `receipts-backend`.
+#   everything else     -> backend:8000 (FitnessBuddy)
+# Caddy does not resolve upstream names when it loads the config, so it starts even when
+# `receipts-backend` is not up: that path then answers 502 and nothing else is affected.
+# Caddy adds the real client IP as X-Forwarded-For for both upstreams (the backends' failed-token
+# throttle relies on it). There is no request body limit here (Caddy has none by default), so
+# the Receipts photo uploads (up to 15 MB) pass; the app enforces its own limit.
 {$DOMAIN} {
 	encode zstd gzip
-	reverse_proxy backend:8000
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options nosniff
 		-Server
+	}
+
+	handle /api/v1/receipts/* {
+		reverse_proxy receipts-backend:8000
+	}
+
+	handle {
+		reverse_proxy backend:8000
 	}
 }
