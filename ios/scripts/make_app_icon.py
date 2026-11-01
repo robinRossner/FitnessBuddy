@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Generate the FitnessBuddy app icon (iOS 18 single-size asset catalog: light, dark, tinted).
 
-Design: three concentric activity-style rings on a deep navy field, in the app's domain colours
-(outer lifting orange, middle running teal, inner coach purple). Purely geometric, no text,
-no SF Symbols, no third-party assets.
+Design ("Pulse Lift"): a dumbbell whose handle is a heartbeat trace, cream plates and a yellow trace
+with a long shadow on a teal field. Purely geometric, no text, no SF Symbols, no third-party assets.
 
 Run from the repo root or ios/:
     uv run --with pillow python ios/scripts/make_app_icon.py [--preview]
@@ -13,11 +12,10 @@ ios/FitnessBuddy/Resources/Assets.xcassets/AppIcon.appiconset/ and Contents.json
 --preview also writes ios/docs/screenshots/app-icon-preview.png (light/dark/tinted at 1024, 180, 60).
 """
 import json
-import math
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont, ImageChops
+from PIL import Image, ImageDraw, ImageFont
 
 IOS = Path(__file__).resolve().parent.parent
 ICONSET = IOS / "FitnessBuddy/Resources/Assets.xcassets/AppIcon.appiconset"
@@ -25,42 +23,40 @@ PREVIEW = IOS / "docs/screenshots/app-icon-preview.png"
 
 SIZE = 1024
 SS = 4  # supersampling factor
-CENTER = SIZE / 2
-STROKE = 98
-# (centre-line radius, sweep as fraction of a full turn, colour, highlight colour, tinted grey)
-RINGS = [  # keep radius + STROKE/2 of the outer ring well inside the 1024 canvas
-    (344, 0.80, (255, 149, 0), (255, 196, 92), 255),     # lifting orange
-    (236, 0.68, (0, 184, 158), (84, 232, 206), 205),     # running teal-green
-    (128, 0.54, (175, 82, 222), (222, 150, 255), 160),   # coach purple
+# (x, y, width, height, corner radius) in 1024-canvas points
+PLATES = [
+    (150, 302, 110, 420, 38),
+    (764, 302, 110, 420, 38),
+    (86, 392, 52, 240, 22),
+    (886, 392, 52, 240, 22),
 ]
+TRACE = [(240, 512), (372, 512), (432, 404), (512, 668), (596, 300), (656, 560), (692, 512), (784, 512)]
+TRACE_WIDTH = 60
+SHADOW_LENGTH = 900
+
+# variant: (plate colour, trace colour)
+COLOURS = {
+    "light": ((255, 246, 229), (255, 225, 77)),
+    "dark": ((94, 234, 212), (255, 225, 77)),
+    "tinted": ((170, 170, 170), (255, 255, 255)),
+}
+BG_TOP, BG_BOTTOM = (18, 194, 176), (6, 122, 128)
+SHADOW = (4, 90, 96)
 
 
-def _arc_mask(radius: float, sweep: float) -> Image.Image:
-    """Supersampled 'L' mask of an arc starting at 12 o'clock, clockwise, with round caps."""
-    n = SIZE * SS
-    mask = Image.new("L", (n, n), 0)
-    d = ImageDraw.Draw(mask)
-    c, r, w = CENTER * SS, radius * SS, STROKE * SS
-    ro = r + w / 2  # PIL strokes inward from the bounding box, so use the outer radius
-    box = [c - ro, c - ro, c + ro, c + ro]
-    start = -90.0
-    end = start + 360.0 * sweep
-    d.arc(box, start, end, fill=255, width=int(w))
-    for ang in (start, end):
-        x = c + r * math.cos(math.radians(ang))
-        y = c + r * math.sin(math.radians(ang))
-        d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=255)
-    return mask
+def _draw_plates(d: ImageDraw.ImageDraw, fill, offset: int = 0):
+    for x, y, w, h, r in PLATES:
+        d.rounded_rectangle([(x + offset) * SS, (y + offset) * SS, (x + w + offset) * SS, (y + h + offset) * SS],
+                            radius=r * SS, fill=fill)
 
 
-def _ring_track(radius: float) -> Image.Image:
-    n = SIZE * SS
-    mask = Image.new("L", (n, n), 0)
-    c, r, w = CENTER * SS, radius * SS, STROKE * SS
-    d = ImageDraw.Draw(mask)
-    ro = r + w / 2
-    d.ellipse([c - ro, c - ro, c + ro, c + ro], outline=255, width=int(w))
-    return mask
+def _draw_trace(d: ImageDraw.ImageDraw, fill, offset: int = 0):
+    """Heartbeat polyline with round caps and joins."""
+    w = TRACE_WIDTH * SS
+    pts = [((x + offset) * SS, (y + offset) * SS) for x, y in TRACE]
+    d.line(pts, fill=fill, width=w)
+    for x, y in pts:
+        d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=fill)
 
 
 def _gradient(top, bottom, size) -> Image.Image:
@@ -72,47 +68,25 @@ def _gradient(top, bottom, size) -> Image.Image:
     return col.resize((size, size), Image.BILINEAR)
 
 
-def _background() -> Image.Image:
-    n = SIZE * SS
-    bg = _gradient((22, 30, 58), (6, 9, 20), n)
-    # soft glow behind the rings so the centre has some depth
-    glow = Image.new("L", (n, n), 0)
-    gd = ImageDraw.Draw(glow)
-    r = int(n * 0.42)
-    gd.ellipse([n / 2 - r, n / 2 - r, n / 2 + r, n / 2 + r], fill=70)
-    glow = glow.resize((n // 8, n // 8), Image.BILINEAR)
-    from PIL import ImageFilter
-    glow = glow.filter(ImageFilter.GaussianBlur(14)).resize((n, n), Image.BICUBIC)
-    lift = Image.new("RGB", (n, n), (52, 66, 120))
-    return Image.composite(lift, bg, glow)
-
-
 def render(variant: str) -> Image.Image:
     n = SIZE * SS
     if variant == "light":
-        canvas = _background().convert("RGBA")
+        canvas = _gradient(BG_TOP, BG_BOTTOM, n)
     elif variant == "dark":
         canvas = Image.new("RGBA", (n, n), (0, 0, 0, 0))
     elif variant == "tinted":
-        canvas = Image.new("RGBA", (n, n), (0, 0, 0, 255))
+        canvas = Image.new("RGB", (n, n), (0, 0, 0))
     else:
         raise ValueError(variant)
 
-    for radius, sweep, color, light, grey in RINGS:
-        track = _ring_track(radius)
-        arc = _arc_mask(radius, sweep)
-        if variant == "tinted":
-            track_fill = Image.new("RGBA", (n, n), (255, 255, 255, 0))
-            track_fill.putalpha(track.point(lambda v: v * 38 // 255))
-            canvas = Image.alpha_composite(canvas, track_fill)
-            fill = _gradient((grey,) * 3, (int(grey * 0.78),) * 3, n).convert("RGBA")
-        else:
-            track_fill = Image.new("RGBA", (n, n), color + (0,))
-            track_fill.putalpha(track.point(lambda v: v * 56 // 255))
-            canvas = Image.alpha_composite(canvas, track_fill)
-            fill = _gradient(light, color, n).convert("RGBA")
-        fill.putalpha(arc)
-        canvas = Image.alpha_composite(canvas, fill)
+    d = ImageDraw.Draw(canvas)
+    if variant == "light":
+        for offset in range(SHADOW_LENGTH, 0, -1):
+            _draw_trace(d, SHADOW, offset)
+            _draw_plates(d, SHADOW, offset)
+    plate, trace = COLOURS[variant]
+    _draw_trace(d, trace)  # under the plates, so the handle runs into them cleanly
+    _draw_plates(d, plate)
 
     out = canvas.resize((SIZE, SIZE), Image.LANCZOS)
     if variant != "dark":
