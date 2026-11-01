@@ -1,10 +1,12 @@
-"""Garmin endpoints (bearer-token protected): activities ("runs"), daily health, and the push of
-planned runs to the watch (`POST /garmin/workouts/push`, docs/api/garmin.md)."""
+"""Garmin endpoints (bearer-token protected): activities ("runs"), daily health, the manual sync
+(`POST /garmin/sync`) and the push of planned runs to the watch (`POST /garmin/workouts/push`,
+docs/api/garmin.md)."""
 
 from __future__ import annotations
 
+import math
 from datetime import date, datetime, time, timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
@@ -14,8 +16,10 @@ from sqlalchemy.orm import Session, selectinload
 from apps.fitness import garmin_workouts
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import DailyHealth, Run
-from apps.fitness.settings import get_settings
-from apps.fitness.sources.garmin.errors import GarminError, SourceUnavailable
+from apps.fitness.jobs.garmin_jobs import LIGHT_KINDS, run_sync
+from apps.fitness.manual_sync import Verdict, manual_sync_guard
+from apps.fitness.settings import Settings, get_settings
+from apps.fitness.sources.garmin.errors import GarminError, RateLimitedError, SourceUnavailable
 from apps.fitness.sources.garmin.mapping import RUN_TYPES
 from core.auth import require_token
 
@@ -174,3 +178,95 @@ def push_workouts(body: WorkoutPushIn | None = None, db: Session = Depends(get_d
     except GarminError as exc:
         raise HTTPException(502, str(exc)) from None
     return report.as_dict()
+
+
+class LatestActivityOut(BaseModel):
+    title: str | None
+    activity_type: str | None
+    started_at_local: str | None  # naive local time, "2026-11-01T07:12:03"
+
+
+class ManualSyncOut(BaseModel):
+    status: Literal["synced", "cooldown", "busy", "limit_reached"]
+    retry_after_s: int | None
+    new_activities: int
+    latest_activity: LatestActivityOut | None
+    hrv_today: bool
+    manual_syncs_today: int
+    manual_syncs_limit: int
+
+
+BUSY_RETRY_S = 5
+BLOCKED_DETAIL = "Garmin rate limit: manual syncs are paused, try again later"
+
+
+def _manual_sync_out(
+    db: Session,
+    s: Settings,
+    today: date,
+    status: str,
+    retry_after_s: int | None = None,
+    new_activities: int = 0,
+) -> ManualSyncOut:
+    db.rollback()  # fresh snapshot: the sync wrote through its own sessions
+    latest = db.scalar(
+        select(Run).where(Run.deleted_at.is_(None)).order_by(Run.started_at_utc.desc()).limit(1)
+    )
+    hrv = db.scalar(
+        select(DailyHealth.id)
+        .where(DailyHealth.day == today, DailyHealth.hrv_overnight_ms.is_not(None))
+        .limit(1)
+    )
+    return ManualSyncOut(
+        status=status,  # type: ignore[arg-type]
+        retry_after_s=retry_after_s,
+        new_activities=new_activities,
+        latest_activity=None
+        if latest is None
+        else LatestActivityOut(
+            title=latest.title,
+            activity_type=latest.activity_type,
+            started_at_local=latest.started_at_local.isoformat(timespec="seconds")
+            if latest.started_at_local
+            else None,
+        ),
+        hrv_today=hrv is not None,
+        manual_syncs_today=manual_sync_guard.count(today),
+        manual_syncs_limit=s.garmin_manual_sync_daily_max,
+    )
+
+
+def _blocked(verdict: Verdict) -> HTTPException:
+    return HTTPException(429, BLOCKED_DETAIL, {"Retry-After": str(verdict.retry_after_s)})
+
+
+@router.post("/garmin/sync", response_model=ManualSyncOut)
+def manual_sync(db: Session = Depends(get_db)) -> ManualSyncOut:
+    """Pull new Garmin data now (activities, daily summary, sleep, HRV) and run the engine on
+    anything that changed; returns when all of that is done (about 5-30 s with a new activity).
+    Guarded by a cooldown and a daily cap (answered as 200 with `status`, zero Garmin calls); after
+    a Garmin 429 every call answers 429 until Garmin's Retry-After has passed. 503: no usable Garmin
+    source; 502: Garmin failed. The login-based fallback only resumes its cached tokens here."""
+    s = get_settings()
+    today = garmin_workouts.user_today(s)
+    verdict = manual_sync_guard.reserve(
+        today, s.user_tz, s.garmin_manual_sync_cooldown_s, s.garmin_manual_sync_daily_max
+    )
+    if verdict.status == "blocked":
+        raise _blocked(verdict)
+    if verdict.status != "go":
+        return _manual_sync_out(db, s, today, verdict.status, verdict.retry_after_s)
+    try:
+        report = run_sync(LIGHT_KINDS, settings=s, cached_tokens_only=True)
+    except RateLimitedError as exc:
+        manual_sync_guard.block(exc.retry_after)
+        headers = {"Retry-After": str(math.ceil(exc.retry_after))} if exc.retry_after else None
+        raise HTTPException(429, BLOCKED_DETAIL, headers) from None
+    except SourceUnavailable as exc:
+        raise HTTPException(503, str(exc)) from None
+    except GarminError as exc:
+        raise HTTPException(502, str(exc)) from None
+    if report is None:  # a scheduled / CLI sync holds the lock; it never reached Garmin
+        manual_sync_guard.refund(verdict)
+        return _manual_sync_out(db, s, today, "busy", BUSY_RETRY_S)
+    return _manual_sync_out(db, s, today, "synced", new_activities=report.activities_inserted)

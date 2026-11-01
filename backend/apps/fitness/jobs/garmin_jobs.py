@@ -14,6 +14,7 @@ from apps.fitness.sources.garmin.base import (
     ACTIVITIES,
     ALL_KINDS,
     DAILY_SUMMARY,
+    HRV,
     SLEEP,
     GarminSource,
 )
@@ -22,7 +23,9 @@ from apps.fitness.stats import rebuild_with_config
 
 log = logging.getLogger(__name__)
 
-LIGHT_KINDS = (ACTIVITIES, DAILY_SUMMARY, SLEEP)  # daytime runs; nightly runs everything
+# Daytime runs and the manual sync; nightly runs everything. HRV belongs here: last night's HRV
+# lands after the 03:30 run, so only a daytime run can bring it in time for the morning.
+LIGHT_KINDS = (ACTIVITIES, DAILY_SUMMARY, SLEEP, HRV)
 _lock = threading.Lock()  # one sync at a time, whether CLI-in-process or scheduled
 
 
@@ -33,7 +36,7 @@ def on_new_data(report: SyncReport) -> None:
     stats_cache.invalidate()
     log.info(
         "new Garmin data (%d kinds updated); running the engine",
-        sum(1 for r in report.results if r.rows),
+        sum(1 for r in report.results if r.changed),
     )
     try:
         from apps.fitness.engine import service
@@ -74,8 +77,10 @@ def run_sync(
     source: GarminSource | None = None,
     progress: Callable[[str], None] = lambda msg: None,
     rate_limit_waits: tuple[float, ...] = (),
+    cached_tokens_only: bool = False,
 ) -> SyncReport | None:
-    """Incremental sync. Returns None if another sync is already running."""
+    """Incremental sync. Returns None if another sync is already running.
+    `cached_tokens_only`: the login-based fallback may never do a fresh SSO login."""
     s = settings or get_settings()
     if not _lock.acquire(blocking=False):
         log.warning("Garmin sync already running; skipping")
@@ -83,7 +88,7 @@ def run_sync(
     try:
         sync = GarminSync(
             get_session_factory(),
-            source or build_source(s),
+            source or build_source(s, cached_tokens_only=cached_tokens_only),
             s,
             progress=progress,
             rate_limit_waits=rate_limit_waits,

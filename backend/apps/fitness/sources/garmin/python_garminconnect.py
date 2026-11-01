@@ -58,6 +58,15 @@ def _default_factory(email: str, password: str):
     return Garmin(email, password)
 
 
+def resume_only_factory(email: str, password: str):
+    """A client WITHOUT credentials: `login(token_dir)` can only resume the cached tokens (it
+    refreshes them with the refresh token when due) and raises when they are missing or rejected,
+    instead of falling back to a fresh SSO login (repeated SSO logins get the account blocked)."""
+    from garminconnect import Garmin  # imported lazily: only needed for this fallback
+
+    return Garmin()
+
+
 def translate_error(exc: Exception) -> Exception:
     """python-garminconnect exception -> our GarminError family (type names only, no secrets)."""
     name = type(exc).__name__

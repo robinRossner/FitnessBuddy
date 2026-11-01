@@ -121,6 +121,7 @@ struct APIClient: Sendable {
         static func exerciseRest(variantId: Int) -> String { apiBase + "/exercises/\(variantId)/rest" }
         static func program(kind: String) -> String { apiBase + "/program/\(kind)" }
         static let garminWorkoutsPush = apiBase + "/garmin/workouts/push"
+        static let garminSync = apiBase + "/garmin/sync"
     }
 
     func health() async throws -> HealthDTO {
@@ -178,6 +179,25 @@ struct APIClient: Sendable {
         catch { throw APIError.decoding(error) }
     }
 
+    /// "Sync now": the server pulls Garmin Connect right away (it cannot reach the watch; the watch uploads through the
+    /// Garmin Connect phone app). Takes 10 to 30 s, so it gets its own long timeouts instead of the session defaults
+    /// (20 s per request, 60 s in total). 429 / 502 / 503 arrive as `APIError.http`.
+    func garminSync() async throws -> GarminSyncResultDTO {
+        var req = try makeRequest(path: Endpoints.garminSync, query: [], method: "POST", authorized: true, body: nil)
+        req.timeoutInterval = Self.garminSyncRequestTimeout
+        var cfg = session.configuration  // a copy; keeps injected URLProtocols
+        cfg.timeoutIntervalForRequest = max(cfg.timeoutIntervalForRequest, Self.garminSyncRequestTimeout)
+        cfg.timeoutIntervalForResource = max(cfg.timeoutIntervalForResource, Self.garminSyncResourceTimeout)
+        let longSession = URLSession(configuration: cfg)
+        defer { longSession.finishTasksAndInvalidate() }
+        let respData = try await execute(req, using: longSession)
+        do { return try APICoding.makeDecoder().decode(GarminSyncResultDTO.self, from: respData) }
+        catch { throw APIError.decoding(error) }
+    }
+
+    static let garminSyncRequestTimeout: TimeInterval = 90
+    static let garminSyncResourceTimeout: TimeInterval = 120
+
     // MARK: Transport
 
     func makeRequest(path: String, query: [URLQueryItem], method: String, authorized: Bool, body: Data?) throws -> URLRequest {
@@ -213,9 +233,9 @@ struct APIClient: Sendable {
         try await execute(try makeRequest(path: path, query: query, method: method, authorized: authorized, body: body))
     }
 
-    private func execute(_ req: URLRequest) async throws -> Data {
+    private func execute(_ req: URLRequest, using session: URLSession? = nil) async throws -> Data {
         let (respData, response): (Data, URLResponse)
-        do { (respData, response) = try await session.data(for: req) }
+        do { (respData, response) = try await (session ?? self.session).data(for: req) }
         catch { throw APIError.transport(error) }
         guard let http = response as? HTTPURLResponse else { throw APIError.http(-1, nil) }
         switch http.statusCode {
@@ -255,4 +275,39 @@ struct GarminPushResultDTO: Decodable, Sendable, Equatable {
     func items(on date: String) -> [Item] {
         days.first { $0.date == date }?.items.filter { $0.action != "deleted" } ?? []
     }
+}
+
+/// Response of `POST /api/v1/garmin/sync` (docs/api/garmin.md). Everything but `status` may be missing or null.
+struct GarminSyncResultDTO: Decodable, Sendable, Equatable {
+    enum Status: Decodable, Sendable, Equatable {
+        case synced, cooldown, busy, limitReached
+        /// A status this app version does not know.
+        case unknown(String)
+
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            switch raw {
+            case "synced": self = .synced
+            case "cooldown": self = .cooldown
+            case "busy": self = .busy
+            case "limit_reached": self = .limitReached
+            default: self = .unknown(raw)
+            }
+        }
+    }
+
+    struct Activity: Decodable, Sendable, Equatable {
+        let title: String?
+        let activityType: String?
+        /// Naive local wall-clock time, "2026-11-01T07:12:03" (no zone: do not run it through `ISO8601`).
+        let startedAtLocal: String?
+    }
+
+    let status: Status
+    let retryAfterS: Int?
+    let newActivities: Int?
+    let latestActivity: Activity?
+    let hrvToday: Bool?
+    let manualSyncsToday: Int?
+    let manualSyncsLimit: Int?
 }

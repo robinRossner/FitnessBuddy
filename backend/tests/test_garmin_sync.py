@@ -22,6 +22,7 @@ from apps.fitness.settings import Settings
 from apps.fitness.sources.garmin import mapping
 from apps.fitness.sources.garmin.base import (
     ACTIVITIES,
+    ALL_KINDS,
     DAILY_SUMMARY,
     HRV,
     SLEEP,
@@ -416,3 +417,80 @@ def test_not_found_detail_marks_done(session_factory, settings):
     src.details["1"] = NotFoundError("gone")
     report = make_sync(session_factory, src, settings).backfill(date(2026, 9, 1), (ACTIVITIES,))
     assert report.details_failed == 0
+
+
+# ---- what counts as "changed" (drives the engine re-run) and HRV arriving late -------------------
+
+LIGHT = (ACTIVITIES, DAILY_SUMMARY, SLEEP, HRV)
+
+
+def test_light_kinds_include_hrv_and_morning_syncs_are_scheduled():
+    from apps.fitness.jobs.garmin_jobs import LIGHT_KINDS
+
+    assert HRV in LIGHT_KINDS and set(LIGHT_KINDS) <= set(ALL_KINDS)
+    times = Settings(_env_file=None).sync_day_times.split(",")
+    assert times == ["07:30", "08:30", "09:30", "11:30", "15:30", "19:30"]
+
+
+def test_hrv_that_lands_after_sleep_is_picked_up_by_a_light_sync(session_factory, settings):
+    src = FakeSource()
+    today = TODAY.isoformat()
+    src.daily_items[SLEEP] = [sleep_raw(today)]
+    sync = make_sync(session_factory, src, settings)
+    first = sync.sync(LIGHT)
+    assert first.new_data
+    with session_factory() as db:
+        assert (
+            db.scalar(select(DailyHealth.hrv_overnight_ms).where(DailyHealth.day == TODAY)) is None
+        )
+    src.daily_items[HRV] = [hrv_raw(today, 77)]  # computed by Garmin an hour later
+    second = sync.sync(LIGHT)
+    assert second.new_data  # the engine must re-run: readiness needs the HRV
+    with session_factory() as db:
+        dh = db.scalar(select(DailyHealth).where(DailyHealth.day == TODAY))
+        assert dh.hrv_overnight_ms == 77.0 and dh.sleep_s == 28800
+
+
+def test_unchanged_resync_is_not_new_data_but_still_counts_rows(session_factory, settings):
+    src = FakeSource()
+    today = TODAY.isoformat()
+    src.activity_items = [activity_raw(1, today)]
+    src.daily_items[DAILY_SUMMARY] = [summary_v2(today)]
+    src.daily_items[SLEEP] = [sleep_raw(today)]
+    src.daily_items[HRV] = [hrv_raw(today)]
+    sync = make_sync(session_factory, src, settings)
+    first = sync.sync(LIGHT)
+    assert first.new_data and first.activities_inserted == 1 and first.details_fetched == 1
+    again = sync.sync(LIGHT)  # 3-day overlap re-reads everything
+    assert again.new_data is False
+    assert again.activities_inserted == 0
+    assert all(r.rows >= 1 and r.changed == 0 for r in again.results)
+
+
+def test_changed_value_or_activity_is_new_data(session_factory, settings):
+    src = FakeSource()
+    today = TODAY.isoformat()
+    src.activity_items = [activity_raw(1, today)]
+    src.daily_items[HRV] = [hrv_raw(today, 70)]
+    sync = make_sync(session_factory, src, settings)
+    sync.sync(LIGHT)
+    src.daily_items[HRV] = [hrv_raw(today, 71)]
+    report = sync.sync(LIGHT)
+    assert report.new_data and {r.kind: r.changed for r in report.results}[HRV] == 1
+    src.activity_items = [activity_raw(1, today, activityName="renamed")]
+    report = sync.sync(LIGHT)
+    assert report.new_data and report.activities_inserted == 0  # updated, not inserted
+    src.activity_items.append(activity_raw(2, today))
+    report = sync.sync(LIGHT)
+    assert report.new_data and report.activities_inserted == 1
+
+
+def test_weight_and_metric_changes_are_new_data_only_when_different(session_factory, settings):
+    src = FakeSource()
+    src.weight_payloads = [weight_range("2026-10-24")]
+    sync = make_sync(session_factory, src, settings)
+    kinds = (WEIGHT, "hr_zones")
+    assert sync.sync(kinds).new_data
+    assert not sync.sync(kinds).new_data
+    src.weight_payloads = [weight_range("2026-10-24", 77000.0)]
+    assert sync.sync(kinds).new_data

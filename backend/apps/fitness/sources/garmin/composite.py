@@ -73,13 +73,19 @@ class CompositeSource:
         gap = not rows and self.fallback and not self._primary_down and kind in DAILY_KINDS
         if gap and self._recent(end):
             log.info("filling %s gap %s..%s from fallback", kind, start, end)
-            rows = list(self.fallback.daily_health(kind, start, end))
+            try:
+                rows = list(self.fallback.daily_health(kind, start, end))
+            except SourceUnavailable as exc:  # no usable login: the primary's (empty) answer stands
+                log.warning("gap fill for %s skipped: fallback unavailable (%s)", kind, exc)
         return rows
 
     def weights(self, start: date, end: date) -> Iterable[WeightEntry]:
         rows = list(self._try("weights", start, end))
         if not rows and self.fallback and not self._primary_down and self._recent(end):
-            rows = list(self.fallback.weights(start, end))
+            try:
+                rows = list(self.fallback.weights(start, end))
+            except SourceUnavailable as exc:
+                log.warning("weight gap fill skipped: fallback unavailable (%s)", exc)
         return rows
 
     def athlete_metrics(self) -> list[AthleteMetricValue]:

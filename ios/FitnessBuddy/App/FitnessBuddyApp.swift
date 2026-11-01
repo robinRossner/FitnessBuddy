@@ -16,6 +16,9 @@ struct FitnessBuddyApp: App {
                     if phase == .active {
                         env.sync.request(.foreground)
                         env.didBecomeActive()
+                        env.garmin.appDidBecomeActive()
+                    } else if phase == .background {
+                        env.garmin.appDidEnterBackground()
                     }
                 }
         }

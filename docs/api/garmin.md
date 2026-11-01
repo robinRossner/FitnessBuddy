@@ -91,6 +91,49 @@ error in `reason`; the old workout is kept). Errors: `401` bad token, `422` bad 
 refused / failed (e.g. rate limited), `503` push disabled (`GARMIN_PUSH_WORKOUTS=false`), no Garmin
 login configured, or the login failed recently.
 
+## POST /api/v1/garmin/sync
+
+Manual "sync now" (the app's sync button). Bearer token, no body. Synchronous: returns when the
+sync (activities, daily summary, sleep, HRV; new activities also get their laps/FIT) **and** the
+engine run for changed data are done, usually 5-30 s with a new activity (give the client a request
+timeout of 60 s or more). Also served as `/api/v1/fitness/garmin/sync`.
+
+Response `200`:
+
+```json
+{
+  "status": "synced",
+  "retry_after_s": null,
+  "new_activities": 1,
+  "latest_activity": {"title": "Morning Run", "activity_type": "running",
+                      "started_at_local": "2026-11-01T07:12:03"},
+  "hrv_today": true,
+  "manual_syncs_today": 3,
+  "manual_syncs_limit": 30
+}
+```
+
+- `status`: `synced` | `cooldown` (last attempt less than `GARMIN_MANUAL_SYNC_COOLDOWN_S` ago) |
+  `busy` (a scheduled sync is running; try again) | `limit_reached` (daily cap used up).
+  Everything but `synced` makes no Garmin request.
+- `retry_after_s`: seconds until it can work (`cooldown`; `limit_reached`: until the next local
+  midnight of `USER_TZ`; `busy`: 5). `null` for `synced`.
+- `new_activities`: activities inserted by this call (re-reading known ones does not count);
+  `0` unless `synced`.
+- `latest_activity`: newest non-deleted activity of any type, or `null`; always returned, as is
+  `hrv_today` (today's, in `USER_TZ`, daily health has an overnight HRV value).
+- `manual_syncs_today` / `manual_syncs_limit`: attempts so far today (a failed attempt counts, a
+  `busy` one does not) and the cap.
+
+Errors: `401` bad token; `429` Garmin rate limited the account (with `Retry-After` when Garmin sent
+one): manual syncs then answer `429` without contacting Garmin until it has passed (15 min when
+unknown); `503` no usable Garmin source (key missing/expired); `502` Garmin failed. Messages never
+contain secrets.
+
+The guard (cooldown, daily count, 429 pause) lives in memory of the single server process and resets
+on restart. The login-based fallback source is restricted to its cached tokens here: it can resume
+them but never does a fresh SSO login.
+
 ## Settings
 
 | Variable | Default | Meaning |
@@ -101,3 +144,6 @@ login configured, or the login failed recently.
 | `GARMIN_PUSH_AFTER_ENGINE` | `true` | push after an engine re-run changed a run (server only) |
 | `GARMIN_EMAIL` / `GARMIN_PASSWORD` | – | python-garminconnect login (tokens in `GARMIN_CONNECT_TOKEN_DIR`) |
 | `GARMIN_REQUEST_INTERVAL_S` | `1.0` | pacing between Garmin requests |
+| `GARMIN_MANUAL_SYNC_COOLDOWN_S` | `30` | minimum gap between two manual syncs |
+| `GARMIN_MANUAL_SYNC_DAILY_MAX` | `30` | manual syncs per local day |
+| `SYNC_DAY_TIMES` | `07:30,08:30,09:30,11:30,15:30,19:30` | scheduled light syncs (activities, daily summary, sleep, HRV) |

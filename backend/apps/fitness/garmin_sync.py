@@ -19,6 +19,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from enum import IntEnum
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -122,10 +123,21 @@ def chunk_ranges(start: date, end: date, window_days: int) -> Iterator[tuple[dat
         cur = stop + timedelta(days=1)
 
 
+class Upsert(IntEnum):
+    """Outcome of `_upsert_activity`. SKIPPED is falsy (the user deleted the run), the rest are
+    truthy, so `if self._upsert_activity(...)` keeps meaning "a row was read and handled"."""
+
+    SKIPPED = 0
+    UNCHANGED = 1
+    UPDATED = 2
+    INSERTED = 3
+
+
 @dataclass
 class KindResult:
     kind: str
-    rows: int = 0
+    rows: int = 0  # rows read and written (overlap re-reads included)
+    changed: int = 0  # rows whose stored values actually differ afterwards
     chunks: int = 0
     start: date | None = None
     end: date | None = None
@@ -138,10 +150,12 @@ class SyncReport:
     details_fetched: int = 0
     details_failed: int = 0
     weights_changed: bool = False
+    activities_inserted: int = 0  # activities not in the database before this run
 
     @property
     def new_data(self) -> bool:
-        return any(r.rows for r in self.results) or self.details_fetched > 0
+        """Something stored actually changed (the overlap re-read of unchanged rows is not)."""
+        return any(r.changed for r in self.results) or self.details_fetched > 0
 
 
 class GarminSync:
@@ -273,7 +287,7 @@ class GarminSync:
         res = KindResult(kind=kind, start=start, end=end)
         try:
             if kind == HR_ZONES:
-                res.rows = self._guarded(kind, self._sync_hr_zones)
+                res.rows = res.changed = self._guarded(kind, self._sync_hr_zones)
                 res.chunks = 1
                 self._update_state(kind, cursor=end, rows=res.rows)
                 self.progress(f"{kind}: {res.rows} metric(s) changed")
@@ -285,31 +299,42 @@ class GarminSync:
             window = self.source.max_window_days(kind)
             chunks = list(chunk_ranges(start, end, window))
             for i, (cs, ce) in enumerate(chunks, start=1):
-                n = self._guarded(kind, lambda cs=cs, ce=ce: self._sync_chunk(kind, cs, ce, report))
+                n, changed = self._guarded(
+                    kind, lambda cs=cs, ce=ce: self._sync_chunk(kind, cs, ce, report)
+                )
                 res.rows += n
+                res.changed += changed
                 res.chunks += 1
                 self._update_state(kind, cursor=ce, rows=n)
-                self.progress(f"{kind} {cs}..{ce}: {n} rows (chunk {i}/{len(chunks)})")
+                self.progress(
+                    f"{kind} {cs}..{ce}: {n} rows, {changed} changed (chunk {i}/{len(chunks)})"
+                )
         except (RateLimitedError, SourceUnavailable, GarminError) as exc:
             self._update_state(kind, error=f"{type(exc).__name__}: {exc}")
             raise
         return res
 
-    def _sync_chunk(self, kind: str, start: date, end: date, report: SyncReport) -> int:
+    def _sync_chunk(self, kind: str, start: date, end: date, report: SyncReport) -> tuple[int, int]:
+        """Fetch + store one window. Returns (rows read, rows that changed)."""
         if kind == ACTIVITIES:
             acts = list(self.source.activities(start, end))
             with self._scope() as db:
-                return sum(1 for a in acts if self._upsert_activity(db, a))
+                outcomes = [self._upsert_activity(db, a) for a in acts]
+            report.activities_inserted += sum(1 for o in outcomes if o is Upsert.INSERTED)
+            return (
+                sum(1 for o in outcomes if o),
+                sum(1 for o in outcomes if o in (Upsert.INSERTED, Upsert.UPDATED)),
+            )
         if kind in DAILY_KINDS:
             rows = list(self.source.daily_health(kind, start, end))
             with self._scope() as db:
-                return self._upsert_daily(db, rows)
+                return len(rows), self._upsert_daily(db, rows)
         if kind == WEIGHT:
             entries = list(self.source.weights(start, end))
             with self._scope() as db:
                 changed = self._upsert_weights(db, entries)
             report.weights_changed |= changed > 0
-            return len(entries)
+            return len(entries), changed
         raise ValueError(f"unknown kind {kind!r}")
 
     # ------------------------------------------------------------------ raw store
@@ -325,23 +350,33 @@ class GarminSync:
 
     # ------------------------------------------------------------------ activities
 
-    def _upsert_activity(self, db: Session, a: ActivitySummary) -> bool:
+    def _upsert_activity(self, db: Session, a: ActivitySummary) -> Upsert:
         run = db.scalar(select(Run).where(Run.external_id == a.external_id))
         if run is not None and run.deleted_at is not None:
-            return False  # the user deleted it; never resurrect
+            return Upsert.SKIPPED  # the user deleted it; never resurrect
+        outcome = Upsert.UNCHANGED
         if run is None:
             run = Run(id=run_id(a.external_id), external_id=a.external_id, source=Source.GARMIN)
             db.add(run)
+            outcome = Upsert.INSERTED
+        elif (
+            run.started_at_utc != a.started_at_utc
+            or run.started_at_local != a.started_at_local
+            or any(getattr(run, name) != getattr(a, name) for name in RUN_FIELDS)
+        ):
+            outcome = Upsert.UPDATED
         run.started_at_utc = a.started_at_utc
         run.started_at_local = a.started_at_local
         run.tz = self.s.user_tz
         for name in RUN_FIELDS:
             setattr(run, name, getattr(a, name))
         self._store_raw(db, "activity", a.external_id, a.raw)
-        if a.vo2max is not None:
-            self._upsert_metric(db, "vo2max", a.vo2max, a.started_at_local.date())
+        if a.vo2max is not None and self._upsert_metric(
+            db, "vo2max", a.vo2max, a.started_at_local.date()
+        ):
+            outcome = max(outcome, Upsert.UPDATED)
         db.flush()
-        return True
+        return outcome
 
     def sync_details(self, report: SyncReport | None = None, limit: int | None = None) -> int:
         """Laps + original .FIT for activities that do not have them yet."""
@@ -425,6 +460,7 @@ class GarminSync:
     # ------------------------------------------------------------------ daily health
 
     def _upsert_daily(self, db: Session, rows: list[DailyHealthData]) -> int:
+        """Merge rows into `daily_health`; returns how many rows are new or got a changed value."""
         n = 0
         for r in rows:
             dh = db.scalar(
@@ -432,15 +468,18 @@ class GarminSync:
                     DailyHealth.day == r.day, DailyHealth.source == Source.GARMIN
                 )
             )
+            changed = dh is None
             if dh is None:
                 dh = DailyHealth(day=r.day, source=Source.GARMIN)
                 db.add(dh)
             for name in DAILY_FIELDS:
                 value = getattr(r, name)
                 if value is not None:
+                    if getattr(dh, name) != value:
+                        changed = True
                     setattr(dh, name, value)
             self._store_raw(db, r.kind, r.day.isoformat(), r.raw)
-            n += 1
+            n += changed
         db.flush()
         return n
 

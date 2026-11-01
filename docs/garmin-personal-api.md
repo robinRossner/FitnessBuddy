@@ -21,6 +21,11 @@ Sources: Garmin's OpenAPI document (embedded in
 - Expired / deleted key: the token endpoint answers 401/403 (we raise `KeyExpiredError`).
 - Rate limits: not published. Observed: ~120 requests at 1 req/s, no 429. We pace at 1 req/s
   (`GARMIN_REQUEST_INTERVAL_S`) and back off on 429/5xx (Retry-After respected).
+- Cost of one manual sync (`POST /garmin/sync`): 4 GETs (activity list, daily summaries, sleep, HRV;
+  one page each) + 1 FIT download per new activity, plus a token exchange only about once a day (the
+  token is cached); every retry counts, so >= 4 s at 1 req/s. At the default cap of 30 manual syncs
+  a day that is ~120 requests, plus ~30 for the scheduled runs. Third-party copies of Garmin's
+  partner docs mention 200 calls per user per day (low confidence it applies to this API).
 
 ## Endpoints used (all GET)
 

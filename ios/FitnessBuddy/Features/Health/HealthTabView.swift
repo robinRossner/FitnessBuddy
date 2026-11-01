@@ -46,9 +46,14 @@ struct HealthTabView: View {
             }
             .screenStyle()
             .navigationTitle("Health")
-            .toolbar { ToolbarItem(placement: .topBarLeading) { SyncStatusBadge() } }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 12) { SyncStatusBadge(); GarminSyncButton(resources: [health]) }
+                }
+            }
             .refreshable { await refreshStats(env, [health]) }
             .loadsStats([health])
+            .garminSyncBanner()
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet(lastWeight: lastWeight)
             }

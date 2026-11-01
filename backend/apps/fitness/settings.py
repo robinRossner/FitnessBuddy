@@ -71,12 +71,19 @@ class Settings(CoreSettings):
     # GARMIN_EMAIL/GARMIN_PASSWORD; docs/api/garmin.md). Window = today + this many days ahead.
     garmin_push_workouts: bool = True
     garmin_push_days: int = 2
-    garmin_push_times: str = "19:45,05:00"  # scheduler_tz; after the 19:30 / 03:30 syncs
+    # scheduler_tz; after the 19:30 / 03:30 syncs (later changes go via garmin_push_after_engine)
+    garmin_push_times: str = "19:45,05:00"
+    # Manual sync (POST /garmin/sync, in-memory guard, restart resets it): minimum gap between two
+    # attempts and attempts per local day. Garmin publishes no Personal API limit; stay far below.
+    garmin_manual_sync_cooldown_s: int = 30
+    garmin_manual_sync_daily_max: int = 30
     garmin_push_after_engine: bool = True  # also push when an engine re-run changed a run
 
     # Scheduler job times (the switch itself is core's `scheduler_enabled`).
     sync_nightly_time: str = "03:30"  # full incremental sync
-    sync_day_times: str = "07:30,11:30,15:30,19:30"  # lighter runs (activities + today's health)
+    # lighter runs (activities, daily summary, sleep, HRV). The early ones catch the morning: sleep
+    # and HRV can land after waking and not at the same time.
+    sync_day_times: str = "07:30,08:30,09:30,11:30,15:30,19:30"
 
     # Claude advisor (apps/fitness/advisor). No credential => consultations wait as `awaiting_key`.
     # Two providers: `api` (Messages API, paid per token, ANTHROPIC_API_KEY) and `claude_code`

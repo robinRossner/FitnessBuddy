@@ -22,6 +22,8 @@ final class AppEnvironment {
     let settings: SettingsStore
     let network: NetworkMonitor
     let sync: SyncCoordinator
+    /// The toolbar "Sync" button: backend pulls Garmin now, then the app syncs with the backend.
+    let garmin: GarminSyncController
     let restTimer: RestTimer
     let stats: StatsRepository
     let coach: CoachRepository
@@ -72,8 +74,17 @@ final class AppEnvironment {
         self.gyms = GymRepository(settings: settings, network: network,
                                   store: testing ? MemoryStatsCache() : DiskStatsCache(directory: Self.gymCacheDirectory),
                                   isDemo: { SyncState.current(in: container.mainContext).demoActive })
-        self.sync = SyncCoordinator(container: container, settings: settings, network: network)
-        self.sync.enabled = !testing
+        let sync = SyncCoordinator(container: container, settings: settings, network: network)
+        sync.enabled = !testing
+        self.sync = sync
+        self.garmin = GarminSyncController(hooks: .init(
+            request: {
+                guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
+                return try await client.garminSync()
+            },
+            isDemo: { SyncState.current(in: container.mainContext).demoActive },
+            syncApp: { await sync.sync(.manual) },
+            refresh: { resources in await loadStats(resources, generation: sync.generation, maxAge: 0, force: true) }))
         #if DEBUG
         self.stats.demoTransport = DemoStats.transport
         self.coach.demoTransport = DemoCoach.shared.transport

@@ -55,7 +55,8 @@ class FakeLib:
 
     login_error: Exception | None = None
 
-    def __init__(self, email, password):
+    def __init__(self, email=None, password=None):
+        self.credentials = (email, password)
         self.calls: list[tuple] = []
         self.logins = 0
 
@@ -254,3 +255,31 @@ def test_factory_modes(tmp_path):
     assert build_source(only_login).name == "garminconnect"
     with pytest.raises(SourceUnavailable):
         build_source(Settings(**base))
+
+
+def test_cached_tokens_only_never_gives_the_library_credentials(tmp_path, lib_module):
+    """Manual syncs: the login-based source may resume cached tokens but cannot SSO-login."""
+    s = Settings(
+        _env_file=None,
+        garmin_token_cache_path=tmp_path / "t.json",
+        garmin_connect_token_dir=tmp_path / "tokens",
+        garmin_email="a@b.test",
+        garmin_password="x",
+    )
+    src = build_source(s, cached_tokens_only=True)
+    list(src.activities(D1, D2))
+    assert src._api.credentials == (None, None) and src._api.logins == 1
+    normal = build_source(s)  # scheduled syncs keep their credentials
+    list(normal.activities(D1, D2))
+    assert normal._api.credentials == ("a@b.test", "x")
+
+
+def test_failed_gap_fill_login_keeps_the_primary_result():
+    primary = FakeSource()
+
+    class NoLogin(FakeSource):
+        def daily_health(self, kind, start, end):
+            raise SourceUnavailable("login failed")
+
+    auto = CompositeSource(primary, NoLogin(), today=lambda: D2, gap_days=45)
+    assert list(auto.daily_health(HRV, D1, D2)) == []

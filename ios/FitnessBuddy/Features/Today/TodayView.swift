@@ -101,7 +101,9 @@ struct TodayView: View {
             .screenStyle()
             .navigationTitle("Summary")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { SyncStatusBadge() }
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 12) { SyncStatusBadge(); GarminSyncButton(resources: resources) }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel("Settings")
@@ -109,6 +111,7 @@ struct TodayView: View {
             }
             .refreshable { await refreshStats(env, resources) }
             .loadsStats(resources)
+            .garminSyncBanner()
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $editingPins) { PinEditorSheet(pinnedRaw: $pinnedRaw) }
         }
