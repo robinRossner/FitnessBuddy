@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 from typing import Any, Literal
 
-import yaml
 from pydantic import BaseModel, ConfigDict, field_validator
+
+# File reading and hashing live in the leaf module (seeding uses them without the models below).
+from apps.fitness.engine.core.config_files import content_hash as content_hash
+from apps.fitness.engine.core.config_files import load_raw as load_raw
 
 
 class _Model(BaseModel):
@@ -552,14 +553,5 @@ class EngineConfig(_Model):
         return RecoveryConfig.model_validate(self.recovery)
 
 
-def load_raw(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
-
-
 def load_engine_config(path: Path) -> EngineConfig:
     return EngineConfig.model_validate(load_raw(path))
-
-
-def content_hash(raw: dict[str, Any]) -> str:
-    return hashlib.sha256(json.dumps(raw, sort_keys=True).encode()).hexdigest()

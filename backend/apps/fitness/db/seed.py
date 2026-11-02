@@ -12,7 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import ConfigVersion, Gym
-from apps.fitness.engine.core.config import content_hash, load_engine_config, load_raw
+from apps.fitness.engine.core.config import load_engine_config
+from apps.fitness.engine.core.config_files import content_hash, load_raw
 from apps.fitness.settings import FITNESS_DIR, get_settings
 
 log = logging.getLogger(__name__)
