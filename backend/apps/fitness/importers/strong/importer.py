@@ -34,7 +34,7 @@ from apps.fitness.db.types import (
     Source,
     utcnow,
 )
-from apps.fitness.engine.config import load_engine_config
+from apps.fitness.engine.core.config import load_engine_config
 from apps.fitness.exercise_service import is_user_generic_variant
 from apps.fitness.gym_service import is_user_variant
 from apps.fitness.gyms import GYM_BOUND_EQUIPMENT, GymPeriods, GymSpec, load_gyms

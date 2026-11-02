@@ -30,8 +30,8 @@ from sqlalchemy.orm import Session
 from apps.fitness.advisor import service as service_advisor
 from apps.fitness.analytics import health
 from apps.fitness.api.routes import get_db
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import service
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import service
 from apps.fitness.jobs import engine_jobs
 from apps.fitness.settings import get_settings
 from core.auth import require_token

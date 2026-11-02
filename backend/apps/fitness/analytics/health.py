@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 from apps.fitness.analytics import common
 from apps.fitness.analytics.common import mean, num
 from apps.fitness.db.models import BodyMeasurement, DailyHealth
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import service
-from apps.fitness.engine.readiness import GREEN, RED, YELLOW, Readiness, score_day
+from apps.fitness.engine.core.readiness import GREEN, RED, YELLOW, Readiness, score_day
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import service
 from apps.fitness.settings import get_settings
 
 BASELINE_LOOKBACK_DAYS = 45  # same history the engine loads for a readiness score

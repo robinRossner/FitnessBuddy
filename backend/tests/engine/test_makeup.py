@@ -8,9 +8,9 @@ from datetime import date, timedelta
 from sqlalchemy import select
 
 from apps.fitness.db.models import AdvisorTrigger, DecisionLog, PlannedSession
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import service
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import service
 from tests.support.fakes_anthropic import KEY  # noqa: F401
 from tests.support.world import easy_laps, interval_laps  # noqa: F401
 

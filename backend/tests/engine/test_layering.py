@@ -68,7 +68,6 @@ def _under(name: str, prefix: str) -> bool:
     return name == prefix or name.startswith(prefix + ".")
 
 
-@pytest.mark.xfail(strict=True, reason="engine/core is created in the next step")
 def test_engine_core_is_pure():
     assert _sources(ENGINE_CORE), "engine/core has no modules"
 
@@ -80,7 +79,6 @@ def test_engine_core_is_pure():
     assert _violations(ENGINE_CORE, bad) == []
 
 
-@pytest.mark.xfail(strict=True, reason="db/seed.py still imports engine.config")
 def test_db_does_not_import_the_engine_beyond_core():
     def bad(name: str) -> bool:
         return _under(name, "apps.fitness.engine") and not (

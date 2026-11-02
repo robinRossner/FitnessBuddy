@@ -5,14 +5,14 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.fitness.engine import lifting as L
-from apps.fitness.engine import quality as Q
-from apps.fitness.engine import running as R
-from apps.fitness.engine import vdot as V
-from apps.fitness.engine.config import load_engine_config
-from apps.fitness.engine.planner import LiftContext, PlanInputs, VariantInfo, generate_week
-from apps.fitness.engine.program import Program, ProgramExercise
-from apps.fitness.engine.readiness import HealthDay
+from apps.fitness.engine.core import lifting as L
+from apps.fitness.engine.core import quality as Q
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core import vdot as V
+from apps.fitness.engine.core.config import load_engine_config
+from apps.fitness.engine.core.planner import LiftContext, PlanInputs, VariantInfo, generate_week
+from apps.fitness.engine.core.program import Program, ProgramExercise
+from apps.fitness.engine.core.readiness import HealthDay
 from apps.fitness.settings import FITNESS_DIR
 
 CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")
@@ -528,7 +528,7 @@ def test_a_cancelled_deload_week_goes_straight_to_the_retest_with_normal_sets():
 
 
 def test_cancelling_a_stored_deload_retests_the_stalled_lifts_and_progresses_the_rest():
-    from apps.fitness.engine import data as D
+    from apps.fitness.engine.store import data as D
 
     ctxs = _three_stalled()
     ctxs["Squat (Barbell)"] = LiftContext(SQUAT, [expo(MON - timedelta(days=6), 90, [10, 10, 9])])

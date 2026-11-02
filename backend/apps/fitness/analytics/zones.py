@@ -16,8 +16,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from apps.fitness.engine.hr import HrZones, valid_floors
-from apps.fitness.engine.running import LapData, RunData
+from apps.fitness.engine.core.hr import HrZones, valid_floors
+from apps.fitness.engine.core.running import LapData, RunData
 
 ZONES5 = ("z1", "z2", "z3", "z4", "z5")
 TOP_BPM = 250  # open upper end, same as the engine

@@ -24,11 +24,11 @@ from apps.fitness.db.models import (
     Gym,
     WorkoutSet,
 )
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import service
-from apps.fitness.engine.lifting import detect_stall
-from apps.fitness.engine.program import apply_overrides
+from apps.fitness.engine.core.lifting import detect_stall
+from apps.fitness.engine.core.program import apply_overrides
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import service
 from apps.fitness.settings import get_settings
 
 TREND_DAYS = 28

@@ -13,9 +13,9 @@ from apps.fitness.advisor import validator as V
 from apps.fitness.advisor.prompt import SYSTEM_PROMPT
 from apps.fitness.advisor.schema import ProposedChange, ScheduleChange
 from apps.fitness.db.models import AdvisorScheduleChange, DecisionLog, PlannedSession
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import service as engine
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import service as engine
 from tests.support.fakes_anthropic import make_output
 from tests.support.world import AUTH, TODAY  # noqa: F401
 

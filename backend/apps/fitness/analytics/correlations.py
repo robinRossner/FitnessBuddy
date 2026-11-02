@@ -18,7 +18,7 @@ from apps.fitness.analytics import common
 from apps.fitness.analytics import running as ar
 from apps.fitness.analytics.common import num, pearson
 from apps.fitness.db.models import DailyHealth, ExerciseSessionStats, Run, TrainingSession
-from apps.fitness.engine import running as R
+from apps.fitness.engine.core import running as R
 from apps.fitness.sources.garmin.mapping import RUN_TYPES
 
 ROLLING_BEST_DAYS = 56  # 8 weeks

@@ -24,11 +24,7 @@ from apps.fitness.db.models import (
     WorkoutSet,
 )
 from apps.fitness.db.types import Source
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import persist as P
-from apps.fitness.engine import service
-from apps.fitness.engine.program import (
+from apps.fitness.engine.core.program import (
     ExerciseUse,
     Program,
     ProgramExercise,
@@ -37,6 +33,10 @@ from apps.fitness.engine.program import (
     load_program,
     render_program,
 )
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import persist as P
+from apps.fitness.engine.store import service
 from apps.fitness.settings import FITNESS_DIR, Settings
 from apps.fitness.stats import rebuild_stats
 from core.auth import get_api_token
@@ -523,7 +523,7 @@ def test_stall_ladder_step_is_persisted_and_remembered(db, world, program, setti
 
 
 def _legacy_reset(db, variant, load: float, reps: list[int], reset_load: float) -> None:
-    from apps.fitness.engine.decisions import log_decision
+    from apps.fitness.engine.store.decisions import log_decision
 
     log_decision(
         db,
@@ -746,7 +746,7 @@ def test_migration_0011_adds_the_volume_hold_keys(tmp_path):
     from alembic import command
     from sqlalchemy import create_engine, text
 
-    from apps.fitness.engine.config import EngineConfig
+    from apps.fitness.engine.core.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
     acfg = alembic_config(url)
@@ -782,7 +782,7 @@ def test_migration_0010_adds_the_v2_keys_and_retires_v1_stall_triggers(tmp_path)
     from alembic import command
     from sqlalchemy import create_engine, text
 
-    from apps.fitness.engine.config import EngineConfig
+    from apps.fitness.engine.core.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
     acfg = alembic_config(url)

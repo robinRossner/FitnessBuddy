@@ -30,12 +30,12 @@ from apps.fitness.db.models import (
     WorkoutSet,
 )
 from apps.fitness.db.types import Source
-from apps.fitness.engine import running as R
-from apps.fitness.engine import service
-from apps.fitness.engine.config import load_engine_config
-from apps.fitness.engine.hr import zones_from_config
-from apps.fitness.engine.program import Program, ProgramExercise
-from apps.fitness.engine.readiness import Readiness, Signal
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core.config import load_engine_config
+from apps.fitness.engine.core.hr import zones_from_config
+from apps.fitness.engine.core.program import Program, ProgramExercise
+from apps.fitness.engine.core.readiness import Readiness, Signal
+from apps.fitness.engine.store import service
 from apps.fitness.settings import FITNESS_DIR
 from apps.fitness.stats import rebuild_stats
 from core.auth import get_api_token
@@ -224,7 +224,7 @@ def interval_laps(work_hr: float = 168, pace: float = 250, reps: int = 4):
 
 @pytest.fixture
 def world(db, monkeypatch):
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     cs.ensure_seeded(db, CFG_PATH)
     w = World(db)
@@ -640,7 +640,7 @@ def test_pace_ok_is_true_unless_slower_than_the_tolerance(client, db, world):
 
 
 def test_pace_tolerance_follows_the_config_version(client, db, world):
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     run = _planned_interval_run(db, world, 20, 262)  # 4.8 % slower than the 250 target
     assert client.get(f"/api/v1/runs/{run.id}/analysis").json()["laps"][1]["pace_ok"] is False
@@ -1172,7 +1172,7 @@ def test_vdot_series_is_the_engine_state_from_the_decision_log(client, db, world
 
 
 def test_vdot_current_equals_the_engine_state(client, db, world):
-    from apps.fitness.engine import data as D
+    from apps.fitness.engine.store import data as D
 
     _vdot_record(db, days_ago(20), 43.44, "initial", 0.0, "initial")
     _vdot_record(db, days_ago(6), 44.51, "interval_reps", 3.0, "measured")
@@ -1197,7 +1197,7 @@ def test_vdot_record_before_the_4w_cutoff_only(client, db, world):
 
 
 def test_running_kpis_are_null_without_enough_runs(db, monkeypatch):
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     cs.ensure_seeded(db, CFG_PATH)
     w = World(db)

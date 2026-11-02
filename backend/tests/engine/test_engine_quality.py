@@ -5,9 +5,9 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.fitness.engine import quality as Q
-from apps.fitness.engine import vdot as V
-from apps.fitness.engine.config import load_engine_config
+from apps.fitness.engine.core import quality as Q
+from apps.fitness.engine.core import vdot as V
+from apps.fitness.engine.core.config import load_engine_config
 from apps.fitness.settings import FITNESS_DIR
 
 CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")

@@ -2,8 +2,8 @@
 
 from datetime import date, timedelta
 
-from apps.fitness.engine.config import ReadinessConfig, load_engine_config
-from apps.fitness.engine.readiness import (
+from apps.fitness.engine.core.config import ReadinessConfig, load_engine_config
+from apps.fitness.engine.core.readiness import (
     GREEN,
     RED,
     YELLOW,
