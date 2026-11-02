@@ -65,7 +65,7 @@ public enum TemplateSync: Sendable {
 
     /// Transient failures throw (the sync retries with backoff); a rejection (404/422) drops the update.
     @discardableResult
-    public static func push(using client: APIClient, _ defaults: UserDefaults = .standard) async throws -> Int {
+    public static func push(using client: any APITransport, _ defaults: UserDefaults = .standard) async throws -> Int {
         var sent = 0
         for item in pending(defaults) {
             try Task.checkCancellation()

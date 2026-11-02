@@ -67,14 +67,12 @@ final class AppEnvironment {
         self.settings = settings
         self.network = network
         self.restTimer = RestTimer()
-        self.stats = StatsRepository(settings: settings, store: testing ? MemoryStatsCache() : DiskStatsCache(),
-                                     isDemo: { SyncState.current(in: container.mainContext).demoActive })
-        self.coach = CoachRepository(settings: settings, network: network,
-                                     store: testing ? MemoryStatsCache() : DiskStatsCache(directory: Self.coachCacheDirectory),
-                                     isDemo: { SyncState.current(in: container.mainContext).demoActive })
-        self.gyms = GymRepository(settings: settings, network: network,
-                                  store: testing ? MemoryStatsCache() : DiskStatsCache(directory: Self.gymCacheDirectory),
-                                  isDemo: { SyncState.current(in: container.mainContext).demoActive })
+        let isDemo: @MainActor () -> Bool = { SyncState.current(in: container.mainContext).demoActive }
+        /// One raw-JSON cache folder per repository under Application Support (in memory while testing).
+        func cache(_ name: String) -> any StatsCacheStore { testing ? MemoryStatsCache() : DiskStatsCache(named: name) }
+        self.stats = StatsRepository(settings: settings, network: network, store: cache("StatsCache"), isDemo: isDemo)
+        self.coach = CoachRepository(settings: settings, network: network, store: cache("CoachCache"), isDemo: isDemo)
+        self.gyms = GymRepository(settings: settings, network: network, store: cache("GymCache"), isDemo: isDemo)
         let sync = SyncCoordinator(container: container, settings: settings, network: network)
         sync.enabled = !testing
         self.sync = sync
@@ -83,7 +81,7 @@ final class AppEnvironment {
                 guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
                 return try await client.garminSync()
             },
-            isDemo: { SyncState.current(in: container.mainContext).demoActive },
+            isDemo: isDemo,
             syncApp: { await sync.sync(.manual) },
             refresh: { resources in await loadStats(resources, generation: sync.generation, maxAge: 0, force: true) }))
         #if DEBUG
@@ -163,16 +161,6 @@ final class AppEnvironment {
         await sync.cancelAndWait()
         wipeLocalData(fingerprint: settings.fingerprint)
         await sync.sync(.manual)
-    }
-
-    static var coachCacheDirectory: URL {
-        (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
-            .appendingPathComponent("CoachCache", isDirectory: true)
-    }
-
-    static var gymCacheDirectory: URL {
-        (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
-            .appendingPathComponent("GymCache", isDirectory: true)
     }
 
     /// Shows a proposal (or just the Coach tab) from anywhere.

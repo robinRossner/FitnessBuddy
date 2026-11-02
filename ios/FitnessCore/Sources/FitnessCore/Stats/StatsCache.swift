@@ -42,11 +42,20 @@ public final class MemoryStatsCache: StatsCacheStore, @unchecked Sendable {
 public final class DiskStatsCache: StatsCacheStore, @unchecked Sendable {
     private let directory: URL
 
+    /// `name`: a folder under Application Support ("StatsCache", "CoachCache", "GymCache").
+    public convenience init(named name: String) {
+        self.init(directory: Self.directory(named: name))
+    }
+
     public init(directory: URL? = nil) {
-        let base = directory ?? (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory).appendingPathComponent("StatsCache", isDirectory: true)
+        let base = directory ?? Self.directory(named: "StatsCache")
         self.directory = base
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+    }
+
+    public static func directory(named name: String) -> URL {
+        (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent(name, isDirectory: true)
     }
 
     private func url(_ namespace: String, _ key: String) -> URL {

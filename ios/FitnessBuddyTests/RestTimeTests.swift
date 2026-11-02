@@ -163,79 +163,35 @@ struct RestReconcileTests {
 
 // MARK: - Upload (PUT /exercises/{id}/rest)
 
-final class RestStubProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var handler: ((URLRequest) throws -> (Int, String))?
-    nonisolated(unsafe) static var requests: [(method: String, path: String, body: String)] = []
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        var body = request.httpBody
-        if body == nil, let stream = request.httpBodyStream {
-            stream.open()
-            var data = Data()
-            var buffer = [UInt8](repeating: 0, count: 1024)
-            while stream.hasBytesAvailable {
-                let n = stream.read(&buffer, maxLength: buffer.count)
-                if n <= 0 { break }
-                data.append(buffer, count: n)
-            }
-            stream.close()
-            body = data
-        }
-        Self.requests.append((request.httpMethod ?? "", request.url?.path ?? "", String(decoding: body ?? Data(), as: UTF8.self)))
-        do {
-            let (status, json) = try Self.handler?(request) ?? (500, "{}")
-            let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: Data(json.utf8))
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-
-    static func client() -> APIClient {
-        let cfg = URLSessionConfiguration.ephemeral
-        cfg.protocolClasses = [RestStubProtocol.self]
-        requests = []
-        return APIClient(baseURL: URL(string: "http://stub.test")!, token: "t", session: URLSession(configuration: cfg))
-    }
-}
-
 @MainActor
-@Suite(.serialized, .tags(.workout, .sync))
+@Suite(.tags(.workout, .sync))
 struct RestUploadTests {
     private func environment() throws -> ModelContainer { try Persistence.makeContainer(inMemory: true) }
 
     @Test func aPendingOverrideIsSentAndCleared() async throws {
         let container = try environment()
         RestSettings.set(variantId: 122, seconds: 180, in: container.mainContext)
-        RestStubProtocol.handler = { _ in (200, #"{"variant_id": 122, "rest_s": 180, "is_default": false, "config_version": "v3.4"}"#) }
-        let client = RestStubProtocol.client()
-        let sent = try await RestSync.push(using: client, container: container)
+        let fake = FakeTransport { _ in (200, #"{"variant_id": 122, "rest_s": 180, "is_default": false, "config_version": "v3.4"}"#) }
+        let sent = try await RestSync.push(using: fake, container: container)
         #expect(sent == 1)
-        #expect(RestStubProtocol.requests.count == 1)
-        #expect(RestStubProtocol.requests[0].method == "PUT")
-        #expect(RestStubProtocol.requests[0].path == "/api/v1/exercises/122/rest")
-        #expect(RestStubProtocol.requests[0].body == #"{"rest_s":180}"#)
+        #expect(fake.requests.count == 1)
+        #expect(fake.requests[0].method == "PUT")
+        #expect(fake.requests[0].path == "/api/v1/exercises/122/rest")
+        #expect(fake.requests[0].body == #"{"rest_s":180}"#)
         let ctx = ModelContext(container)
         #expect(RestSettings.pending(in: ctx).isEmpty)
         #expect(RestSettings.override(for: 122, in: ctx)?.restS == 180)
         // nothing left: the next sync sends nothing
-        let again = try await RestSync.push(using: client, container: container)
-        #expect(again == 0 && RestStubProtocol.requests.count == 1)
+        let again = try await RestSync.push(using: fake, container: container)
+        #expect(again == 0 && fake.requests.count == 1)
     }
 
     @Test func aResetSendsNullAndStoresTheDefault() async throws {
         let container = try environment()
         RestSettings.set(variantId: 122, seconds: nil, in: container.mainContext)
-        RestStubProtocol.handler = { _ in (200, #"{"variant_id": 122, "rest_s": 120, "is_default": true}"#) }
-        _ = try await RestSync.push(using: RestStubProtocol.client(), container: container)
-        #expect(RestStubProtocol.requests.first?.body == #"{"rest_s":null}"#)
+        let fake = FakeTransport { _ in (200, #"{"variant_id": 122, "rest_s": 120, "is_default": true}"#) }
+        _ = try await RestSync.push(using: fake, container: container)
+        #expect(fake.requests.first?.body == #"{"rest_s":null}"#)
         let row = try #require(RestSettings.override(for: 122, in: ModelContext(container)))
         #expect(row.restS == nil && !row.pending)
     }
@@ -243,15 +199,14 @@ struct RestUploadTests {
     @Test func offlineKeepsItPendingAndTheNextSyncRetries() async throws {
         let container = try environment()
         RestSettings.set(variantId: 122, seconds: 180, in: container.mainContext)
-        RestStubProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
-        let client = RestStubProtocol.client()
-        await #expect(throws: APIError.self) { try await RestSync.push(using: client, container: container) }
+        let fake = FakeTransport { _ in throw URLError(.notConnectedToInternet) }
+        await #expect(throws: APIError.self) { try await RestSync.push(using: fake, container: container) }
         let afterFailure = ModelContext(container)
         #expect(RestSettings.pending(in: afterFailure).count == 1)
         #expect(RestSettings.resolve(variantId: 122, planned: nil, in: afterFailure) == 180)  // applied locally all along
 
-        RestStubProtocol.handler = { _ in (200, #"{"variant_id": 122, "rest_s": 180, "is_default": false}"#) }
-        let sent = try await RestSync.push(using: client, container: container)
+        fake.handler = { _ in (200, #"{"variant_id": 122, "rest_s": 180, "is_default": false}"#) }
+        let sent = try await RestSync.push(using: fake, container: container)
         #expect(sent == 1)
         #expect(RestSettings.pending(in: ModelContext(container)).isEmpty)
     }
@@ -259,16 +214,16 @@ struct RestUploadTests {
     @Test func aServerErrorKeepsItPending() async throws {
         let container = try environment()
         RestSettings.set(variantId: 122, seconds: 180, in: container.mainContext)
-        RestStubProtocol.handler = { _ in (503, "{}") }
-        await #expect(throws: APIError.self) { try await RestSync.push(using: RestStubProtocol.client(), container: container) }
+        let fake = FakeTransport { _ in (503, "{}") }
+        await #expect(throws: APIError.self) { try await RestSync.push(using: fake, container: container) }
         #expect(RestSettings.pending(in: ModelContext(container)).count == 1)
     }
 
     @Test func aRejectedRequestIsDroppedFromTheQueue() async throws {
         let container = try environment()
         RestSettings.set(variantId: 999, seconds: 180, in: container.mainContext)
-        RestStubProtocol.handler = { _ in (404, #"{"detail": "variant not found"}"#) }
-        let sent = try await RestSync.push(using: RestStubProtocol.client(), container: container)
+        let fake = FakeTransport { _ in (404, #"{"detail": "variant not found"}"#) }
+        let sent = try await RestSync.push(using: fake, container: container)
         #expect(sent == 0)
         #expect(RestSettings.pending(in: ModelContext(container)).isEmpty)
     }
@@ -277,14 +232,16 @@ struct RestUploadTests {
         let container = try environment()
         let main = container.mainContext
         RestSettings.set(variantId: 122, seconds: 180, in: main, now: date("2026-10-26T10:00:00.000Z"))
-        RestStubProtocol.handler = { _ in
+        let fake = FakeTransport { _ in
             // the user picks another time while the request is in flight
             DispatchQueue.main.sync {
-                MainActor.assumeIsolated { RestSettings.set(variantId: 122, seconds: 240, in: main, now: date("2026-10-26T10:00:05.000Z")) }
+                MainActor.assumeIsolated {
+                    RestSettings.set(variantId: 122, seconds: 240, in: container.mainContext, now: date("2026-10-26T10:00:05.000Z"))
+                }
             }
             return (200, #"{"variant_id": 122, "rest_s": 180, "is_default": false}"#)
         }
-        _ = try await RestSync.push(using: RestStubProtocol.client(), container: container)
+        _ = try await RestSync.push(using: fake, container: container)
         let row = try #require(RestSettings.override(for: 122, in: ModelContext(container)))
         #expect(row.pending && row.restS == 240)
     }
@@ -292,8 +249,8 @@ struct RestUploadTests {
     @Test func itRunsInsideTheSyncEngineBeforeThePull() async throws {
         let container = try environment()
         RestSettings.set(variantId: 42, seconds: 180, in: container.mainContext)
-        RestStubProtocol.handler = { request in
-            let path = request.url?.path ?? ""
+        let fake = FakeTransport { request in
+            let path = request.path
             if path.hasSuffix("/rest") { return (200, #"{"variant_id": 42, "rest_s": 180, "is_default": false}"#) }
             if path.hasSuffix("/sync/pull") {
                 return (200, #"{"cursor": "c1", "has_more": false, "config": {"version": "v3.4", "lifting": {"rest_default_s": 120, "rest_s_by_variant": {"42": 180}}}}"#)
@@ -301,8 +258,8 @@ struct RestUploadTests {
             return (200, #"{"date": "2026-10-26", "start": "2026-10-26", "days": [], "sessions": []}"#)
         }
         let engine = SyncEngine(container: container)
-        _ = try await engine.sync(using: RestStubProtocol.client())
-        let paths = RestStubProtocol.requests.map(\.path)
+        _ = try await engine.sync(using: fake)
+        let paths = fake.requests.map(\.path)
         let putIndex = try #require(paths.firstIndex { $0.hasSuffix("/exercises/42/rest") })
         let pullIndex = try #require(paths.firstIndex { $0.hasSuffix("/sync/pull") })
         #expect(putIndex < pullIndex)

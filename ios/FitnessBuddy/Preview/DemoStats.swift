@@ -5,7 +5,7 @@ import Foundation
 /// DEBUG-only synthetic answers for the stats endpoints, used while the demo data is loaded (no backend needed).
 /// Deterministic per variant / run id; dates are relative to today so the charts always look current.
 enum DemoStats {
-    static let transport: StatsRepository.Transport = { path, _ in
+    static let transport: any APITransport = ClosureTransport { _, path, _, _ in
         guard let data = json(for: path) else { throw APIError.http(404, nil) }
         return data
     }

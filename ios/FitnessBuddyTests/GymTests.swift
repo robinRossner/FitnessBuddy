@@ -143,7 +143,7 @@ struct GymRepositoryTests {
         if configured { settings.backendURL = "http://localhost:8000"; settings.apiToken = "test-token" }
         settings.currentGymId = localGym
         let repo = GymRepository(settings: settings, network: NetworkMonitor(), store: store)
-        repo.transportOverride = { method, path, _, body in try server.respond(method, path, body) }
+        repo.transportOverride = ClosureTransport { method, path, _, body in try server.respond(method, path, body) }
         return (repo, settings)
     }
 

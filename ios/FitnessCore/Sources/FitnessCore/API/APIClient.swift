@@ -81,9 +81,9 @@ public enum APIError: LocalizedError, Sendable {
     }
 }
 
-/// Thin async/await client. All contract details (paths, query names) live in `Endpoints` below so small
-/// backend deviations are a one-line fix.
-public struct APIClient: Sendable {
+/// Thin async/await client, the real `APITransport`. All contract details (paths, query names) live in `Endpoints`
+/// below so small backend deviations are a one-line fix; the typed calls are in `APITransport.swift`.
+public struct APIClient: APITransport {
     public let baseURL: URL
     public let token: String?
     public var session: URLSession = APIClient.defaultSession
@@ -131,40 +131,6 @@ public struct APIClient: Sendable {
             catch APIError.http(404, _) { lastError = APIError.http(404, nil); continue }
         }
         throw lastError
-    }
-
-    public func planToday() async throws -> PlanTodayDTO { try await send(path: Endpoints.planToday) }
-
-    public func planWeek(start: String? = nil) async throws -> PlanWeekDTO {
-        try await send(path: Endpoints.planWeek, query: start.map { [URLQueryItem(name: "start", value: $0)] } ?? [])
-    }
-
-    public func readiness(date: String? = nil) async throws -> ReadinessDTO {
-        try await send(path: Endpoints.readiness, query: date.map { [URLQueryItem(name: "date", value: $0)] } ?? [])
-    }
-
-    public func push(_ request: PushRequest) async throws -> PushResponse {
-        try await send(path: Endpoints.syncPush, method: "POST", body: try APICoding.makeEncoder().encode(request))
-    }
-
-    public func pull(since cursor: String?) async throws -> PullResponse {
-        try await send(path: Endpoints.syncPull, query: [URLQueryItem(name: "since", value: cursor ?? "")])
-    }
-
-    /// Sets (or, with nil, resets) the rest time of a variant's exercise. Idempotent on the server.
-    public func setRest(variantId: Int, restS: Int?) async throws -> RestResponseDTO {
-        try await send(path: Endpoints.exerciseRest(variantId: variantId), method: "PUT",
-                       body: try APICoding.makeEncoder().encode(RestRequestDTO(restS: restS)))
-    }
-
-    /// Replaces the upper/lower template with the performed structure (server re-runs the engine).
-    public func updateProgram(kind: String, exercises: [TemplateExercise]) async throws {
-        let body = try APICoding.makeEncoder().encode(TemplateUpdateRequest(exercises: exercises))
-        _ = try await raw(path: Endpoints.program(kind: kind), query: [], method: "PUT", authorized: true, body: body)
-    }
-
-    public func variantHistory(id: Int, limit: Int = 10) async throws -> [VariantHistoryEntryDTO] {
-        try await send(path: Endpoints.variantHistory(id), query: [URLQueryItem(name: "limit", value: String(limit))])
     }
 
     /// Sends the planned runs to Garmin now (scheduled on their day; the watch gets them on its next
@@ -219,13 +185,8 @@ public struct APIClient: Sendable {
         return req
     }
 
-    /// Authorised GET returning the raw body (the stats cache stores raw JSON).
-    public func get(path: String, query: [URLQueryItem] = []) async throws -> Data {
-        try await raw(path: path, query: query, method: "GET", authorized: true, body: nil)
-    }
-
-    /// Authorised request with an optional JSON body, returning the raw body (coach writes: approve, reject, ask ...).
-    public func perform(method: String, path: String, query: [URLQueryItem] = [], body: Data? = nil) async throws -> Data {
+    /// `APITransport`: authorised request returning the raw body.
+    public func data(method: String, path: String, query: [URLQueryItem], body: Data?) async throws -> Data {
         try await raw(path: path, query: query, method: method, authorized: true, body: body)
     }
 
@@ -238,10 +199,16 @@ public struct APIClient: Sendable {
         do { (respData, response) = try await (session ?? self.session).data(for: req) }
         catch { throw APIError.transport(error) }
         guard let http = response as? HTTPURLResponse else { throw APIError.http(-1, nil) }
-        switch http.statusCode {
-        case 200..<300: return respData
+        return try Self.validate(status: http.statusCode, body: respData)
+    }
+
+    /// The body of a 2xx answer; 401/403 -> `.unauthorized`, anything else -> `.http(status, body)`.
+    /// Shared with test fakes so they fail exactly like the real client.
+    public static func validate(status: Int, body: Data) throws -> Data {
+        switch status {
+        case 200..<300: return body
         case 401, 403: throw APIError.unauthorized
-        default: throw APIError.http(http.statusCode, String(data: respData, encoding: .utf8))
+        default: throw APIError.http(status, String(data: body, encoding: .utf8))
         }
     }
 

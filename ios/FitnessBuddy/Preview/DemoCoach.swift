@@ -17,8 +17,8 @@ final class DemoCoach: @unchecked Sendable {
 
     static let pendingId = "demo-p1"
 
-    var transport: CoachRepository.Transport {
-        { [self] method, path, _, body in try respond(method, path, body) }
+    var transport: any APITransport {
+        ClosureTransport { [self] method, path, _, body in try respond(method, path, body) }
     }
 
     // MARK: Routing

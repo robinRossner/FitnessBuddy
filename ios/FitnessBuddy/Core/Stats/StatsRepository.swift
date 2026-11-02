@@ -4,41 +4,16 @@ import Observation
 
 /// Fetches stats and keeps the raw JSON on disk. Views read the cache first and refresh in the background.
 @MainActor
-final class StatsRepository {
-    typealias Transport = @Sendable (_ path: String, _ query: [URLQueryItem]) async throws -> Data
-
-    let store: any StatsCacheStore
-    private let settings: SettingsStore
-    private let isDemo: @MainActor () -> Bool
-    #if DEBUG
-    /// DEBUG demo mode answers from synthetic JSON (same decode + cache path as the real thing).
-    var demoTransport: Transport?
-    #endif
-    /// Tests inject a fake transport here.
-    var transportOverride: Transport?
+final class StatsRepository: RemoteRepository {
     private var resources: [String: AnyObject] = [:]
 
-    init(settings: SettingsStore, store: any StatsCacheStore, isDemo: @escaping @MainActor () -> Bool = { false }) {
-        self.settings = settings
-        self.store = store
-        self.isDemo = isDemo
-    }
-
-    var namespace: String { isDemo() ? "demo" : (settings.fingerprint ?? "unconfigured") }
-
-    var canFetch: Bool { transport() != nil }
-
-    private func transport() -> Transport? {
-        if let transportOverride { return transportOverride }
-        #if DEBUG
-        if isDemo(), let demoTransport { return demoTransport }
-        #endif
-        guard !isDemo(), settings.isConfigured, let client = settings.makeClient() else { return nil }
-        return { path, query in try await client.get(path: path, query: query) }
+    override init(settings: SettingsStore, network: NetworkMonitor? = nil, store: any StatsCacheStore,
+         isDemo: @escaping @MainActor () -> Bool = { false }) {
+        super.init(settings: settings, network: network, store: store, isDemo: isDemo)
     }
 
     func cached<R: Decodable & Sendable>(_ endpoint: StatsEndpoint<R>) -> CachedStats<R>? {
-        guard let entry = store.read(namespace: namespace, key: endpoint.key),
+        guard let entry = cacheEntry(endpoint.key),
               let value = try? APICoding.makeDecoder().decode(R.self, from: entry.data) else { return nil }
         return CachedStats(value: value, fetchedAt: entry.fetchedAt)
     }
@@ -47,11 +22,11 @@ final class StatsRepository {
     func fetch<R: Decodable & Sendable>(_ endpoint: StatsEndpoint<R>, now: Date = .now) async throws -> CachedStats<R> {
         guard let transport = transport() else { throw APIError.notConfigured }
         let ns = namespace
-        let data = try await transport(endpoint.path, endpoint.query)
+        let data = try await transport.get(path: endpoint.path, query: endpoint.query)
         let value: R
         do { value = try APICoding.makeDecoder().decode(R.self, from: data) }
         catch { throw APIError.decoding(error) }
-        store.write(StatsCacheEntry(data: data, fetchedAt: now), namespace: ns, key: endpoint.key)
+        writeCache(data, key: endpoint.key, namespace: ns, at: now)
         return CachedStats(value: value, fetchedAt: now)
     }
 
@@ -136,9 +111,8 @@ final class StatsResource<R: Decodable & Sendable>: StatsLoadable {
             value = fresh.value; fetchedAt = fresh.fetchedAt
             failure = nil; isOffline = false
         } catch {
-            if Task.isCancelled || (error as? APIError)?.isCancellation == true || error is CancellationError { return }
-            failure = APIError.message(for: error)
-            if case APIError.transport = error { isOffline = true } else { isOffline = false }
+            guard let f = RemoteRepository.failure(for: error) else { return }
+            failure = f.message; isOffline = f.offline
         }
     }
 }

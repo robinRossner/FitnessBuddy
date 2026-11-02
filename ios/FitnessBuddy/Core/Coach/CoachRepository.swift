@@ -7,9 +7,7 @@ import Observation
 /// and is never queued.
 @MainActor
 @Observable
-final class CoachRepository {
-    typealias Transport = @Sendable (_ method: String, _ path: String, _ query: [URLQueryItem], _ body: Data?) async throws -> Data
-
+final class CoachRepository: RemoteRepository {
     private(set) var proposals: [CoachProposalDTO] = []
     private(set) var proposalsFetchedAt: Date?
     private(set) var history: [CoachVersionDTO] = []
@@ -23,18 +21,9 @@ final class CoachRepository {
     private(set) var isOffline = false
     private(set) var didFinishFirstLoad = false
 
-    @ObservationIgnored private let store: any StatsCacheStore
-    @ObservationIgnored private let appSettings: SettingsStore
-    @ObservationIgnored private let network: NetworkMonitor
-    @ObservationIgnored private let isDemo: @MainActor () -> Bool
     @ObservationIgnored private var lastNamespace: String?
     @ObservationIgnored private var lastGeneration: Int?
     @ObservationIgnored private var inFlight: Task<Void, Never>?
-    #if DEBUG
-    @ObservationIgnored var demoTransport: Transport?
-    #endif
-    /// Tests inject a fake transport here.
-    @ObservationIgnored var transportOverride: Transport?
     /// Called with (pending count, newest pending id) whenever the proposal list changed (feeds the Today banner).
     @ObservationIgnored var onPendingChanged: ((Int, String?) -> Void)?
     /// Called after an approve / rollback changed the config: re-plans (sync), so Today and Progress follow.
@@ -44,44 +33,18 @@ final class CoachRepository {
 
     init(settings: SettingsStore, network: NetworkMonitor, store: any StatsCacheStore,
          isDemo: @escaping @MainActor () -> Bool = { false }) {
-        self.appSettings = settings
-        self.network = network
-        self.store = store
-        self.isDemo = isDemo
+        super.init(settings: settings, network: network, store: store, isDemo: isDemo)
     }
 
     // MARK: State
-
-    var namespace: String { isDemo() ? "demo" : (appSettings.fingerprint ?? "unconfigured") }
 
     var pendingCount: Int { proposals.filter(\.isPending).count }
     var groups: CoachLogic.Groups { CoachLogic.group(proposals) }
     var activeVersion: CoachVersionDTO? { history.first { $0.active } ?? history.first }
 
-    var canFetch: Bool { transport() != nil }
-
-    /// Writes need a reachable server (the demo answers locally).
-    var canWrite: Bool { isDemo() || (appSettings.isConfigured && network.isConnected) }
-
-    var writeBlockedHint: String? {
-        if isDemo() || canWrite { return nil }
-        return appSettings.isConfigured ? "Needs a connection" : "Connect your backend in Settings"
-    }
-
     func detail(_ id: String) -> CoachProposalDTO? { details[id] ?? proposals.first { $0.id == id } }
 
     func proposal(forTriggerRefId id: String) -> CoachProposalDTO? { proposals.first { $0.id == id } }
-
-    // MARK: Transport
-
-    private func transport() -> Transport? {
-        if let transportOverride { return transportOverride }
-        #if DEBUG
-        if isDemo(), let demoTransport { return demoTransport }
-        #endif
-        guard !isDemo(), appSettings.isConfigured, let client = appSettings.makeClient() else { return nil }
-        return { method, path, query, body in try await client.perform(method: method, path: path, query: query, body: body) }
-    }
 
     // MARK: Loading
 
@@ -154,7 +117,7 @@ final class CoachRepository {
         guard let transport = transport() else { return }
         let ns = namespace
         do {
-            let data = try await transport(method, path, query, nil)
+            let data = try await transport.data(method: method, path: path, query: query, body: nil)
             let apply: @MainActor () -> Void
             do { apply = try decode(data) } catch { throw APIError.decoding(error) }
             guard ns == namespace else { return }  // the backend changed while we waited
@@ -162,9 +125,8 @@ final class CoachRepository {
             apply()
             failure = nil; isOffline = false
         } catch {
-            if Task.isCancelled || (error as? APIError)?.isCancellation == true || error is CancellationError { return }
-            failure = APIError.message(for: error)
-            if case APIError.transport = error { isOffline = true } else { isOffline = false }
+            guard let f = RemoteRepository.failure(for: error) else { return }
+            failure = f.message; isOffline = f.offline
         }
     }
 
@@ -224,7 +186,7 @@ final class CoachRepository {
         guard let transport = transport() else { throw CoachError.notConfigured }
         let ns = namespace
         do {
-            let data = try await transport("GET", CoachEndpoints.proposal(id), [], nil)
+            let data = try await transport.get(path: CoachEndpoints.proposal(id))
             let p = try decodeProposal(data)
             if ns == namespace {
                 store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: "proposal/" + id)
@@ -260,7 +222,7 @@ final class CoachRepository {
         guard canWrite else { throw appSettings.isConfigured ? CoachError.needsConnection : CoachError.notConfigured }
         guard let transport = transport() else { throw CoachError.notConfigured }
         let data = try body.map { try CoachCoding.makeEncoder().encode(AnyEncodable($0)) }
-        do { return try await transport(method, path, [], data) }
+        do { return try await transport.data(method: method, path: path, query: [], body: data) }
         catch { throw CoachError.map(error) }
     }
 
@@ -311,11 +273,4 @@ final class CoachRepository {
         await afterPlanChange?()
         await refreshAll()
     }
-}
-
-/// Type-erases an `Encodable` so request bodies can be passed around.
-private struct AnyEncodable: Encodable {
-    let value: Encodable
-    init(_ value: Encodable) { self.value = value }
-    func encode(to encoder: Encoder) throws { try value.encode(to: encoder) }
 }

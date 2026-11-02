@@ -52,7 +52,7 @@ struct StatsRepositoryTests {
                           settings: SettingsStore? = nil) -> StatsRepository {
         let settings = settings ?? SettingsStore(defaults: UserDefaults(suiteName: "stats-tests-\(UUID().uuidString)")!, loadToken: false)
         let repo = StatsRepository(settings: settings, store: store)
-        repo.transportOverride = { _, _ in try transport.call() }
+        repo.transportOverride = ClosureTransport { _, _, _, _ in try transport.call() }
         return repo
     }
 

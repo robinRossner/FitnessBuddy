@@ -49,7 +49,7 @@ struct CoachRepositoryTests {
         let settings = SettingsStore(defaults: UserDefaults(suiteName: "coach-tests-\(UUID().uuidString)")!, loadToken: false)
         if configured { settings.backendURL = "http://localhost:8000"; settings.apiToken = "test-token" }
         let repo = CoachRepository(settings: settings, network: NetworkMonitor(), store: MemoryStatsCache())
-        repo.transportOverride = { method, path, query, body in try server.respond(method, path, query, body) }
+        repo.transportOverride = ClosureTransport { method, path, query, body in try server.respond(method, path, query, body) }
         return repo
     }
 
@@ -70,7 +70,7 @@ struct CoachRepositoryTests {
         let server = Server()
         let repo = makeRepo(server)
         await repo.load(force: true)
-        repo.transportOverride = { _, _, _, _ in throw APIError.transport(URLError(.notConnectedToInternet)) }
+        repo.transportOverride = ClosureTransport { _, _, _, _ in throw APIError.transport(URLError(.notConnectedToInternet)) }
         await repo.refreshAll()
         #expect(repo.isOffline && repo.proposals.count == 3 && repo.history.count == 9)
         #expect(repo.failure != nil)

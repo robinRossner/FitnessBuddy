@@ -84,7 +84,7 @@ enum RestSettings {
 /// server's value.
 enum RestSync {
     @discardableResult
-    static func push(using client: APIClient, container: ModelContainer) async throws -> Int {
+    static func push(using client: any APITransport, container: ModelContainer) async throws -> Int {
         let pending = RestSettings.pending(in: ModelContext(container)).map { (variantId: $0.variantId, restS: $0.restS, stamp: $0.updatedAt) }
         var sent = 0
         for item in pending {

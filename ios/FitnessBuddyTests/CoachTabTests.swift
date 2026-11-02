@@ -5,6 +5,7 @@ import Testing
 @testable import FitnessCore
 
 /// App-side parts of the Coach tab (navigation, settings view rules).
+@MainActor
 @Suite(.tags(.coach, .fast))
 struct CoachTabAppTests {
     @Test func appRoutesMapToCoachScreens() {
