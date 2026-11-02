@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import func, select
@@ -28,7 +29,8 @@ from apps.fitness.db.models import Exercise, ExerciseVariant, Gym
 from apps.fitness.db.types import EquipmentType, LoadConvention
 from apps.fitness.gyms import service as gs
 from apps.fitness.gyms.catalog import GYM_BOUND_EQUIPMENT
-from apps.fitness.settings import Settings
+from apps.fitness.settings import Settings, get_settings
+from apps.fitness.sync.pull import exercise_out, program_rep_ranges, variant_out
 
 MUSCLES = tuple(MUSCLE_REGION)
 EQUIPMENT = tuple(e.value for e in EquipmentType)
@@ -385,3 +387,89 @@ def check_increment(value: float | None) -> float | None:
     if not 0 < value <= INCREMENT_MAX_KG:
         raise ExerciseError(422, f"increment_kg must be above 0 and at most {INCREMENT_MAX_KG:g}")
     return round(float(value) / 0.25) * 0.25 or 0.25
+
+
+def active_variants(db: Session) -> list[ExerciseVariant]:
+    """Every variant that is not tombstoned, by name (`GET /api/v1/variants`)."""
+    return list(
+        db.scalars(
+            select(ExerciseVariant)
+            .where(ExerciseVariant.deleted_at.is_(None))
+            .order_by(ExerciseVariant.name)
+        )
+    )
+
+
+# --------------------------------------------------------------------------- operations
+# One committed transaction each (what an API request does), answering in the pull shape.
+# `replan` runs after the commit when the plan may change.
+
+
+def _exercise(db: Session, exercise_id: int) -> Exercise:
+    ex = db.get(Exercise, exercise_id)
+    if ex is None:
+        raise ExerciseError(404, "exercise not found")
+    return ex
+
+
+def new_exercise(
+    db: Session,
+    *,
+    name: str,
+    muscle_group: str,
+    equipment_type: str,
+    timed: bool = False,
+    gym_id: int | None = None,
+    increment_kg: float | None = None,
+    settings: Settings | None = None,
+) -> dict[str, Any]:
+    """`POST /exercises`: the exercise and its first variant."""
+    s = settings or get_settings()
+    ex, v = create_exercise(
+        db, name=name, muscle_group=muscle_group, equipment_type=equipment_type, timed=timed,
+        gym_id=gym_id, increment_kg=check_increment(increment_kg), settings=s,
+    )  # fmt: skip
+    db.commit()
+    return {"exercise": exercise_out(ex), "variant": variant_out(v, program_rep_ranges(s, db))}
+
+
+def new_variant(
+    db: Session,
+    exercise_id: int,
+    *,
+    equipment_type: str,
+    gym_id: int | None = None,
+    settings: Settings | None = None,
+    replan: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """`POST /exercises/{id}/variants`; a machine may stop a "set up this machine" plan item."""
+    s = settings or get_settings()
+    ex = _exercise(db, exercise_id)
+    v = add_variant(db, ex, equipment_type=equipment_type, gym_id=gym_id, settings=s)
+    db.commit()
+    if v.gym_id is not None and replan is not None:
+        replan("machine set up")
+    return variant_out(v, program_rep_ranges(s, db))
+
+
+def edit_exercise(
+    db: Session,
+    exercise_id: int,
+    fields: dict[str, Any],
+    settings: Settings | None = None,
+    *,
+    replan: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """`PATCH /exercises/{id}`: name and / or muscle group; a rename re-plans when the plan
+    names the exercise, and answers with the renamed variants too."""
+    s = settings or get_settings()
+    ex = _exercise(db, exercise_id)
+    _, renamed, plan_changed = update_exercise(db, ex, fields, s)
+    db.commit()
+    if plan_changed and replan is not None:
+        replan("exercise renamed")  # the plan line points at the new variant name
+    out = exercise_out(ex)
+    if renamed:  # additive: the variants that got the new name (pull shape)
+        rep_ranges = program_rep_ranges(s, db)
+        out["variants"] = [variant_out(v, rep_ranges) for v in renamed]
+    return out

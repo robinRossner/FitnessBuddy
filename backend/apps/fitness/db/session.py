@@ -35,8 +35,11 @@ def get_session_factory() -> sessionmaker[Session]:
 
 
 @contextmanager
-def session_scope() -> Iterator[Session]:
-    session = get_session_factory()()
+def session_scope(factory: sessionmaker[Session] | None = None) -> Iterator[Session]:
+    """One transaction for an entry point (CLI command, job, background thread): commit on
+    success, roll back on error, always close. `factory` defaults to the app's session factory;
+    requests get theirs from `api.deps.get_db` instead."""
+    session = (factory or get_session_factory())()
     try:
         yield session
         session.commit()

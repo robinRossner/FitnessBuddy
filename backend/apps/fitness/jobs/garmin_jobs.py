@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from apps.fitness.analytics import cache as stats_cache
 from apps.fitness.db.session import get_session_factory, session_scope
@@ -21,6 +22,9 @@ from apps.fitness.garmin.factory import build_source
 from apps.fitness.garmin.sync import GarminSync, SyncReport
 from apps.fitness.settings import Settings, get_settings
 from apps.fitness.stats import rebuild_with_config
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session, sessionmaker
 
 log = logging.getLogger(__name__)
 
@@ -82,6 +86,7 @@ def run_sync(
     progress: Callable[[str], None] = lambda msg: None,
     rate_limit_waits: tuple[float, ...] = (),
     cached_tokens_only: bool = False,
+    session_factory: sessionmaker[Session] | None = None,
 ) -> SyncReport | None:
     """Incremental sync. Returns None if another sync is already running.
     `cached_tokens_only`: the login-based fallback may never do a fresh SSO login."""
@@ -91,7 +96,7 @@ def run_sync(
         return None
     try:
         sync = GarminSync(
-            get_session_factory(),
+            session_factory or get_session_factory(),
             source or build_source(s, cached_tokens_only=cached_tokens_only),
             s,
             progress=progress,

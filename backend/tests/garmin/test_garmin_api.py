@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db, get_settings_dep
 from apps.fitness.db.models import DailyHealth, Lap, Run
 from apps.fitness.db.types import Source
 from apps.fitness.garmin.errors import GarminError, RateLimitedError, SourceUnavailable
@@ -212,7 +212,7 @@ def manual(client, session_factory, monkeypatch, tmp_path):
             raise env.error
         return env.source
 
-    monkeypatch.setattr("apps.fitness.api.garmin.get_settings", lambda: s)
+    app.dependency_overrides[get_settings_dep] = lambda: s  # the client fixture clears it
     monkeypatch.setattr(garmin_jobs, "get_session_factory", lambda: session_factory)
     monkeypatch.setattr(garmin_jobs, "build_source", build_source)
     monkeypatch.setattr(garmin_jobs, "on_new_data", env.hooks.append)

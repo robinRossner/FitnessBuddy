@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db, get_settings_dep
 from apps.fitness.db.models import PlannedSession, Run
 from apps.fitness.db.types import Source
 from apps.fitness.garmin import workouts as gw
@@ -435,27 +435,15 @@ def test_failed_upload_is_reported_and_old_workout_kept(db, fake):
 
 
 def test_push_if_changed_skips_garmin_when_nothing_changed(db, fake, session_factory, monkeypatch):
-    from contextlib import contextmanager
-
-    @contextmanager
-    def scope():
-        s = session_factory()
-        try:
-            yield s
-            s.commit()
-        finally:
-            s.close()
-
-    monkeypatch.setattr("apps.fitness.db.session.session_scope", scope)
     monkeypatch.setattr(gw, "user_today", lambda s: TODAY)
     add_planned(db, P1, TODAY + timedelta(days=1), "easy_run", easy(5.0))
-    assert gw.push_if_changed("test", settings()) is not None
+    assert gw.push_if_changed("test", settings(), session_factory) is not None
     fake.calls.clear()
-    assert gw.push_if_changed("test", settings()) is None
+    assert gw.push_if_changed("test", settings(), session_factory) is None
     assert fake.calls == []
     db.get(PlannedSession, P1).prescription = {"session": easy(4.0)}
     db.commit()
-    rep = gw.push_if_changed("test", settings())
+    rep = gw.push_if_changed("test", settings(), session_factory)
     assert rep is not None and rep.counts["updated"] == 1
 
 
@@ -540,8 +528,8 @@ def test_scheduler_has_evening_and_morning_push():
 
 @pytest.fixture
 def client(db, fake, monkeypatch):
-    monkeypatch.setattr("apps.fitness.api.garmin.get_settings", lambda: settings())
     monkeypatch.setattr(gw, "user_today", lambda s: TODAY)
+    app.dependency_overrides[get_settings_dep] = lambda: settings()
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_api_token] = lambda: TOKEN
     yield TestClient(app)
@@ -578,7 +566,5 @@ def test_endpoint_date_and_errors(client, monkeypatch):
     monkeypatch.setattr(gw, "client_provider", no_login)
     r = client.post("/api/v1/garmin/workouts/push", headers=AUTH)
     assert r.status_code == 503 and "login failed" in r.json()["detail"]
-    monkeypatch.setattr(
-        "apps.fitness.api.garmin.get_settings", lambda: settings(garmin_push_workouts=False)
-    )
+    app.dependency_overrides[get_settings_dep] = lambda: settings(garmin_push_workouts=False)
     assert client.post("/api/v1/garmin/workouts/push", headers=AUTH).status_code == 503

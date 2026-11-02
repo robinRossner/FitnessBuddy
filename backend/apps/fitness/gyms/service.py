@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import itertools
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,8 +32,11 @@ from apps.fitness.db.models import (
 )
 from apps.fitness.db.types import EquipmentType, LoadConvention, iso_z, utcnow
 from apps.fitness.engine import config_service as cs
+from apps.fitness.errors import ServiceError
 from apps.fitness.gyms.catalog import GYM_BOUND_EQUIPMENT
-from apps.fitness.settings import Settings
+from apps.fitness.settings import Settings, get_settings
+
+Replan = Callable[[str], None]  # re-plan the upcoming sessions, given a reason (the API's hook)
 
 CONFIG_PATH = "gym.current_id"
 MACHINE_EQUIPMENT = ("machine_stack", "cable", "smith", "plate_loaded", "other")
@@ -42,13 +46,11 @@ LADDER_STEP = 0.25
 _NS = uuid.UUID("5d0b6d52-7f0e-4b7e-9d0f-6f1d1a0e2c11")  # user-made variants
 
 
-class GymError(Exception):
+class GymError(ServiceError):
     """An error with an HTTP status (the API maps it to HTTPException)."""
 
     def __init__(self, status: int, message: str):
-        super().__init__(message)
-        self.status = status
-        self.message = message
+        super().__init__(status, message)
 
 
 # --------------------------------------------------------------------------- current gym
@@ -606,3 +608,108 @@ def update_variant(
             changed = True
     db.flush()
     return v, changed
+
+
+# --------------------------------------------------------------------------- operations
+# One committed transaction each (what an API request does). `replan` runs after the commit
+# when the change affects the plan; the building blocks above only flush.
+
+
+def gym_json(db: Session, gym: Gym, settings: Settings) -> dict[str, Any]:
+    current = effective_current_gym(db, settings)
+    return gym_dict(db, gym, current.id if current else None)
+
+
+def add_gym(db: Session, name: str, settings: Settings | None = None) -> dict[str, Any]:
+    gym = create_gym(db, name)
+    db.commit()
+    return gym_json(db, gym, settings or get_settings())
+
+
+def make_current(
+    db: Session, gym_id: int, settings: Settings | None = None, *, replan: Replan | None = None
+) -> dict[str, Any]:
+    """Make a gym the current one and re-plan the upcoming sessions. Idempotent."""
+    s = settings or get_settings()
+    gym = find_gym(db, gym_id)
+    set_current_gym(db, gym, s)
+    db.commit()
+    if replan is not None:
+        replan("current gym")
+    return {"current_gym_id": gym.id, "unmapped_count": unmapped_count(db, gym, s)}
+
+
+def rename(db: Session, gym_id: int, name: str, settings: Settings | None = None) -> dict[str, Any]:
+    gym = find_gym(db, gym_id)
+    rename_gym(db, gym, name)
+    db.commit()
+    return gym_json(db, gym, settings or get_settings())
+
+
+def remove_gym(db: Session, gym_id: int, settings: Settings | None = None) -> None:
+    gym = find_gym(db, gym_id)
+    delete_gym(db, gym, settings or get_settings())
+    db.commit()
+
+
+def gym_machines(db: Session, gym_id: int, settings: Settings | None = None) -> dict[str, Any]:
+    s = settings or get_settings()
+    gym = find_gym(db, gym_id)
+    return {"gym": gym_json(db, gym, s), "items": machine_items(db, gym, s)}
+
+
+def add_machine(
+    db: Session,
+    gym_id: int,
+    exercise_id: int,
+    *,
+    name: str | None,
+    equipment_type: str,
+    weight_ladder: list[float] | None,
+    notes: str | None,
+    settings: Settings | None = None,
+    replan: Replan | None = None,
+) -> dict[str, Any]:
+    """Set up an exercise at a gym; re-plans when it is the current gym (the plan item stops
+    being "set up this machine")."""
+    s = settings or get_settings()
+    gym = find_gym(db, gym_id)
+    ex = db.get(Exercise, exercise_id)
+    if ex is None:
+        raise GymError(404, "exercise not found")
+    create_machine(
+        db, gym, ex, name=name, equipment_type=equipment_type, weight_ladder=weight_ladder,
+        notes=notes, settings=s,
+    )  # fmt: skip
+    db.commit()
+    current = effective_current_gym(db, s)
+    if replan is not None and current is not None and current.id == gym.id:
+        replan("machine set up")
+    return machine_item_for(db, gym, ex, s)
+
+
+def edit_variant(
+    db: Session, variant_id: int, fields: dict[str, Any], *, replan: Replan | None = None
+) -> dict[str, Any]:
+    """PATCH a variant (machine or generic); re-plans when an engine input changed."""
+    v = db.get(ExerciseVariant, variant_id)
+    if v is None or v.deleted_at is not None:
+        raise GymError(404, "variant not found")
+    v, engine_changed = update_variant(db, v, fields)
+    db.commit()
+    if engine_changed and replan is not None:
+        replan("machine changed")
+    usage = usage_by_variant(db).get(v.id, Usage())
+    return {
+        "id": v.id,
+        "exercise_id": v.exercise_id,
+        "gym_id": v.gym_id,
+        "name": v.name,
+        "equipment_type": _val(v.equipment_type),
+        "weight_ladder": v.weight_ladder,
+        "increment_kg": v.increment_kg,
+        "notes": v.notes,
+        "active": bool(v.active),
+        "sessions": usage.sessions,
+        "last_used": usage.last_used.isoformat() if usage.last_used else None,
+    }

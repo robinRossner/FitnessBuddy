@@ -47,9 +47,10 @@ from garminconnect.workout import (
     WorkoutSegment,
 )
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from apps.fitness.db.models import PlannedSession, Run
+from apps.fitness.db.session import session_scope
 from apps.fitness.garmin.errors import GarminError, NotFoundError, SourceUnavailable
 from apps.fitness.garmin.mapping import RUN_TYPES
 from apps.fitness.garmin.python_garminconnect import shared_login, translate_error
@@ -821,29 +822,29 @@ def _enabled(s: Settings) -> bool:
     return bool(s.garmin_push_workouts and s.garmin_email and s.garmin_password)
 
 
-def push_job() -> None:
+def push_job(session_factory: sessionmaker[Session] | None = None) -> None:
     """Scheduled push (evening + early morning). Never raises."""
-    from apps.fitness.db.session import session_scope
-
     s = get_settings()
     if not _enabled(s):
         return
     try:
-        with session_scope() as db:
+        with session_scope(session_factory) as db:
             push_workouts(db, s)
     except Exception as exc:  # never break the scheduler; messages carry no secrets
         log.warning("scheduled Garmin workout push failed: %s", type(exc).__name__ + f": {exc}")
 
 
-def push_if_changed(reason: str, settings: Settings | None = None) -> PushReport | None:
+def push_if_changed(
+    reason: str,
+    settings: Settings | None = None,
+    session_factory: sessionmaker[Session] | None = None,
+) -> PushReport | None:
     """Push only when the wanted workouts differ from the last successful push of this process
     (an engine re-run that left the runs alone costs no Garmin request). Never raises."""
-    from apps.fitness.db.session import session_scope
-
     s = settings or get_settings()
     try:
         today = user_today(s)
-        with session_scope() as db:
+        with session_scope(session_factory) as db:
             cands = open_runs(db, today, s.garmin_push_days)
             wanted = desired_workouts(cands, today, today + timedelta(days=s.garmin_push_days))
             if _last_fingerprint is not None and fingerprint(wanted) == _last_fingerprint:

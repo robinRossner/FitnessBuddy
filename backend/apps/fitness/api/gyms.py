@@ -14,15 +14,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
-from apps.fitness.api.routes import get_db
-from apps.fitness.db.models import Exercise, ExerciseVariant
+from apps.fitness.api.deps import get_db, get_settings_dep, service_errors
 from apps.fitness.gyms import service as gs
 from apps.fitness.jobs.engine_jobs import rerun_engine
-from apps.fitness.settings import get_settings
+from apps.fitness.settings import Settings
 from core.auth import require_token
 
 router = APIRouter(dependencies=[Depends(require_token)])
@@ -34,13 +33,8 @@ AnyEquipment = Literal[
 ]
 
 
-def _call(fn, *args, **kwargs):
-    try:
-        return fn(*args, **kwargs)
-    except gs.GymError as exc:
-        raise HTTPException(exc.status, exc.message) from None
-    except ValueError as exc:  # ladder validation
-        raise HTTPException(422, str(exc)) from None
+def _errors():
+    return service_errors(value_error_status=422)  # ValueError: weight-ladder validation
 
 
 def _ladder(v: list[float] | None) -> list[float] | None:
@@ -100,53 +94,40 @@ class LadderPreview(BaseModel):
     extra: list[float] | None = None
 
 
-def _gym_json(db: Session, gym) -> dict[str, Any]:
-    current = gs.effective_current_gym(db, get_settings())
-    return gs.gym_dict(db, gym, current.id if current else None)
-
-
 # --------------------------------------------------------------------------- gyms
+
+Db = Annotated[Session, Depends(get_db)]
+Cfg = Annotated[Settings, Depends(get_settings_dep)]
 
 
 @router.get("/gyms")
-def list_gyms(db: Session = Depends(get_db)) -> dict[str, Any]:
-    return gs.list_gyms(db, get_settings())
+def list_gyms(db: Db, settings: Cfg) -> dict[str, Any]:
+    return gs.list_gyms(db, settings)
 
 
 @router.post("/gyms", status_code=201)
-def create_gym(body: NameBody, db: Session = Depends(get_db)) -> dict[str, Any]:
-    gym = _call(gs.create_gym, db, body.name)
-    db.commit()
-    return _gym_json(db, gym)
+def create_gym(body: NameBody, db: Db, settings: Cfg) -> dict[str, Any]:
+    with _errors():
+        return gs.add_gym(db, body.name, settings)
 
 
 @router.put("/gyms/current")
-def put_current_gym(body: CurrentBody, db: Session = Depends(get_db)) -> dict[str, Any]:
+def put_current_gym(body: CurrentBody, db: Db, settings: Cfg) -> dict[str, Any]:
     """Make a gym the current one and re-plan the upcoming sessions. Idempotent."""
-    settings = get_settings()
-    gym = _call(gs.find_gym, db, body.gym_id)
-    gs.set_current_gym(db, gym, settings)
-    db.commit()
-    rerun_engine("current gym")
-    return {
-        "current_gym_id": gym.id,
-        "unmapped_count": gs.unmapped_count(db, gym, settings),
-    }
+    with _errors():
+        return gs.make_current(db, body.gym_id, settings, replan=rerun_engine)
 
 
 @router.patch("/gyms/{gym_id}")
-def rename_gym(gym_id: int, body: NameBody, db: Session = Depends(get_db)) -> dict[str, Any]:
-    gym = _call(gs.find_gym, db, gym_id)
-    _call(gs.rename_gym, db, gym, body.name)
-    db.commit()
-    return _gym_json(db, gym)
+def rename_gym(gym_id: int, body: NameBody, db: Db, settings: Cfg) -> dict[str, Any]:
+    with _errors():
+        return gs.rename(db, gym_id, body.name, settings)
 
 
 @router.delete("/gyms/{gym_id}", status_code=204)
-def delete_gym(gym_id: int, db: Session = Depends(get_db)) -> Response:
-    gym = _call(gs.find_gym, db, gym_id)
-    _call(gs.delete_gym, db, gym, get_settings())
-    db.commit()
+def delete_gym(gym_id: int, db: Db, settings: Cfg) -> Response:
+    with _errors():
+        gs.remove_gym(db, gym_id, settings)
     return Response(status_code=204)
 
 
@@ -154,64 +135,31 @@ def delete_gym(gym_id: int, db: Session = Depends(get_db)) -> Response:
 
 
 @router.get("/gyms/{gym_id}/machines")
-def gym_machines(gym_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
-    gym = _call(gs.find_gym, db, gym_id)
-    return {"gym": _gym_json(db, gym), "items": gs.machine_items(db, gym, get_settings())}
+def gym_machines(gym_id: int, db: Db, settings: Cfg) -> dict[str, Any]:
+    with _errors():
+        return gs.gym_machines(db, gym_id, settings)
 
 
 @router.post("/gyms/{gym_id}/machines", status_code=201)
-def create_machine(gym_id: int, body: MachineBody, db: Session = Depends(get_db)) -> dict[str, Any]:
-    settings = get_settings()
-    gym = _call(gs.find_gym, db, gym_id)
-    ex = db.get(Exercise, body.exercise_id)
-    if ex is None:
-        raise HTTPException(404, "exercise not found")
-    _call(
-        gs.create_machine,
-        db,
-        gym,
-        ex,
-        name=body.name,
-        equipment_type=body.equipment_type,
-        weight_ladder=body.weight_ladder,
-        notes=body.notes,
-        settings=settings,
-    )
-    db.commit()
-    current = gs.effective_current_gym(db, settings)
-    if current is not None and current.id == gym.id:
-        rerun_engine("machine set up")  # the plan item stops being "set up this machine"
-    return gs.machine_item_for(db, gym, ex, settings)
+def create_machine(gym_id: int, body: MachineBody, db: Db, settings: Cfg) -> dict[str, Any]:
+    with _errors():
+        return gs.add_machine(
+            db, gym_id, body.exercise_id, name=body.name, equipment_type=body.equipment_type,
+            weight_ladder=body.weight_ladder, notes=body.notes, settings=settings,
+            replan=rerun_engine,
+        )  # fmt: skip
 
 
 @router.patch("/variants/{variant_id}")
-def patch_variant(
-    variant_id: int, body: VariantPatch, db: Session = Depends(get_db)
-) -> dict[str, Any]:
-    v = db.get(ExerciseVariant, variant_id)
-    if v is None or v.deleted_at is not None:
-        raise HTTPException(404, "variant not found")
-    v, engine_changed = _call(gs.update_variant, db, v, body.model_dump(exclude_unset=True))
-    db.commit()
-    if engine_changed:
-        rerun_engine("machine changed")
-    usage = gs.usage_by_variant(db).get(v.id, gs.Usage())
-    return {
-        "id": v.id,
-        "exercise_id": v.exercise_id,
-        "gym_id": v.gym_id,
-        "name": v.name,
-        "equipment_type": gs._val(v.equipment_type),
-        "weight_ladder": v.weight_ladder,
-        "increment_kg": v.increment_kg,
-        "notes": v.notes,
-        "active": bool(v.active),
-        "sessions": usage.sessions,
-        "last_used": usage.last_used.isoformat() if usage.last_used else None,
-    }
+def patch_variant(variant_id: int, body: VariantPatch, db: Db) -> dict[str, Any]:
+    with _errors():
+        return gs.edit_variant(
+            db, variant_id, body.model_dump(exclude_unset=True), replan=rerun_engine
+        )
 
 
 @router.post("/weight-ladder/preview")
 def ladder_preview(body: LadderPreview) -> dict[str, Any]:
-    ladder = _call(gs.preview_ladder, body.start, body.step, body.count, body.extra)
+    with _errors():
+        ladder = gs.preview_ladder(body.start, body.step, body.count, body.extra)
     return {"weight_ladder": ladder}

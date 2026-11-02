@@ -1,4 +1,5 @@
-"""`GET /api/v1/variants/{id}/history`: last N sessions of a variant."""
+"""Training history reads: last N sessions of a variant (`GET /api/v1/variants/{id}/history`),
+its per-session stats, and the newest sessions."""
 
 from __future__ import annotations
 
@@ -7,7 +8,51 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.fitness.db.models import ExerciseSessionStats, TrainingSession, WorkoutSet
+from apps.fitness.db.models import (
+    ExerciseSessionStats,
+    ExerciseVariant,
+    TrainingSession,
+    WorkoutSet,
+)
+from apps.fitness.errors import ServiceError
+
+
+def require_variant(db: Session, variant_id: int) -> ExerciseVariant:
+    """The variant (tombstoned ones included), else ServiceError 404."""
+    variant = db.get(ExerciseVariant, variant_id)
+    if variant is None:
+        raise ServiceError(404, "variant not found")
+    return variant
+
+
+def recent_sessions(db: Session, limit: int) -> list[TrainingSession]:
+    """Newest first, tombstones excluded."""
+    return list(
+        db.scalars(
+            select(TrainingSession)
+            .where(TrainingSession.deleted_at.is_(None))
+            .order_by(TrainingSession.started_at_utc.desc())
+            .limit(limit)
+        )
+    )
+
+
+def variant_stats(db: Session, variant_id: int) -> list[ExerciseSessionStats]:
+    """Per-session stats of a variant, oldest first (404 for an unknown variant)."""
+    require_variant(db, variant_id)
+    return list(
+        db.scalars(
+            select(ExerciseSessionStats)
+            .where(ExerciseSessionStats.variant_id == variant_id)
+            .order_by(ExerciseSessionStats.session_date)
+        )
+    )
+
+
+def checked_variant_history(db: Session, variant_id: int, limit: int) -> list[dict[str, Any]]:
+    """`variant_history` of a known variant (404 otherwise)."""
+    require_variant(db, variant_id)
+    return variant_history(db, variant_id, limit)
 
 
 def variant_history(db: Session, variant_id: int, limit: int) -> list[dict[str, Any]]:
