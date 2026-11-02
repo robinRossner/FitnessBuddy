@@ -57,6 +57,7 @@ from apps.fitness.garmin.errors import (
     RateLimitedError,
     SourceUnavailable,
 )
+from apps.fitness.garmin.pacing import Sleeper
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
@@ -167,7 +168,7 @@ class GarminSync:
         settings: Settings,
         *,
         today: Callable[[], date] | None = None,
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Sleeper = time.sleep,
         progress: Callable[[str], None] = lambda msg: None,
         rate_limit_waits: tuple[float, ...] = DEFAULT_RATE_LIMIT_WAITS,
     ) -> None:

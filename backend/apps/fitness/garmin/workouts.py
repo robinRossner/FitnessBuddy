@@ -53,6 +53,7 @@ from apps.fitness.db.models import PlannedSession, Run
 from apps.fitness.db.session import session_scope
 from apps.fitness.garmin.errors import GarminError, NotFoundError, SourceUnavailable
 from apps.fitness.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.pacing import FixedPause, Pacer, Sleeper
 from apps.fitness.garmin.python_garminconnect import shared_login, translate_error
 from apps.fitness.settings import Settings, get_settings
 
@@ -535,11 +536,11 @@ def fingerprint(specs: list[WorkoutSpec]) -> str:
 class _Remote:
     """Paced, error-translated calls on a logged-in python-garminconnect client."""
 
-    def __init__(self, api: Any, pace_s: float, sleep: Callable[[float], None]) -> None:
-        self.api, self.pace_s, self.sleep = api, pace_s, sleep
+    def __init__(self, api: Any, pacer: Pacer) -> None:
+        self.api, self.pacer = api, pacer
 
     def __call__(self, method: str, *args: Any, **kwargs: Any) -> Any:
-        self.sleep(self.pace_s)
+        self.pacer.wait()
         try:
             return getattr(self.api, method)(*args, **kwargs)
         except Exception as exc:
@@ -758,7 +759,7 @@ def push_workouts(
     today: date | None = None,
     extra_day: date | None = None,
     dry_run: bool = False,
-    sleep: Callable[[float], None] = time.sleep,
+    sleep: Sleeper = time.sleep,
     lock_timeout_s: float = 120.0,
 ) -> PushReport:
     """Bring our Garmin workouts in line with the open planned runs (see module docstring).
@@ -791,7 +792,7 @@ def push_workouts(
     if not _push_lock.acquire(timeout=lock_timeout_s):
         raise GarminError("another workout push is still running")
     try:
-        remote = _Remote(client_provider(s), s.garmin_request_interval_s, sleep)
+        remote = _Remote(client_provider(s), FixedPause(s.garmin_request_interval_s, sleep))
         ours = list_ours(remote)
         keep = {w.planned_session_id for w in ours if w.planned_session_id in candidates}
         report.workouts = desired_workouts(candidates, today, window_to, keep, extra_day)

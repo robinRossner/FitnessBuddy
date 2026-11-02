@@ -44,6 +44,7 @@ from apps.fitness.garmin.errors import (
     SourceUnavailable,
 )
 from apps.fitness.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
+from apps.fitness.garmin.pacing import FixedPause, Sleeper
 from core.redact import install_log_redaction, register_secret
 
 log = logging.getLogger(__name__)
@@ -191,11 +192,10 @@ class PythonGarminConnectSource:
         *,
         pace_s: float = 1.0,
         client_factory: Callable[[str, str], Any] = _default_factory,
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Sleeper = time.sleep,
     ) -> None:
         self._login = GarminConnectLogin(email, password, token_dir, client_factory=client_factory)
-        self._pace_s = pace_s
-        self._sleep = sleep
+        self._pacer = FixedPause(pace_s, sleep)
 
     @property
     def _api(self) -> Any:
@@ -211,7 +211,7 @@ class PythonGarminConnectSource:
 
     def _call(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api = self._client()
-        self._sleep(self._pace_s)
+        self._pacer.wait()
         try:
             return getattr(api, method)(*args, **kwargs)
         except Exception as exc:
