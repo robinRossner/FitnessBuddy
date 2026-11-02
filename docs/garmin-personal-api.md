@@ -24,7 +24,8 @@ Sources: Garmin's OpenAPI document (embedded in
 - Cost of one manual sync (`POST /garmin/sync`): 4 GETs (activity list, daily summaries, sleep, HRV;
   one page each) + 1 FIT download per new activity, plus a token exchange only about once a day (the
   token is cached); every retry counts, so >= 4 s at 1 req/s. At the default cap of 30 manual syncs
-  a day that is ~120 requests, plus ~30 for the scheduled runs. Third-party copies of Garmin's
+  a day that is ~120 requests, plus ~36 for the scheduled runs (nightly everything; six daytime runs
+  of 5 GETs each, the manual sync's 4 plus HR zones, so a zone change is dated the day it syncs). Third-party copies of Garmin's
   partner docs mention 200 calls per user per day (low confidence it applies to this API).
 
 ## Endpoints used (all GET)
@@ -74,8 +75,9 @@ API. The Strong history (2023+) is unaffected.
   Autolap laps have `intensity=interval`.
 - FIT files embed the user profile (name, weight, height); only lap/session messages are read and
   the files are stored mode 0600 under `backend/var/fit/` (gitignored).
-- HR zones reported by Garmin (max 190, zones from % of max) differ from the engine config
-  (`max_hr: 192`, polarized ceiling 153). `athlete_metrics` records Garmin's values (also LTHR 171)
-  so the engine can *propose* config changes; nothing is applied automatically.
+- HR zones: `athlete_metrics` records Garmin's max HR, LTHR and zone floors with the day they changed.
+  The engine's zones follow the latest floors (`docs/spec/decisions.md`, 2026-11-02). Floors have only
+  been seen under `trainingMethod: HR_MAX`; that they are bpm under `HR_RESERVE` is unverified, and
+  values that do not look like bpm are ignored in favour of the LTHR zones.
 - The device timezone in activity details is `Europe/Paris` (same offset as Vienna); we store
   Garmin's local/GMT start times and the configured `USER_TZ`.

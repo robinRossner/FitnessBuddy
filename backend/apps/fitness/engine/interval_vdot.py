@@ -24,7 +24,7 @@ Pure functions, no state: the same runs give the same estimate on every re-run.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from statistics import median
@@ -131,7 +131,7 @@ def session_from_run(
     if peak < cfg.min_peak_hr_pct_lthr * lthr - 1e-9:
         return "hr_low"
     avg_hr = median(avg)
-    effort = "maximal" if avg_hr >= zones.zone("z5a").low else "submaximal"
+    effort = "maximal" if avg_hr >= zones.z5_low else "submaximal"
     raw = vdot_for_pace(med, FRAC_INTERVAL)
     age = (today - run.day).days
     discount = max(0, age - cfg.age_free_days) / 7 * cfg.age_discount_per_week
@@ -157,11 +157,13 @@ def estimate_from_reps(
     *,
     today: date,
     after: date | None = None,
+    zones_of: Callable[[R.RunData], HrZones] | None = None,
 ) -> RepEstimate:
     """The best age-discounted estimate of the window (see the module docstring).
 
     `after`: only sessions after this day count (the last VDOT drop: evidence from before a
-    layoff or a fail-drop must not undo it)."""
+    layoff or a fail-drop must not undo it). `zones_of`: the zones a run is judged by, so whether
+    its effort was maximal does not move with a later zone change (default: `zones` for all)."""
     if not cfg.enabled:
         return RepEstimate(None, reason="VDOT from interval reps is off")
     since = today - timedelta(days=cfg.window_days)
@@ -169,10 +171,13 @@ def estimate_from_reps(
         since = after
     out: list[RepSession] = []
     skipped: dict[str, int] = {}
+    z5_of: dict[date, int] = {}
     for r in sorted(runs, key=lambda x: (x.day, x.id)):
         if not (since < r.day <= today) or R.split_intervals(r.laps) is None:
             continue
-        s = session_from_run(r, zones, cfg, today=today)
+        run_zones = zones_of(r) if zones_of else zones
+        z5_of[r.day] = run_zones.z5_low
+        s = session_from_run(r, run_zones, cfg, today=today)
         if isinstance(s, str):
             skipped[s] = skipped.get(s, 0) + 1
         else:
@@ -183,7 +188,7 @@ def estimate_from_reps(
             why += " (" + ", ".join(f"{k}: {v}" for k, v in sorted(skipped.items())) + ")"
         return RepEstimate(None, (), skipped, why)
     best = max(out, key=lambda s: (round(s.vdot, 6), s.day))
-    z5 = zones.zone("z5a").low
+    z5 = z5_of[best.day]
     hr_note = (
         f"avg rep HR {best.avg_hr:.0f} below Z5 {z5}: sub-maximal, so your I pace is at least this"
         if best.effort == "submaximal"

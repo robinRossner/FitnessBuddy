@@ -6,13 +6,15 @@ import Foundation
 // MARK: - Heart-rate zone chip
 
 enum HRZoneChip {
+    // Fallback only: the plan's `zone` is the engine's own (Garmin's zones, e.g. "Z2-Z3", when it uses them) and
+    // always wins. These LTHR percentages serve a range without a zone, from an older server (`basis: "lthr"`).
     /// Easy runs are capped at 89 % of LTHR (engine default), the plan's `basis: "lthr"` upper bound.
     static let easyCeilingPct = 0.89
     /// Top of Z1...Z4 as a fraction of LTHR (engine `zones_pct_lthr`); everything above is Z5.
     static let zoneTopsPct = [0.85, 0.89, 0.94, 0.99]
 
-    /// "Z1–Z2" when the plan names the zone; otherwise derived from the bpm range with LTHR-based bounds
-    /// (`lthr` if known, else estimated from an LTHR-based easy ceiling); otherwise "127–156 bpm".
+    /// The zone the plan names ("Z2–Z3"); otherwise derived from the bpm range with LTHR-based bounds
+    /// (`lthr` if known, else estimated from an LTHR-based easy ceiling); otherwise "121–150 bpm".
     static func label(for hr: HRRangeDTO?, lthr: Double? = nil) -> String? {
         if let zone = hr?.zone?.trimmingCharacters(in: .whitespaces), !zone.isEmpty { return normalized(zone) }
         guard let lo = hr?.low, let hi = hr?.high else { return nil }

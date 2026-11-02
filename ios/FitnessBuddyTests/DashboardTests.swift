@@ -164,6 +164,12 @@ struct ZoneChipTests {
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z4-Z5a", low: 166, high: 179, basis: nil)) == "Z4–Z5a")
         #expect(HRZoneChip.highestZone(in: "Z4–Z5a") == 5 && HRZoneChip.highestZone(in: "Z1–Z2") == 2)
         #expect(HRZoneChip.highestZone(in: "127–156 bpm") == nil)
+        // Garmin's zones, named by the engine: the bpm range is never re-derived from LTHR
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z2-Z3", low: 121, high: 150, basis: "garmin")) == "Z2–Z3")
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z4", low: 151, high: 171, basis: nil)) == "Z4")
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z5", low: 172, high: 190, basis: nil)) == "Z5")
+        #expect(HRZoneChip.highestZone(in: "Z2–Z3") == 3)
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 121, high: 150, basis: "garmin")) == "121–150 bpm")
     }
 
     @Test func derivedFromBpmWithLthrBounds() {

@@ -67,20 +67,21 @@ def _laps_out(db, run_row: Run, rd: R.RunData | None, ctx: Ctx | None, typ: str,
     kinds = _lap_kinds(data, split)
     target = target_interval_pace(ctx, rd) if (ctx and rd and typ == "intervals") else None
     green, ceiling = hr_lines(ctx, rd) if (ctx and rd and typ == "intervals") else (None, None)
+    zones = ctx.zones_for(rd) if ctx and rd else None
     out = []
     for lap, d, kind in zip(db_laps, data, kinds, strict=True):
         t_pace = lo = hi = pace_ok = hr_ok = None
-        if ctx is not None and kind == "work" and typ == "intervals":
+        if ctx is not None and zones is not None and kind == "work" and typ == "intervals":
             # pace decides; HR is only a safety ceiling (the lap's peak vs the ceiling)
-            lo = green if green is not None else ctx.zones.interval_low
-            hi = ceiling if ceiling is not None else ctx.zones.interval_high
+            lo = green if green is not None else zones.interval_low
+            hi = ceiling if ceiling is not None else zones.interval_high
             t_pace = target
             pace_ok = R.lap_on_pace(d.pace, target, ctx.rc.interval_pace_tolerance_pct)
             peak = d.max_hr or d.avg_hr
             if peak is not None:
                 hr_ok = peak <= hi
-        elif ctx is not None and kind == "other" and typ in ("easy", "long"):
-            lo, hi = ctx.zones.easy_low, ctx.zones.easy_high
+        elif zones is not None and kind == "other" and typ in ("easy", "long"):
+            lo, hi = zones.easy_low, zones.easy_high
             if d.avg_hr is not None:
                 hr_ok = d.avg_hr <= hi
         out.append(
@@ -105,7 +106,7 @@ def _laps_out(db, run_row: Run, rd: R.RunData | None, ctx: Ctx | None, typ: str,
 def _verdict(
     typ: str, rd: R.RunData, ctx: Ctx, ev, target: float | None, after_lower: bool = False
 ) -> dict:
-    zones = ctx.zones
+    zones = ctx.zones_for(rd)
     if typ == "intervals":
         if ev is None:
             return {

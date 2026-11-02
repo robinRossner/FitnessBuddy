@@ -343,6 +343,7 @@ class EasyEval:
     reasons: list[str] = field(default_factory=list)
     exempt: bool = False  # the day after a lower-body session: an HR fail is only a note
     notes: list[str] = field(default_factory=list)
+    hr_ceiling: int | None = None  # the ceiling this run was judged by
 
     def as_dict(self) -> dict[str, Any]:
         return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.__dict__.items()}
@@ -358,7 +359,8 @@ def easy_share_label(source: str, cap: float) -> str:
 def evaluate_easy_run(
     run: RunData, zones: HrZones, cfg: EasyRunConfig, *, after_lower: bool = False
 ) -> EasyEval:
-    """Pass = avg HR <= the easy ceiling and >= X % of the time at/below it. With
+    """Pass = avg HR <= the easy ceiling and >= X % of the time at/below it. `zones` are those in
+    force for this run (`ZoneBook.for_run`), not necessarily today's. With
     `after_lower` (the day after a lower-body session, `cfg.exempt_after_lower`) an HR fail is
     turned into a note: the legs are pre-fatigued, so HR runs high for the same pace."""
     cap = zones.easy_high
@@ -398,6 +400,7 @@ def evaluate_easy_run(
         reasons=reasons,
         exempt=exempt,
         notes=notes,
+        hr_ceiling=cap,
     )
 
 

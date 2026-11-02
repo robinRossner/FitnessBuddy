@@ -336,6 +336,10 @@ The Friday quality session of the same week, abridged:
     `pace_ok_share`, `last_rep_peak_hr`, `hr_safety_exceeded`, ...).
   - Easy runs: `structure` = `{"strides": {"reps", "duration_s", "recovery_s", "note"}}` (the
     `structure` key was intervals-only before; its `work` / `recovery` are absent here).
+    `last_easy_run` also carries `hr_ceiling`, the ceiling that run was judged by (the zones in
+    force when it was run). `hr.zone` / `low` / `high` are the engine's current zones: with Garmin's
+    floors easy is `Z2-Z3` (121-150 at the %HRR floors, `basis: "garmin"`), threshold `Z4`, VO2max
+    and 5k `Z5`; without them `Z1-Z2`, `Z4`, `Z4-Z5a` from LTHR as in the example above.
     `last_easy_run` gains `exempt` (bool) and `notes` (`[str]`): the day after a lower-body
     session an HR fail is shown as a note, not a fail.
   - Long runs: `step_back` (bool) and `progression.drift` (`hold | cut | null`).

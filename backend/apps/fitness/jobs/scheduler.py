@@ -12,7 +12,7 @@ import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from apps.fitness.jobs.garmin_jobs import LIGHT_KINDS, run_sync
+from apps.fitness.jobs.garmin_jobs import DAY_KINDS, run_sync
 from apps.fitness.settings import Settings
 from apps.fitness.sources.garmin.base import ALL_KINDS
 from core.scheduler import add_cron_job, hhmm
@@ -110,7 +110,7 @@ def build_scheduler(settings: Settings) -> BackgroundScheduler:
             hour=h,
             minute=m,
             tz=settings.scheduler_tz,
-            args=[LIGHT_KINDS],
+            args=[DAY_KINDS],
             misfire_grace_time=1800,
         )
     return sched

@@ -23,7 +23,7 @@ from apps.fitness.engine import config_service as cs
 from apps.fitness.engine import data as D
 from apps.fitness.engine import running as R
 from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.hr import HrZones, zones_from_config
+from apps.fitness.engine.hr import HrZones, ZoneBook, zone_book
 from apps.fitness.engine.pace import VdotPaceModel, make_pace_model
 from apps.fitness.engine.vdot import VdotRecord
 from apps.fitness.settings import get_settings
@@ -53,9 +53,14 @@ class Planned:
 @dataclass
 class Ctx:
     cfg: EngineConfig
-    zones: HrZones
+    zones: HrZones  # today's: what the charts bin into
     runs: list[R.RunData]  # oldest first, from (since - VDOT lookback)
     planned: dict[str, Planned]  # run id -> linked planned session
+    book: ZoneBook
+
+    def zones_for(self, run: R.RunData) -> HrZones:
+        """The zones in force when `run` was run: what it is judged by."""
+        return self.book.for_run(run)
 
     @property
     def rc(self):
@@ -75,7 +80,8 @@ def load_ctx(db: Session, since: date, until: date) -> Ctx:
             .where(Run.deleted_at.is_(None))
         )
     }
-    return Ctx(cfg, zones_from_config(cfg), runs, planned)
+    book = zone_book(cfg, D.latest_zone_floors(db))
+    return Ctx(cfg, book.current, runs, planned, book)
 
 
 def classify(run: R.RunData, ctx: Ctx, planned: Planned | None = None) -> str:
@@ -123,15 +129,16 @@ def session_type(ctx: Ctx, run: R.RunData) -> str:
 
 
 def hr_lines(ctx: Ctx, run: R.RunData) -> tuple[float | None, float | None]:
-    """(green line, safety ceiling) in bpm of the run's quality session type (None w/o LTHR)."""
+    """(green line, safety ceiling) in bpm of the run's quality session type, on its own zones."""
+    from apps.fitness.engine.quality import hr_lines as quality_hr_lines
     from apps.fitness.engine.quality import type_spec
 
-    lthr = ctx.zones.lthr
-    if not lthr:
-        return None, None
     spec = type_spec(ctx.rc, session_type(ctx, run))
+    green, ceiling = quality_hr_lines(ctx.zones_for(run), spec)
+    if green is None or ceiling is None:
+        return None, None
     # round half up, like the HR zones (apps/fitness/engine/hr.py)
-    return int(lthr * spec.green_hr_pct_lthr + 0.5), int(lthr * spec.hr_ceiling_pct_lthr + 0.5)
+    return int(green + 0.5), int(ceiling + 0.5)
 
 
 def evaluate_interval_run(ctx: Ctx, run: R.RunData):
@@ -143,7 +150,7 @@ def evaluate_interval_run(ctx: Ctx, run: R.RunData):
     green, ceiling = hr_lines(ctx, run)
     ev = R.evaluate_intervals(
         split,
-        ctx.zones,
+        ctx.zones_for(run),
         ctx.rc.intervals,
         prescribed_reps=prescribed_reps(ctx, run),
         target_pace=target_interval_pace(ctx, run),
@@ -304,8 +311,8 @@ def running_stats(db: Session, weeks: int) -> dict:
                     "target_pace_s_per_km": num(target_interval_pace(ctx, r), 1),
                     "avg_work_pace_s_per_km": num(ev.work_pace_s_per_km, 1),
                     "avg_work_hr": num(ev.work_hr, 1),
-                    "target_hr_low": ctx.zones.interval_low,
-                    "target_hr_high": ctx.zones.interval_high,
+                    "target_hr_low": ctx.zones_for(r).interval_low,
+                    "target_hr_high": ctx.zones_for(r).interval_high,
                     "hr_in_range": ev.hr_in_zone,
                     "recovery_ok": ev.recovery_ok,
                     "passed": ev.passed,

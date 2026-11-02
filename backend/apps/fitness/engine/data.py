@@ -529,6 +529,11 @@ def _zone_floors(db: Session, day: date) -> tuple[float, ...] | None:
     return tuple(floors)
 
 
+def latest_zone_floors(db: Session) -> tuple[float, ...] | None:
+    """Garmin's current zone floors (what upcoming sessions are planned on)."""
+    return _zone_floors(db, date.max)
+
+
 def load_runs(db: Session, since: date, until: date | None = None) -> list[R.RunData]:
     q = (
         select(Run)
@@ -561,7 +566,7 @@ def load_runs(db: Session, since: date, until: date | None = None) -> list[R.Run
                 max_hr=r.max_hr,
                 laps=laps,
                 time_in_zones_s=r.time_in_zones_s,
-                zone_floors=_zone_floors(db, day) if r.time_in_zones_s else None,
+                zone_floors=_zone_floors(db, day),
                 title=r.title,
                 elevation_gain_m=r.elevation_gain_m,
             )
@@ -677,6 +682,7 @@ def load_inputs(
         cycle_start=cycle_start,
         last_step_back=load_last_step_back(db, week_start),
         bodyweight_kg=bodyweight_at(db, today, cfg.user.bodyweight_kg),
+        zone_floors=latest_zone_floors(db),
     )
 
 

@@ -14,6 +14,7 @@ from apps.fitness.sources.garmin.base import (
     ACTIVITIES,
     ALL_KINDS,
     DAILY_SUMMARY,
+    HR_ZONES,
     HRV,
     SLEEP,
     GarminSource,
@@ -23,9 +24,12 @@ from apps.fitness.stats import rebuild_with_config
 
 log = logging.getLogger(__name__)
 
-# Daytime runs and the manual sync; nightly runs everything. HRV belongs here: last night's HRV
-# lands after the 03:30 run, so only a daytime run can bring it in time for the morning.
+# The manual sync; nightly runs everything. HRV belongs here: last night's HRV lands after the
+# 03:30 run, so only a daytime run can bring it in time for the morning.
 LIGHT_KINDS = (ACTIVITIES, DAILY_SUMMARY, SLEEP, HRV)
+# Scheduled daytime runs: also the HR zones, so a zone change is dated the day it was made and that
+# day's run is not left with new-zone seconds and old floors until the next night.
+DAY_KINDS = (*LIGHT_KINDS, HR_ZONES)
 _lock = threading.Lock()  # one sync at a time, whether CLI-in-process or scheduled
 
 

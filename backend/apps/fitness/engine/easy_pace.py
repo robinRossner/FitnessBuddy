@@ -7,13 +7,15 @@ were genuinely easy by HR (config `running.easy_calibration`, see `EasyCalibrati
 with enough of them, sets an "easy VDOT": the VDOT whose fast end of the easy range (74 %) is
 their median pace. It is clamped to [quality VDOT, quality VDOT + max_vdot_gain]: calibration
 only ever speeds the easy range up, and HR stays the governor on the day. Interval, threshold,
-5k and time-trial paces (and the quality VDOT itself) are untouched. Pure functions, no state:
-the same runs give the same result.
+5k and time-trial paces (and the quality VDOT itself) are untouched. Each run is judged by the
+zones in force when it was run, so a lower ceiling does not drop old runs from the samples: the
+pace follows once runs at the new ceiling come in. Pure functions, no state: the same runs give the
+same result.
 """
 
 from __future__ import annotations
 
-from collections.abc import Collection, Sequence
+from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from statistics import median
@@ -40,6 +42,7 @@ class EasySample:
     pace_s_per_km: float
     avg_hr: float
     decoupling_pct: float
+    hr_limit: float = 0.0  # the avg-HR limit this run was judged by (its ceiling - the margin)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -125,21 +128,33 @@ def qualifying_runs(
     *,
     today: date,
     exclude_days: Collection[date] = (),
+    zones_of: Callable[[R.RunData], HrZones] | None = None,
 ) -> tuple[list[EasySample], dict[str, int]]:
-    """The steady, genuinely easy runs of the window (oldest first) and the skip counts."""
+    """The steady, genuinely easy runs of the window (oldest first) and the skip counts.
+    `zones_of`: the zones a run is judged by (default: `zones` for all)."""
     since = today - timedelta(days=cfg.window_days)
     out: list[EasySample] = []
     skipped: dict[str, int] = {}
     for r in sorted(runs, key=lambda x: (x.day, x.id)):
         if not (since < r.day <= today):
             continue
-        why = _skip_reason(r, zones, easy, cfg, exclude_days)
+        run_zones = zones_of(r) if zones_of else zones
+        why = _skip_reason(r, run_zones, easy, cfg, exclude_days)
         if why is not None:
             skipped[why] = skipped.get(why, 0) + 1
             continue
         dec = R.decoupling_pct(r.laps)
-        out.append(EasySample(r.day, r.km, r.pace or 0.0, float(r.avg_hr or 0), float(dec or 0)))
+        limit = run_zones.easy_high - cfg.hr_margin_bpm
+        out.append(
+            EasySample(r.day, r.km, r.pace or 0.0, float(r.avg_hr or 0), float(dec or 0), limit)
+        )
     return out, skipped
+
+
+def _limit_text(samples: Sequence[EasySample], default: float) -> str:
+    """The avg-HR limit the samples were judged by: "151", or "145-151" across a zone change."""
+    limits = sorted({s.hr_limit for s in samples}) or [default]
+    return f"{limits[0]:g}" if len(limits) == 1 else f"{limits[0]:g}-{limits[-1]:g}"
 
 
 def calibrate_easy(
@@ -151,8 +166,10 @@ def calibrate_easy(
     *,
     today: date,
     exclude_days: Collection[date] = (),
+    zones_of: Callable[[R.RunData], HrZones] | None = None,
 ) -> EasyCalibration:
-    """The VDOT for the easy / long run pace range (see the module docstring)."""
+    """The VDOT for the easy / long run pace range (see the module docstring). `zones` are the
+    current ones, `zones_of` gives those a stored run is judged by."""
     q = quality_vdot
     ceiling = zones.easy_high
 
@@ -164,14 +181,14 @@ def calibrate_easy(
     if not cfg.enabled:
         return daniels("calibration from your easy runs is off")
     samples, skipped = qualifying_runs(
-        runs, zones, easy, cfg, today=today, exclude_days=exclude_days
+        runs, zones, easy, cfg, today=today, exclude_days=exclude_days, zones_of=zones_of
     )
     n = len(samples)
-    hr_limit = ceiling - cfg.hr_margin_bpm
+    hr_limit = _limit_text(samples, ceiling - cfg.hr_margin_bpm)
     if n < cfg.min_runs:
         return daniels(
             f"only {n} of {n + sum(skipped.values())} runs in {cfg.window_days} days count as "
-            f"genuinely easy (easy HR rule passed, avg HR <= {hr_limit:g}, no drift); "
+            f"genuinely easy (easy HR rule passed, avg HR <= {hr_limit}, no drift); "
             f"need {cfg.min_runs}",
             samples=tuple(samples),
             skipped=skipped,
@@ -183,14 +200,14 @@ def calibrate_easy(
     common = {"samples": tuple(samples), "median_pace_s_per_km": med, "estimate_vdot": est}
     if est <= q + 1e-9:
         return daniels(
-            f"your {n} easy runs of {cfg.window_days} days at HR <= {hr_limit:g} ({span}) fit it",
+            f"your {n} easy runs of {cfg.window_days} days at HR <= {hr_limit} ({span}) fit it",
             skipped=skipped,
             **common,
         )
     v = min(est, q + cfg.max_vdot_gain)
     capped = est > v + 1e-9
     reason = (
-        f"Easy pace from your {n} easy runs of {cfg.window_days} days at HR <= {hr_limit:g} "
+        f"Easy pace from your {n} easy runs of {cfg.window_days} days at HR <= {hr_limit} "
         f"({span}): "
         f"easy VDOT {v:.1f} vs {q:.1f} for quality sessions"
         + (f" (capped at +{cfg.max_vdot_gain:g})" if capped else "")

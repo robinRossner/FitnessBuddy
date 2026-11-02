@@ -342,9 +342,11 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   `date`, `km`, and `type` = `easy` | `intervals` | `long` | `other`, the same classification as
   `efficiency[].type` below. `weekly.runs_by_type`: count of runs per type (sums to `runs`).
   `other` is reserved and is 0 for now: every run is classified into one of the three.
-- `weekly.time_in_zones_s`: seconds in HR zones **z1..z5**, using the zones of the *active engine
-  config* (derived from LTHR, never stored). The engine has Friel's 7 running zones
-  (`z1, z2, z3, z4, z5a, z5b, z5c`); they are collapsed into five:
+- `weekly.time_in_zones_s`: seconds in HR zones **z1..z5**, using the engine's *current* zones
+  (never stored). With `running.heart_rate.source: garmin` and valid Garmin floors these are Garmin's
+  five zones from the latest floors; a run with the same floors shows Garmin's seconds as they are,
+  older runs are re-binned so all bars use today's zones. Without usable floors they come from LTHR:
+  Friel's 7 running zones (`z1, z2, z3, z4, z5a, z5b, z5c`) collapsed into five:
 
   | API zone | Friel zones | at LTHR 171 |
   |---|---|---|
@@ -354,8 +356,7 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   | `z4` | z4 | 162-169 |
   | `z5` | z5a + z5b + z5c | 170 and up |
 
-  The seconds come from Garmin's per-second zone data, re-binned onto these zones (Garmin's own
-  zone floors differ; time inside one Garmin zone is assumed evenly spread over its bpm range).
+  Re-binning assumes the time inside one Garmin zone is evenly spread over its bpm range.
   Runs without Garmin zone data use their laps: each lap's duration goes to the zone of its
   average HR. Runs with neither count as 0.
 - `efficiency` (easy and long runs, oldest first): `efficiency` = **metres per minute per bpm**
@@ -379,7 +380,8 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   can sit well below the quality VDOT.
 - `intervals`: interval sessions (engine `split_intervals` / `evaluate_intervals`).
   `target_pace_s_per_km`: from the linked planned session, else the pace model's interval pace on
-  that day. `target_hr_low/high`: the interval HR zone (z4 to z5a). `hr_in_range`, `recovery_ok`
+  that day. `target_hr_low/high`: the interval HR zone in force for that run (z4 to z5a from LTHR, z5 from
+  Garmin's floors). `hr_in_range`, `recovery_ok`
   (HR drop in the recovery laps vs `intervals.hr_recovery_min_bpm`) may be `null`; both are
   context only. `passed` is the engine's verdict, judged by PACE since the progression engine v2
   (>= 80 % of the reps within the tolerance, last rep <= 3 % slower than the first, all reps done).
@@ -476,9 +478,10 @@ Works for any run id of `/api/v1/runs`. Examples: `stats_run_analysis_intervals.
   lap is slower than the target by more than `running.interval_pace_tolerance_pct`, default 3 %;
   running faster is always ok). HR is a safety ceiling only (v2): `target_hr_low` = the "passed
   easily" line, `target_hr_high` = the ceiling of the planned session type (VO2max / 5k: 102 % /
-  108 % of LTHR, threshold: 95 % / 99 %), `hr_ok` = the lap's peak HR (max, else average) at or
+  108 % of LTHR, threshold: bottom / top of Garmin Z4, else 95 % / 99 % of LTHR), `hr_ok` = the lap's peak HR (max, else average) at or
   below the ceiling. Laps of
-  easy / long runs get the easy HR range (`hr_ok` = avg HR at or below the easy ceiling) and no
+  easy / long runs get the easy HR range in force for that run, not today's (`hr_ok` = avg HR at or
+  below that ceiling) and no
   pace target. Everything else is `null`.
 - `verdict.passed`: interval runs -> the engine's `evaluate_intervals` (by pace: >= 80 % of the
   reps on pace, a fade of at most 3 %, all prescribed reps; HR above the ceiling only turns the

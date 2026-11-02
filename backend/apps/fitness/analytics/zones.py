@@ -1,12 +1,13 @@
-"""Time in heart-rate zones on the engine's zones, collapsed from Friel's 7 zones to 5.
+"""Time in heart-rate zones on the engine's current zones, always five.
 
-Mapping (the engine derives z1, z2, z3, z4, z5a, z5b, z5c from the active LTHR):
-    z1 -> z1, z2 -> z2, z3 -> z3, z4 -> z4, z5a + z5b + z5c -> z5
+The engine's zones are Garmin's z1..z5 (their latest floors), or without usable floors Friel's seven
+from LTHR, collapsed: z1 -> z1, z2 -> z2, z3 -> z3, z4 -> z4, z5a + z5b + z5c -> z5.
 
 Sources, best first:
-  garmin_zones  Garmin's per-second zone seconds (their zone floors, `athlete_metrics`) re-binned
-                onto the engine zones, assuming the time inside a Garmin zone is spread evenly
-                over its bpm range.
+  garmin_zones  Garmin's per-second zone seconds (the floors valid for that run,
+                `athlete_metrics`) re-binned onto the engine zones, assuming the time inside a
+                Garmin zone is spread evenly over its bpm range. With the same floors that is
+                Garmin's seconds as they are; older runs show on today's zones, so bars compare.
   laps          each lap's duration goes to the zone of its average HR.
   none          no HR data: all zeros.
 """
@@ -15,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from apps.fitness.engine.hr import HrZones
+from apps.fitness.engine.hr import HrZones, valid_floors
 from apps.fitness.engine.running import LapData, RunData
 
 ZONES5 = ("z1", "z2", "z3", "z4", "z5")
@@ -66,7 +67,7 @@ def time_in_zones(run: RunData, zones: HrZones) -> tuple[dict[str, int], str]:
     """(seconds per z1..z5, source) for one run."""
     secs: dict[str, float] | None = None
     source = "none"
-    if run.time_in_zones_s and run.zone_floors and len(run.zone_floors) >= 2:
+    if run.time_in_zones_s and valid_floors(run.zone_floors, zones.max_hr):
         raw = [
             float(run.time_in_zones_s.get(f"z{i + 1}", 0.0)) for i in range(len(run.zone_floors))
         ]

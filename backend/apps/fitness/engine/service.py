@@ -16,7 +16,7 @@ from apps.fitness.engine import persist as P
 from apps.fitness.engine import running as R
 from apps.fitness.engine.config import EngineConfig
 from apps.fitness.engine.decisions import log_decision
-from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.engine.hr import zone_book
 from apps.fitness.engine.makeup import MakeupSummary, handle_missed
 from apps.fitness.engine.planner import WeekPlan, generate_week
 from apps.fitness.engine.program import (
@@ -317,7 +317,7 @@ def evaluate_runs(
     s = settings or get_settings()
     cs.ensure_seeded(db, s.engine_config_path)
     cfg, _ = cs.load_active(db)
-    zones = zones_from_config(cfg)
+    book = zone_book(cfg, D.latest_zone_floors(db))
     rc = cfg.running_cfg
     out = []
     for r in D.load_runs(db, today - timedelta(weeks=weeks), today):
@@ -331,10 +331,10 @@ def evaluate_runs(
         }
         if sp is not None:
             item["type"] = "intervals"
-            item["evaluation"] = R.evaluate_intervals(sp, zones, rc.intervals).as_dict()
+            item["evaluation"] = R.evaluate_intervals(sp, book.for_run(r), rc.intervals).as_dict()
         else:
             item["type"] = "easy/long"
-            item["evaluation"] = R.evaluate_easy_run(r, zones, rc.easy).as_dict()
+            item["evaluation"] = R.evaluate_easy_run(r, book.for_run(r), rc.easy).as_dict()
         out.append(item)
     return out
 

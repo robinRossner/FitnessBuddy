@@ -36,7 +36,7 @@ from apps.fitness.engine import running as R
 from apps.fitness.engine import scheduling as S
 from apps.fitness.engine import vdot as V
 from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.hr import HrZones, zones_from_config
+from apps.fitness.engine.hr import HrZones, zone_book
 from apps.fitness.engine.pace import PaceModel, fmt_pace, make_pace_model, vdot_from_race
 from apps.fitness.engine.program import Program
 from apps.fitness.engine.readiness import (
@@ -102,6 +102,7 @@ class PlanInputs:
     # weeks whose soft deload the user cancelled (`engine deload cancel`) -> the reason
     cancelled_weeks: dict[date, str | None] = field(default_factory=dict)
     bodyweight_kg: float | None = None
+    zone_floors: tuple[float, ...] | None = None  # Garmin's latest z1..z5 floors
 
 
 @dataclass
@@ -191,12 +192,12 @@ def _paces(rng) -> dict[str, Any]:
 def _hr(zones: HrZones, which: str) -> dict[str, Any]:
     if which == "easy":
         return {
-            "zone": "Z1-Z2",
+            "zone": zones.easy_label,
             "low": zones.easy_low,
             "high": zones.easy_high,
             "basis": zones.easy_basis,
         }
-    return {"zone": "Z4-Z5a", "low": zones.interval_low, "high": zones.interval_high}
+    return {"zone": zones.interval_label, "low": zones.interval_low, "high": zones.interval_high}
 
 
 def work_km(reps: int, rep_m: float, recovery_m: float | None) -> float:
@@ -216,7 +217,9 @@ class _Planner:
         self.rd = inp.cfg.readiness_cfg
         self.rec = inp.cfg.recovery_cfg
         self.st = inp.cfg.strength
-        self.zones = zones_from_config(inp.cfg)
+        # `zones` for what is planned, `zone_book.for_run` for judging a stored run
+        self.zone_book = zone_book(inp.cfg, inp.zone_floors)
+        self.zones = self.zone_book.current
         self.model: PaceModel = make_pace_model(inp.cfg)
         self.decisions: list[DecisionRec] = []
         self.triggers: list[TriggerRec] = []
@@ -281,16 +284,17 @@ class _Planner:
                 out.append((rec, run, None))
                 continue
             spec = Q.type_spec(self.rc, rec.session_type)
-            lthr = self.zones.lthr or 0
+            run_zones = self.zone_book.for_run(run)
+            green_hr, hr_ceiling = Q.hr_lines(run_zones, spec)
             ev = R.evaluate_intervals(
                 sp,
-                self.zones,
+                run_zones,
                 self.rc.intervals,
                 prescribed_reps=rec.reps,
                 target_pace=rec.pace_s_per_km,
                 pace_tol_pct=self.rc.interval_pace_tolerance_pct,
-                hr_ceiling=lthr * spec.hr_ceiling_pct_lthr if lthr else None,
-                green_hr=lthr * spec.green_hr_pct_lthr if lthr else None,
+                hr_ceiling=hr_ceiling,
+                green_hr=green_hr,
             )
             out.append((rec, run, ev))
         return out
@@ -394,6 +398,7 @@ class _Planner:
             rc.vdot.from_intervals,
             today=self.today,
             after=V.last_drop_day(log),
+            zones_of=self.zone_book.for_run,
         )
         best = self.rep_estimate.best
         measured = (
@@ -473,6 +478,7 @@ class _Planner:
             q,
             today=self.today,
             exclude_days={rec.day for rec in self.inp.quality_log},
+            zones_of=self.zone_book.for_run,
         )
         self.easy_cal = cal
         ws = self.inp.week_start
@@ -1128,7 +1134,9 @@ class _Planner:
         last_long = max((r for r in recent if r.km >= lc.min_km), key=lambda r: r.day, default=None)
         dec = dur = None
         if last_long is not None:
-            self._long_eval = R.evaluate_easy_run(last_long, self.zones, self.rc.easy)
+            self._long_eval = R.evaluate_easy_run(
+                last_long, self.zone_book.for_run(last_long), self.rc.easy
+            )
             dec = self._long_eval.decoupling_pct
             dur = last_long.duration_s / 60
         due, pos = self._step_back_due() if base is not None else (False, "")
@@ -1216,7 +1224,10 @@ class _Planner:
 
             def flagged(r: R.RunData) -> bool:
                 ev = R.evaluate_easy_run(
-                    r, self.zones, rc.easy, after_lower=(r.day - timedelta(days=1)) in lower
+                    r,
+                    self.zone_book.for_run(r),
+                    rc.easy,
+                    after_lower=(r.day - timedelta(days=1)) in lower,
                 )
                 return not ev.passed or ev.decoupling_flag
 
@@ -1409,7 +1420,9 @@ class _Planner:
             last is not None and (last.day - timedelta(days=1)) in self.inp.actual_lower_days
         )
         ev = (
-            R.evaluate_easy_run(last, self.zones, self.rc.easy, after_lower=after_lower)
+            R.evaluate_easy_run(
+                last, self.zone_book.for_run(last), self.rc.easy, after_lower=after_lower
+            )
             if last
             else None
         )
@@ -1456,7 +1469,7 @@ class _Planner:
                         if last.get("decoupling_pct") is not None
                         else ""
                     ),
-                    {"run_date": last["date"], "easy_ceiling": self.zones.easy_high},
+                    {"run_date": last["date"], "easy_ceiling": last["hr_ceiling"]},
                     last,
                     "run",
                     last["date"],
@@ -1469,6 +1482,13 @@ class _Planner:
 
     def _work_hr(self, t: str) -> dict[str, Any]:
         z = self.zones
+        if t == "threshold" and z.threshold_low is not None:
+            return {
+                "zone": "Z4",
+                "low": z.threshold_low,
+                "high": z.threshold_high,
+                "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
+            }
         if t == "threshold" and z.lthr:
             spec = Q.type_spec(self.rc, t)
             return {
