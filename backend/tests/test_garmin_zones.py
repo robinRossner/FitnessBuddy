@@ -43,33 +43,23 @@ def run_on(day: date, floors, hr=153, km=8) -> R.RunData:
 # ------------------------------------------------------------------- quality HR lines
 
 
-def test_threshold_lines_are_garmin_z4_and_vo2_stays_on_lthr():
+def test_quality_lines_stay_on_lthr_with_garmin_floors():
     rc = CFG.running_cfg
     new = zones_from_config(CFG, NEW)
-    assert Q.hr_lines(new, Q.type_spec(rc, "threshold")) == (151, 171)
+    green, ceiling = Q.hr_lines(new, Q.type_spec(rc, "threshold"))
+    assert green == pytest.approx(171 * 0.95) and ceiling == pytest.approx(171 * 0.99)
     green, ceiling = Q.hr_lines(new, Q.type_spec(rc, "vo2max"))
     assert green == pytest.approx(171 * 1.02) and ceiling == pytest.approx(171 * 1.08)
-
-
-def test_threshold_lines_of_a_run_before_the_cutover_stay_on_lthr():
-    book = zone_book(CFG, NEW)
-    before = run_on(GARMIN_ZONES_SINCE - timedelta(days=1), OLD)
-    after = run_on(GARMIN_ZONES_SINCE, NEW)
-    spec = Q.type_spec(CFG.running_cfg, "threshold")
-    green, ceiling = Q.hr_lines(book.for_run(before), spec)
-    assert green == pytest.approx(171 * 0.95) and ceiling == pytest.approx(171 * 0.99)
-    assert Q.hr_lines(book.for_run(after), spec) == (151, 171)
 
 
 # ------------------------------------------------------------------- floors -> targets
 
 
-def test_floors_map_to_easy_threshold_and_vo2_targets():
+def test_floors_set_the_easy_target_and_quality_stays_on_lthr():
     z = zones_from_config(CFG, NEW)
     assert z.source == "garmin" and z.easy_basis == "garmin"
     assert (z.easy_low, z.easy_high) == (121, 150)
-    assert (z.threshold_low, z.threshold_high) == (151, 171)
-    assert (z.interval_low, z.interval_high) == (172, 190)
+    assert (z.interval_low, z.interval_high) == (166, 179)
     assert [(x.name, x.low, x.high) for x in z.zones] == [
         ("z1", 0, 120),
         ("z2", 121, 129),
@@ -77,10 +67,9 @@ def test_floors_map_to_easy_threshold_and_vo2_targets():
         ("z4", 151, 171),
         ("z5", 172, 190),
     ]
-    assert z.lthr == 171 and z.z5_low == 172  # the LTHR stays for the quality safety lines
+    assert z.lthr == 171 and z.z5_low == 174  # hard efforts are judged on LTHR's Z5
     assert z.zone_of(150) == "z3" and z.zone_of(151) == "z4"
-    d = z.as_dict()
-    assert d["source"] == "garmin" and d["threshold"] == {"low": 151, "high": 171}
+    assert z.as_dict()["source"] == "garmin"
 
 
 def test_planned_sessions_use_the_latest_floors():
@@ -94,15 +83,19 @@ def test_planned_sessions_use_the_latest_floors():
     assert st["session_type"] == "threshold"
     assert (st["work"]["hr"]["zone"], st["work"]["hr"]["low"], st["work"]["hr"]["high"]) == (
         "Z4",
-        151,
-        171,
+        166,
+        173,
     )
     assert st["warmup"]["hr"]["high"] == 150
     assert plan.zones["easy"]["high"] == 150
 
 
-def test_vo2_and_5k_work_target_is_z5():
-    assert _hr(H.garmin_zones(HR_CFG, NEW), "intervals") == {"zone": "Z5", "low": 172, "high": 190}
+def test_vo2_and_5k_work_target_stays_on_lthr():
+    assert _hr(H.garmin_zones(HR_CFG, NEW), "intervals") == {
+        "zone": "Z4-Z5a",
+        "low": 166,
+        "high": 179,
+    }
 
 
 def test_without_floors_the_targets_stay_on_lthr():
@@ -209,14 +202,14 @@ def test_calibration_keeps_old_samples_and_names_the_limits_applied():
     assert len(today_only.samples) == 1
 
 
-def test_interval_effort_stays_judged_by_its_own_z5():
+def test_interval_effort_is_judged_on_lthr_whatever_the_floors():
     book = zone_book(CFG, NEW)
     cfg = CFG.running_cfg.vdot.from_intervals
-    run = replace(interval_run(MON, reps=5, hr=174), zone_floors=OLD)
     today = MON + timedelta(days=1)
-    assert IV.estimate_from_reps([run], book.current, cfg, today=today).best.effort == "maximal"
-    best = IV.estimate_from_reps([run], book.current, cfg, today=today, zones_of=book.for_run).best
-    assert best.effort == "submaximal"  # 174 is below that run's Z5 of 176
+    for hr, effort in ((173, "submaximal"), (174, "maximal")):  # Garmin's Z5 would start at 172
+        run = replace(interval_run(MON, reps=5, hr=hr), zone_floors=NEW)
+        best = IV.estimate_from_reps([run], book.current, cfg, today=today, zones_of=book.for_run)
+        assert best.best.effort == effort
 
 
 def test_a_zone_change_alone_does_not_touch_the_volume_hold():

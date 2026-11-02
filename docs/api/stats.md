@@ -478,7 +478,7 @@ Works for any run id of `/api/v1/runs`. Examples: `stats_run_analysis_intervals.
   lap is slower than the target by more than `running.interval_pace_tolerance_pct`, default 3 %;
   running faster is always ok). HR is a safety ceiling only (v2): `target_hr_low` = the "passed
   easily" line, `target_hr_high` = the ceiling of the planned session type (VO2max / 5k: 102 % /
-  108 % of LTHR, threshold: bottom / top of Garmin Z4, else 95 % / 99 % of LTHR), `hr_ok` = the lap's peak HR (max, else average) at or
+  108 % of LTHR, threshold: 95 % / 99 %), `hr_ok` = the lap's peak HR (max, else average) at or
   below the ceiling. Laps of
   easy / long runs get the easy HR range in force for that run, not today's (`hr_ok` = avg HR at or
   below that ceiling) and no

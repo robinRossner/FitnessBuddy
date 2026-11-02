@@ -52,15 +52,16 @@ class HrZones:
     interval_low: int
     interval_high: int
     source: str = "lthr"  # "lthr" | "garmin"
-    threshold_low: int | None = None  # Garmin Z4; None: % of LTHR from the threshold config
-    threshold_high: int | None = None
+    lthr_z5_low: int | None = None  # with Garmin's zones: where LTHR's Z5 starts (hard efforts)
     easy_label: str = "Z1-Z2"
     interval_label: str = "Z4-Z5a"
 
     @property
     def z5_low(self) -> int:
-        """Where Z5 starts (`z5` from Garmin, `z5a` from LTHR)."""
-        return next(z.low for z in self.zones if z.name in ("z5", "z5a"))
+        """Where a rep counts as a maximal effort: Z5a of the LTHR zones, also on Garmin's."""
+        if self.lthr_z5_low is not None:
+            return self.lthr_z5_low
+        return next(z.low for z in self.zones if z.name == "z5a")
 
     def zone(self, name: str) -> Zone:
         for z in self.zones:
@@ -82,7 +83,6 @@ class HrZones:
             "zones": {z.name: [z.low, z.high] for z in self.zones},
             "easy": {"low": self.easy_low, "high": self.easy_high, "basis": self.easy_basis},
             "intervals": {"low": self.interval_low, "high": self.interval_high},
-            "threshold": {"low": self.threshold_low, "high": self.threshold_high},
         }
 
 
@@ -144,10 +144,11 @@ def valid_floors(floors: Sequence[float] | None, max_hr: float | None) -> bool:
 def garmin_zones(hr: HeartRateConfig, floors: Sequence[float]) -> HrZones:
     """Garmin's five zones as engine zones (`floors` already passed `valid_floors`).
 
-    Easy = Z2-Z3, threshold = Z4, VO2max / 5k = Z5 up to max HR. Z1 is open at the bottom like the
-    LTHR zones, so every HR has a zone. LTHR stays as configured: VO2max / 5k reps' green line and
-    safety ceiling (`quality.hr_lines`) and the VDOT effort checks are still % of LTHR.
+    Only easy follows them (Z2-Z3). Quality sessions stay on LTHR: past reps fit it better than the
+    %HRR Z4 / Z5 (docs/spec/decisions.md). Z1 is open at the bottom like the LTHR zones, so every HR
+    has a zone.
     """
+    lthr_zones = compute_zones(hr)
     f = [_round_half_up(x) for x in floors]
     max_hr = _max_hr(hr)
     top = max(_round_half_up(max_hr), f[4]) if max_hr is not None else f[4]
@@ -161,13 +162,11 @@ def garmin_zones(hr: HeartRateConfig, floors: Sequence[float]) -> HrZones:
         easy_low=f[1],
         easy_high=f[3] - 1,
         easy_basis="garmin",
-        interval_low=f[4],
-        interval_high=top,
+        interval_low=lthr_zones.interval_low,
+        interval_high=lthr_zones.interval_high,
         source="garmin",
-        threshold_low=f[3],
-        threshold_high=f[4] - 1,
+        lthr_z5_low=lthr_zones.z5_low,
         easy_label="Z2-Z3",
-        interval_label="Z5",
     )
 
 

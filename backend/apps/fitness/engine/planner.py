@@ -1482,13 +1482,6 @@ class _Planner:
 
     def _work_hr(self, t: str) -> dict[str, Any]:
         z = self.zones
-        if t == "threshold" and z.threshold_low is not None:
-            return {
-                "zone": "Z4",
-                "low": z.threshold_low,
-                "high": z.threshold_high,
-                "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
-            }
         if t == "threshold" and z.lthr:
             spec = Q.type_spec(self.rc, t)
             return {

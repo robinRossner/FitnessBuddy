@@ -114,10 +114,7 @@ class TypeSpec:
 
 
 def hr_lines(zones: HrZones, spec: TypeSpec) -> tuple[float | None, float | None]:
-    """(green line, safety ceiling) in bpm for a rep of `spec`, on the zones of that run. Threshold
-    on Garmin's zones is Z4 (bottom / top); everything else is % of LTHR (None without LTHR)."""
-    if spec.name == "threshold" and zones.threshold_low is not None:
-        return zones.threshold_low, zones.threshold_high
+    """(green line, safety ceiling) in bpm for a rep of `spec`: % of LTHR (None without LTHR)."""
     if not zones.lthr:
         return None, None
     return zones.lthr * spec.green_hr_pct_lthr, zones.lthr * spec.hr_ceiling_pct_lthr
