@@ -11,7 +11,6 @@ from apps.fitness.engine.core import scheduling as S
 from apps.fitness.engine.core.planner.helpers import (
     _TITLES,
     _ladder_dict,
-    _window_dict,
 )
 from apps.fitness.engine.core.planner.models import (
     DayPlan,
@@ -21,6 +20,7 @@ from apps.fitness.engine.core.planner.models import (
     VariantInfo,
 )
 from apps.fitness.engine.core.readiness import deload_status
+from apps.fitness.engine.core.windows import window_dict as _window_dict
 
 
 class LiftingMixin:

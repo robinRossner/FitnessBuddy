@@ -275,7 +275,7 @@ def cancel_deload(
         rule="deload_cancel",
         subject_type="week",
         subject_id=ws.isoformat(),
-        inputs={"windows": [_window_json(w) for w in found]},
+        inputs={"windows": [W.window_dict(w) for w in found]},
         output={"author": "user", "week_start": ws.isoformat(), "reason": reason},
         rationale=f"The user cancelled the deload of the week of {ws}{why}: normal sets, "
         "stalled lifts retest their old loads this week.",
@@ -295,12 +295,6 @@ def cancel_deload(
         except FileNotFoundError:
             pass
     return res
-
-
-def _window_json(w) -> dict:
-    from apps.fitness.engine.core.planner import _window_dict
-
-    return _window_dict(w)
 
 
 def readiness_for(db: Session, day: date, settings: Settings | None = None) -> Readiness:

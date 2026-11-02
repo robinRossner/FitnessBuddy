@@ -39,20 +39,6 @@ def _round1(x: float) -> float:
     return round(x + 1e-9, 1)
 
 
-def _window_dict(w: L.DeloadWindow) -> dict[str, Any]:
-    return {
-        "start": w.start.isoformat(),
-        "until": w.until.isoformat(),
-        "reason": w.reason,
-        "deload": w.deload,
-        "cancelled": w.cancelled,
-        "retest": {
-            str(k): {"load": r.load, "reps": list(r.reps), "best_e1rm": r.best_e1rm}
-            for k, r in w.retest.items()
-        },
-    }
-
-
 def _ladder_dict(e: L.LadderEvent) -> dict[str, Any]:
     return {
         "day": e.day.isoformat(),

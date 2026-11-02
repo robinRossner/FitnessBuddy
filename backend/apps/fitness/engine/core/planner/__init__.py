@@ -27,49 +27,24 @@ Package layout (one module per seam of the former planner.py): `models` (inputs/
 """
 
 from apps.fitness.engine.core.planner.helpers import (
-    _TITLES as _TITLES,
-)
-from apps.fitness.engine.core.planner.helpers import (
-    _hr as _hr,
-)
-from apps.fitness.engine.core.planner.helpers import (
-    _ladder_dict as _ladder_dict,
-)
-from apps.fitness.engine.core.planner.helpers import (
-    _paces as _paces,
-)
-from apps.fitness.engine.core.planner.helpers import (
-    _round1 as _round1,
-)
-from apps.fitness.engine.core.planner.helpers import (
-    _window_dict as _window_dict,
-)
-from apps.fitness.engine.core.planner.helpers import (
-    work_km as work_km,
+    _TITLES,
+    _hr,
+    _ladder_dict,
+    _paces,
+    _round1,
+    work_km,
 )
 from apps.fitness.engine.core.planner.models import (
-    DayPlan as DayPlan,
+    DayPlan,
+    DecisionRec,
+    LiftContext,
+    PlanInputs,
+    TriggerRec,
+    VariantInfo,
+    WeekPlan,
 )
-from apps.fitness.engine.core.planner.models import (
-    DecisionRec as DecisionRec,
-)
-from apps.fitness.engine.core.planner.models import (
-    LiftContext as LiftContext,
-)
-from apps.fitness.engine.core.planner.models import (
-    PlanInputs as PlanInputs,
-)
-from apps.fitness.engine.core.planner.models import (
-    TriggerRec as TriggerRec,
-)
-from apps.fitness.engine.core.planner.models import (
-    VariantInfo as VariantInfo,
-)
-from apps.fitness.engine.core.planner.models import (
-    WeekPlan as WeekPlan,
-)
-from apps.fitness.engine.core.planner.week import _Planner as _Planner
-from apps.fitness.engine.core.planner.week import generate_week as generate_week
+from apps.fitness.engine.core.planner.week import _Planner, generate_week
+from apps.fitness.engine.core.windows import window_dict as _window_dict
 
 __all__ = [
     "_TITLES",

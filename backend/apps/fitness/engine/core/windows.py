@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import date, timedelta
+from typing import Any
 
 from apps.fitness.engine.core import lifting as L
 
@@ -27,6 +28,21 @@ def window_from(d: dict) -> L.DeloadWindow:
         bool(d.get("deload", True)),
         bool(d.get("cancelled", False)),
     )
+
+
+def window_dict(w: L.DeloadWindow) -> dict[str, Any]:
+    """The stored form of a window (inverse of `window_from`)."""
+    return {
+        "start": w.start.isoformat(),
+        "until": w.until.isoformat(),
+        "reason": w.reason,
+        "deload": w.deload,
+        "cancelled": w.cancelled,
+        "retest": {
+            str(k): {"load": r.load, "reps": list(r.reps), "best_e1rm": r.best_e1rm}
+            for k, r in w.retest.items()
+        },
+    }
 
 
 def cancel_window(w: L.DeloadWindow, week_start: date) -> L.DeloadWindow | None:
