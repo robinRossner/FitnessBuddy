@@ -191,8 +191,11 @@ def zones_from_config(cfg: EngineConfig, floors: Sequence[float] | None = None) 
 
 
 class _Run(Protocol):
-    day: date
-    zone_floors: tuple[float, ...] | None
+    @property
+    def day(self) -> date: ...
+
+    @property
+    def zone_floors(self) -> tuple[float, ...] | None: ...
 
 
 @dataclass

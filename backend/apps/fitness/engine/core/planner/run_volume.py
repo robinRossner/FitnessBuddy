@@ -14,9 +14,10 @@ from apps.fitness.engine.core.planner.models import (
     DecisionRec,
     TriggerRec,
 )
+from apps.fitness.engine.core.planner.state import PlannerState
 
 
-class RunVolumeMixin:
+class RunVolumeMixin(PlannerState):
     """Weekly running volume and its split over the run slots."""
 
     # ------------------------------------------------------------------ running volume
@@ -197,19 +198,20 @@ class RunVolumeMixin:
         fitted, notes = R.fit_to_cap(km, remaining, vol.min_run_km, vol.min_run_km)
         target = rc.weekly_volume_floor_km or None
         factor = 1 + rc.weekly_volume_cap_pct / 100
-        held = hold is not None and hold.km is not None
+        held_km = hold.km if hold is not None else None
         reasoning = (
             f"4-week mean {mean:g} km -> cap max({mean:g} x {factor:g}, "
-            f"{mean:g} + {vol.cap_abs_km:g}{f', hold {hold.km:g}' if held else ''}) = {cap:g} km"
+            f"{mean:g} + {vol.cap_abs_km:g}{f', hold {held_km:g}' if held_km is not None else ''})"
+            f" = {cap:g} km"
             if cap is not None
             else "no runs in the last 4 weeks: no cap"
         )
         if cap is not None and hold is not None:
             reasoning += (
-                f"; hold: last week ran {hold.last_week_km:g} km, held up to {hold.km:g} km "
+                f"; hold: last week ran {hold.last_week_km:g} km, held up to {held_km:g} km "
                 f"(limit {vol.hold_limit_factor:g} x the highest of the 4 weeks before it = "
                 f"{hold.limit_km:g} km)"
-                if held
+                if held_km is not None
                 else f"; no hold of last week's {hold.last_week_km:g} km: {hold.blocked}"
             )
         if target:

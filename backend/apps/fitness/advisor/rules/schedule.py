@@ -1,6 +1,6 @@
 """Schedule rule family: the `schedule_changes` of the advisor output, move / skip / swap /
 shorten / replace a planned session of the current or next week. Each is validated on its own
-against the same hard rules the engine's missed-session policy uses (engine/schedule_rules.py),
+against the same hard rules the engine's missed-session policy uses (engine/core/schedule_rules.py),
 in the order given, on a working layout that already contains the earlier valid changes. Claude
 never sets a weight or a pace: a change only re-places or shortens a session, the engine
 recomputes its content.
@@ -28,10 +28,10 @@ from sqlalchemy.orm import Session
 from apps.fitness.advisor.rules.base import fmt
 from apps.fitness.advisor.rules.overrides import override_problem
 from apps.fitness.advisor.rules.risk import LOW, MEDIUM, schedule_risk
-from apps.fitness.engine import data as D
-from apps.fitness.engine import schedule_edit as SE
-from apps.fitness.engine import schedule_rules as SR
-from apps.fitness.engine.config import EngineConfig
+from apps.fitness.engine.core import schedule_rules as SR
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import schedule_edit as SE
 
 SCHEDULE_ACTIONS = ("move", "skip", "swap", "shorten", "replace")
 

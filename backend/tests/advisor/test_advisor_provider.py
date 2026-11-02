@@ -18,7 +18,7 @@ from apps.fitness.advisor.prompt import SYSTEM_PROMPT
 from apps.fitness.advisor.providers import claude_code as cc
 from apps.fitness.advisor.providers import provider_status
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.redact import register_secret
+from core.redact import register_secret
 
 TOKEN = "tok-subscription-0123456789abcdef"
 KEY = "sk-ant-api03-test-0000000000000000"

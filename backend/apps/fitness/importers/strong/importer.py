@@ -35,9 +35,10 @@ from apps.fitness.db.types import (
     utcnow,
 )
 from apps.fitness.engine.core.config import load_engine_config
-from apps.fitness.exercise_service import is_user_generic_variant
-from apps.fitness.gym_service import is_user_variant
-from apps.fitness.gyms import GYM_BOUND_EQUIPMENT, GymPeriods, GymSpec, load_gyms
+from apps.fitness.exercises.service import is_user_generic_variant
+from apps.fitness.exercises.session_kind import ExerciseUse, infer_session_kind
+from apps.fitness.gyms.catalog import GYM_BOUND_EQUIPMENT, GymPeriods, GymSpec, load_gyms
+from apps.fitness.gyms.service import is_user_variant
 from apps.fitness.importers.strong.mapping import MappingRow, read_mapping, validate_mapping
 from apps.fitness.importers.strong.parser import (
     ParsedFile,
@@ -49,7 +50,6 @@ from apps.fitness.importers.strong.parser import (
     parse_file,
     to_utc,
 )
-from apps.fitness.session_kind import ExerciseUse, infer_session_kind
 from apps.fitness.stats import rebuild_stats
 
 # Fixed namespace: ids must never change, or re-imports would duplicate data.
@@ -239,7 +239,8 @@ class VariantResolver:
         existing = list(db.scalars(select(ExerciseVariant)))
         self.by_key = {v.key: v for v in existing if v.key}
         # adoptable by (name, gym): variants from before keys existed, and machines the user set
-        # up in the app (apps/fitness/gym_service.py) before the same machine showed up in an import
+        # up in the app (apps/fitness/gyms/service.py) before the same machine showed up in an
+        # import
         self.legacy = {
             (v.name, v.gym_id): v
             for v in existing

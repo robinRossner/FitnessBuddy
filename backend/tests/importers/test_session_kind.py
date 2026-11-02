@@ -1,7 +1,7 @@
 import pytest
 
 from apps.fitness.db.types import SessionKind
-from apps.fitness.session_kind import ExerciseUse, infer_session_kind
+from apps.fitness.exercises.session_kind import ExerciseUse, infer_session_kind
 
 U = SessionKind
 

@@ -29,8 +29,8 @@ from apps.fitness.db.models import (
     AdvisorTrigger,
 )
 from apps.fitness.db.types import utcnow
-from apps.fitness.engine import schedule_rules as SR
-from apps.fitness.engine import service as engine_service
+from apps.fitness.engine.core import schedule_rules as SR
+from apps.fitness.engine.store import service as engine_service
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)

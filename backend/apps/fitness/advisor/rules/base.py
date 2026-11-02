@@ -16,9 +16,9 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.advisor.rules.risk import LOW, MEDIUM, always
 from apps.fitness.db.models import Gym
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.program import Program
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.program import Program
+from apps.fitness.engine.store import config_service as cs
 
 SLUG = r"(?P<slug>[a-z0-9_]{1,60})"
 

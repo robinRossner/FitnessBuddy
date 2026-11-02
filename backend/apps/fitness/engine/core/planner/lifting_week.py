@@ -19,11 +19,12 @@ from apps.fitness.engine.core.planner.models import (
     TriggerRec,
     VariantInfo,
 )
+from apps.fitness.engine.core.planner.state import PlannerState
 from apps.fitness.engine.core.readiness import deload_status
 from apps.fitness.engine.core.windows import window_dict as _window_dict
 
 
-class LiftingMixin:
+class LiftingMixin(PlannerState):
     """Lift analysis and the lifting days."""
 
     # ------------------------------------------------------------------ lifting (whole week)
@@ -120,6 +121,7 @@ class LiftingMixin:
             if ds.active and not any(
                 w.reason == "red_streak" and w.start == ds.trigger_day for w in self.windows
             ):
+                assert ds.trigger_day is not None and ds.until is not None  # set when active
                 self.windows.append(L.DeloadWindow(ds.trigger_day, ds.until, "red_streak"))
         first = lift_days[0]
         analyses: dict[int, tuple[LiftContext, L.LiftAnalysis, L.LiftSpec]] = {}
@@ -315,6 +317,7 @@ class LiftingMixin:
         if ds.active and not any(
             w.reason == "red_streak" and w.start == ds.trigger_day for w in windows
         ):
+            assert ds.trigger_day is not None and ds.until is not None  # set when active
             windows.append(L.DeloadWindow(ds.trigger_day, ds.until, "red_streak"))
         exercises: list[dict[str, Any]] = []
         increases: list[str] = []
@@ -448,6 +451,7 @@ class LiftingMixin:
                 )
         cover = next((w for w in windows if w.covers(slot.day)), None)
         if ds.active:
+            assert ds.trigger_day is not None and ds.until is not None  # set when active
             self.decisions.append(
                 DecisionRec(
                     "deload",

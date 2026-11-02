@@ -17,7 +17,7 @@ from apps.fitness.db.models import (
     WorkoutSet,
 )
 from apps.fitness.db.types import Source
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.settings import FITNESS_DIR, Settings, get_settings
 from apps.fitness.stats import rebuild_stats
 from core.settings import get_core_settings
@@ -216,7 +216,7 @@ def interval_laps(work_hr: float = 168, pace: float = 250, reps: int = 4):
 
 def build_world(db, monkeypatch) -> World:
     monkeypatch.setattr("apps.fitness.analytics.common.today", lambda: TODAY)
-    monkeypatch.setattr("apps.fitness.engine.service.user_today", lambda settings=None: TODAY)
+    monkeypatch.setattr("apps.fitness.engine.store.service.user_today", lambda settings=None: TODAY)
     cs.ensure_seeded(db, WORLD_CONFIG_PATH)
     w = World(db)
     # ten weeks of Upper / Lower; bench flat for the last four weeks (stalled)

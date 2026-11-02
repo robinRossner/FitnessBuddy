@@ -304,7 +304,7 @@ def _rename(
     history stay. A program exercise's plan line finds its variant by name, so that line gets the
     new name as a config override (`exercise_overrides.<slug>.variant`, a "user" config version).
     `edited_by_user` makes the catalog sync keep the name."""
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     live = list(
         db.scalars(

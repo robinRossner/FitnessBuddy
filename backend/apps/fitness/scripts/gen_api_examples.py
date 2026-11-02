@@ -21,7 +21,7 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.db.session import make_engine
 from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT
 from core.auth import get_api_token
@@ -88,10 +88,13 @@ def main() -> None:
 
     with (
         patch("apps.fitness.api.engine._today", lambda: date.fromisoformat(MONDAY)),
-        patch("apps.fitness.engine.service.user_today", lambda s=None: date.fromisoformat(MONDAY)),
+        patch(
+            "apps.fitness.engine.store.service.user_today",
+            lambda s=None: date.fromisoformat(MONDAY),
+        ),
         patch("apps.fitness.api.sync.rerun_engine", lambda *a, **k: None),
     ):
-        from apps.fitness.engine import service as engine_service
+        from apps.fitness.engine.store import service as engine_service
 
         plan_db = factory()  # the stored plans of the copy come from the CURRENT engine
         engine_service.run_engine(plan_db, today=date.fromisoformat(MONDAY), weeks=2)

@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 
 from apps.fitness.advisor import service, summary
-from apps.fitness.engine import service as engine
+from apps.fitness.engine.store import service as engine
 from tests.support.golden import assert_golden
 from tests.support.world import TODAY
 

@@ -20,8 +20,8 @@ from apps.fitness.advisor._common import (
 from apps.fitness.db.models import (
     AdvisorConsultation,
 )
-from apps.fitness.engine import service as engine_service
-from apps.fitness.engine.config import AdvisorConfig
+from apps.fitness.engine.core.config import AdvisorConfig
+from apps.fitness.engine.store import service as engine_service
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)

@@ -8,7 +8,7 @@ the system prompt prints verbatim.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 
@@ -27,7 +27,8 @@ from apps.fitness.advisor.rules.base import (
 )
 from apps.fitness.advisor.rules.risk import HIGH, LOW, MEDIUM, always, increment_risk, reset_risk
 from apps.fitness.db.models import Exercise
-from apps.fitness.engine.config import REST_MAX_S, REST_MIN_S
+from apps.fitness.engine.core.config import REST_MAX_S, REST_MIN_S
+from apps.fitness.engine.core.ids import GymVariantLike, base_name_of
 
 
 def _rep_range_check(value: Any, cur: Any, _ctx: Context, _g: dict[str, str]) -> Checked:
@@ -105,7 +106,7 @@ def _ov_rest(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checked:
 def _ov_variant(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checked:
     """Exercise swap: only to an active variant of the same movement pattern or body region at the
     current gym (or a generic one); never onto an exercise the day already has."""
-    from apps.fitness.engine import data as D  # local: data imports the planner
+    from apps.fitness.engine.store import data as D  # local: data imports the planner
 
     slug = g["slug"]
     _require_program_slug(ctx, slug)
@@ -135,13 +136,14 @@ def _ov_variant(value: Any, cur: Any, ctx: Context, g: dict[str, str]) -> Checke
             f"'{name}' ({dst.movement_pattern}) is neither the same movement pattern "
             f"({src.movement_pattern}) nor the same body region as '{slug}'"
         )
+    target_base = base_name_of(cast(GymVariantLike, target))
     for kind, _pe in ctx.program_entries(slug):
         for other in ctx.program.days.get(kind, []) if ctx.program else []:  # type: ignore[union-attr]
             if other.exercise != slug and other.active:
                 eff = ctx.overrides(other.exercise).get("variant") or other.variant
-                if eff == D.base_name_of(target):
+                if eff == target_base:
                     raise Invalid(f"'{name}' is already part of the {kind} day")
-    return Checked(D.base_name_of(target), MEDIUM)
+    return Checked(target_base, MEDIUM)
 
 
 def _increment_spec(key: str, label: str, options: tuple[float, ...]) -> Spec:

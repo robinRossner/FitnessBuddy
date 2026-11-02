@@ -29,16 +29,17 @@ classify() {
   case "$p" in
     backend/apps/fitness/engine/*) add engine analytics advisor ;;
     backend/apps/fitness/advisor/*) add advisor ;;
-    backend/apps/fitness/sources/* | backend/apps/fitness/garmin*.py | backend/apps/fitness/garmin/*)
-      add garmin sync ;;
+    backend/apps/fitness/garmin/*) add garmin sync ;;
     backend/apps/fitness/importers/*) add importers ;;
-    backend/apps/fitness/analytics/* | backend/apps/fitness/stats.py | backend/apps/fitness/bodyweight.py)
+    backend/apps/fitness/analytics/* | backend/apps/fitness/stats.py | \
+      backend/apps/fitness/bodyweight/*)
       add analytics ;;
-    backend/apps/fitness/gym*.py | backend/apps/fitness/gyms/*) add gyms ;;
-    backend/apps/fitness/exercise*.py | backend/apps/fitness/exercises/*) add api ;;
+    backend/apps/fitness/gyms/*) add gyms ;;
+    backend/apps/fitness/exercises/*) add api importers ;;
     backend/apps/fitness/sync/*) add sync api ;;
     backend/apps/fitness/api/* | backend/core/* | backend/server.py | backend/apps/fitness/db/* | \
       backend/apps/fitness/alembic/* | backend/apps/fitness/settings.py | \
+      backend/apps/fitness/errors.py | \
       backend/apps/fitness/config/* | backend/pyproject.toml | backend/uv.lock | \
       backend/tests/conftest.py | backend/tests/support/*)
       all=1 ;;

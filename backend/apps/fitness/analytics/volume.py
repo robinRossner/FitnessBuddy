@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from apps.fitness.analytics import common, planned
 from apps.fitness.analytics.common import num
 from apps.fitness.db.models import Exercise, ExerciseSessionStats, ExerciseVariant, Run
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.mapping import RUN_TYPES
 
 
 def weekly_volume(db: Session, weeks: int) -> dict:

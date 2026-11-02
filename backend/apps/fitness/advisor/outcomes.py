@@ -33,10 +33,10 @@ from sqlalchemy.orm import Session
 from apps.fitness.advisor._common import advisor_config, program_raw, resolve_settings
 from apps.fitness.analytics import common, lifts, running
 from apps.fitness.db.models import AdvisorChange, ConfigVersion, Outcome
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import running as R
-from apps.fitness.engine.program import apply_overrides
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core.program import apply_overrides
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)

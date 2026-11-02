@@ -641,7 +641,7 @@ def prescribe(
         }.get(window.reason, window.reason)
         retest = ctx.variant_id in window.retest
         note = f"deload week ({why}): {n} of {spec.n_sets} sets, same load"
-        if retest:
+        if retest and ctx.variant_id is not None:
             note += f"; retest {window.retest[ctx.variant_id].load:g} kg after the deload"
         return done(
             LiftPrescription(

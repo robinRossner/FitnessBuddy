@@ -40,6 +40,8 @@ jobs:
           sudo xcode-select -s "$xcode/Contents/Developer"
           xcodebuild -version
       - run: brew install xcodegen xcbeautify
+      - name: FitnessCore package tests (macOS, no simulator)
+        run: swift test --package-path FitnessCore
       - run: xcodegen generate
       - name: pick a simulator (newest iOS runtime, first iPhone)
         run: |

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.advisor import claude, service
 from apps.fitness.advisor.serialize import history_json, proposal_json
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.jobs.advisor_jobs import run_consultation
 from apps.fitness.settings import Settings, get_settings
 from core.auth import require_token

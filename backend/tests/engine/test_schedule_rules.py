@@ -1,4 +1,4 @@
-"""The hard scheduling rules as pure functions (apps/fitness/engine/schedule_rules.py)."""
+"""The hard scheduling rules as pure functions (engine/core/schedule_rules.py)."""
 
 from __future__ import annotations
 

@@ -8,15 +8,15 @@ import pytest
 
 from apps.fitness.analytics.zones import time_in_zones
 from apps.fitness.db.models import AthleteMetric
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import easy_pace as EP
-from apps.fitness.engine import hr as H
-from apps.fitness.engine import interval_vdot as IV
-from apps.fitness.engine import quality as Q
-from apps.fitness.engine import running as R
-from apps.fitness.engine.hr import GARMIN_ZONES_SINCE, zone_book, zones_from_config
-from apps.fitness.engine.planner import _hr, generate_week
+from apps.fitness.engine.core import easy_pace as EP
+from apps.fitness.engine.core import hr as H
+from apps.fitness.engine.core import interval_vdot as IV
+from apps.fitness.engine.core import quality as Q
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core.hr import GARMIN_ZONES_SINCE, zone_book, zones_from_config
+from apps.fitness.engine.core.planner import _hr, generate_week
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
 from apps.fitness.garmin.base import HR_ZONES
 from apps.fitness.jobs.garmin_jobs import DAY_KINDS, LIGHT_KINDS
 from apps.fitness.jobs.scheduler import build_scheduler
@@ -136,7 +136,7 @@ def test_invalid_floors_fall_back_to_lthr(floors):
 def test_invalid_floors_warn_once_and_never_crash(caplog, monkeypatch):
     H._warned_floors.clear()
     monkeypatch.setattr(H.log, "disabled", False)  # alembic's fileConfig may have disabled it
-    with caplog.at_level(logging.WARNING, logger="apps.fitness.engine.hr"):
+    with caplog.at_level(logging.WARNING, logger="apps.fitness.engine.core.hr"):
         for _ in range(3):
             zones_from_config(CFG, PERCENT)
     assert sum("ignoring Garmin zone floors" in r.message for r in caplog.records) == 1

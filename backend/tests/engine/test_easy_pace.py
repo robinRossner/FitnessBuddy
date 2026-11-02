@@ -1,5 +1,5 @@
-"""Easy-pace calibration (engine/easy_pace.py): the easy / long pace range from the athlete's own
-easy runs, and the planner using it for easy / long runs only (quality paces unchanged)."""
+"""Easy-pace calibration (engine/core/easy_pace.py): the easy / long pace range from the athlete's
+own easy runs, and the planner using it for easy / long runs only (quality paces unchanged)."""
 
 from datetime import date, timedelta
 

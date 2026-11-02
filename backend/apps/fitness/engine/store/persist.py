@@ -20,11 +20,11 @@ from sqlalchemy.orm import Session
 from apps.fitness.db.models import DailyHealth, PlannedSession, Run, TrainingSession
 from apps.fitness.db.types import iso_z, utcnow
 from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.ids import planned_id
 from apps.fitness.engine.core.planner import DayPlan, WeekPlan
-from apps.fitness.engine.store.data import planned_id
 from apps.fitness.engine.store.decisions import add_trigger, log_decision
 from apps.fitness.engine.store.rest import annotate_session
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.mapping import RUN_TYPES
 
 LIFT_MATCH = {
     "upper": {"upper", "full", "push", "pull", "calisthenics"},

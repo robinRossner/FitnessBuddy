@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from apps.fitness.api.deps import get_db, get_settings_dep, service_errors
-from apps.fitness.engine.config import REST_MAX_S, REST_MIN_S
+from apps.fitness.engine.core.config import REST_MAX_S, REST_MIN_S
 from apps.fitness.exercises import service as xs
 from apps.fitness.exercises import templates
 from apps.fitness.jobs.engine_jobs import rerun_engine, run_engine_now

@@ -1,10 +1,9 @@
 """`GET /stats/running`: weekly km + time in zones, efficiency, VDOT and interval evaluations.
 
-All rules come from the engine (`engine/running.py`, `hr.py`, `pace.py`, `vdot.py`); this module
-only loads the runs, calls those functions per run and shapes the result. The headline VDOT is the
-engine's quality VDOT (the last `running:vdot` record of the decision log, the value the plan's
-paces come from); the per-run pace-model fit is kept as the secondary `vdot_fit` series.
-"""
+All rules come from the engine (`engine/core/running.py`, `hr.py`, `pace.py`, `vdot.py`); this
+module only loads the runs, calls those functions per run and shapes the result. The headline VDOT
+is the engine's quality VDOT (the last `running:vdot` record of the decision log, the value the
+plan's paces come from); the per-run pace-model fit is kept as the secondary `vdot_fit` series."""
 
 from __future__ import annotations
 
@@ -137,7 +136,7 @@ def hr_lines(ctx: Ctx, run: R.RunData) -> tuple[float | None, float | None]:
     green, ceiling = quality_hr_lines(ctx.zones_for(run), spec)
     if green is None or ceiling is None:
         return None, None
-    # round half up, like the HR zones (apps/fitness/engine/hr.py)
+    # round half up, like the HR zones (engine/core/hr.py)
     return int(green + 0.5), int(ceiling + 0.5)
 
 

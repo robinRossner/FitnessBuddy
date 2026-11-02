@@ -44,7 +44,7 @@ from apps.fitness.advisor.schema import (  # noqa: E402
     SessionOverride,
 )
 from apps.fitness.analytics import cache  # noqa: E402
-from apps.fitness.api.routes import get_db  # noqa: E402
+from apps.fitness.api.deps import get_db  # noqa: E402
 from apps.fitness.db import session as dbsession  # noqa: E402
 from apps.fitness.db.session import make_engine  # noqa: E402
 from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT, get_settings  # noqa: E402
@@ -114,7 +114,7 @@ def main() -> None:
     canned = CannedClaude()
 
     # the plan of the example week is stored (schedule changes need planned sessions to target)
-    from apps.fitness.engine import service as engine_service
+    from apps.fitness.engine.store import service as engine_service
 
     with factory() as plan_db:
         engine_service.run_engine(plan_db, today=TODAY, weeks=2)
@@ -125,7 +125,7 @@ def main() -> None:
 
     with (
         patch("apps.fitness.analytics.common.today", lambda: TODAY),
-        patch("apps.fitness.engine.service.user_today", lambda settings=None: TODAY),
+        patch("apps.fitness.engine.store.service.user_today", lambda settings=None: TODAY),
         patch.object(claude, "make_client", lambda settings: canned),
     ):
         cache.invalidate()

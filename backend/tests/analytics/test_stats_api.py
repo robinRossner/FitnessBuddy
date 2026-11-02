@@ -14,7 +14,7 @@ from sqlalchemy import select
 from apps.fitness.analytics import cache, common, correlations
 from apps.fitness.analytics.health import bodyweight_change_pct, readiness_view
 from apps.fitness.analytics.zones import collapse, time_in_zones
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.db.catalog import BODY_REGIONS, load_catalog, region_of_muscle
 from apps.fitness.db.models import (
     BodyMeasurement,
@@ -1125,7 +1125,7 @@ def test_vdot_change_and_hr_drift_flags(client, db, world):
 
 
 def _vdot_record(db, day: date, vdot: float, source: str, delta: float, reason: str) -> None:
-    """A `running:vdot` decision as the planner writes it (engine/planner.py)."""
+    """A `running:vdot` decision as the planner writes it (engine/core/planner.py)."""
     rec = {"day": day.isoformat(), "vdot": vdot, "source": source, "delta": delta}
     db.add(
         DecisionLog(

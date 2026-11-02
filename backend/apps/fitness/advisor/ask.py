@@ -26,7 +26,7 @@ from apps.fitness.db.models import (
     ExerciseVariant,
     Run,
 )
-from apps.fitness.engine import service as engine_service
+from apps.fitness.engine.store import service as engine_service
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)

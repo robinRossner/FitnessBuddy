@@ -8,8 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
-from apps.fitness.api.deps import get_db as get_db  # its old home; routers import it from deps
-from apps.fitness.api.deps import service_errors
+from apps.fitness.api.deps import get_db, service_errors
 from apps.fitness.db.models import ExerciseSessionStats, ExerciseVariant, TrainingSession
 from apps.fitness.exercises import service as xs
 from apps.fitness.sync import history

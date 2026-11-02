@@ -32,13 +32,14 @@ from apps.fitness.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import schedule_edit as SE
-from apps.fitness.engine import schedule_rules as SR
-from apps.fitness.engine import service
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.program import Program, apply_overrides
+from apps.fitness.engine.core import schedule_rules as SR
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.ids import base_name_of
+from apps.fitness.engine.core.program import Program, apply_overrides
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import schedule_edit as SE
+from apps.fitness.engine.store import service
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
@@ -164,7 +165,7 @@ def swap_candidates(
     for slug in slugs:
         ranked: dict[str, int] = {}
         for v in variants:
-            base = D.base_name_of(v)
+            base = base_name_of(v)
             if base in ranked:
                 continue
             if V.validate_change(f"exercise_overrides.{slug}.variant", base, ctx).valid:

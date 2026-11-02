@@ -23,9 +23,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
 from apps.fitness.analytics import cache
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.db.session import make_engine
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.settings import BACKEND_DIR, REPO_ROOT, get_settings
 from core.auth import get_api_token
 from server import app

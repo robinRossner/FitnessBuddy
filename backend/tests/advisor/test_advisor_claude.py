@@ -13,7 +13,7 @@ import pytest
 from apps.fitness.advisor import claude
 from apps.fitness.advisor.schema import AdvisorOutput
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.redact import redact
+from core.redact import redact
 
 ANSWER = {
     "diagnosis": "Fine.",
@@ -187,7 +187,7 @@ def test_make_client_uses_the_configured_retries_and_registers_the_secret(settin
 
 
 def test_log_redaction_covers_anthropic_keys(caplog):
-    from apps.fitness.sources.garmin.redact import install_log_redaction
+    from core.redact import install_log_redaction
 
     install_log_redaction()
     key = "sk-ant-api03-AbCdEfGhIj_KlMnOpQrStUvWxYz0123456789"

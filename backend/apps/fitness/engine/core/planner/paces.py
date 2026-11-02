@@ -14,9 +14,10 @@ from apps.fitness.engine.core import vdot as V
 from apps.fitness.engine.core.pace import vdot_from_race
 from apps.fitness.engine.core.planner.helpers import _paces
 from apps.fitness.engine.core.planner.models import DecisionRec
+from apps.fitness.engine.core.planner.state import PlannerState
 
 
-class PaceMixin:
+class PaceMixin(PlannerState):
     """Running state the week is planned from (set up in `__init__`)."""
 
     # ------------------------------------------------------------------ pace model + VDOT
@@ -163,7 +164,7 @@ class PaceMixin:
 
         plan = make(cur, step_ok)
         last_run = max((r.day for r in inp.runs if r.day < self.today), default=None)
-        # measured VDOT from recent interval reps (engine/interval_vdot.py)
+        # measured VDOT from recent interval reps (engine/core/interval_vdot.py)
         self.rep_estimate = IV.estimate_from_reps(
             inp.runs,
             self.zones,
@@ -236,7 +237,8 @@ class PaceMixin:
         )
 
     def _calibrate_easy(self) -> None:
-        """The easy / long run pace range from the athlete's own easy runs (engine/easy_pace.py).
+        """The easy / long run pace range from the athlete's own easy runs
+        (engine/core/easy_pace.py).
         Quality paces keep the quality VDOT; only VDOT-based pace models are calibrated."""
         self.easy_cal: EP.EasyCalibration | None = None
         if not hasattr(self.model, "vdot"):

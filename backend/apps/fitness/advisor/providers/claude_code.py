@@ -42,7 +42,7 @@ from apps.fitness.advisor.prompt import SYSTEM_PROMPT
 from apps.fitness.advisor.providers.base import AdvisorCallError, ClaudeResult
 from apps.fitness.advisor.schema import AdvisorOutput
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.redact import install_log_redaction, redact, register_secret
+from core.redact import install_log_redaction, redact, register_secret
 
 log = logging.getLogger(__name__)
 

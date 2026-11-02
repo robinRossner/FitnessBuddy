@@ -289,9 +289,9 @@ def engine_plan(
     verbose: Annotated[bool, typer.Option("--verbose/--quiet", help="print the decisions")] = True,
 ) -> None:
     """Compute the plan and print it with the decisions behind it (nothing is written)."""
-    from apps.fitness.engine import persist as P
-    from apps.fitness.engine import service
-    from apps.fitness.engine.render import render_week
+    from apps.fitness.engine.core.render import render_week
+    from apps.fitness.engine.store import persist as P
+    from apps.fitness.engine.store import service
 
     s = get_settings()
     today = service.user_today(s)
@@ -330,7 +330,7 @@ def engine_deload_cancel(
     """Cancel the soft deload of a week: normal sets, and the lifts the deload was going to
     retest do so at once at their old loads. Idempotent; the cancel is an audit-log entry
     (author user), so later engine runs keep the week cancelled."""
-    from apps.fitness.engine import service
+    from apps.fitness.engine.store import service
 
     with _command() as (db, s):
         try:
@@ -352,8 +352,8 @@ def engine_run(
     quiet: Annotated[bool, typer.Option("--quiet")] = False,
 ) -> None:
     """Apply: reconcile earlier plans, write planned sessions + decisions + advisor triggers."""
-    from apps.fitness.engine import service
-    from apps.fitness.engine.render import render_week
+    from apps.fitness.engine.core.render import render_week
+    from apps.fitness.engine.store import service
 
     with _command() as (db, s):
         try:
@@ -377,7 +377,7 @@ def engine_readiness(
     day: Annotated[datetime | None, typer.Option("--date", **_DATE)] = None,
 ) -> None:
     """Readiness colour + reason for a day (default today)."""
-    from apps.fitness.engine import service
+    from apps.fitness.engine.store import service
 
     s = get_settings()
     d = _day(day) or service.user_today(s)
@@ -393,7 +393,7 @@ def engine_evaluate_runs(
     weeks: Annotated[int, typer.Option(help="look back this many weeks")] = 6,
 ) -> None:
     """Evaluate recent runs: easy-run pass/fail, efficiency, HR drift, interval sessions."""
-    from apps.fitness.engine import service
+    from apps.fitness.engine.store import service
 
     with _command() as (db, s):
         rows = service.evaluate_runs(db, today=service.user_today(s), weeks=weeks, settings=s)
@@ -436,7 +436,7 @@ def engine_program_generate(
     write: Annotated[bool, typer.Option("--write/--print")] = True,
 ) -> None:
     """Derive data/program/program.yaml from the recent Upper/Lower sessions at the current gym."""
-    from apps.fitness.engine import service
+    from apps.fitness.engine.store import service
 
     with _command() as (db, s):
         _program, text = service.generate_program(db, weeks=weeks, settings=s, write=write)
@@ -448,7 +448,7 @@ def engine_program_generate(
 @engine_config.command("show")
 def engine_config_show() -> None:
     """The active config version and its lineage."""
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     with _command() as (db, s):
         cs.ensure_seeded(db, s.engine_config_path)
@@ -462,7 +462,7 @@ def engine_config_show() -> None:
 @engine_config.command("rollback")
 def engine_config_rollback(version: str) -> None:
     """Make an older version's content active again (as a new version)."""
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     with _command() as (db, _):
         try:
@@ -483,7 +483,7 @@ def engine_config_set(
     import yaml
     from pydantic import ValidationError
 
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     with _command() as (db, s):
         cs.ensure_seeded(db, s.engine_config_path)
@@ -497,7 +497,7 @@ def engine_config_set(
 @engine_config.command("check-garmin")
 def engine_config_check_garmin() -> None:
     """Apply Garmin's latest max HR / LTHR to the config now (the sync hook does this too)."""
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     with _command() as (db, s):
         cs.ensure_seeded(db, s.engine_config_path)
@@ -560,9 +560,10 @@ def advisor_run(
 def advisor_input() -> None:
     """Build the weekly-review input now and print its size per section (nothing is stored)."""
     from apps.fitness.advisor import service, summary
+    from apps.fitness.engine.store import service as engine_service
 
     with _command() as (db, s):
-        info = service.weekly_trigger_info(service.engine_service.monday(service.user_today(s)), [])
+        info = service.weekly_trigger_info(engine_service.monday(service.user_today(s)), [])
         doc = summary.build_input(db, trigger=info, question=None, settings=s)
     typer.echo(f"total ~{summary.estimate_tokens(doc)} tokens (chars / 4)")
     for key, value in doc.items():

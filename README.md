@@ -12,7 +12,12 @@ backend/
   server.py            FastAPI entry point (`uvicorn server:app`)
   core/                app-independent code: bearer auth, settings, scheduler helpers
   apps/fitness/        FitnessBuddy: API, models, engine, advisor, importers, Alembic, data, config
-  tests/
+    engine/core/       pure engine: config, planner, lifting, running (no database)
+    engine/store/      engine database side: loaders, persist, service
+    advisor/           Claude coach: consultations, approval, triggers, rules/
+    garmin/ gyms/ exercises/ bodyweight/   services per area
+    api/               thin routers; deps.py (get_db, settings, error mapping)
+  tests/<group>/       engine advisor garmin importers api gyms sync analytics
 ios/       FitnessBuddy SwiftUI app (XcodeGen `project.yml`)
 deploy/    docker-compose + Caddy + nightly SQLite backup, push/bootstrap scripts (see deploy/README.md)
 docs/      spec & decisions (docs/spec/decisions.md), API contracts (docs/api/)
@@ -70,7 +75,8 @@ make test-fast             # -m "not db": tests that need no database, a few sec
 make test-group GROUP=engine
 make test-changed          # only the groups your changes touch (vs origin/main + uncommitted)
 make lint                  # ruff check + ruff format --check;  make format fixes
-make check                 # lint + test + ios-test-fast
+make typecheck             # pyright (basic) on the paths in backend/pyproject.toml
+make check                 # lint + typecheck + test + ios-test-fast
 make ios-test-fast         # iOS Fast test plan (SIM="iPhone 17 Pro"); ios-test = Full, ios-build
 ```
 
@@ -81,7 +87,7 @@ paths to groups (e.g. `engine/**` -> engine, analytics, advisor; `api/**`, `core
 alembic, settings, `pyproject.toml`, root `conftest.py` -> all); `make test-changed` and CI both
 use it.
 
-CI (`.github/workflows/`): `backend.yml` runs lint and, on PRs, one matrix job per affected group;
+CI (`.github/workflows/`): `backend.yml` runs lint + pyright and, on PRs, one matrix job per affected group;
 every push to `main` runs the full suite (the deploy gate needs that run). `ios.yml` runs
 `xcodegen` + the `Fast` plan on PRs touching `ios/**` or `docs/api/examples/**`, `Full` on `main`.
 `tooling.yml` checks the shell scripts.

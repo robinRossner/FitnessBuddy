@@ -95,7 +95,7 @@ def test_app_independent_core_never_imports_apps():
 @pytest.mark.parametrize(
     ("src", "expected"),
     [
-        ("from apps.fitness.engine import data as D", {"apps.fitness.engine.data"}),
+        ("from apps.fitness.engine.store import data as D", {"apps.fitness.engine.store.data"}),
         ("from sqlalchemy.orm import Session", {"sqlalchemy.orm"}),
         ("from . import ids", {"apps.fitness.engine.core.ids"}),
         ("from ..store import data", {"apps.fitness.engine.store.data"}),
@@ -106,3 +106,25 @@ def test_import_scanner(tmp_path, monkeypatch, src, expected):
     path = ENGINE_CORE / "_layering_probe.py"
     monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: src)
     assert expected <= _imports(path)
+
+
+ENGINE = BACKEND / "apps" / "fitness" / "engine"
+ENGINE_CORE_PKG = "apps.fitness.engine.core"
+
+
+def test_engine_top_level_holds_only_core_and_store():
+    """The old flat `engine/<module>.py` paths are gone for good: no shims, no new loose modules."""
+    entries = {p.name for p in ENGINE.iterdir() if p.name != "__pycache__"}
+    assert entries == {"__init__.py", "core", "store"}
+
+
+def test_store_does_not_re_export_core_helpers():
+    """Callers import pure helpers (`planned_id`, `cancel_window`, ...) from `engine.core`, not
+    through a store module: no `from apps.fitness.engine.core... import x as x` in
+    `engine/store`."""
+    found = []
+    for path in _sources(ENGINE / "store"):
+        for node in ast.walk(ast.parse(path.read_text(), filename=str(path))):
+            if isinstance(node, ast.ImportFrom) and _under(node.module or "", ENGINE_CORE_PKG):
+                found += [f"{path.name}: {a.name}" for a in node.names if a.asname == a.name]
+    assert found == []

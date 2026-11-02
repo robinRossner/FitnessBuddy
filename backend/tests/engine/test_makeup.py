@@ -1,4 +1,4 @@
-"""Missed-session policy (engine/makeup.py) on a synthetic world: what happens to the rest of
+"""Missed-session policy (engine/store/makeup.py) on a synthetic world: what happens to the rest of
 the week when a planned session was skipped, and that progression never advances after a miss."""
 
 from __future__ import annotations
@@ -8,8 +8,8 @@ from datetime import date, timedelta
 from sqlalchemy import select
 
 from apps.fitness.db.models import AdvisorTrigger, DecisionLog, PlannedSession
+from apps.fitness.engine.core.ids import planned_id
 from apps.fitness.engine.store import config_service as cs
-from apps.fitness.engine.store import data as D
 from apps.fitness.engine.store import service
 from tests.support.fakes_anthropic import KEY  # noqa: F401
 from tests.support.world import easy_laps, interval_laps  # noqa: F401
@@ -20,7 +20,7 @@ NEXT_MON = date(2026, 11, 2)
 
 
 def row(db, week: date, slot: str) -> PlannedSession:
-    r = db.get(PlannedSession, D.planned_id(week, slot))
+    r = db.get(PlannedSession, planned_id(week, slot))
     assert r is not None, slot
     return r
 

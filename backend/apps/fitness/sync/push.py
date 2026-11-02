@@ -30,7 +30,7 @@ from apps.fitness.db.models import (
     WorkoutSet,
 )
 from apps.fitness.db.types import MeasurementSource, SessionKind, SetType, Source, iso_z, utcnow
-from apps.fitness.engine.persist import LIFT_MATCH
+from apps.fitness.engine.store.persist import LIFT_MATCH
 from apps.fitness.settings import Settings, get_settings
 from apps.fitness.stats import rebuild_with_config
 from apps.fitness.sync.schemas import (

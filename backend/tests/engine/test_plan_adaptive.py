@@ -9,7 +9,7 @@ from alembic import command
 from sqlalchemy import create_engine, text
 
 from apps.fitness.db.models import PlannedSession
-from apps.fitness.engine.store import data as D
+from apps.fitness.engine.core.ids import planned_id
 from apps.fitness.engine.store import persist as P
 from apps.fitness.engine.store import service as engine
 from tests.support.db import alembic_config
@@ -69,7 +69,7 @@ def test_preview_items_and_today_carry_them_too(world, db, env, client):
 
 def test_closed_sessions_are_not_adaptive(world, db, env, client):
     engine.run_engine(db, today=TODAY, settings=env)
-    row = db.get(PlannedSession, D.planned_id(NEXT, "wed_easy_run"))
+    row = db.get(PlannedSession, planned_id(NEXT, "wed_easy_run"))
     row.status = "done"
     db.commit()
     items = sessions(client.get("/api/v1/plan/week?start=2026-10-26").json())
@@ -104,14 +104,14 @@ def test_a_late_import_cancels_the_makeup_and_the_template_returns(world, db, en
     world.lift_session(mon, "upper", [(world.bench, 60, [8, 8, 8])])
     db.commit()
     engine.run_engine(db, today=wed, settings=env)
-    slot = db.get(PlannedSession, D.planned_id(mon, "wed_easy_run"))
+    slot = db.get(PlannedSession, planned_id(mon, "wed_easy_run"))
     assert slot.kind == "lower" and slot.moved_from == tue
     world.lift_session(tue, "lower", [(world.squat, 80, [8, 8, 8])])  # the export arrives late
     db.commit()
     res = engine.run_engine(db, today=wed, settings=env)
     db.refresh(slot)
     assert res.reconciled["done"] >= 1
-    assert db.get(PlannedSession, D.planned_id(mon, "tue_lower")).status == "done"
+    assert db.get(PlannedSession, planned_id(mon, "tue_lower")).status == "done"
     assert (slot.kind, slot.moved_from, slot.change_reason, slot.schedule_lock) == (
         "easy_run",
         None,

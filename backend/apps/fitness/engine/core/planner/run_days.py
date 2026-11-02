@@ -14,9 +14,10 @@ from apps.fitness.engine.core.planner.models import (
     DayPlan,
     DecisionRec,
 )
+from apps.fitness.engine.core.planner.state import PlannerState
 
 
-class RunDaysMixin:
+class RunDaysMixin(PlannerState):
     """One planned run day of each kind."""
 
     # ------------------------------------------------------------------ runs

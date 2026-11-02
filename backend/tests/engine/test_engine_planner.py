@@ -528,7 +528,7 @@ def test_a_cancelled_deload_week_goes_straight_to_the_retest_with_normal_sets():
 
 
 def test_cancelling_a_stored_deload_retests_the_stalled_lifts_and_progresses_the_rest():
-    from apps.fitness.engine.store import data as D
+    from apps.fitness.engine.core.windows import apply_cancellations
 
     ctxs = _three_stalled()
     ctxs["Squat (Barbell)"] = LiftContext(SQUAT, [expo(MON - timedelta(days=6), 90, [10, 10, 9])])
@@ -540,11 +540,11 @@ def test_cancelling_a_stored_deload_retests_the_stalled_lifts_and_progresses_the
     )
     soft = generate_week(inputs(lifts=ctxs, windows=[w]))
     assert soft.days[0].prescription["deload"]["active"]
-    cancelled = D.apply_cancellations([w], {MON: None})
+    cancelled = apply_cancellations([w], {MON: None})
     assert [(c.deload, c.cancelled, c.until) for c in cancelled] == [
         (False, True, MON - timedelta(days=1))
     ]
-    assert D.apply_cancellations(cancelled, {MON: None}) == cancelled  # idempotent
+    assert apply_cancellations(cancelled, {MON: None}) == cancelled  # idempotent
     plan = generate_week(inputs(lifts=ctxs, windows=cancelled, cancelled_weeks={MON: None}))
     mon, tue = day_of(plan, "mon_upper"), day_of(plan, "tue_lower")
     assert [e["progression_state"] for e in mon.prescription["exercises"]] == ["retest"] * 2

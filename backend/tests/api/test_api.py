@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.importers.strong.importer import run_import
 from core.auth import get_api_token
 from server import app

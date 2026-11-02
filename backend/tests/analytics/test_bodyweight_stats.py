@@ -6,7 +6,7 @@ from datetime import datetime
 import pytest
 from sqlalchemy import select
 
-from apps.fitness.bodyweight import upsert_measurement
+from apps.fitness.bodyweight.service import upsert_measurement
 from apps.fitness.db.models import ExerciseSessionStats, ExerciseVariant
 from apps.fitness.importers.strong.importer import ImportOptions, run_import
 from apps.fitness.settings import FITNESS_DIR

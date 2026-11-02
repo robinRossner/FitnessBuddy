@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from apps.fitness.advisor import claude, service
 from apps.fitness.db.models import AdvisorConsultation, AdvisorTrigger
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.jobs import advisor_jobs
 from apps.fitness.jobs.scheduler import build_scheduler
 from apps.fitness.settings import Settings

@@ -11,8 +11,8 @@ implement them. Callers (API, jobs, CLI, outcomes) import from here.
 
 Settings: every entry point takes `settings: Settings | None = None`, resolves it once
 (`resolve_settings`, the only `get_settings()` fallback of the lifecycle) and passes it down.
-`rerun_engine_after_change` is looked up on this module at call time (`_common.rerun_hook`), so
-patching it here reaches every caller.
+The engine re-run after an applied change is `_common.rerun_engine_after_change`, read at call
+time by `_common.rerun_hook`, so patching that one attribute reaches every caller.
 """
 
 from __future__ import annotations
@@ -42,7 +42,6 @@ from apps.fitness.advisor._common import (
     advisor_config,
     get_consultation,
     program_raw,
-    rerun_engine_after_change,
     resolve_settings,
     settle_status,
     user_today,
@@ -74,14 +73,12 @@ from apps.fitness.advisor.consultations import (
     store_output,
 )
 from apps.fitness.advisor.triggers import (
-    _describe,  # noqa: F401  (tests/engine/test_progression_advisor.py)
     open_triggers,
     run_trigger_batch,
     run_weekly_review,
     trigger_info_from_rows,
     weekly_trigger_info,
 )
-from apps.fitness.engine import service as engine_service  # noqa: F401  (cli.py: advisor input)
 
 __all__ = [
     "ASK",
@@ -130,7 +127,6 @@ __all__ = [
     "recover_stale",
     "reject",
     "reject_proposal",
-    "rerun_engine_after_change",
     "resolve_settings",
     "retry_awaiting_key",
     "retry_usage_limited",

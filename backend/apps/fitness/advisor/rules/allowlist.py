@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.advisor.rules import lifting, running
 from apps.fitness.advisor.rules.base import Context, Invalid, Spec
-from apps.fitness.engine.program import Program
+from apps.fitness.engine.core.program import Program
 
 SPECS: tuple[Spec, ...] = (
     *lifting.CORE_SPECS,
@@ -102,7 +102,7 @@ def build_context(
 ) -> Context:
     """Context with the catalog lookups the swap check needs."""
     from apps.fitness.db.catalog import load_catalog
-    from apps.fitness.engine import data as D
+    from apps.fitness.engine.store import data as D
     from apps.fitness.settings import get_settings
 
     s = settings or get_settings()

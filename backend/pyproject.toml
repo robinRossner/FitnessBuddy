@@ -22,6 +22,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.8.0",
@@ -71,3 +72,19 @@ known-third-party = ["alembic"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "typer.Option"]
+
+[tool.pyright]
+# Basic mode on the pure / newest code first; widen `include` as modules get cleaned up.
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+reportMissingImports = true
+include = [
+    "core",
+    "apps/fitness/engine/core",
+    "apps/fitness/advisor/rules",
+    "apps/fitness/garmin/pacing.py",
+    "apps/fitness/errors.py",
+    "apps/fitness/api/deps.py",
+]

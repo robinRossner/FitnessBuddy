@@ -12,7 +12,7 @@ from apps.fitness.settings import Settings, get_settings
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
-    from apps.fitness.engine.service import RunSummary
+    from apps.fitness.engine.store.service import RunSummary
 
 log = logging.getLogger(__name__)
 _lock = threading.Lock()  # engine runs write plans: never two at once
@@ -23,7 +23,7 @@ def rerun_engine(reason: str = "sync push", settings: Settings | None = None) ->
     if not (settings or get_settings()).engine_auto_run:
         return
     try:
-        from apps.fitness.engine import service
+        from apps.fitness.engine.store import service
 
         with _lock, session_scope() as db:
             summary = service.run_engine(db)
@@ -44,7 +44,7 @@ def run_engine_now(db: Session, reason: str = "API") -> RunSummary:
     """Reconcile + re-plan current and next week on `db` right now (the explicit
     `POST /api/v1/engine/run`: runs even when ENGINE_AUTO_RUN is off, raises on errors), then the
     Garmin workout push hook like every other re-run. Returns the `RunSummary`."""
-    from apps.fitness.engine import service
+    from apps.fitness.engine.store import service
 
     with _lock:
         summary = service.run_engine(db)

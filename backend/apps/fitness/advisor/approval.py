@@ -36,10 +36,10 @@ from apps.fitness.db.models import (
     PlannedSession,
 )
 from apps.fitness.db.types import utcnow
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import schedule_edit as SE
-from apps.fitness.engine import service as engine_service
-from apps.fitness.engine.decisions import log_decision
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import schedule_edit as SE
+from apps.fitness.engine.store import service as engine_service
+from apps.fitness.engine.store.decisions import log_decision
 from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)

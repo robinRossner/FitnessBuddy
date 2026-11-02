@@ -161,7 +161,7 @@ def set_kind_slots(live: Path, kind: str, slots: list[dict[str, Any]]) -> Path |
 def apply_overrides(program: Program, overrides: dict[str, Any] | None) -> Program:
     """Program with the config's per-exercise overrides applied (`exercise_overrides` in the engine
     config, keyed by catalog slug; set by the advisor): rep_range, sets, variant (`rest_s` is not
-    a program matter: apps/fitness/engine/rest.py). They win over
+    a program matter: engine/store/rest.py). They win over
     program.yaml, which stays untouched; rolling the config back removes them."""
     if not overrides:
         return program

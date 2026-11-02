@@ -24,6 +24,7 @@ from apps.fitness.db.models import (
     Gym,
     WorkoutSet,
 )
+from apps.fitness.engine.core.ids import base_name_of
 from apps.fitness.engine.core.lifting import detect_stall
 from apps.fitness.engine.core.program import apply_overrides
 from apps.fitness.engine.store import config_service as cs
@@ -50,7 +51,7 @@ class Row:
 
 def _stall_resets(db: Session) -> dict[int, date]:
     """Day of the latest stall-ladder reset the engine decided per variant (decisions_log
-    `output.ladder`, same source as `engine.data.load_ladder`), in one query."""
+    `output.ladder`, same source as `engine.store.data.load_ladder`), in one query."""
     out: dict[int, date] = {}
     q = (
         select(DecisionLog.subject_id, DecisionLog.output)
@@ -156,7 +157,7 @@ def _summary(v, ex, gym_name, rows, today, ctx: Context) -> dict:
     pr_days = [r.day for r in rows if r.e1rm_pr]
     return {
         "variant_id": v.id,
-        "name": D.base_name_of(v),
+        "name": base_name_of(v),
         "exercise_id": ex.id,
         "muscle_group": ex.primary_muscle,
         "body_region": ctx.regions.get(ex.slug) or region_of_muscle(ex.primary_muscle),

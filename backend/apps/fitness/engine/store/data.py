@@ -32,20 +32,14 @@ from apps.fitness.engine.core import quality as Q
 from apps.fitness.engine.core import running as R
 from apps.fitness.engine.core import vdot as V
 from apps.fitness.engine.core.config import EngineConfig
-from apps.fitness.engine.core.ids import PLAN_NS as PLAN_NS
-from apps.fitness.engine.core.ids import base_name_of as base_name_of
-from apps.fitness.engine.core.ids import planned_id as planned_id
-from apps.fitness.engine.core.ids import template_slot_ids as template_slot_ids
+from apps.fitness.engine.core.ids import base_name_of, planned_id, template_slot_ids
 from apps.fitness.engine.core.planner import LiftContext, PlanInputs, VariantInfo
 from apps.fitness.engine.core.program import Program, apply_overrides
 from apps.fitness.engine.core.readiness import HealthDay
 from apps.fitness.engine.core.scheduling import SlotLock
-from apps.fitness.engine.core.windows import CANCELLABLE as CANCELLABLE
-from apps.fitness.engine.core.windows import DELOAD_CANCEL as DELOAD_CANCEL
-from apps.fitness.engine.core.windows import apply_cancellations as apply_cancellations
-from apps.fitness.engine.core.windows import cancel_window as cancel_window
+from apps.fitness.engine.core.windows import DELOAD_CANCEL, apply_cancellations
 from apps.fitness.engine.core.windows import window_from as _window_from
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.mapping import RUN_TYPES
 
 LOWER_KINDS = {SessionKind.LOWER.value, SessionKind.LEGS.value}
 WORKING = (SetType.WORKING.value, SetType.FAILURE.value)
@@ -57,13 +51,13 @@ WORKING = (SetType.WORKING.value, SetType.FAILURE.value)
 def current_gym(db: Session, gyms_path: Path | None = None) -> Gym | None:
     """The gym in use now: the one chosen in the app (config `gym.current_id`), else the latest
     entry of gyms.yaml, else the gym of the newest session."""
-    from apps.fitness.gym_service import configured_current_gym
+    from apps.fitness.gyms.service import configured_current_gym
 
     chosen = configured_current_gym(db)
     if chosen is not None:
         return chosen
     if gyms_path is not None and gyms_path.exists():
-        from apps.fitness.gyms import load_gyms
+        from apps.fitness.gyms.catalog import load_gyms
 
         key = load_gyms(gyms_path).latest.key
         gym = db.scalar(select(Gym).where(Gym.key == key))
@@ -306,7 +300,7 @@ def legacy_windows(db: Session, cfg: EngineConfig) -> list[L.DeloadWindow]:
 
 def load_lift_contexts(db: Session, program: Program, gym: Gym | None) -> dict[str, LiftContext]:
     out: dict[str, LiftContext] = {}
-    from apps.fitness.gym_service import previous_hint
+    from apps.fitness.gyms.service import previous_hint
 
     names = {e.variant: e.exercise for exs in program.days.values() for e in exs if e.active}
     for name in sorted(names):
@@ -596,7 +590,7 @@ def load_inputs(
     program: Program,
     gyms_path: Path | None = None,
 ) -> PlanInputs:
-    from apps.fitness.bodyweight import bodyweight_at
+    from apps.fitness.bodyweight.service import bodyweight_at
 
     gym = current_gym(db, gyms_path)
     program = apply_overrides(program, cfg.exercise_overrides)

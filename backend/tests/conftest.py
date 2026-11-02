@@ -16,12 +16,12 @@ from sqlalchemy.orm import Session, sessionmaker
 from apps.fitness.advisor import claude
 from apps.fitness.advisor import validator as V
 from apps.fitness.analytics import cache
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.db import session as dbsession
 from apps.fitness.db.session import make_engine
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine.config import EngineConfig, load_engine_config
-from apps.fitness.engine.program import load_program
+from apps.fitness.engine.core.config import EngineConfig, load_engine_config
+from apps.fitness.engine.core.program import load_program
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.importers.strong.importer import ImportOptions
 from apps.fitness.settings import FITNESS_DIR, Settings, get_settings
 from core.auth import get_api_token
@@ -170,7 +170,7 @@ def no_rerun(monkeypatch) -> list[str]:
     """Replace the engine re-run after an applied change by a recorder."""
     calls: list[str] = []
     monkeypatch.setattr(
-        "apps.fitness.advisor.service.rerun_engine_after_change", lambda: calls.append("rerun")
+        "apps.fitness.advisor._common.rerun_engine_after_change", lambda: calls.append("rerun")
     )
     return calls
 

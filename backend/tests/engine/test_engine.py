@@ -6,8 +6,8 @@ from pydantic import ValidationError
 from apps.fitness.engine.core.config import IncrementConfig, load_engine_config
 from apps.fitness.engine.core.increments import next_load
 from apps.fitness.engine.core.pace import PaceModel
+from apps.fitness.garmin.base import GarminSource
 from apps.fitness.settings import FITNESS_DIR
-from apps.fitness.sources.garmin.base import GarminSource
 
 CONFIG = load_engine_config(FITNESS_DIR / "config" / "engine.v1.yaml")
 

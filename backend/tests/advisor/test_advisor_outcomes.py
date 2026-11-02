@@ -10,7 +10,7 @@ from sqlalchemy import select
 from apps.fitness.advisor import outcomes, service, summary
 from apps.fitness.advisor.schema import ProposedChange
 from apps.fitness.db.models import Outcome
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.jobs import advisor_jobs
 from apps.fitness.stats import rebuild_stats
 from tests.support.fakes_anthropic import make_output

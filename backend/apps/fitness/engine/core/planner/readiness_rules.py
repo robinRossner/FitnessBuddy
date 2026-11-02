@@ -9,6 +9,7 @@ from apps.fitness.engine.core.planner.models import (
     DecisionRec,
     TriggerRec,
 )
+from apps.fitness.engine.core.planner.state import PlannerState
 from apps.fitness.engine.core.readiness import (
     GREEN,
     RED,
@@ -18,7 +19,7 @@ from apps.fitness.engine.core.readiness import (
 )
 
 
-class ReadinessMixin:
+class ReadinessMixin(PlannerState):
     """Readiness decisions (whole week) and per-day readiness adjustments."""
 
     # ------------------------------------------------------------------ readiness

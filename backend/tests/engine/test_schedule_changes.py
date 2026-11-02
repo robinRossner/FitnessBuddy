@@ -13,8 +13,8 @@ from apps.fitness.advisor import validator as V
 from apps.fitness.advisor.prompt import SYSTEM_PROMPT
 from apps.fitness.advisor.schema import ProposedChange, ScheduleChange
 from apps.fitness.db.models import AdvisorScheduleChange, DecisionLog, PlannedSession
+from apps.fitness.engine.core.ids import planned_id
 from apps.fitness.engine.store import config_service as cs
-from apps.fitness.engine.store import data as D
 from apps.fitness.engine.store import service as engine
 from tests.support.fakes_anthropic import make_output
 from tests.support.world import AUTH, TODAY  # noqa: F401
@@ -163,7 +163,7 @@ def test_replace_only_to_an_equal_or_easier_kind(planned, db):
 
 
 def test_replace_may_go_harder_to_make_up_a_missed_session(planned, db):
-    wk = D.planned_id(NEXT, "fri_intervals")
+    wk = planned_id(NEXT, "fri_intervals")
     db.get(PlannedSession, wk).status = "skipped"
     db.commit()
     sat = NEXT + timedelta(days=5)
@@ -176,7 +176,7 @@ def test_replace_may_go_harder_to_make_up_a_missed_session(planned, db):
 
 
 def test_weekly_volume_cap_blocks_a_makeup_that_needs_more_km(planned, db):
-    wk = D.planned_id(NEXT, "fri_intervals")
+    wk = planned_id(NEXT, "fri_intervals")
     db.get(PlannedSession, wk).status = "skipped"
     db.commit()
     sat = NEXT + timedelta(days=5)
@@ -303,8 +303,8 @@ def test_approve_applies_the_move_and_it_survives_the_next_engine_run(
     assert done["status"] == "applied" and done["schedule_changes"][0]["status"] == "applied"
     assert done["applied_config_version"] is None  # no parameter changed
     db.expire_all()
-    fri = db.get(PlannedSession, D.planned_id(NEXT, "fri_intervals"))
-    sat = db.get(PlannedSession, D.planned_id(NEXT, "sat_rest"))
+    fri = db.get(PlannedSession, planned_id(NEXT, "fri_intervals"))
+    sat = db.get(PlannedSession, planned_id(NEXT, "sat_rest"))
     assert (fri.day, fri.kind, fri.moved_from, fri.changed_by) == (
         DAY["sat"],
         "intervals",
@@ -324,7 +324,7 @@ def test_approve_applies_the_move_and_it_survives_the_next_engine_run(
         engine.run_engine(db, today=today, settings=env)
         db.commit()
         db.expire_all()
-        fri = db.get(PlannedSession, D.planned_id(NEXT, "fri_intervals"))
+        fri = db.get(PlannedSession, planned_id(NEXT, "fri_intervals"))
         assert (fri.day, fri.moved_from, fri.changed_by) == (DAY["sat"], DAY["fri"], "advisor"), (
             today
         )
@@ -347,9 +347,9 @@ def test_replace_and_shorten_are_applied_through_the_engine(planned, client, fak
     ids = [c["id"] for c in p["schedule_changes"]]
     client.post(f"/api/v1/coach/proposals/{p['id']}/approve", json={"change_ids": ids})
     db.expire_all()
-    sun = db.get(PlannedSession, D.planned_id(NEXT, "sun_long_run"))
+    sun = db.get(PlannedSession, planned_id(NEXT, "sun_long_run"))
     assert sun.prescription["session"]["distance_km"] == round(km * 0.7, 1)
-    thu = db.get(PlannedSession, D.planned_id(NEXT, "thu_upper"))
+    thu = db.get(PlannedSession, planned_id(NEXT, "thu_upper"))
     assert thu.kind == "rest" and thu.prescription["session"]["type"] == "rest"
 
 
@@ -357,7 +357,7 @@ def test_skip_closes_the_session_and_nothing_is_made_up(planned, client, fake, d
     p = ask_changes(client, fake, [sc(DAY["wed"], "skip", "easy")])
     client.post(f"/api/v1/coach/proposals/{p['id']}/approve", json={"change_ids": None})
     db.expire_all()
-    wed = db.get(PlannedSession, D.planned_id(NEXT, "wed_easy_run"))
+    wed = db.get(PlannedSession, planned_id(NEXT, "wed_easy_run"))
     assert wed.status == "skipped" and wed.changed_by == "advisor"
     res = engine.run_engine(db, today=DAY["thu"], settings=env)
     assert not [m for m in res.makeups.results if m.session_id == wed.id]  # deliberate skip
@@ -417,8 +417,8 @@ def test_auto_low_risk_applies_skip_and_shorten_but_not_a_move(planned, client, 
     assert st == {"skip": "applied", "shorten": "applied", "move": "proposed"}
     assert p["status"] == "partially_applied"
     db.expire_all()
-    assert db.get(PlannedSession, D.planned_id(NEXT, "wed_easy_run")).status == "skipped"
-    assert db.get(PlannedSession, D.planned_id(NEXT, "fri_intervals")).day == DAY["fri"]
+    assert db.get(PlannedSession, planned_id(NEXT, "wed_easy_run")).status == "skipped"
+    assert db.get(PlannedSession, planned_id(NEXT, "fri_intervals")).day == DAY["fri"]
 
 
 def test_auto_mode_applies_every_valid_change(planned, client, fake):
@@ -439,12 +439,12 @@ def test_manual_mode_applies_nothing_by_itself(planned, client, fake, db):
     p = ask_changes(client, fake, [sc(DAY["wed"], "skip", "easy")])
     assert p["schedule_changes"][0]["status"] == "proposed"
     db.expire_all()
-    assert db.get(PlannedSession, D.planned_id(NEXT, "wed_easy_run")).status == "proposed"
+    assert db.get(PlannedSession, planned_id(NEXT, "wed_easy_run")).status == "proposed"
 
 
 def test_changes_are_revalidated_when_approved(planned, client, fake, db):
     p = ask_changes(client, fake, [sc(DAY["wed"], "skip", "easy")])
-    row = db.get(PlannedSession, D.planned_id(NEXT, "wed_easy_run"))
+    row = db.get(PlannedSession, planned_id(NEXT, "wed_easy_run"))
     row.status = "done"  # the session happened in the meantime
     db.commit()
     r = client.post(f"/api/v1/coach/proposals/{p['id']}/approve", json={"change_ids": None})
@@ -455,7 +455,7 @@ def test_changes_are_revalidated_when_approved(planned, client, fake, db):
 def test_a_stored_proposal_only_has_schedule_changes_in_db(planned, client, fake, db):
     ask_changes(client, fake, [sc(DAY["wed"], "skip", "easy")])
     rows = db.scalars(select(AdvisorScheduleChange)).all()
-    assert len(rows) == 1 and rows[0].planned_session_id == D.planned_id(NEXT, "wed_easy_run")
+    assert len(rows) == 1 and rows[0].planned_session_id == planned_id(NEXT, "wed_easy_run")
 
 
 # --------------------------------------------------------------------------- prompt / summary

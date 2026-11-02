@@ -35,11 +35,11 @@ from apps.fitness.db.models import (
     WorkoutSet,
 )
 from apps.fitness.db.types import iso_z, utcnow
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import rest, service
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.persist import planned_to_dict
-from apps.fitness.engine.program import apply_overrides
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.program import apply_overrides
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import rest, service
+from apps.fitness.engine.store.persist import planned_to_dict
 from apps.fitness.errors import ServiceError
 from apps.fitness.settings import Settings, get_settings
 

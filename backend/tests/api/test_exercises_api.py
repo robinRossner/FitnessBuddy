@@ -11,7 +11,7 @@ from sqlalchemy import select
 from apps.fitness.db.catalog import CatalogExercise, sync_catalog
 from apps.fitness.db.models import Exercise, ExerciseVariant
 from apps.fitness.db.types import EquipmentType
-from apps.fitness.engine import data
+from apps.fitness.engine.store import data
 from apps.fitness.exercises.service import generic_variant_key, is_user_generic_variant
 from apps.fitness.gyms import service as gs
 from tests.support.world import AUTH
@@ -317,7 +317,7 @@ def test_rename_keeps_the_plan_pointing_at_the_variant(client, world, db, env):
 
 
 def test_renamed_program_variant_keeps_its_rep_range_in_the_pull(client, world, db, env):
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     cs.ensure_seeded(db, env.engine_config_path)
     cs.create_version(

@@ -6,7 +6,7 @@ import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
 
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from core.auth import get_throttle, get_trusted_proxies, token_dependency
 from core.settings import get_core_settings
 from core.throttle import FailureThrottle, client_ip, parse_networks

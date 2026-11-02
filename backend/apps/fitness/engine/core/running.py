@@ -99,7 +99,7 @@ def decoupling_pct(laps: Sequence[LapData]) -> float | None:
     def ef(group: list[LapData]) -> float:
         dur = sum(lap.duration_s for lap in group)
         dist = sum(lap.distance_m for lap in group)
-        hr = sum(lap.avg_hr * lap.duration_s for lap in group) / dur
+        hr = sum((lap.avg_hr or 0) * lap.duration_s for lap in group) / dur
         return (dist / (dur / 60)) / hr
 
     e1, e2 = ef(first), ef(second)
@@ -125,7 +125,7 @@ def easy_time_fraction(
     ls = [lap for lap in laps if lap.avg_hr and lap.duration_s > 0]
     if ls:
         total = sum(lap.duration_s for lap in ls)
-        below = sum(lap.duration_s for lap in ls if lap.avg_hr <= cap)
+        below = sum(lap.duration_s for lap in ls if (lap.avg_hr or 0) <= cap)
         return below / total, "laps"
     return None, "none"
 
@@ -238,7 +238,7 @@ def evaluate_intervals(
     pace = dur / dist * 1000
     hrs = [lap for lap in work if lap.avg_hr]
     work_hr = (
-        sum(lap.avg_hr * lap.duration_s for lap in hrs) / sum(lap.duration_s for lap in hrs)
+        sum((lap.avg_hr or 0) * lap.duration_s for lap in hrs) / sum(lap.duration_s for lap in hrs)
         if hrs
         else None
     )
@@ -433,7 +433,7 @@ def best_effort(run: RunData, min_m: float) -> PaceObservation | None:
         dist = sum(lap.distance_m for lap in group)
         hr_laps = [lap for lap in group if lap.avg_hr]
         hr = (
-            sum(lap.avg_hr * lap.duration_s for lap in hr_laps)
+            sum((lap.avg_hr or 0) * lap.duration_s for lap in hr_laps)
             / sum(lap.duration_s for lap in hr_laps)
             if hr_laps
             else None

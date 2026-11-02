@@ -1,9 +1,10 @@
 """Database side of schedule changes: load the layout around a week, and write an `Edit` to a
 planned session (day / kind / distance cap / skip) together with the lock the planner keeps on
-every re-run (`planned_sessions.schedule_lock`, see `scheduling.SlotLock`).
+every re-run (`planned_sessions.schedule_lock`, see `engine/core/scheduling.SlotLock`).
 
 Used by the missed-session policy (`makeup.py`) and by approved coach schedule changes
-(`apps/fitness/advisor/service.py`). The rules themselves are pure and live in `schedule_rules.py`.
+(`apps/fitness/advisor/approval.py`). The rules themselves are pure and live in
+`engine/core/schedule_rules.py`.
 """
 
 from __future__ import annotations

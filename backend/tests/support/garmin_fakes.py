@@ -8,8 +8,8 @@ import zipfile
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
 
-from apps.fitness.sources.garmin import mapping
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin import mapping
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     DAILY_SUMMARY,
     HRV,
@@ -22,7 +22,7 @@ from apps.fitness.sources.garmin.base import (
     LapData,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import NotFoundError
+from apps.fitness.garmin.errors import NotFoundError
 
 
 def activity_raw(aid: int, day: str = "2026-10-01", typ: str = "running", **over) -> dict:

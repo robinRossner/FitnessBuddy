@@ -22,7 +22,7 @@ from apps.fitness.engine.core import running as R
 from apps.fitness.engine.core.pace import fmt_pace
 from apps.fitness.engine.store import data as D
 from apps.fitness.engine.store.persist import planned_to_dict
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.mapping import RUN_TYPES
 
 
 def _lap_kinds(laps: tuple[R.LapData, ...], split: R.IntervalSplit | None) -> list[str]:

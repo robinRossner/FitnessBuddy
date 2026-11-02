@@ -14,7 +14,7 @@ from sqlalchemy import select
 from apps.fitness.advisor import claude, service, summary
 from apps.fitness.advisor.prompt import SYSTEM_PROMPT
 from apps.fitness.db.models import AdvisorChange, AdvisorConsultation, AdvisorTrigger
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.settings import get_settings
 from tests.support.fakes_anthropic import KEY, FakeClient, make_output
 from tests.support.world import TODAY, configure
@@ -466,8 +466,8 @@ def test_reject_after_partial_approval_keeps_the_applied_part(db, world, fake, n
 
 
 def test_applied_overrides_reach_the_engine_inputs(db, world, fake, no_rerun, env):
-    from apps.fitness.engine import data as D
-    from apps.fitness.engine import service as engine_service
+    from apps.fitness.engine.store import data as D
+    from apps.fitness.engine.store import service as engine_service
 
     c = consult(db)
     service.approve(db, c, None)
@@ -487,8 +487,8 @@ def test_applied_overrides_reach_the_engine_inputs(db, world, fake, no_rerun, en
 
 def test_swap_override_changes_the_program_variant(db, world, fake, no_rerun, env):
     from apps.fitness.advisor.schema import ProposedChange
-    from apps.fitness.engine import data as D
-    from apps.fitness.engine import service as engine_service
+    from apps.fitness.engine.store import data as D
+    from apps.fitness.engine.store import service as engine_service
 
     fake.output = make_output(
         proposed_changes=[

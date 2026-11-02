@@ -18,11 +18,11 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import Exercise, ExerciseVariant, PlannedSession
 from apps.fitness.db.types import utcnow
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import rest
-from apps.fitness.engine import service as engine
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.program import KINDS, apply_overrides, set_kind_slots
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.program import KINDS, apply_overrides, set_kind_slots
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import rest
+from apps.fitness.engine.store import service as engine
 from apps.fitness.exercises.service import ExerciseError
 from apps.fitness.settings import Settings, get_settings
 

@@ -96,7 +96,7 @@ def outcome_json(o: Outcome | None) -> dict[str, Any] | None:
 
 
 def history_json(db: Session) -> dict[str, Any]:
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     outcomes = {
         o.config_version_id: o

@@ -10,7 +10,7 @@ XCODEBUILD = set -o pipefail; cd ios && xcodebuild -project FitnessBuddy.xcodepr
 XCPRETTY := $(if $(shell command -v xcbeautify 2>/dev/null),| xcbeautify,)
 
 .PHONY: help test test-fast test-group test-changed lint format typecheck \
-	ios-gen ios-build ios-test-fast ios-test check deploy
+	ios-gen ios-build ios-core-test ios-test-fast ios-test check deploy
 
 help: ## list the targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
@@ -34,8 +34,8 @@ lint: ## ruff check + ruff format --check
 format: ## ruff check --fix + ruff format
 	cd backend && uv run ruff check --fix . && uv run ruff format .
 
-typecheck: ## pyright (placeholder)
-	@echo "pyright: added in wave 3"
+typecheck: ## pyright (basic) on the paths in backend/pyproject.toml [tool.pyright]
+	cd backend && uv run pyright
 
 ios-gen: ## xcodegen generate (ios/FitnessBuddy.xcodeproj)
 	cd ios && xcodegen generate
@@ -43,13 +43,16 @@ ios-gen: ## xcodegen generate (ios/FitnessBuddy.xcodeproj)
 ios-build: ios-gen ## Debug build for the simulator (SIM="iPhone 17 Pro")
 	$(XCODEBUILD) -configuration Debug build $(XCPRETTY)
 
+ios-core-test: ## FitnessCore package tests (no simulator, fastest iOS loop)
+	cd ios/FitnessCore && swift test
+
 ios-test-fast: ios-gen ## iOS tests, Fast test plan
 	$(XCODEBUILD) -testPlan Fast test $(XCPRETTY)
 
 ios-test: ios-gen ## iOS tests, Full test plan
 	$(XCODEBUILD) -testPlan Full test $(XCPRETTY)
 
-check: lint test ios-test-fast ## lint + backend suite + iOS Fast plan
+check: lint typecheck test ios-core-test ios-test-fast ## lint + pyright + backend suite + FitnessCore + iOS Fast plan
 
 deploy: ## deploy/push.sh $(DEPLOY_ARGS), e.g. DEPLOY_ARGS="ubuntu@HOST --dry-run"
 	deploy/push.sh $(DEPLOY_ARGS)

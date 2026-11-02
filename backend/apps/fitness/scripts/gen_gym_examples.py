@@ -17,7 +17,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
-from apps.fitness.api.routes import get_db
+from apps.fitness.api.deps import get_db
 from apps.fitness.db.session import make_engine
 from apps.fitness.settings import BACKEND_DIR, REPO_ROOT
 from core.auth import get_api_token

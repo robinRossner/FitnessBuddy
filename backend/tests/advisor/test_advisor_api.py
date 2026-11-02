@@ -102,7 +102,7 @@ def test_ask_is_rate_limited_per_day(client):
 def test_ask_without_a_key_is_awaiting_key_and_does_not_crash(
     db, monkeypatch, tmp_path, session_factory, pin_session_factory, no_rerun
 ):
-    from apps.fitness.api.routes import get_db
+    from apps.fitness.api.deps import get_db
     from tests.support.world import build_world
 
     configure(monkeypatch, tmp_path, key=None)
@@ -319,7 +319,7 @@ def test_plan_today_has_the_coach_block(client):
 def test_dry_run_setting_is_reported_and_nothing_is_called(
     db, monkeypatch, tmp_path, session_factory, pin_session_factory, no_rerun, fake
 ):
-    from apps.fitness.api.routes import get_db
+    from apps.fitness.api.deps import get_db
     from tests.support.world import build_world
 
     configure(monkeypatch, tmp_path, advisor_dry_run="true")

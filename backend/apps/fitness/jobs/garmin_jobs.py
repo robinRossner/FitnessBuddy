@@ -47,7 +47,7 @@ def on_new_data(report: SyncReport, settings: Settings | None = None) -> None:
         sum(1 for r in report.results if r.changed),
     )
     try:
-        from apps.fitness.engine import service
+        from apps.fitness.engine.store import service
 
         with session_scope() as db:
             service.record_config_check(db)

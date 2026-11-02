@@ -1,6 +1,7 @@
-"""VDOT from interval reps (engine/interval_vdot.py + the measured path of engine/vdot.py): the
-estimate from work reps, the state update (raise once, idempotent, no oscillation, drops
-unchanged), the planner's quality paces, the allowlist, migration 0014 and POST /engine/run."""
+"""VDOT from interval reps (engine/core/interval_vdot.py + the measured path of
+engine/core/vdot.py): the estimate from work reps, the state update (raise once, idempotent, no
+oscillation, drops unchanged), the planner's quality paces, the allowlist, migration 0014 and POST
+/engine/run."""
 
 from datetime import date, timedelta
 

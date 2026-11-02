@@ -47,9 +47,9 @@ from apps.fitness.db.models import (
     AdvisorScheduleChange,
 )
 from apps.fitness.db.types import utcnow
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.redact import redact
+from core.redact import redact
 
 log = logging.getLogger(__name__)
 

@@ -31,7 +31,7 @@ from apps.fitness.db.models import (
     WorkoutSet,
 )
 from apps.fitness.db.types import EquipmentType, LoadConvention, iso_z, utcnow
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.errors import ServiceError
 from apps.fitness.gyms.catalog import GYM_BOUND_EQUIPMENT
 from apps.fitness.settings import Settings, get_settings
@@ -79,7 +79,7 @@ def effective_current_gym(db: Session, settings: Settings) -> Gym | None:
     gym = configured_current_gym(db)
     if gym is not None:
         return gym
-    from apps.fitness.engine import data
+    from apps.fitness.engine.store import data
 
     return data.current_gym(db, settings.gyms_path)
 
@@ -332,8 +332,8 @@ def delete_gym(db: Session, gym: Gym, settings: Settings) -> None:
 
 def program_entries(db: Session, settings: Settings) -> dict[str, Any]:
     """Active program entries by exercise slug (config overrides applied); {} without a program."""
-    from apps.fitness.engine import service
-    from apps.fitness.engine.program import apply_overrides
+    from apps.fitness.engine.core.program import apply_overrides
+    from apps.fitness.engine.store import service
 
     try:
         program = service.get_program(settings)

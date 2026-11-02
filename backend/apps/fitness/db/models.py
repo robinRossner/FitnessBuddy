@@ -189,7 +189,7 @@ class ConfigVersion(Base):
     source_path: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-    # Lineage (fitness/engine/config_service.py): derived versions point at the version they were
+    # Lineage (engine/store/config_service.py): derived versions point at the version they were
     # made from; `diff` = {dotted.path: {"old": .., "new": ..}} against the parent.
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("config_versions.id"))
     author: Mapped[str] = mapped_column(String(16), default="seed", server_default="seed")
@@ -324,7 +324,7 @@ class BodyMeasurement(ServerSeq, Syncable, Base):
 class Run(Syncable, Base):
     """A recorded endurance/other activity (Garmin). Despite the name it holds *every* Garmin
     activity (running, hiking, strength, cycling, ...); `activity_type` is Garmin's typeKey and
-    run-only consumers filter on `apps.fitness.sources.garmin.mapping.RUN_TYPES`."""
+    run-only consumers filter on `apps.fitness.garmin.mapping.RUN_TYPES`."""
 
     __tablename__ = "runs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)

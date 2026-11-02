@@ -15,7 +15,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
-from apps.fitness.bodyweight import load_timeline
+from apps.fitness.bodyweight.service import load_timeline
 from apps.fitness.db.models import (
     Exercise,
     ExerciseSessionStats,

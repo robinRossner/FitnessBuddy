@@ -7,7 +7,7 @@ After that the VDOT moves only through records in decisions_log (`output.vdot_re
   sessions passed easily within `green_window_weeks` together with a rising aerobic-efficiency
   trend, or the pace lever of the quality session (its own green sessions). Each update is at
   most `max_step`, and all increases within 28 days at most `max_per_4w`. One update per week.
-* up, measured: the age-discounted VDOT of recent interval reps (engine/interval_vdot.py,
+* up, measured: the age-discounted VDOT of recent interval reps (engine/core/interval_vdot.py,
   `Measured`) when it beats the current VDOT: straight up to it in one update, at most
   `from_intervals.max_step`, not limited by `max_per_4w` (it is a measurement, not an
   inference), but it uses up that 4-week room for the other paths. Only evidence after the last

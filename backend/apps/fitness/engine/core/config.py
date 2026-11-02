@@ -205,7 +205,7 @@ class LayoffTier(_Model):
 
 
 class VdotFromIntervalsConfig(_Model):
-    """A measured VDOT from completed interval sessions (engine/interval_vdot.py).
+    """A measured VDOT from completed interval sessions (engine/core/interval_vdot.py).
 
     A session counts when it has at least `min_reps` work reps of `rep_min_s`..`rep_max_s` and
     >= `min_rep_m` (GPS junk laps drop out), run evenly (slowest - fastest <= `max_spread_pct`
@@ -272,7 +272,8 @@ class EasyRunConfig(_Model):
 
 
 class EasyCalibrationConfig(_Model):
-    """Easy / long run pace range calibrated from the athlete's own easy runs (engine/easy_pace.py).
+    """Easy / long run pace range calibrated from the athlete's own easy runs
+    (engine/core/easy_pace.py).
 
     A run qualifies when it is a steady run (not intervals, not a quality-session day) of at
     least `min_minutes` in the last `window_days`, passed the easy-run HR rule (not via the
@@ -446,7 +447,8 @@ class RecoveryConfig(_Model):
 
 
 class ScheduleConfig(_Model):
-    """Missed-session policy + the hard scheduling rules (engine/makeup.py, schedule_rules.py).
+    """Missed-session policy + the hard scheduling rules (engine/store/makeup.py,
+    engine/core/schedule_rules.py).
     Lives under `schedule:` in the config content; every key has a default, so versions without
     the section (v3) behave the same. Kinds use the short names: lower, intervals, upper, long,
     easy (rest where a rest day is meant)."""
@@ -488,7 +490,7 @@ REST_MAX_S = 600
 class LiftingConfig(_Model):
     """Lifting settings that are not progression rules. Lives under `lifting:` in the config
     content; every key has a default, so versions without the section (v3, v4) behave the same.
-    A per-exercise rest time is `exercise_overrides.<slug>.rest_s` (see fitness/engine/rest.py)."""
+    A per-exercise rest time is `exercise_overrides.<slug>.rest_s` (see engine/store/rest.py)."""
 
     rest_default_s: int = 120  # rest timer between sets, for every exercise without an override
 
@@ -524,7 +526,7 @@ class EngineConfig(_Model):
     weekly_template: dict[str, str] = {}
     # Per program exercise (catalog slug): {"rep_range": [8, 12], "sets": 3, "variant": "<name>"}
     # (set by the advisor; wins over program.yaml, see program.apply_overrides) and "rest_s": 180
-    # (rest timer; set by the user or the advisor; any catalog slug, see fitness/engine/rest.py).
+    # (rest timer; set by the user or the advisor; any catalog slug, see engine/store/rest.py).
     exercise_overrides: dict[str, Any] = {}
     advisor: dict[str, Any] = {}
     schedule: dict[str, Any] = {}

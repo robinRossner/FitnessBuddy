@@ -1,5 +1,5 @@
-"""The Friday quality cycle (phases, lever order) and VDOT hysteresis (fitness/engine/quality.py,
-apps/fitness/engine/vdot.py; docs/research/running-progression.md sections 2-3)."""
+"""The Friday quality cycle (phases, lever order) and VDOT hysteresis (engine/core/quality.py,
+engine/core/vdot.py; docs/research/running-progression.md sections 2-3)."""
 
 from datetime import date, timedelta
 

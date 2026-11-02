@@ -9,9 +9,10 @@ from apps.fitness.engine.core.planner.models import (
     DecisionRec,
     TriggerRec,
 )
+from apps.fitness.engine.core.planner.state import PlannerState
 
 
-class TriggersMixin:
+class TriggersMixin(PlannerState):
     """Stagnation and 4th-run advisor triggers."""
 
     # ------------------------------------------------------------------ stagnation / 4th run

@@ -11,6 +11,7 @@ import yaml
 from apps.fitness.advisor import prompt, summary
 from apps.fitness.advisor import service as S
 from apps.fitness.advisor import validator as V
+from apps.fitness.advisor.triggers import _describe as describe_trigger
 from apps.fitness.engine.store import service as engine
 from apps.fitness.settings import FITNESS_DIR
 from tests.support.world import TODAY
@@ -74,18 +75,18 @@ def _row(type_, payload):
 def test_new_engine_triggers_map_onto_existing_proposal_types():
     assert S.TRIGGER_MAP["multi_lift_stall"] == S.LIFT_STALL
     assert S.TRIGGER_MAP["fourth_run"] == S.RUNNING_STAGNATION
-    title, detail, _ref = S._describe(
+    title, detail, _ref = describe_trigger(
         _row(
             "multi_lift_stall",
             {"lifts": ["A", "B", "C"], "window": {"start": "2026-10-26", "until": "2026-11-01"}},
         )
     )
     assert title == "3 lifts stalled together" and "retest of the old loads" in detail
-    title, detail, _ref = S._describe(
+    title, detail, _ref = describe_trigger(
         _row("fourth_run", {"weeks_consistent": 8, "mean_km_4w": 29, "longest_km_4w": 15})
     )
     assert title == "Ready for a 4th run?" and "never Tuesday" in detail
-    title, detail, _ref = S._describe(
+    title, detail, _ref = describe_trigger(
         _row(
             "lift_stall", {"variant": "Bench", "reason": "x.", "proposal": "rep_range_or_variation"}
         )

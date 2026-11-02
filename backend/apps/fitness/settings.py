@@ -67,7 +67,7 @@ class Settings(CoreSettings):
     garmin_since: date = date(2023, 1, 1)  # default backfill start
     garmin_sync_overlap_days: int = 3  # incremental sync re-reads this many days
     garmin_download_fit: bool = True  # store the original .FIT (needed for laps)
-    # Planned runs -> Garmin Connect workouts on the watch (apps/fitness/garmin_workouts.py, needs
+    # Planned runs -> Garmin Connect workouts on the watch (apps/fitness/garmin/workouts.py, needs
     # GARMIN_EMAIL/GARMIN_PASSWORD; docs/api/garmin.md). Window = today + this many days ahead.
     garmin_push_workouts: bool = True
     garmin_push_days: int = 2

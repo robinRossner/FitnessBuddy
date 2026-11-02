@@ -17,9 +17,9 @@ from apps.fitness.analytics import common
 from apps.fitness.db.models import (
     AdvisorConsultation,
 )
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import service as engine_service
-from apps.fitness.engine.config import AdvisorConfig
+from apps.fitness.engine.core.config import AdvisorConfig
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import service as engine_service
 from apps.fitness.settings import Settings, get_settings
 
 log = logging.getLogger(__name__)
@@ -109,11 +109,9 @@ def rerun_engine_after_change() -> None:
 
 
 def rerun_hook() -> Callable[[], None]:
-    """`rerun_engine_after_change` as the `service` facade exposes it, looked up at call time: the
-    facade attribute is the one patch point (tests' `no_rerun` fixture) for every caller."""
-    from apps.fitness.advisor import service
-
-    return service.rerun_engine_after_change
+    """The module attribute `rerun_engine_after_change`, read at call time: it is the one patch
+    point (tests' `no_rerun` fixture) for every caller."""
+    return rerun_engine_after_change
 
 
 def program_raw(settings: Settings):

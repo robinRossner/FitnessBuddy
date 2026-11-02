@@ -1,7 +1,7 @@
 """The hard scheduling rules, as pure functions over plain data. Shared by the engine's
-missed-session policy (`makeup.py`) and the validator of the coach's schedule changes
-(`apps/fitness/advisor/validator.py`), so both obey exactly the same rules (all thresholds from the
-config `schedule` / `recovery` sections):
+missed-session policy (`engine/store/makeup.py`) and the validator of the coach's schedule
+changes (`apps/fitness/advisor/rules/schedule.py`), so both obey exactly the same rules (all
+thresholds from the config `schedule` / `recovery` sections):
 
 - at most `max_hard_per_day` hard session(s) per day (hard kinds: lower, intervals);
 - never two hard days in a row (`no_consecutive_hard_days`);
