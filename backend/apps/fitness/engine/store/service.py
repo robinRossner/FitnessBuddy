@@ -265,8 +265,11 @@ def cancel_deload(
             "no_deload",
             f"No lifting deload to cancel in the week of {ws} (nothing was changed).",
         )
+    retest_ids = {k for w in found for k in w.retest}
     names = sorted(
-        {v.name for w in found for k in w.retest if (v := db.get(ExerciseVariant, k)) is not None}
+        set(db.scalars(select(ExerciseVariant.name).where(ExerciseVariant.id.in_(retest_ids))))
+        if retest_ids
+        else ()
     )
     why = f" ({reason})" if reason else ""
     log_decision(

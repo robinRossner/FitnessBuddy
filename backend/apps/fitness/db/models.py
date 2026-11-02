@@ -169,8 +169,8 @@ class ExerciseNameMapping(Timestamps, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     source: Mapped[str] = mapped_column(String(32))  # "strong"
     source_name: Mapped[str] = mapped_column(String(160))
-    exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercises.id"))
-    variant_id: Mapped[int | None] = mapped_column(ForeignKey("exercise_variants.id"))
+    exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercises.id"), index=True)
+    variant_id: Mapped[int | None] = mapped_column(ForeignKey("exercise_variants.id"), index=True)
     status: Mapped[MappingStatus] = mapped_column(str_enum(MappingStatus, "mapping_status"))
     notes: Mapped[str | None] = mapped_column(Text)
 
@@ -227,7 +227,7 @@ class TrainingSession(ServerSeq, Syncable, Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     source: Mapped[Source] = mapped_column(str_enum(Source, "source"))
     source_ref: Mapped[str | None] = mapped_column(String(255))  # e.g. export file name
-    gym_id: Mapped[int | None] = mapped_column(ForeignKey("gyms.id"))
+    gym_id: Mapped[int | None] = mapped_column(ForeignKey("gyms.id"), index=True)
     name: Mapped[str | None] = mapped_column(String(160))  # Strong "Workout Name"
     session_kind: Mapped[SessionKind] = mapped_column(str_enum(SessionKind, "session_kind"))
     started_at_local: Mapped[datetime] = mapped_column(DateTime)  # naive wall clock in `tz`
@@ -236,7 +236,9 @@ class TrainingSession(ServerSeq, Syncable, Base):
     duration_s: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str | None] = mapped_column(Text)
     fidelity: Mapped[Fidelity] = mapped_column(str_enum(Fidelity, "fidelity"), default="high")
-    planned_session_id: Mapped[str | None] = mapped_column(ForeignKey("planned_sessions.id"))
+    planned_session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("planned_sessions.id"), index=True
+    )
     import_run_id: Mapped[int | None] = mapped_column(ForeignKey("import_runs.id"))
 
     sets: Mapped[list[WorkoutSet]] = relationship(back_populates="session")
