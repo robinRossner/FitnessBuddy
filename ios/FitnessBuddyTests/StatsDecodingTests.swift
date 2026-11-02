@@ -2,8 +2,9 @@ import Foundation
 import Testing
 @testable import FitnessBuddy
 
+@Suite(.tags(.stats, .decoding, .fast))
 struct StatsDecodingTests {
-    // MARK: Real backend examples (copies of docs/api/examples/stats_*.json)
+    // MARK: Real backend examples (docs/api/examples/stats_*.json, read from the test bundle)
 
     @Test func liftsFixture() throws {
         let r = try Fixture.decode(LiftsStatsDTO.self, "stats_lifts")
@@ -53,7 +54,7 @@ struct StatsDecodingTests {
         let iv = try Fixture.decode(RunAnalysisDTO.self, "stats_run_analysis_intervals")
         #expect(iv.laps.count == 13)
         #expect(iv.laps.filter { $0.kind == .work }.count == 5)
-        #expect(iv.laps[2].paceOk != nil && iv.laps[2].hrOk == true && iv.laps[2].targetHrLow == 166 && iv.laps[2].targetPaceSPerKm != nil)
+        #expect(iv.laps[2].paceOk != nil && iv.laps[2].hrOk == true && iv.laps[2].targetHrLow == 179 && iv.laps[2].targetPaceSPerKm != nil)
         #expect(iv.verdict?.passed == true && (iv.verdict?.reasons.count ?? 0) >= 1)
         #expect(iv.planned == nil)
         let easy = try Fixture.decode(RunAnalysisDTO.self, "stats_run_analysis_easy")

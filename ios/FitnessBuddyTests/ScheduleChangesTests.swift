@@ -34,6 +34,7 @@ private func proposal(changes: [CoachChangeDTO], schedule: [CoachScheduleChangeD
                      scheduleChanges: schedule)
 }
 
+@Suite(.tags(.coach, .decoding, .fast))
 struct ScheduleChangesDecodingTests {
     @Test func decodesScheduleChanges() throws {
         let p = try decode(CoachProposalDTO.self, proposalJSON)
@@ -53,8 +54,12 @@ struct ScheduleChangesDecodingTests {
         #expect(without.scheduleChanges.isEmpty)
         let broken = try decode(CoachProposalDTO.self, #"{"id":"1","status":"pending","schedule_changes":"nope"}"#)
         #expect(broken.scheduleChanges.isEmpty && broken.status == .pending)
-        let fixture = try CoachCoding.makeDecoder().decode(CoachProposalListDTO.self, from: Fixture.data("coach_proposals"))
-        #expect(fixture.items.allSatisfy { $0.scheduleChanges.isEmpty })
+        // the generated list mixes proposals with and without the key: each decodes to what it carries
+        let data = try Fixture.data("coach_proposals")
+        let fixture = try CoachCoding.makeDecoder().decode(CoachProposalListDTO.self, from: data)
+        let raw = try #require((JSONSerialization.jsonObject(with: data) as? [String: Any])?["items"] as? [[String: Any]])
+        #expect(fixture.items.map(\.scheduleChanges.count) == raw.map { ($0["schedule_changes"] as? [Any])?.count ?? 0 })
+        #expect(fixture.items.contains { $0.scheduleChanges.isEmpty } && fixture.items.contains { !$0.scheduleChanges.isEmpty })
     }
 
     @Test func tolerantEnumsAndLabelFallback() throws {
@@ -68,6 +73,7 @@ struct ScheduleChangesDecodingTests {
     }
 }
 
+@Suite(.tags(.coach, .decoding, .fast))
 struct ApproveIdUnionTests {
     @Test func defaultSelectionCoversBothLists() {
         let p = proposal(changes: [change("c1"), change("c2", valid: false)], schedule: [sched("s1"), sched("s2", valid: false)])

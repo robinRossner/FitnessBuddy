@@ -6,6 +6,7 @@ import Testing
 // MARK: - Set validation
 
 @MainActor
+@Suite(.tags(.workout))
 struct SetValidationTests {
     @Test func weightAndRepsAreRequired() {
         #expect(SetValidation.missing(weight: nil, reps: nil, duration: nil, timed: false, equipmentType: "machine_stack") == [.weight, .reps])
@@ -53,6 +54,7 @@ struct SetValidationTests {
 // MARK: - Picker grouping
 
 @MainActor
+@Suite(.tags(.workout))
 struct ExerciseCatalogTests {
     @Test func groupsByRegionAndOffersSetupForExercisesMissingAtThisGym() throws {
         let ctx = try makeContext()
@@ -83,6 +85,7 @@ struct ExerciseCatalogTests {
 
 // MARK: - Exercise step, requests
 
+@Suite(.tags(.workout))
 struct ExerciseSettingsTests {
     @Test func ownStepReplacesLadderAndDefault() {
         #expect(WeightStepper.next(from: 40, ladder: [40, 50], equipmentType: "machine_stack", dumbbellIncrement: nil, step: 2.5) == 42.5)
@@ -172,6 +175,7 @@ struct ExerciseSettingsTests {
 // MARK: - Finish reminder
 
 @MainActor
+@Suite(.tags(.workout))
 struct FinishReminderTests {
     @Test func lastSetArmsTheReminderThreeMinutesAfterTheRest() throws {
         let timer = RestTimer()
@@ -202,6 +206,7 @@ struct FinishReminderTests {
 
 // MARK: - Today
 
+@Suite(.tags(.workout, .fast))
 struct TodayTitleTests {
     @Test func liftingCardsOnlyNameTheHalf() {
         #expect(PlanFormat.cardTitle(type: "lifting", kind: "upper", title: "Upper (deload)") == "Upper body")

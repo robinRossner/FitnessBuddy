@@ -1,8 +1,11 @@
 # FitnessBuddy
 
 Personal training system: strength log + running + recovery data, with a deterministic
-progression engine and an optional Claude advisor (later). Steps 1-3 = backend, Strong import,
-Garmin sync, training engine + plans; step 4 adds the sync API for the iOS app.
+progression engine and a Claude advisor that proposes parameter changes only (validated against an
+allowlist; the engine still computes weights, reps and paces). Built in steps, see
+`docs/spec/decisions.md`: 1-3 backend, Strong import, Garmin sync, training engine + plans; 4 sync
+API for the iOS app (`ios/`); 5 stats API (`docs/api/stats.md`); 6 Claude advisor and coach API
+(`docs/api/coach.md`); 7 missed sessions and schedule changes.
 
 ```
 backend/
@@ -12,7 +15,9 @@ backend/
   tests/
 ios/       FitnessBuddy SwiftUI app (XcodeGen `project.yml`)
 deploy/    docker-compose + Caddy + nightly SQLite backup, push/bootstrap scripts (see deploy/README.md)
-docs/      spec & decisions (docs/spec/decisions.md)
+docs/      spec & decisions (docs/spec/decisions.md), API contracts (docs/api/)
+scripts/   test-groups.sh (changed paths -> backend test groups), test-changed.sh; used by make + CI
+Makefile   named commands: `make` lists them
 imports/   your raw exports + import reports (gitignored)
 ```
 
@@ -55,13 +60,46 @@ no longer trained, never planned).
 Reports land in `imports/reports/strong_import_<timestamp>.md`. Re-running is safe (idempotent);
 newer overlapping exports replace older versions of the same workout.
 
-## Tests / lint
+## Tests, lint, CI
+
+`make` (repo root) lists the targets; backend ones run `cd backend && uv run ...`.
 
 ```sh
-cd backend
-uv run pytest
-uv run ruff check . && uv run ruff format --check .
+make test                  # full backend suite (pytest -n auto)
+make test-fast             # -m "not db": tests that need no database, a few seconds
+make test-group GROUP=engine
+make test-changed          # only the groups your changes touch (vs origin/main + uncommitted)
+make lint                  # ruff check + ruff format --check;  make format fixes
+make check                 # lint + test + ios-test-fast
+make ios-test-fast         # iOS Fast test plan (SIM="iPhone 17 Pro"); ios-test = Full, ios-build
 ```
+
+Backend tests live in `backend/tests/<group>/` with groups `engine advisor garmin importers api
+gyms sync analytics`; each test gets a marker named after its folder (`pytest -m engine` ==
+`pytest tests/engine`), plus `db` when it needs the database. `scripts/test-groups.sh` maps changed
+paths to groups (e.g. `engine/**` -> engine, analytics, advisor; `api/**`, `core/**`, `db/**`,
+alembic, settings, `pyproject.toml`, root `conftest.py` -> all); `make test-changed` and CI both
+use it.
+
+CI (`.github/workflows/`): `backend.yml` runs lint and, on PRs, one matrix job per affected group;
+every push to `main` runs the full suite (the deploy gate needs that run). `ios.yml` runs
+`xcodegen` + the `Fast` plan on PRs touching `ios/**` or `docs/api/examples/**`, `Full` on `main`.
+`tooling.yml` checks the shell scripts.
+
+Pre-commit (ruff, ruff format, `bash -n`), once per clone:
+
+```sh
+brew install pre-commit && pre-commit install
+```
+
+## Deploy
+
+`deploy/push.sh ubuntu@HOST` (or `make deploy DEPLOY_ARGS="ubuntu@HOST"`) ships the committed
+`HEAD`, not the working tree, and refuses uncommitted changes under `backend/`/`deploy/` and a
+`HEAD` without a green `backend` CI run (pushed, `gh auth login`). Escape hatches:
+`--allow-dirty` (still ships `HEAD`), `--working-tree` (ships the working tree, emergencies),
+`--skip-ci-check`; `--dry-run` prints the remote commands without running them. Runbook:
+`deploy/README.md`.
 
 ## Bodyweight
 

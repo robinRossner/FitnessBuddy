@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import FitnessBuddy
 
+@Suite(.tags(.stats, .fast))
 struct StatsFreshnessTests {
     let now = date("2026-10-25T12:00:00.000Z")
 
@@ -34,6 +35,7 @@ struct StatsFreshnessTests {
     }
 }
 
+@Suite(.tags(.stats))
 struct StatsCacheStoreTests {
     @Test func diskCacheRoundTripsRawBytesAndTime() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("stats-cache-\(UUID().uuidString)")
@@ -76,6 +78,7 @@ final class CountingTransport: @unchecked Sendable {
 }
 
 @MainActor
+@Suite(.tags(.stats))
 struct StatsRepositoryTests {
     private func makeRepo(_ transport: CountingTransport, store: StatsCacheStore = MemoryStatsCache(),
                           settings: SettingsStore? = nil) -> StatsRepository {

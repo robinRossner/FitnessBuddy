@@ -1,1 +1,4 @@
 #include "Base.xcconfig"
+
+// Demo samples (Preview/DemoData.swift, `#if DEBUG` only) stay out of Release builds.
+EXCLUDED_SOURCE_FILE_NAMES = $(inherited) */Resources/Samples/*

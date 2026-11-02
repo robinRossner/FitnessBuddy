@@ -1,0 +1,29 @@
+name: tooling
+
+on:
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "deploy/*.sh"
+      - "Makefile"
+      - ".github/workflows/tooling.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n
+        run: for f in scripts/*.sh deploy/*.sh; do bash -n "$f"; done
+      - name: shellcheck (scripts and push.sh)
+        run: shellcheck scripts/*.sh deploy/push.sh
+      - name: test-groups mapping smoke test
+        run: |
+          [ "$(scripts/test-groups.sh backend/apps/fitness/engine/x.py)" = "engine advisor analytics" ]
+          [ "$(scripts/test-groups.sh backend/core/auth.py)" = all ]
+          [ -z "$(scripts/test-groups.sh ios/x.swift)" ]
+      - name: make help
+        run: make help

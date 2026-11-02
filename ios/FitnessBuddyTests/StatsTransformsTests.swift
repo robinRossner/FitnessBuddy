@@ -7,6 +7,7 @@ private func pt(_ date: String, _ e1rm: Double? = 100) -> LiftPointDTO {
     LiftPointDTO(date: date, sessionId: "s-\(date)", bestE1rm: e1rm, topSet: nil, volumeKg: 1000, sets: 3)
 }
 
+@Suite(.tags(.stats, .fast))
 struct ChartTransformTests {
     let now = DayKey.date("2026-10-25")!
 
@@ -117,6 +118,7 @@ struct ChartTransformTests {
     }
 }
 
+@Suite(.tags(.stats, .fast))
 struct FormattingTests {
     @Test func paceAndDurations() {
         #expect(Fmt.paceKm(250) == "4:10/km")
@@ -138,6 +140,7 @@ struct FormattingTests {
 
 // MARK: - Bodyweight
 
+@Suite(.tags(.progress, .fast))
 struct BodyweightMergeTests {
     private func local(_ day: String, _ kg: Double, hour: Int = 8, deleted: Bool = false, pending: Bool = true) -> LocalBodyweight {
         let d = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: DayKey.date(day)!)!
@@ -194,6 +197,7 @@ struct BodyweightMergeTests {
 }
 
 @MainActor
+@Suite(.tags(.progress))
 struct BodyweightLogTests {
     @Test func parsingAndValidation() {
         #expect(BodyweightLog.parse("78,4") == 78.4)

@@ -46,6 +46,20 @@ The first Let's Encrypt certificate needs DNS and ports 80/443 working; Caddy re
 deploy/push.sh ubuntu@HOST          # code only: rsync, rebuild, migrate (the container entrypoint runs `alembic -c apps/fitness/alembic.ini upgrade head`), health check
 ```
 
+`push.sh` ships the committed `HEAD` (`git archive HEAD backend deploy` into a temp dir), not the
+working tree; `backend/.env.production` and the `--with-db` files still come from the working tree.
+Before anything remote happens it checks:
+
+- **Clean tree**: tracked changes under `backend/` or `deploy/` stop it (untracked files don't).
+  `--allow-dirty` goes ahead but still ships `HEAD`; `--working-tree` (emergencies) ships the
+  working tree as before and implies `--allow-dirty`.
+- **Green CI**: `HEAD` must be on a remote branch and have a successful `backend` workflow run
+  (`gh run list --workflow backend.yml --commit HEAD`; needs `gh auth login`). Every push to
+  `main` runs the full backend suite. `--skip-ci-check` skips this (no `gh`, unpushed commit).
+- `--dry-run` runs the local checks and prints the ssh/rsync commands without running any of
+  them (the host may be omitted): `deploy/push.sh --dry-run`. `make deploy DEPLOY_ARGS="..."`
+  wraps the script.
+
 Server data is never touched without `--with-db` / `--with-env`. `--with-db` replaces the server
 DB with a snapshot of `backend/var/fitness.db` (after backing up the old one to
 `deploy/backups/pre-push_<ts>.db`) and asks first if the server DB has newer data

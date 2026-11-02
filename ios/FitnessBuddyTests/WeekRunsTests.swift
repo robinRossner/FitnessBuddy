@@ -23,6 +23,7 @@ private func model(_ items: [PlanItemDTO], runs: [RunSummaryDTO] = [], finished:
     WeekRunsModel.build(days: week, items: items, runs: runs, finished: finished, today: today)
 }
 
+@Suite(.tags(.workout, .fast))
 struct WeekRunsModelTests {
     @Test func mergesPlanRunsAndStatuses() {
         let m = model([
@@ -155,6 +156,7 @@ struct WeekRunsModelTests {
     }
 }
 
+@Suite(.tags(.workout, .decoding, .fast))
 struct PlanFieldsDecodingTests {
     private func decode(_ json: String) throws -> PlanItemDTO {
         try APICoding.makeDecoder().decode(PlanItemDTO.self, from: Data(json.utf8))

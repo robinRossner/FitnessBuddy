@@ -3,6 +3,7 @@ import Testing
 @testable import FitnessBuddy
 
 /// Finish offers "update template" only when the exercise identity/order differs from the planned template.
+@Suite(.tags(.workout, .fast))
 struct TemplateChangeTests {
     private func ex(_ id: Int, _ sets: Int) -> TemplateExercise { TemplateExercise(variantId: id, sets: sets) }
     private let template = [TemplateExercise(variantId: 1, sets: 3), TemplateExercise(variantId: 2, sets: 4), TemplateExercise(variantId: 3, sets: 2)]

@@ -12,6 +12,7 @@ private func makeEnv() throws -> AppEnvironment {
 }
 
 @MainActor
+@Suite(.tags(.sync))
 struct DemoIsolationTests {
     @Test func demoRowsAreNeverInTheOutbox() throws {
         let ctx = try makeContext()
@@ -65,6 +66,7 @@ struct DemoIsolationTests {
 }
 
 @MainActor
+@Suite(.tags(.sync))
 struct BackendChangeTests {
     private func seed(_ env: AppEnvironment) throws {
         let ctx = env.context
@@ -181,6 +183,7 @@ struct BackendChangeTests {
     }
 }
 
+@Suite(.tags(.sync, .fast))
 struct ErrorMappingTests {
     @Test func unauthorized() {
         #expect(APIError.message(for: APIError.unauthorized) == "Unauthorized: check the token")

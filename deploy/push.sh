@@ -2,6 +2,11 @@
 # Push code (and optionally env + DB) from the Mac to the server and (re)start the stack.
 #
 #   deploy/push.sh user@host [--with-env] [--with-db] [--domain example.duckdns.org] [--force]
+#                  [--dry-run] [--skip-ci-check] [--allow-dirty] [--working-tree]
+#
+# Ships the committed HEAD (git archive of backend/ and deploy/), not the working tree. Before
+# anything remote happens it refuses a dirty tree (tracked files under backend/ or deploy/) and a
+# HEAD without a green `backend` CI run (gh run list --commit; HEAD must be pushed).
 #
 #   --with-env   upload backend/.env.production (mode 600). Required on the first push.
 #   --with-db    replace the server DB with a consistent snapshot of backend/var/fitness.db and
@@ -9,6 +14,11 @@
 #                is first backed up to deploy/backups/pre-push_<ts>.db.
 #   --domain D   write DOMAIN=D into deploy/.env on the server (kept from earlier pushes if omitted).
 #   --force      do not ask before replacing a server DB that has newer data than the local one.
+#   --dry-run    run all local checks, print the ssh/rsync commands instead of running them.
+#                The host may be omitted (a placeholder is used).
+#   --skip-ci-check  do not require a green backend.yml run for HEAD (needs no gh, no push).
+#   --allow-dirty    deploy despite uncommitted changes; still ships HEAD, not those changes.
+#   --working-tree   emergency: ship the working tree as is (implies --allow-dirty).
 #
 # Env: SSH_OPTS="-i ~/.ssh/other_key" for extra ssh options.
 set -euo pipefail
@@ -21,15 +31,20 @@ LOCAL_ENV="$ROOT/backend/.env.production"
 die()  { echo "error: $*" >&2; exit 1; }
 info() { printf '==> %s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
-usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
+usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-1}"; }
 
 # ---------- args ----------
 HOST=""; WITH_DB=0; WITH_ENV=0; DOMAIN=""; FORCE=0
+DRY_RUN=0; SKIP_CI=0; ALLOW_DIRTY=0; WORKING_TREE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --with-db)  WITH_DB=1 ;;
     --with-env) WITH_ENV=1 ;;
     --force)    FORCE=1 ;;
+    --dry-run)  DRY_RUN=1 ;;
+    --skip-ci-check) SKIP_CI=1 ;;
+    --allow-dirty)   ALLOW_DIRTY=1 ;;
+    --working-tree)  WORKING_TREE=1; ALLOW_DIRTY=1 ;;
     --domain)   [[ $# -ge 2 ]] || die "--domain needs a value"; DOMAIN="$2"; shift ;;
     --domain=*) DOMAIN="${1#--domain=}" ;;
     -h|--help)  usage 0 ;;
@@ -38,6 +53,7 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+if [[ -z "$HOST" && $DRY_RUN -eq 1 ]]; then HOST="ubuntu@HOST"; fi
 [[ -n "$HOST" ]] || usage 1
 [[ "$HOST" =~ ^[A-Za-z0-9._@:-]+$ && "$HOST" != -* ]] || die "invalid host: $HOST"
 if [[ -n "$DOMAIN" ]]; then
@@ -56,15 +72,79 @@ if [[ $WITH_DB -eq 1 ]]; then
   [[ -f "$LOCAL_DB" ]] || die "$LOCAL_DB missing; nothing to upload"
 fi
 
+# ---------- git gates: clean tree, green CI for HEAD ----------
+command -v git >/dev/null || die "git not found"
+git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || die "$ROOT is not a git checkout"
+HEAD_SHA="$(git -C "$ROOT" rev-parse HEAD)"
+info "deploying $(git -C "$ROOT" log -1 --format='%h %s' HEAD)"
+
+dirty="$(git -C "$ROOT" status --porcelain --untracked-files=no -- backend deploy)"
+if [[ -n "$dirty" ]]; then
+  if [[ $ALLOW_DIRTY -eq 1 ]]; then
+    if [[ $WORKING_TREE -eq 1 ]]; then
+      warn "uncommitted changes under backend/ or deploy/ WILL be shipped (--working-tree):"
+    else
+      warn "uncommitted changes under backend/ or deploy/ are NOT shipped (HEAD is):"
+    fi
+    printf '%s\n' "$dirty" | sed 's/^/  /' >&2
+  else
+    printf '%s\n' "$dirty" >&2
+    die "uncommitted changes under backend/ or deploy/ (above). Commit them, or pass --allow-dirty (ships HEAD anyway)"
+  fi
+fi
+
+if [[ $SKIP_CI -eq 1 ]]; then
+  warn "CI check skipped (--skip-ci-check)"
+else
+  info "checking CI (backend.yml) for HEAD ${HEAD_SHA:0:7}"
+  [[ -n "$(git -C "$ROOT" branch -r --contains HEAD 2>/dev/null)" ]] \
+    || die "HEAD ${HEAD_SHA:0:7} is not on any remote branch (git fetch if it is), so CI never ran on it: push it first, or pass --skip-ci-check"
+  command -v gh >/dev/null || die "gh (GitHub CLI) not found: brew install gh && gh auth login, or pass --skip-ci-check"
+  gh auth status >/dev/null 2>&1 || die "gh is not authenticated: gh auth login, or pass --skip-ci-check"
+  runs="$(cd "$ROOT" && gh run list --workflow backend.yml --commit "$HEAD_SHA" \
+    --json status,conclusion --jq '.[] | "\(.status) \(.conclusion)"')" \
+    || die "gh run list failed (see above); pass --skip-ci-check to deploy without the CI check"
+  if grep -qx 'completed success' <<<"$runs"; then
+    echo "CI green for ${HEAD_SHA:0:7}"
+  elif [[ -z "$runs" ]]; then
+    die "no backend.yml run for ${HEAD_SHA:0:7} yet (pushed just now? wait a moment); or pass --skip-ci-check"
+  elif grep -qv '^completed' <<<"$runs"; then
+    die "backend.yml is still running for ${HEAD_SHA:0:7} (gh run watch); or pass --skip-ci-check"
+  else
+    die "backend.yml did not pass for ${HEAD_SHA:0:7} ($(sort -u <<<"$runs" | tr '\n' ' ')); fix CI or pass --skip-ci-check"
+  fi
+fi
+
 WORK="$(mktemp -d)"
-trap 'ssh -O exit -o ControlPath="$WORK/cm" "$HOST" 2>/dev/null || true; rm -rf "$WORK"' EXIT
+trap '[[ $DRY_RUN -eq 1 ]] || ssh -O exit -o ControlPath="$WORK/cm" "$HOST" 2>/dev/null || true; rm -rf "$WORK"' EXIT
+
+# ---------- source tree ----------
+if [[ $WORKING_TREE -eq 1 ]]; then
+  SRC="$ROOT"
+  warn "shipping the working tree (--working-tree), not HEAD"
+else
+  SRC="$WORK/src"
+  mkdir -p "$SRC"
+  git -C "$ROOT" archive --format=tar HEAD backend deploy | tar -x -C "$SRC" \
+    || die "git archive of HEAD failed"
+  [[ -f "$SRC/backend/Dockerfile" && -f "$SRC/deploy/docker-compose.yml" ]] \
+    || die "HEAD has no backend/Dockerfile or deploy/docker-compose.yml"
+  info "shipping HEAD ${HEAD_SHA:0:7} (git archive, $(find "$SRC" -type f | wc -l | tr -d ' ') files)"
+fi
+
+# --dry-run: print every remote command instead of running it (on stderr, so captures stay empty).
+dry() { printf '[dry-run]' >&2; printf ' %q' "$@" >&2; printf '\n' >&2; }
+run() { if [[ $DRY_RUN -eq 1 ]]; then dry "$@"; else "$@"; fi; }
 
 # One multiplexed ssh connection for all calls (one auth, fast).
 SSH_ARGS=(-o BatchMode=yes -o ConnectTimeout=15 -o ControlMaster=auto -o "ControlPath=$WORK/cm" -o ControlPersist=120)
 # shellcheck disable=SC2206  # SSH_OPTS is intentionally word-split
 [[ -n "${SSH_OPTS:-}" ]] && SSH_ARGS+=(${SSH_OPTS})
 # shellcheck disable=SC2029  # client-side expansion of remote commands is intended
-rssh() { ssh "${SSH_ARGS[@]}" "$HOST" "$@"; }
+rssh() {
+  if [[ $DRY_RUN -eq 1 ]]; then printf '[dry-run] ssh %s %s\n' "$HOST" "$*" >&2; return 0; fi
+  ssh "${SSH_ARGS[@]}" "$HOST" "$@"
+}
 RSYNC_SSH="ssh ${SSH_ARGS[*]}"
 
 # ---------- server preflight ----------
@@ -79,21 +159,21 @@ info "creating remote directories"
 rssh "mkdir -p $REMOTE_DIR/backend $REMOTE_DIR/deploy/data $REMOTE_DIR/deploy/backups"
 
 info "rsync backend/"
-rsync -az --delete --no-owner --no-group -e "$RSYNC_SSH" \
+run rsync -az --delete --no-owner --no-group -e "$RSYNC_SSH" \
   --exclude='/.venv/' --exclude='/var/' --exclude='/.env' --exclude='/.env.production' \
   --exclude='__pycache__/' --exclude='.pytest_cache/' --exclude='.ruff_cache/' --exclude='.mypy_cache/' \
   --exclude='.DS_Store' --exclude='*.pyc' \
-  "$ROOT/backend/" "$HOST:$REMOTE_DIR/backend/"
+  "$SRC/backend/" "$HOST:$REMOTE_DIR/backend/"
 
 info "rsync deploy/"
-rsync -az --delete --no-owner --no-group -e "$RSYNC_SSH" \
+run rsync -az --delete --no-owner --no-group -e "$RSYNC_SSH" \
   --exclude='/data/' --exclude='/backups/' --exclude='/.env' --exclude='/imports/' --exclude='.DS_Store' \
-  "$ROOT/deploy/" "$HOST:$REMOTE_DIR/deploy/"
+  "$SRC/deploy/" "$HOST:$REMOTE_DIR/deploy/"
 
 # ---------- env ----------
 if [[ $WITH_ENV -eq 1 ]]; then
   info "uploading backend/.env.production (mode 600)"
-  rsync -t --no-owner --no-group -e "$RSYNC_SSH" "$LOCAL_ENV" "$HOST:$REMOTE_DIR/backend/.env.production"
+  run rsync -t --no-owner --no-group -e "$RSYNC_SSH" "$LOCAL_ENV" "$HOST:$REMOTE_DIR/backend/.env.production"
 fi
 rssh "test -s $REMOTE_DIR/backend/.env.production" \
   || die "no backend/.env.production on the server: run deploy/make-prod-env.sh, then push with --with-env"
@@ -114,7 +194,12 @@ setkey APP_GID "$(id -g)"
 [ -z "$domain" ] || setkey DOMAIN "$domain"
 grep -q '^DOMAIN=.' "$f" || { echo "error: DOMAIN not set; push with --domain yourname.duckdns.org" >&2; exit 1; }
 REMOTE
-DOMAIN="$(rssh "sed -n 's/^DOMAIN=//p' $REMOTE_DIR/deploy/.env | tail -n1")"
+if [[ $DRY_RUN -eq 1 ]]; then
+  rssh "sed -n 's/^DOMAIN=//p' $REMOTE_DIR/deploy/.env | tail -n1"
+  DOMAIN="${DOMAIN:-<DOMAIN from the server deploy/.env>}"
+else
+  DOMAIN="$(rssh "sed -n 's/^DOMAIN=//p' $REMOTE_DIR/deploy/.env | tail -n1")"
+fi
 [[ -n "$DOMAIN" ]] || die "DOMAIN missing on the server"
 
 # ---------- database ----------
@@ -126,7 +211,9 @@ if [[ $WITH_DB -eq 1 ]]; then
   local_seq="$(sqlite3 "$SNAP" 'select coalesce(max(seq),0) from sync_seq;' 2>/dev/null || echo unknown)"
   local_mtime="$(stat -f %m "$LOCAL_DB" 2>/dev/null || stat -c %Y "$LOCAL_DB")"
 
-  if rssh "test -f $REMOTE_DIR/deploy/data/fitness.db"; then
+  if [[ $DRY_RUN -eq 1 ]]; then
+    info "[dry-run] would compare max(sync_seq.seq) with the server DB and ask before replacing newer data"
+  elif rssh "test -f $REMOTE_DIR/deploy/data/fitness.db"; then
     remote_seq="$(rssh "sqlite3 -readonly $REMOTE_DIR/deploy/data/fitness.db 'select coalesce(max(seq),0) from sync_seq;'" 2>/dev/null || echo unknown)"
     remote_mtime="$(rssh "stat -c %Y $REMOTE_DIR/deploy/data/fitness.db")"
     newer=0; why=""
@@ -162,19 +249,19 @@ fi
 REMOTE
 
   info "uploading DB snapshot + Garmin state"
-  rsync -t --no-owner --no-group -e "$RSYNC_SSH" "$SNAP" "$HOST:$REMOTE_DIR/deploy/data/fitness.db.new"
+  run rsync -t --no-owner --no-group -e "$RSYNC_SSH" "$SNAP" "$HOST:$REMOTE_DIR/deploy/data/fitness.db.new"
   rssh "cd $REMOTE_DIR/deploy/data && rm -f fitness.db-wal fitness.db-shm && mv fitness.db.new fitness.db"
   for d in garminconnect fit; do
     if [[ -d "$ROOT/backend/var/$d" ]]; then
       rssh "mkdir -p $REMOTE_DIR/deploy/data/$d"
-      rsync -a --no-owner --no-group -e "$RSYNC_SSH" --exclude='.DS_Store' \
+      run rsync -a --no-owner --no-group -e "$RSYNC_SSH" --exclude='.DS_Store' \
         "$ROOT/backend/var/$d/" "$HOST:$REMOTE_DIR/deploy/data/$d/"
     else
       warn "backend/var/$d not found locally, skipped"
     fi
   done
   if [[ -f "$ROOT/backend/var/garmin_token.json" ]]; then
-    rsync -t --no-owner --no-group -e "$RSYNC_SSH" \
+    run rsync -t --no-owner --no-group -e "$RSYNC_SSH" \
       "$ROOT/backend/var/garmin_token.json" "$HOST:$REMOTE_DIR/deploy/data/garmin_token.json"
   fi
 fi
@@ -204,6 +291,12 @@ ctr_sum="$(rssh "cd $REMOTE_DIR/deploy && docker compose exec -T caddy sha256sum
 if [[ -n "$host_sum" && "$host_sum" != "$ctr_sum" ]]; then
   info "Caddyfile changed: recreating the caddy container (certificates stay in the caddy_data volume)"
   rssh "cd $REMOTE_DIR/deploy && docker compose up -d --force-recreate --no-deps caddy" || die "could not recreate caddy"
+fi
+
+if [[ $DRY_RUN -eq 1 ]]; then
+  info "[dry-run] would wait for backend health and check https://$DOMAIN/health"
+  info "dry run done: local checks passed, nothing was run on $HOST"
+  exit 0
 fi
 
 info "waiting for backend health"

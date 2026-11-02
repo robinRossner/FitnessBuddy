@@ -6,6 +6,7 @@ private func decode(_ json: String) throws -> GarminSyncResultDTO {
     try APICoding.makeDecoder().decode(GarminSyncResultDTO.self, from: Data(json.utf8))
 }
 
+@Suite(.tags(.health, .decoding, .fast))
 struct GarminSyncDecodingTests {
     @Test func syncedWithActivity() throws {
         let r = try decode("""
@@ -49,6 +50,7 @@ struct GarminSyncDecodingTests {
     }
 }
 
+@Suite(.tags(.health, .fast))
 struct GarminSyncFeedbackTests {
     private let today = "2026-11-01"
 
@@ -161,6 +163,7 @@ private final class Fake {
 }
 
 @MainActor
+@Suite(.tags(.health, .fast))
 struct GarminSyncControllerTests {
     @Test func tapCallsBackendThenAppSyncThenRefresh() async {
         let fake = Fake()

@@ -3,6 +3,7 @@ import SwiftData
 import Testing
 @testable import FitnessBuddy
 
+@Suite(.tags(.workout, .fast))
 struct WeightStepperTests {
     let ladder: [Double] = [10, 12.5, 15, 20, 25]
 
@@ -44,6 +45,7 @@ struct WeightStepperTests {
 }
 
 @MainActor
+@Suite(.tags(.workout, .fast))
 struct WorkoutSummaryTests {
     @Test func volumeCountsCompletedNonWarmupSetsOnly() {
         let sid = UUID()
@@ -65,6 +67,7 @@ struct WorkoutSummaryTests {
 }
 
 @MainActor
+@Suite(.tags(.workout))
 struct WorkoutServiceTests {
     private func loadedContext() throws -> ModelContext {
         let ctx = try makeContext()

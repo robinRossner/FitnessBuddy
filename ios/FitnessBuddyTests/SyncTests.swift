@@ -4,6 +4,7 @@ import Testing
 @testable import FitnessBuddy
 
 @MainActor
+@Suite(.tags(.sync))
 struct SyncMergeTests {
     @Test func newerServerWinsOverCleanLocal() throws {
         let ctx = try makeContext()
@@ -92,7 +93,7 @@ struct SyncMergeTests {
         #expect(try ctx.fetchCount(FetchDescriptor<CachedVariant>()) == pull.variants.count)
         #expect(try ctx.fetchCount(FetchDescriptor<CachedGym>()) == pull.gyms.count)
         #expect(try ctx.fetchCount(FetchDescriptor<CachedPlannedSession>()) == pull.plannedSessions.count)
-        #expect(SyncState.current(in: ctx).config?.version == "v3.1")
+        #expect(SyncState.current(in: ctx).config?.version == "v3.5")
         // applying the same snapshot again is a no-op
         let stats = try SyncMerge.apply(pull, in: ctx)
         #expect(stats.applied == 0)
@@ -113,6 +114,7 @@ struct SyncMergeTests {
 }
 
 @MainActor
+@Suite(.tags(.sync))
 struct OutboxTests {
     private func dirtyCompletedSet(in ctx: ModelContext, session: LocalSession) -> LocalSet {
         let s = LocalSet(sessionId: session.id, variantId: 42, exerciseOrder: 1, setOrder: 1, weightKg: 50, reps: 8,
@@ -200,6 +202,7 @@ struct OutboxTests {
     }
 }
 
+@Suite(.tags(.sync, .fast))
 struct SyncBackoffTests {
     @Test func exponentialWithCap() {
         #expect(SyncCoordinator.backoffDelay(failures: 1) == 5)

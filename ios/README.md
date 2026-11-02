@@ -16,13 +16,22 @@ open FitnessBuddy.xcodeproj
 The generated `FitnessBuddy.xcodeproj` is gitignored; re-run `xcodegen generate` after pulling or adding files.
 Signing is automatic; with an empty `DEVELOPMENT_TEAM` the simulator build still works.
 
+Tests (from the repo root; `make` runs `xcodegen generate` first, pipes through `xcbeautify` if
+installed, `SIM="iPhone 16"` picks another simulator):
+
 ```sh
-xcodebuild -scheme FitnessBuddy -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build test
+make ios-test-fast    # TestPlans/Fast.xctestplan: the quick subset, run on every PR in CI
+make ios-test         # TestPlans/Full.xctestplan: everything, run on main in CI
+make ios-build        # Debug build only
 ```
+
+Plain `xcodebuild`: `cd ios && xcodebuild -scheme FitnessBuddy -testPlan Fast -destination
+'platform=iOS Simulator,name=iPhone 17 Pro' test`. CI (`.github/workflows/ios.yml`) picks whatever
+iPhone simulator the runner has.
 
 ## App icon
 
-The icon (three activity-style rings in the lifting orange / running teal / coach purple on deep navy) is drawn by
+The icon ("Pulse Lift": a dumbbell whose handle is a heartbeat trace, on a teal field) is drawn by
 `scripts/make_app_icon.py`; the PNGs and `Contents.json` in `Resources/Assets.xcassets/AppIcon.appiconset` are its output
 (iOS 18 single-size 1024 px: light, dark = transparent background, tinted = grayscale). Regenerate after changing it:
 
@@ -44,7 +53,7 @@ Settings > Debug > "Load demo data" (bundled sample JSON, pins "today" to the sa
   `SyncCoordinator` (triggers, backoff, status), `NetworkMonitor`.
 - `Core/Security`: Keychain wrapper, `SettingsStore`. `Core/Design`: theme, components.
 - `Features/{Today,Workout,Progress,Health,Coach,Settings}`; `Preview/` has DEBUG-only demo data.
-- `FitnessBuddyTests`: Swift Testing; fixtures are copies of `docs/api/examples/*.json`.
+- `FitnessBuddyTests`: Swift Testing; fixtures are read straight from `docs/api/examples/*.json` (bundled as `examples/`), with `ContractTests` decoding every file. Test plans `Fast` (tag `fast`) and `Full` live in `TestPlans/`.
 
 ## Sync rules (short)
 

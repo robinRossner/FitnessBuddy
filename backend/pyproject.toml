@@ -23,6 +23,8 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-xdist>=3.8.0",
     "ruff>=0.17.2",
 ]
 
@@ -33,7 +35,22 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q"
+# `-n auto` runs the suite in parallel (pytest-xdist); pass `-n0` to run in one process, e.g. for
+# a debugger, `-s` / print output or `--pdb`.
+addopts = "-q --strict-markers -n auto"
+# Group markers are added from the folder name by tests/conftest.py (`pytest -m engine` ==
+# `pytest tests/engine`); `db` is added to every test that needs a migrated database.
+markers = [
+    "engine: planner, progression and running engine (tests/engine)",
+    "advisor: Claude coach, summary, validator, consultations (tests/advisor)",
+    "garmin: Garmin client, sync, mapping, workouts (tests/garmin)",
+    "importers: Strong CSV parser, mapping and importer (tests/importers)",
+    "api: HTTP API, auth and route prefixes (tests/api)",
+    "gyms: gyms, machines and variant resolution (tests/gyms)",
+    "sync: app sync push / pull (tests/sync)",
+    "analytics: stats, bodyweight and the stats API (tests/analytics)",
+    "db: uses a migrated SQLite database (deselect with -m 'not db' for a fast run)",
+]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 
 [tool.ruff]

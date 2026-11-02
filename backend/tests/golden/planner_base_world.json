@@ -1,0 +1,2805 @@
+{
+  "next_week_preview": {
+    "days": [
+      {
+        "date": "2026-11-02",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your reps at each load",
+              "today's readiness",
+              "censored misses (readiness, hard runs, breaks)",
+              "stall ladder and deload weeks"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-02",
+            "id": null,
+            "kind": "upper",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "deload": null,
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 91.83,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 6,
+                        "weight": 72.5
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "progression_state": "retest",
+                  "reason": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "break"
+                  ],
+                  "last": {
+                    "best_e1rm": 63.7,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 9,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "reason": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 42.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 30.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "needs_setup": false,
+                  "order": 3,
+                  "progression_note": "retest 30 kg after the deload: beat 12/11/10",
+                  "progression_state": "retest",
+                  "reason": "retest 30 kg after the deload: beat 12/11/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 14.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 10.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "needs_setup": false,
+                  "order": 4,
+                  "progression_note": "retest 10 kg after the deload: beat 12/12/10",
+                  "progression_state": "retest",
+                  "reason": "retest 10 kg after the deload: beat 12/12/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "upper",
+              "type": "lifting"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "deload": null,
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 91.83,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 6,
+                        "weight": 72.5
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "progression_state": "retest",
+                  "reason": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "break"
+                  ],
+                  "last": {
+                    "best_e1rm": 63.7,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 9,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "reason": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 42.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 30.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "needs_setup": false,
+                  "order": 3,
+                  "progression_note": "retest 30 kg after the deload: beat 12/11/10",
+                  "progression_state": "retest",
+                  "reason": "retest 30 kg after the deload: beat 12/11/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 14.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 10.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "needs_setup": false,
+                  "order": 4,
+                  "progression_note": "retest 10 kg after the deload: beat 12/12/10",
+                  "progression_state": "retest",
+                  "reason": "retest 10 kg after the deload: beat 12/12/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "upper",
+              "type": "lifting"
+            },
+            "slot_id": "mon_upper",
+            "status": "preview",
+            "template_kind": "upper",
+            "title": "Upper"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-03",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your reps at each load",
+              "today's readiness",
+              "censored misses (readiness, hard runs, breaks)",
+              "stall ladder and deload weeks"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-03",
+            "id": null,
+            "kind": "lower",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "deload": null,
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "break"
+                  ],
+                  "last": {
+                    "best_e1rm": 124.13,
+                    "date": "2026-10-20",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 98.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 98.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 98.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "reason": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 70.0,
+                    "date": "2026-10-20",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 50.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 50.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "retest 50 kg after the deload: beat 12/11",
+                  "progression_state": "retest",
+                  "reason": "retest 50 kg after the deload: beat 12/11",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "lower",
+              "type": "lifting"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "deload": null,
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "break"
+                  ],
+                  "last": {
+                    "best_e1rm": 124.13,
+                    "date": "2026-10-20",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 98.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 98.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 98.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "reason": "back after 14 days: same load, 2 of 3 sets; misses don't count yet",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 70.0,
+                    "date": "2026-10-20",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 50.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 50.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "retest 50 kg after the deload: beat 12/11",
+                  "progression_state": "retest",
+                  "reason": "retest 50 kg after the deload: beat 12/11",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "lower",
+              "type": "lifting"
+            },
+            "slot_id": "tue_lower",
+            "status": "preview",
+            "template_kind": "lower",
+            "title": "Lower"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-04",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your recent easy-run paces",
+              "today's readiness",
+              "weekly and single-run volume caps"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-04",
+            "id": null,
+            "kind": "easy_run",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "distance_km": 3.0,
+              "hr": {
+                "basis": "lthr",
+                "high": 156,
+                "low": 127,
+                "zone": "Z1-Z2"
+              },
+              "last_easy_run": {
+                "avg_hr": 142.0,
+                "date": "2026-10-22",
+                "decoupling_flag": false,
+                "decoupling_pct": 0.0,
+                "efficiency": 1.28,
+                "exempt": false,
+                "hr_ceiling": 156,
+                "km": 6.0,
+                "notes": [],
+                "passed": true,
+                "pct_at_or_below_cap": 100.0,
+                "pct_source": "laps",
+                "reasons": []
+              },
+              "pace": {
+                "basis": "daniels",
+                "label": "5:14-6:16",
+                "max_s_per_km": 376,
+                "min_s_per_km": 314,
+                "note": "HR leads: slow down if HR passes the ceiling",
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+              },
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression_note": "easy 3 km + 6 x 20 s strides",
+              "reason": "easy run below 156 bpm (lthr-based ceiling)",
+              "structure": {
+                "strides": {
+                  "duration_s": 20,
+                  "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between",
+                  "recovery_s": 60,
+                  "reps": 6
+                }
+              },
+              "type": "easy_run"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "distance_km": 3.0,
+              "hr": {
+                "basis": "lthr",
+                "high": 156,
+                "low": 127,
+                "zone": "Z1-Z2"
+              },
+              "last_easy_run": {
+                "avg_hr": 142.0,
+                "date": "2026-10-22",
+                "decoupling_flag": false,
+                "decoupling_pct": 0.0,
+                "efficiency": 1.28,
+                "exempt": false,
+                "hr_ceiling": 156,
+                "km": 6.0,
+                "notes": [],
+                "passed": true,
+                "pct_at_or_below_cap": 100.0,
+                "pct_source": "laps",
+                "reasons": []
+              },
+              "pace": {
+                "basis": "daniels",
+                "label": "5:14-6:16",
+                "max_s_per_km": 376,
+                "min_s_per_km": 314,
+                "note": "HR leads: slow down if HR passes the ceiling",
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+              },
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression_note": "easy 3 km + 6 x 20 s strides",
+              "reason": "easy run below 156 bpm (lthr-based ceiling)",
+              "structure": {
+                "strides": {
+                  "duration_s": 20,
+                  "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between",
+                  "recovery_s": 60,
+                  "reps": 6
+                }
+              },
+              "type": "easy_run"
+            },
+            "slot_id": "wed_easy_run",
+            "status": "preview",
+            "template_kind": "easy_run",
+            "title": "Easy run 3 km"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-05",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your reps at each load",
+              "today's readiness",
+              "censored misses (readiness, hard runs, breaks)",
+              "stall ladder and deload weeks"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-05",
+            "id": null,
+            "kind": "upper",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "deload": null,
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 91.83,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 6,
+                        "weight": 72.5
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "progression_state": "retest",
+                  "reason": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "break"
+                  ],
+                  "last": {
+                    "best_e1rm": 63.7,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 9,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "back after 17 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "reason": "back after 17 days: same load, 2 of 3 sets; misses don't count yet",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 42.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 30.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "needs_setup": false,
+                  "order": 3,
+                  "progression_note": "retest 30 kg after the deload: beat 12/11/10",
+                  "progression_state": "retest",
+                  "reason": "retest 30 kg after the deload: beat 12/11/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 14.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 10.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "needs_setup": false,
+                  "order": 4,
+                  "progression_note": "retest 10 kg after the deload: beat 12/12/10",
+                  "progression_state": "retest",
+                  "reason": "retest 10 kg after the deload: beat 12/12/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "upper",
+              "type": "lifting"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "deload": null,
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 91.83,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 6,
+                        "weight": 72.5
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "progression_state": "retest",
+                  "reason": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "break"
+                  ],
+                  "last": {
+                    "best_e1rm": 63.7,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 9,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "back after 17 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "reason": "back after 17 days: same load, 2 of 3 sets; misses don't count yet",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 42.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 30.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "needs_setup": false,
+                  "order": 3,
+                  "progression_note": "retest 30 kg after the deload: beat 12/11/10",
+                  "progression_state": "retest",
+                  "reason": "retest 30 kg after the deload: beat 12/11/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "last": {
+                    "best_e1rm": 14.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 10.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "needs_setup": false,
+                  "order": 4,
+                  "progression_note": "retest 10 kg after the deload: beat 12/12/10",
+                  "progression_state": "retest",
+                  "reason": "retest 10 kg after the deload: beat 12/12/10",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "upper",
+              "type": "lifting"
+            },
+            "slot_id": "thu_upper",
+            "status": "preview",
+            "template_kind": "upper",
+            "title": "Upper"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-06",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "pace of your last quality session",
+              "training phase (quality cycle)",
+              "VDOT updates",
+              "today's readiness",
+              "weekly volume cap",
+              "recovery after lower-body days"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-06",
+            "id": null,
+            "kind": "intervals",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression": {
+                "last_session": null,
+                "lever": null,
+                "reason": "first threshold session of the cycle; minimum warm-up/cool-down",
+                "rule": "quality:start",
+                "vdot": 45.91
+              },
+              "progression_note": "first threshold session of the cycle",
+              "structure": {
+                "cooldown": {
+                  "distance_km": 0.5
+                },
+                "recovery": {
+                  "distance_m": 260,
+                  "duration_s": 90,
+                  "hr_drop_min_bpm": 12.0,
+                  "type": "jog"
+                },
+                "session_type": "threshold",
+                "warmup": {
+                  "distance_km": 1.0,
+                  "hr": {
+                    "basis": "lthr",
+                    "high": 156,
+                    "low": 127,
+                    "zone": "Z1-Z2"
+                  }
+                },
+                "work": {
+                  "distance_m": 1000,
+                  "duration_s": 273,
+                  "hr": {
+                    "high": 173,
+                    "low": 166,
+                    "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
+                    "zone": "Z4"
+                  },
+                  "pace_label": "4:33",
+                  "pace_range_s_per_km": [
+                    269.0,
+                    277.0
+                  ],
+                  "pace_s_per_km": 273,
+                  "pace_tolerance_pct": 3,
+                  "reps": 3
+                }
+              },
+              "total_km": 5.0,
+              "type": "intervals"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression": {
+                "last_session": null,
+                "lever": null,
+                "reason": "first threshold session of the cycle; minimum warm-up/cool-down",
+                "rule": "quality:start",
+                "vdot": 45.91
+              },
+              "progression_note": "first threshold session of the cycle",
+              "structure": {
+                "cooldown": {
+                  "distance_km": 0.5
+                },
+                "recovery": {
+                  "distance_m": 260,
+                  "duration_s": 90,
+                  "hr_drop_min_bpm": 12.0,
+                  "type": "jog"
+                },
+                "session_type": "threshold",
+                "warmup": {
+                  "distance_km": 1.0,
+                  "hr": {
+                    "basis": "lthr",
+                    "high": 156,
+                    "low": 127,
+                    "zone": "Z1-Z2"
+                  }
+                },
+                "work": {
+                  "distance_m": 1000,
+                  "duration_s": 273,
+                  "hr": {
+                    "high": 173,
+                    "low": 166,
+                    "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
+                    "zone": "Z4"
+                  },
+                  "pace_label": "4:33",
+                  "pace_range_s_per_km": [
+                    269.0,
+                    277.0
+                  ],
+                  "pace_s_per_km": 273,
+                  "pace_tolerance_pct": 3,
+                  "reps": 3
+                }
+              },
+              "total_km": 5.0,
+              "type": "intervals"
+            },
+            "slot_id": "fri_intervals",
+            "status": "preview",
+            "template_kind": "intervals",
+            "title": "Threshold 3x1000 m @ 4:33"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-07",
+        "sessions": [
+          {
+            "adaptive": false,
+            "adapts_on": [],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-07",
+            "id": null,
+            "kind": "rest",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "type": "rest"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "type": "rest"
+            },
+            "slot_id": "sat_rest",
+            "status": "preview",
+            "template_kind": "rest",
+            "title": "Rest"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-08",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your longest recent long run",
+              "HR drift of the last long run",
+              "step-back weeks",
+              "your recent easy-run paces",
+              "today's readiness",
+              "weekly and single-run volume caps"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "date": "2026-11-08",
+            "id": null,
+            "kind": "long_run",
+            "moved_from": null,
+            "notes": [],
+            "prescription": {
+              "distance_km": 3.0,
+              "hr": {
+                "basis": "lthr",
+                "high": 156,
+                "low": 127,
+                "zone": "Z1-Z2"
+              },
+              "pace": {
+                "basis": "daniels",
+                "label": "5:14-6:16",
+                "max_s_per_km": 376,
+                "min_s_per_km": 314,
+                "note": "HR leads",
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+              },
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression": {
+                "drift": null,
+                "last_long_run": null,
+                "reason": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km"
+              },
+              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3 km under the weekly cap",
+              "step_back": false,
+              "type": "long_run"
+            },
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "distance_km": 3.0,
+              "hr": {
+                "basis": "lthr",
+                "high": 156,
+                "low": 127,
+                "zone": "Z1-Z2"
+              },
+              "pace": {
+                "basis": "daniels",
+                "label": "5:14-6:16",
+                "max_s_per_km": 376,
+                "min_s_per_km": 314,
+                "note": "HR leads",
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+              },
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression": {
+                "drift": null,
+                "last_long_run": null,
+                "reason": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km"
+              },
+              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3 km under the weekly cap",
+              "step_back": false,
+              "type": "long_run"
+            },
+            "slot_id": "sun_long_run",
+            "status": "preview",
+            "template_kind": "long_run",
+            "title": "Long run 3 km"
+          }
+        ]
+      }
+    ],
+    "start": "2026-11-02"
+  },
+  "week": {
+    "days": [
+      {
+        "date": "2026-10-26",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your reps at each load",
+              "today's readiness",
+              "censored misses (readiness, hard runs, breaks)",
+              "stall ladder and deload weeks"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-10-26",
+            "id": "c6eaf326-5d7b-5713-bec2-e1db59b16e83",
+            "kind": "upper",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "deload": {
+                "active": true,
+                "from": "2026-10-26",
+                "reason": "multi_lift_stall",
+                "until": "2026-11-01"
+              },
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 91.83,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 6,
+                        "weight": 72.5
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "deload"
+                  ],
+                  "last": {
+                    "best_e1rm": 63.7,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 9,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 42.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 30.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "needs_setup": false,
+                  "order": 3,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 14.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 10.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "needs_setup": false,
+                  "order": 4,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "upper",
+              "type": "lifting"
+            },
+            "slot_id": "mon_upper",
+            "status": "proposed",
+            "template_kind": "upper",
+            "title": "Upper (deload)",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-27",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your reps at each load",
+              "today's readiness",
+              "censored misses (readiness, hard runs, breaks)",
+              "stall ladder and deload weeks"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-10-27",
+            "id": "677d526c-615e-5e21-9db0-eb6be658d5c2",
+            "kind": "lower",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "deload": {
+                "active": true,
+                "from": "2026-10-26",
+                "reason": "multi_lift_stall",
+                "until": "2026-11-01"
+              },
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "deload"
+                  ],
+                  "last": {
+                    "best_e1rm": 124.13,
+                    "date": "2026-10-20",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 98.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 98.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 98.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 70.0,
+                    "date": "2026-10-20",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 50.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 50.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "deload week (several lifts stalled together): 1 of 2 sets, same load; retest 50 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 1 of 2 sets, same load; retest 50 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "lower",
+              "type": "lifting"
+            },
+            "slot_id": "tue_lower",
+            "status": "proposed",
+            "template_kind": "lower",
+            "title": "Lower (deload)",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-28",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your recent easy-run paces",
+              "today's readiness",
+              "weekly and single-run volume caps"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-10-28",
+            "id": "3998c3b6-d0cd-533a-a8e9-bf19bcd996eb",
+            "kind": "easy_run",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "distance_km": 3.0,
+              "hr": {
+                "basis": "lthr",
+                "high": 156,
+                "low": 127,
+                "zone": "Z1-Z2"
+              },
+              "last_easy_run": {
+                "avg_hr": 142.0,
+                "date": "2026-10-22",
+                "decoupling_flag": false,
+                "decoupling_pct": 0.0,
+                "efficiency": 1.28,
+                "exempt": false,
+                "hr_ceiling": 156,
+                "km": 6.0,
+                "notes": [],
+                "passed": true,
+                "pct_at_or_below_cap": 100.0,
+                "pct_source": "laps",
+                "reasons": []
+              },
+              "pace": {
+                "basis": "daniels",
+                "label": "5:14-6:16",
+                "max_s_per_km": 376,
+                "min_s_per_km": 314,
+                "note": "HR leads: slow down if HR passes the ceiling",
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+              },
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression_note": "easy 3 km + 6 x 20 s strides",
+              "reason": "easy run below 156 bpm (lthr-based ceiling)",
+              "structure": {
+                "strides": {
+                  "duration_s": 20,
+                  "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between",
+                  "recovery_s": 60,
+                  "reps": 6
+                }
+              },
+              "type": "easy_run"
+            },
+            "slot_id": "wed_easy_run",
+            "status": "proposed",
+            "template_kind": "easy_run",
+            "title": "Easy run 3 km",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-29",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your reps at each load",
+              "today's readiness",
+              "censored misses (readiness, hard runs, breaks)",
+              "stall ladder and deload weeks"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-10-29",
+            "id": "230095d5-6293-541c-9084-8acd28b10484",
+            "kind": "upper",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "deload": {
+                "active": true,
+                "from": "2026-10-26",
+                "reason": "multi_lift_stall",
+                "until": "2026-11-01"
+              },
+              "exercises": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 91.83,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 7,
+                        "weight": 72.5
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 6,
+                        "weight": 72.5
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "needs_setup": false,
+                  "order": 1,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "deload"
+                  ],
+                  "last": {
+                    "best_e1rm": 63.7,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 9,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 8,
+                        "weight": 49.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "needs_setup": false,
+                  "order": 2,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 42.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 11,
+                        "weight": 30.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 30.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "needs_setup": false,
+                  "order": 3,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "last": {
+                    "best_e1rm": 14.0,
+                    "date": "2026-10-19",
+                    "sets": [
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 12,
+                        "weight": 10.0
+                      },
+                      {
+                        "duration_s": null,
+                        "reps": 10,
+                        "weight": 10.0
+                      }
+                    ]
+                  },
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "needs_setup": false,
+                  "order": 4,
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload",
+                  "progression_state": "deload",
+                  "reason": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload (2026-10-26 .. 2026-11-01)",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rest_s": 120,
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
+              "gym": "Gym One",
+              "kind": "upper",
+              "type": "lifting"
+            },
+            "slot_id": "thu_upper",
+            "status": "proposed",
+            "template_kind": "upper",
+            "title": "Upper (deload)",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-30",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "pace of your last quality session",
+              "training phase (quality cycle)",
+              "VDOT updates",
+              "today's readiness",
+              "weekly volume cap",
+              "recovery after lower-body days"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-10-30",
+            "id": "3bbb3464-1f12-5c63-a894-9508d45f3a26",
+            "kind": "intervals",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression": {
+                "last_session": null,
+                "lever": null,
+                "reason": "first threshold session of the cycle",
+                "rule": "quality:start",
+                "vdot": 45.91
+              },
+              "progression_note": "first threshold session of the cycle",
+              "structure": {
+                "cooldown": {
+                  "distance_km": 1.5
+                },
+                "recovery": {
+                  "distance_m": 260,
+                  "duration_s": 90,
+                  "hr_drop_min_bpm": 12.0,
+                  "type": "jog"
+                },
+                "session_type": "threshold",
+                "warmup": {
+                  "distance_km": 2.0,
+                  "hr": {
+                    "basis": "lthr",
+                    "high": 156,
+                    "low": 127,
+                    "zone": "Z1-Z2"
+                  }
+                },
+                "work": {
+                  "distance_m": 1000,
+                  "duration_s": 273,
+                  "hr": {
+                    "high": 173,
+                    "low": 166,
+                    "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
+                    "zone": "Z4"
+                  },
+                  "pace_label": "4:33",
+                  "pace_range_s_per_km": [
+                    269.0,
+                    277.0
+                  ],
+                  "pace_s_per_km": 273,
+                  "pace_tolerance_pct": 3,
+                  "reps": 3
+                }
+              },
+              "total_km": 7.0,
+              "type": "intervals"
+            },
+            "slot_id": "fri_intervals",
+            "status": "proposed",
+            "template_kind": "intervals",
+            "title": "Threshold 3x1000 m @ 4:33",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-31",
+        "sessions": [
+          {
+            "adaptive": false,
+            "adapts_on": [],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-10-31",
+            "id": "664b0aa7-6c24-55f6-b7e5-f9c27e41ec49",
+            "kind": "rest",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "type": "rest"
+            },
+            "slot_id": "sat_rest",
+            "status": "proposed",
+            "template_kind": "rest",
+            "title": "Rest",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      },
+      {
+        "date": "2026-11-01",
+        "sessions": [
+          {
+            "adaptive": true,
+            "adapts_on": [
+              "your longest recent long run",
+              "HR drift of the last long run",
+              "step-back weeks",
+              "your recent easy-run paces",
+              "today's readiness",
+              "weekly and single-run volume caps"
+            ],
+            "adjustments": [],
+            "change_reason": null,
+            "config_version_id": 1,
+            "date": "2026-11-01",
+            "id": "a17601e1-fc20-5bce-bf6f-047328c371a9",
+            "kind": "long_run",
+            "moved_from": null,
+            "notes": [],
+            "readiness": {
+              "color": null,
+              "known": false,
+              "reason": "forecast not available yet"
+            },
+            "session": {
+              "distance_km": 3.5,
+              "hr": {
+                "basis": "lthr",
+                "high": 156,
+                "low": 127,
+                "zone": "Z1-Z2"
+              },
+              "pace": {
+                "basis": "daniels",
+                "label": "5:14-6:16",
+                "max_s_per_km": 376,
+                "min_s_per_km": 314,
+                "note": "HR leads",
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+              },
+              "phase": "threshold",
+              "phase_week": 2,
+              "progression": {
+                "drift": null,
+                "last_long_run": null,
+                "reason": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km"
+              },
+              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3.5 km under the weekly cap",
+              "step_back": false,
+              "type": "long_run"
+            },
+            "slot_id": "sun_long_run",
+            "status": "proposed",
+            "template_kind": "long_run",
+            "title": "Long run 3.5 km",
+            "updated_at": "<timestamp>"
+          }
+        ]
+      }
+    ],
+    "start": "2026-10-26"
+  }
+}

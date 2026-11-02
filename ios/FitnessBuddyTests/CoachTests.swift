@@ -18,26 +18,28 @@ private func proposal(_ id: String, _ status: CoachStatus, changes: [CoachChange
 
 // MARK: - Decoding
 
+@Suite(.tags(.coach, .decoding, .fast))
 struct CoachDecodingTests {
     @Test func proposalsFixture() throws {
         let list = try CoachCoding.makeDecoder().decode(CoachProposalListDTO.self, from: Fixture.data("coach_proposals"))
-        #expect(list.items.map(\.id) == ["2", "1"])  // string ids, newest first
-        let applied = list.items[0]
-        #expect(applied.status == .applied && applied.appliedConfigVersion == "v3.3" && applied.confidence == .high)
+        #expect(list.items.map(\.id) == ["3", "2", "1"])  // string ids, newest first
+        #expect(list.items[0].isPending && list.items[0].changes.isEmpty && list.items[0].scheduleChanges.count == 2)
+        let applied = list.items[1]
+        #expect(applied.status == .applied && applied.appliedConfigVersion == "v3.6" && applied.confidence == .high)
         #expect(applied.trigger.type == .ask && applied.trigger.ref == CoachTriggerRefDTO(kind: nil, id: nil))
         #expect(applied.changes[0].status == .applied && applied.changes[0].param == "running.intervals.reps_max")
         #expect(applied.sessionOverrides.isEmpty && applied.costUsd == 0.0971)
-        let p = list.items[1]
+        let p = list.items[2]
         #expect(p.status == .pending && p.isPending && p.confidence == .medium && p.trigger.type == .ask)
         #expect(p.trigger.ref == CoachTriggerRefDTO(kind: "lift", id: "127"))
         #expect(p.createdAt != nil && p.question?.hasPrefix("My triceps extension") == true && p.notesForUser != nil)
-        #expect(p.changes.map(\.id) == ["1", "2", "3"] && p.sessionOverrides.count == 1)
+        #expect(p.changes.map(\.id) == ["p1", "p2", "p3"] && p.sessionOverrides.count == 1)
         #expect(p.changes[0].from == .array([.number(7), .number(12)]) && p.changes[0].to == .array([.number(8), .number(12)]))
         #expect(p.changes[0].changeText == "7–12 → 8–12" && p.changes[0].risk == .low)
         #expect(p.changes[1].risk == .high && p.changes[1].changeText == "10 % → 12 %")
         #expect(p.changes[2].valid == false && p.changes[2].status == .invalid && p.changes[2].validationError?.contains("allowlist") == true)
         #expect(p.sessionOverrides[0].session == "Upper" && p.sessionOverrides[0].date == "2026-10-26")
-        #expect(CoachLogic.defaultSelection(p.changes) == ["1", "2"])
+        #expect(CoachLogic.defaultSelection(p.changes) == ["p1", "p2"])
     }
 
     @Test func detailFixtureHasInputSummary() throws {
@@ -54,21 +56,23 @@ struct CoachDecodingTests {
         #expect(ask.status == .queued && ask.id == "1" && ask.diagnosis == nil && ask.confidence == nil && ask.changes.isEmpty)
         #expect(ask.costUsd == nil && ask.error == nil && ask.trigger.ref?.id == "127" && !ask.isPending)
         let done = try CoachCoding.makeDecoder().decode(CoachProposalDTO.self, from: Fixture.data("coach_approve_response"))
-        #expect(done.status == .applied && done.appliedConfigVersion == "v3.3" && !done.isPending)
+        #expect(done.status == .applied && done.appliedConfigVersion == "v3.6" && !done.isPending)
     }
 
     @Test func historyFixture() throws {
         let h = try CoachCoding.makeDecoder().decode(CoachHistoryDTO.self, from: Fixture.data("coach_history"))
-        #expect(h.versions.map(\.version) == ["v3.3", "v3.2", "v3.1", "v3", "v2", "v1"])
-        let v33 = h.versions[0]
-        #expect(v33.active && v33.author == .advisor && v33.consultationId == "2" && v33.outcome == nil)
-        #expect(v33.diff == [CoachDiffEntryDTO(path: "running.intervals.reps_max", old: .number(6), new: .number(7))])
-        let v32 = h.versions[1]
+        #expect(h.versions.map(\.version) == ["v3.6", "v3.5", "v3.4", "v3.3", "v3.2", "v3.1", "v3", "v2", "v1"])
+        let v36 = h.versions[0]
+        #expect(v36.active && v36.author == .advisor && v36.consultationId == "2" && v36.outcome == nil)
+        #expect(v36.diff == [CoachDiffEntryDTO(path: "running.intervals.reps_max", old: .number(6), new: .number(7))])
+        #expect(h.versions[1].author == .engine)
+        let v32 = try #require(h.versions.first { $0.version == "v3.2" })
         #expect(!v32.active && v32.author == .user && v32.consultationId == nil)
         // sorted, keys intact (snake_case, not converted), null -> number
         #expect(v32.diff.map(\.path) == ["running.interval_fast_flag_pct", "running.interval_pace_tolerance_pct"])
         #expect(v32.diff[0].old == .null && v32.diff[0].new == .number(5) && v32.diff[0].changeText == "none → 5 %")
-        #expect(h.versions[3].author == .seed && h.versions[3].diff.isEmpty && h.versions[3].reason == nil)
+        let v3 = try #require(h.versions.first { $0.version == "v3" })
+        #expect(v3.author == .seed && v3.diff.isEmpty && v3.reason == nil)
         #expect(h.versions.filter(\.active).count == 1)
     }
 
@@ -122,7 +126,8 @@ struct CoachDecodingTests {
 
     @Test func settingsFixtureAndFallbacks() throws {
         let s = try CoachCoding.makeDecoder().decode(CoachSettingsDTO.self, from: Fixture.data("coach_settings"))
-        #expect(s == CoachSettingsDTO(approvalMode: .manual, apiKeyConfigured: true, dryRun: false, callsThisWeek: 0, maxCallsPerWeek: 4))
+        #expect(s == CoachSettingsDTO(approvalMode: .manual, apiKeyConfigured: true, dryRun: false, callsThisWeek: 0, maxCallsPerWeek: 4,
+                                      credentialConfigured: true, provider: "api", billing: "api", model: "claude-opus-5-5"))
         let odd = try decode(CoachSettingsDTO.self, #"{"approval_mode":"yolo","api_key_configured":true,"calls_this_week":2.0}"#)
         #expect(odd.approvalMode == .unknown && odd.apiKeyConfigured && odd.callsThisWeek == 2 && odd.maxCallsPerWeek == 0)
     }
@@ -152,15 +157,15 @@ struct CoachDecodingTests {
     }
 
     @Test func planTodayCoachBlock() throws {
-        let old = try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: Fixture.data("plan_today"))
-        #expect(old.coach == nil)  // older backend: no block
         let day = try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: Fixture.data("coach_plan_today"))
-        #expect(day.coach == CoachSummaryDTO(pendingCount: 1, latestPendingId: "1"))
+        #expect(day.coach == CoachSummaryDTO(pendingCount: 2, latestPendingId: "3"))
         #expect(!day.sessions.isEmpty)
-        var obj = try #require(JSONSerialization.jsonObject(with: Fixture.data("plan_today")) as? [String: Any])
-        obj["coach"] = ["pending_count": 0, "latest_pending_id": NSNull()]
-        let none = try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: JSONSerialization.data(withJSONObject: obj))
+        let none = try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: Fixture.data("plan_today"))
         #expect(none.coach == CoachSummaryDTO(pendingCount: 0, latestPendingId: nil))
+        var obj = try #require(JSONSerialization.jsonObject(with: Fixture.data("plan_today")) as? [String: Any])
+        obj["coach"] = nil
+        let old = try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: JSONSerialization.data(withJSONObject: obj))
+        #expect(old.coach == nil)  // older backend: no block
         obj["coach"] = "garbage"
         #expect(try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: JSONSerialization.data(withJSONObject: obj)).coach == nil)
     }
@@ -168,6 +173,7 @@ struct CoachDecodingTests {
 
 // MARK: - Formatting
 
+@Suite(.tags(.coach, .fast))
 struct CoachFormatTests {
     @Test func repRange() {
         #expect(CoachValueFormat.text(.array([.number(7), .number(12)]), path: "strength.rep_range") == "7–12")
@@ -228,6 +234,7 @@ struct CoachFormatTests {
 
 // MARK: - Rules
 
+@Suite(.tags(.coach, .fast))
 struct CoachLogicTests {
     @Test func onlyValidChangesAreSelectableAndDefaultOn() {
         let changes = [change("a"), change("b", valid: false), change("c"), change("d", status: .applied)]
@@ -299,6 +306,7 @@ struct CoachLogicTests {
 // MARK: - Polling
 
 @MainActor
+@Suite(.tags(.coach, .fast))
 struct CoachPollerTests {
     private final class Script: @unchecked Sendable {
         var statuses: [CoachStatus]
@@ -358,6 +366,7 @@ struct CoachPollerTests {
 // MARK: - Repository
 
 @MainActor
+@Suite(.tags(.coach))
 struct CoachRepositoryTests {
     private final class Server: @unchecked Sendable {
         var calls: [String] = []
@@ -405,9 +414,9 @@ struct CoachRepositoryTests {
         var pending: (Int, String?)?
         repo.onPendingChanged = { pending = ($0, $1) }
         await repo.load(force: true)
-        #expect(repo.proposals.count == 2 && repo.history.count == 6 && repo.settings?.approvalMode == .manual)
-        #expect(pending?.0 == 1 && pending?.1 == "1")
-        #expect(repo.activeVersion?.version == "v3.3" && repo.groups.pending.count == 1)
+        #expect(repo.proposals.count == 3 && repo.history.count == 9 && repo.settings?.approvalMode == .manual)
+        #expect(pending?.0 == 2 && pending?.1 == "3")
+        #expect(repo.activeVersion?.version == "v3.6" && repo.groups.pending.count == 2)
         #expect(server.queries["GET /api/v1/coach/proposals"]?.contains("limit=100") == true)
         #expect(repo.proposalsFetchedAt != nil && !repo.isOffline && repo.failure == nil)
     }
@@ -418,7 +427,7 @@ struct CoachRepositoryTests {
         await repo.load(force: true)
         repo.transportOverride = { _, _, _, _ in throw APIError.transport(URLError(.notConnectedToInternet)) }
         await repo.refreshAll()
-        #expect(repo.isOffline && repo.proposals.count == 2 && repo.history.count == 6)
+        #expect(repo.isOffline && repo.proposals.count == 3 && repo.history.count == 9)
         #expect(repo.failure != nil)
     }
 
@@ -439,7 +448,7 @@ struct CoachRepositoryTests {
         var replanned = 0
         repo.afterPlanChange = { replanned += 1 }
         let result = try await repo.approve("abc", changeIds: ["ch1", "ch3"])
-        #expect(result.status == .applied && result.appliedConfigVersion == "v3.3" && result.id == "2")
+        #expect(result.status == .applied && result.appliedConfigVersion == "v3.6" && result.id == "2")
         #expect(server.bodies["POST /api/v1/coach/proposals/abc/approve"] == #"{"change_ids":["ch1","ch3"]}"#)
         #expect(replanned == 1)
         #expect(server.calls.contains("GET /api/v1/coach/history"))  // refreshed afterwards
@@ -501,6 +510,7 @@ struct CoachRepositoryTests {
 // MARK: - Banner cache
 
 @MainActor
+@Suite(.tags(.coach))
 struct CoachBannerCacheTests {
     @Test func planCacheStoresAndBackendResetClearsTheBanner() throws {
         let ctx = try makeContext()

@@ -5,16 +5,38 @@ import Testing
 
 // MARK: - Decoding
 
+/// Hand-made gym payloads with crafted values (ladders, notes, a missing `previous`, an unmapped
+/// exercise) that the generated `docs/api/examples` data doesn't have.
+enum GymSamples {
+    static let list = Data(#"""
+        {"current_gym_id":4,"gyms":[{"id":3,"name":"Gym 3","created_at":"2026-09-01T08:00:00Z","machine_count":9,"is_current":false,"source":"import"},{"id":4,"name":"Gym 4","created_at":"2026-10-20T08:00:00Z","machine_count":2,"is_current":true,"source":"user"}]}
+        """#.utf8)
+
+    static let machines = Data(#"""
+        {"gym":{"id":4,"name":"Gym 4","created_at":"2026-10-20T08:00:00Z","machine_count":2,"is_current":true,"source":"user"},"items":[
+        {"exercise_id":1,"exercise_name":"Chest Press","body_region":"chest","in_program":true,"equipment_type":"machine_stack","variant":{"id":201,"name":"Chest Press @ Gym 4","equipment_type":"machine_stack","weight_ladder":[7,14,21,28,35],"notes":"seat 4","active":true,"sessions":3,"last_used":"2026-10-23"},"previous":{"gym_name":"Gym 3","variant_id":101,"last_top_set":{"weight_kg":65.0,"reps":9},"weight_ladder":[5,10,15]}},
+        {"exercise_id":4,"exercise_name":"Lat Pulldown","body_region":"back","in_program":true,"equipment_type":"cable","variant":null,"previous":{"gym_name":"Gym 3","variant_id":104,"last_top_set":{"weight_kg":52.5,"reps":10},"weight_ladder":[2.5,5,7.5,10]}},
+        {"exercise_id":6,"exercise_name":"Shoulder Press","body_region":"shoulders","in_program":true,"equipment_type":"machine_stack","variant":{"id":206,"name":"Shoulder Press @ Gym 4","equipment_type":"machine_stack","weight_ladder":[],"active":true}},
+        {"exercise_id":9,"exercise_name":"Leg Curl","body_region":"legs","in_program":true,"equipment_type":"machine_stack","variant":null,"previous":null},
+        {"exercise_id":3,"exercise_name":"Pec Deck","body_region":"chest","in_program":false,"equipment_type":"machine_stack","variant":null}
+        ]}
+        """#.utf8)
+
+    static func listDTO() throws -> GymListDTO { try APICoding.makeDecoder().decode(GymListDTO.self, from: list) }
+    static func machinesDTO() throws -> GymMachinesDTO { try APICoding.makeDecoder().decode(GymMachinesDTO.self, from: machines) }
+}
+
+@Suite(.tags(.gyms, .decoding, .fast))
 struct GymDecodingTests {
     @Test func gymListFixture() throws {
-        let list = try Fixture.decode(GymListDTO.self, "gyms_list")
+        let list = try GymSamples.listDTO()
         #expect(list.currentGymId == 4 && list.gyms.count == 2)
         #expect(list.gyms[1].isCurrent == true && list.gyms[1].source == "user" && list.gyms[0].machineCount == 9)
         #expect(list.gyms[0].createdAt != nil)
     }
 
     @Test func machinesFixture() throws {
-        let dto = try Fixture.decode(GymMachinesDTO.self, "gym_machines")
+        let dto = try GymSamples.machinesDTO()
         #expect(dto.gym.name == "Gym 4" && dto.items.count == 5)
         let chest = dto.items[0]
         #expect(chest.variant?.ladder == [7, 14, 21, 28, 35] && chest.variant?.notes == "seat 4" && chest.variant?.lastUsed == "2026-10-23")
@@ -23,9 +45,9 @@ struct GymDecodingTests {
     }
 
     @Test func serverExampleFixturesDecode() throws {
-        let list = try Fixture.decode(GymListDTO.self, "gyms_list_server")
+        let list = try Fixture.decode(GymListDTO.self, "gyms_list")
         #expect(list.currentGymId == 4 && list.gyms.count >= 3 && list.gyms.allSatisfy { $0.machineCount != nil })
-        let dto = try Fixture.decode(GymMachinesDTO.self, "gym_machines_server")
+        let dto = try Fixture.decode(GymMachinesDTO.self, "gym_machines")
         #expect(!dto.items.isEmpty && dto.items[0].variant?.weightLadder == nil && dto.items[0].previous?.gymName == "Gym 2")
         // a smith machine without steps counts as set up; the program progress is computed from the list
         #expect(MachineLogic.isSetUp(dto.items[0]) && MachineLogic.progress(dto.items).total > 0)
@@ -73,6 +95,7 @@ struct GymDecodingTests {
 
 // MARK: - Ladder rules
 
+@Suite(.tags(.gyms, .fast))
 struct LadderRulesTests {
     @Test func generatesStartPlusStep() {
         #expect(LadderRules.generate(start: 5, step: 5, count: 4) == [5, 10, 15, 20])
@@ -129,8 +152,9 @@ struct LadderRulesTests {
 
 // MARK: - Machine list
 
+@Suite(.tags(.gyms, .fast))
 struct MachineLogicTests {
-    private func items() throws -> [MachineItemDTO] { try Fixture.decode(GymMachinesDTO.self, "gym_machines").items }
+    private func items() throws -> [MachineItemDTO] { try GymSamples.machinesDTO().items }
 
     @Test func setUpAndProgress() throws {
         let items = try items()
@@ -189,6 +213,7 @@ struct MachineLogicTests {
 // MARK: - Current gym sync
 
 @MainActor
+@Suite(.tags(.gyms, .sync))
 struct CurrentGymSyncTests {
     @Test func serverValueWinsOtherwiseLocal() {
         #expect(GymSync.resolve(local: 3, server: 4) == 4)
@@ -216,6 +241,7 @@ struct CurrentGymSyncTests {
 
 // MARK: - Setup / baseline UI rules
 
+@Suite(.tags(.gyms))
 struct SetupRulesTests {
     @Test func setupButtonOnlyWhenNeeded() {
         #expect(SetupRules.showsSetupButton(needsSetup: true))
@@ -262,6 +288,7 @@ struct SetupRulesTests {
 // MARK: - Repository
 
 @MainActor
+@Suite(.tags(.gyms))
 struct GymRepositoryTests {
     private final class Server: @unchecked Sendable {
         private let lock = NSLock()
@@ -281,9 +308,9 @@ struct GymRepositoryTests {
             if let failure, method != "GET" { throw failure }
             switch (method, path) {
             case ("GET", "/api/v1/gyms"):
-                return current == 4 ? try Fixture.data("gyms_list")
+                return current == 4 ? GymSamples.list
                                     : Data("{\"current_gym_id\":\(current),\"gyms\":[{\"id\":3,\"name\":\"Gym 3\"},{\"id\":4,\"name\":\"Gym 4\"}]}".utf8)
-            case ("GET", "/api/v1/gyms/4/machines"): return try Fixture.data("gym_machines")
+            case ("GET", "/api/v1/gyms/4/machines"): return GymSamples.machines
             case ("PUT", "/api/v1/gyms/current"): return Data(#"{"current_gym_id":3,"unmapped_count":2}"#.utf8)
             case ("POST", "/api/v1/gyms"): return Data(#"{"id":5,"name":"Gym 5","machine_count":0,"is_current":false,"source":"user"}"#.utf8)
             case ("POST", "/api/v1/weight-ladder/preview"): return Data(#"{"weight_ladder":[5,10,15]}"#.utf8)
@@ -356,7 +383,7 @@ struct GymRepositoryTests {
     @Test func saveCreatesOrPatches() async throws {
         let server = Server()
         let (repo, _) = makeRepo(server)
-        let items = try Fixture.decode(GymMachinesDTO.self, "gym_machines").items
+        let items = try GymSamples.machinesDTO().items
         let draft = MachineDraft(name: " Lat @ Gym 4 ", equipmentType: "cable", notes: "", ladder: [5, 10])
         _ = try await repo.saveMachine(gymId: 4, item: items[1], draft: draft)  // no variant: POST
         #expect(server.calls.contains("POST /api/v1/gyms/4/machines"))

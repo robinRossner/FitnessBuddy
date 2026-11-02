@@ -31,15 +31,16 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: FitnessBuddy/Resources/Info.plist
         ENABLE_PREVIEWS: YES
-    scheme:
-      testTargets:
-        - FitnessBuddyTests
-      gatherCoverageData: false
   FitnessBuddyTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: FitnessBuddyTests
+      # Test fixtures are the backend's generated API examples (one source of truth);
+      # copied as a folder reference, so they live under `examples/` in the test bundle.
+      - path: ../docs/api/examples
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: FitnessBuddy
     settings:
@@ -48,3 +49,23 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FitnessBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FitnessBuddy"
         BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  FitnessBuddy:
+    build:
+      targets:
+        FitnessBuddy: all
+        FitnessBuddyTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      testPlans:
+        - path: TestPlans/Full.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Fast.xctestplan
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

@@ -3,6 +3,7 @@ import Testing
 @testable import FitnessBuddy
 
 /// Metric bucketing for the W / M / 6M / Y detail chart, card sparklines and the Summary highlights.
+@Suite(.tags(.health, .fast))
 struct MetricSeriesTests {
     /// Sunday; its week starts Monday 2026-10-19.
     let now = DayKey.date("2026-10-25")!.addingTimeInterval(12 * 3600)
@@ -76,6 +77,7 @@ struct MetricSeriesTests {
     }
 }
 
+@Suite(.tags(.health, .fast))
 struct SummaryLogicTests {
     let now = DayKey.date("2026-10-25")!.addingTimeInterval(12 * 3600)
 

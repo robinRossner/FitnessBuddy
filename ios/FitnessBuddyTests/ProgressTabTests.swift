@@ -3,6 +3,7 @@ import Testing
 @testable import FitnessBuddy
 
 /// Pure helpers behind the Progress tab (ProgressModel.swift): next lift targets, running overview, this week's runs.
+@Suite(.tags(.progress, .fast))
 struct ProgressTabTests {
     /// Wednesday; its week starts Monday 2026-10-26.
     let now = DayKey.date("2026-10-28")!.addingTimeInterval(12 * 3600)

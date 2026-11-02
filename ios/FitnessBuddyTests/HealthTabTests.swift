@@ -3,6 +3,7 @@ import Testing
 @testable import FitnessBuddy
 
 /// The Health tab's period picker: every card's chart and average come from the same window of points.
+@Suite(.tags(.health, .fast))
 struct HealthSignalsTests {
     /// Sunday noon.
     let now = DayKey.date("2026-10-25")!.addingTimeInterval(12 * 3600)

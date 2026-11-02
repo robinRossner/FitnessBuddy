@@ -9,6 +9,7 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
 
 // MARK: - Decoding of the new optional fields
 
+@Suite(.tags(.stats, .decoding, .fast))
 struct NewFieldDecodingTests {
     @Test func liftsFixtureCarriesRegionAndProgram() throws {
         let r = try Fixture.decode(LiftsStatsDTO.self, "stats_lifts")
@@ -99,6 +100,7 @@ struct NewFieldDecodingTests {
 
 // MARK: - Readiness
 
+@Suite(.tags(.health, .fast))
 struct ReadinessSummaryTests {
     @Test func headlineMetricsAndDetailsFromReadinessToday() throws {
         let dto = try Fixture.decode(HealthStatsDTO.self, "stats_health").readinessToday
@@ -158,6 +160,7 @@ struct ReadinessSummaryTests {
 
 // MARK: - Zone chip
 
+@Suite(.tags(.stats, .fast))
 struct ZoneChipTests {
     @Test func planNamedZoneWins() {
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z1-Z2", low: 127, high: 156, basis: "lthr")) == "Z1–Z2")
@@ -189,6 +192,7 @@ struct ZoneChipTests {
 
 // MARK: - Lifting dashboard
 
+@Suite(.tags(.stats, .fast))
 struct LiftingDashboardTests {
     let now = DayKey.date("2026-10-25")!   // Sunday of the week starting 2026-10-19
 
@@ -266,6 +270,7 @@ struct LiftingDashboardTests {
 
 // MARK: - Running dashboard
 
+@Suite(.tags(.stats, .fast))
 struct RunningDashboardTests {
     let now = DayKey.date("2026-10-25")!
 
@@ -343,6 +348,7 @@ struct RunningDashboardTests {
 
 // MARK: - Health steps
 
+@Suite(.tags(.health, .fast))
 struct StepsTests {
     let now = DayKey.date("2026-10-25")!
 
@@ -378,6 +384,7 @@ struct StepsTests {
 
 // MARK: - Insights
 
+@Suite(.tags(.stats, .fast))
 struct InsightsGroupingTests {
     @Test func groupsByCategoryDropsReadinessAndCollapsesThinItems() throws {
         let r = try Fixture.decode(CorrelationsDTO.self, "stats_correlations")
@@ -397,6 +404,7 @@ struct InsightsGroupingTests {
 // MARK: - Workout chooser
 
 @MainActor
+@Suite(.tags(.workout))
 struct WorkoutChooserTests {
     let locale = Locale(identifier: "en_US")
     let today = "2026-10-25"   // Sunday: the long-run day
@@ -477,6 +485,7 @@ struct WorkoutChooserTests {
 
 // MARK: - Week strip
 
+@Suite(.tags(.workout, .fast))
 struct WeekStripModelTests {
     let days = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"]
     let today = "2026-10-25"

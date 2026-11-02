@@ -5,6 +5,7 @@ import Testing
 
 // MARK: - Formatting, picker values, resolution order
 
+@Suite(.tags(.workout, .fast))
 struct RestTimeBasicsTests {
     @Test func formatsMinutesAndSeconds() {
         #expect(RestTime.format(120) == "2:00")
@@ -36,6 +37,7 @@ struct RestTimeBasicsTests {
 }
 
 @MainActor
+@Suite(.tags(.workout))
 struct RestResolutionTests {
     private func row(_ seconds: Int?, pending: Bool = false) -> LocalRestOverride {
         LocalRestOverride(variantId: 7, restS: seconds, pending: pending)
@@ -85,6 +87,7 @@ struct RestResolutionTests {
 
 // MARK: - Decoding
 
+@Suite(.tags(.workout, .decoding, .fast))
 struct RestDecodingTests {
     private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
         try APICoding.makeDecoder().decode(T.self, from: Data(json.utf8))
@@ -98,7 +101,17 @@ struct RestDecodingTests {
     @Test func planExerciseWithoutRestS() throws {
         let ex = try decode(PlannedExerciseDTO.self, #"{"variant_id": 5, "name": "Squat", "sets": []}"#)
         #expect(ex.restS == nil)
-        let existing = try Fixture.decode(PlanTodayDTO.self, "plan_today")  // fixture of an older server
+        // the current server sends rest_s; the same plan without it (an older server) decodes to nil
+        let current = try Fixture.decode(PlanTodayDTO.self, "plan_today")
+        #expect(current.sessions.first?.session?.exercises?.allSatisfy { $0.restS != nil } == true)
+        func dropRest(_ v: Any) -> Any {
+            if let d = v as? [String: Any] { return d.filter { $0.key != "rest_s" }.mapValues(dropRest) }
+            if let a = v as? [Any] { return a.map(dropRest) }
+            return v
+        }
+        let stripped = try JSONSerialization.data(withJSONObject: dropRest(JSONSerialization.jsonObject(with: Fixture.data("plan_today"))))
+        #expect(!String(decoding: stripped, as: UTF8.self).contains("rest_s"))
+        let existing = try APICoding.makeDecoder().decode(PlanTodayDTO.self, from: stripped)
         #expect(existing.sessions.first?.session?.exercises?.allSatisfy { $0.restS == nil } == true)
     }
 
@@ -138,6 +151,7 @@ struct RestDecodingTests {
 // MARK: - Plan to workout
 
 @MainActor
+@Suite(.tags(.workout))
 struct RestFromPlanTests {
     @Test func setsStartedFromAPlanCarryItsRest() throws {
         let ctx = try makeContext()
@@ -163,6 +177,7 @@ struct RestFromPlanTests {
 // MARK: - Local store
 
 @MainActor
+@Suite(.tags(.workout))
 struct RestOverrideStoreTests {
     @Test func savingStoresAPendingOverrideAndKeepsOneRowPerVariant() throws {
         let ctx = try makeContext()
@@ -199,6 +214,7 @@ struct RestOverrideStoreTests {
 // MARK: - Reconcile with the server (pull)
 
 @MainActor
+@Suite(.tags(.workout, .sync))
 struct RestReconcileTests {
     private func lifting(_ map: [String: Int]) -> LiftingConfigDTO { LiftingConfigDTO(restDefaultS: 120, restSByVariant: map) }
 
@@ -286,7 +302,7 @@ final class RestStubProtocol: URLProtocol, @unchecked Sendable {
 }
 
 @MainActor
-@Suite(.serialized)
+@Suite(.serialized, .tags(.workout, .sync))
 struct RestUploadTests {
     private func environment() throws -> ModelContainer { try Persistence.makeContainer(inMemory: true) }
 
@@ -394,6 +410,7 @@ struct RestUploadTests {
 // MARK: - Running timer
 
 @MainActor
+@Suite(.tags(.workout))
 struct RestTimerRetargetTests {
     @Test func aRunningRestFollowsTheNewTimeOfItsExercise() {
         let timer = RestTimer()

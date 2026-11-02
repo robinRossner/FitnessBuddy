@@ -1,0 +1,1315 @@
+{
+  "baselines": {
+    "bodyweight_change_4w_pct": null,
+    "bodyweight_kg": null,
+    "hrv_28d": 68.3,
+    "hrv_7d": 63.1,
+    "rhr_28d": 53.9,
+    "rhr_7d": 56.4,
+    "sleep_28d_h": 7.5,
+    "sleep_7d_h": 7.4
+  },
+  "config": {
+    "approval_mode": "manual",
+    "exercise_overrides": {},
+    "params": {
+      "increments.barbell_kg": 5.0,
+      "increments.bodyweight_added_kg": 2.5,
+      "increments.default_stack_step_kg": 5.0,
+      "increments.dumbbell_increment_kg": 2.0,
+      "increments.other_kg": 2.5,
+      "increments.plate_loaded_kg": 5.0,
+      "increments.smith_kg": 5.0,
+      "lifting.rest_default_s": 120,
+      "recovery.deload_red_days": 4,
+      "running.easy.strides.reps": 6,
+      "running.easy_calibration.enabled": true,
+      "running.easy_calibration.hr_margin_bpm": 2,
+      "running.easy_calibration.max_vdot_gain": 4.0,
+      "running.easy_calibration.min_runs": 3,
+      "running.easy_calibration.window_days": 28,
+      "running.interval_pace_tolerance_pct": 3,
+      "running.intervals.max_work_min": 20,
+      "running.intervals.recovery_distance_m": 400.0,
+      "running.intervals.rep_distance_m": 1000.0,
+      "running.intervals.reps_max": 6,
+      "running.intervals.reps_min": 4,
+      "running.intervals.reps_start": 5,
+      "running.long_run.cap_km": 21.0,
+      "running.long_run.drift_hold_pct": 5,
+      "running.long_run.step_back_every": 4,
+      "running.long_run.step_back_pct": 25,
+      "running.long_run.step_km": 1.0,
+      "running.quality.phase_weeks.5k_specific": null,
+      "running.quality.phase_weeks.threshold": null,
+      "running.quality.phase_weeks.threshold_vo2max": null,
+      "running.threshold.max_work_min": 30,
+      "running.threshold.reps_max": 5,
+      "running.vdot.from_intervals.age_discount_per_week": 0.25,
+      "running.vdot.from_intervals.age_free_days": 28,
+      "running.vdot.from_intervals.enabled": true,
+      "running.vdot.from_intervals.max_step": 3.0,
+      "running.vdot.from_intervals.min_reps": 4,
+      "running.vdot.from_intervals.window_days": 70,
+      "running.vdot.max_per_4w": 1.0,
+      "running.vdot.max_step": 0.5,
+      "running.volume.cap_abs_km": 2.0,
+      "running.volume.hold_last_week": true,
+      "running.volume.hold_limit_factor": 1.1,
+      "running.volume.single_run_factor": 1.1,
+      "running.weekly_volume_cap_pct": 10.0,
+      "running.weekly_volume_floor_km": 0,
+      "strength.big_miss_reps": 3,
+      "strength.deload.fatigue_index_pct": 40,
+      "strength.deload.sets_pct": 40.0,
+      "strength.multi_stall_lifts": 3,
+      "strength.rep_ceiling_cap": 15,
+      "strength.rep_range": [
+        7,
+        12
+      ],
+      "strength.rung_min_reps": 8,
+      "strength.stall_exposures": 3,
+      "strength.stall_exposures_2x": 4,
+      "strength.stall_min_days": 12,
+      "strength.stall_reset_pct": 10.0,
+      "strength.stall_reset_small_pct": 5
+    },
+    "version": "v3"
+  },
+  "lifts": {
+    "bench_press": {
+      "best": 91.83,
+      "e1rm_12w": [
+        [
+          "2026-08-17",
+          76.0
+        ],
+        [
+          "2026-08-24",
+          79.2
+        ],
+        [
+          "2026-08-31",
+          82.3
+        ],
+        [
+          "2026-09-07",
+          85.5
+        ],
+        [
+          "2026-09-14",
+          88.7
+        ],
+        [
+          "2026-09-21",
+          91.8
+        ],
+        [
+          "2026-09-28",
+          91.8
+        ],
+        [
+          "2026-10-05",
+          91.8
+        ],
+        [
+          "2026-10-12",
+          91.8
+        ],
+        [
+          "2026-10-19",
+          91.8
+        ]
+      ],
+      "latest": 91.83,
+      "name": "Bench Press (Barbell)",
+      "sessions": 10,
+      "stalled": true,
+      "trend_4w_pct": 0.0
+    },
+    "chest_fly": {
+      "best": 42.0,
+      "e1rm_12w": [
+        [
+          "2026-08-17",
+          42.0
+        ],
+        [
+          "2026-08-24",
+          42.0
+        ],
+        [
+          "2026-08-31",
+          42.0
+        ],
+        [
+          "2026-09-07",
+          42.0
+        ],
+        [
+          "2026-09-14",
+          42.0
+        ],
+        [
+          "2026-09-21",
+          42.0
+        ],
+        [
+          "2026-09-28",
+          42.0
+        ],
+        [
+          "2026-10-05",
+          42.0
+        ],
+        [
+          "2026-10-12",
+          42.0
+        ],
+        [
+          "2026-10-19",
+          42.0
+        ]
+      ],
+      "latest": 42.0,
+      "name": "Chest Fly (Machine)",
+      "sessions": 10,
+      "stalled": true,
+      "trend_4w_pct": 0.0
+    },
+    "incline_bench_press": {
+      "best": 63.7,
+      "e1rm_12w": [
+        [
+          "2026-08-17",
+          52.0
+        ],
+        [
+          "2026-08-24",
+          53.3
+        ],
+        [
+          "2026-08-31",
+          54.6
+        ],
+        [
+          "2026-09-07",
+          55.9
+        ],
+        [
+          "2026-09-14",
+          57.2
+        ],
+        [
+          "2026-09-21",
+          58.5
+        ],
+        [
+          "2026-09-28",
+          59.8
+        ],
+        [
+          "2026-10-05",
+          61.1
+        ],
+        [
+          "2026-10-12",
+          62.4
+        ],
+        [
+          "2026-10-19",
+          63.7
+        ]
+      ],
+      "latest": 63.7,
+      "name": "Incline Bench Press (Smith Machine)",
+      "sessions": 10,
+      "stalled": false,
+      "trend_4w_pct": 8.89
+    },
+    "lateral_raise": {
+      "best": 14.0,
+      "e1rm_12w": [
+        [
+          "2026-08-17",
+          14.0
+        ],
+        [
+          "2026-08-24",
+          14.0
+        ],
+        [
+          "2026-08-31",
+          14.0
+        ],
+        [
+          "2026-09-07",
+          14.0
+        ],
+        [
+          "2026-09-14",
+          14.0
+        ],
+        [
+          "2026-09-21",
+          14.0
+        ],
+        [
+          "2026-09-28",
+          14.0
+        ],
+        [
+          "2026-10-05",
+          14.0
+        ],
+        [
+          "2026-10-12",
+          14.0
+        ],
+        [
+          "2026-10-19",
+          14.0
+        ]
+      ],
+      "latest": 14.0,
+      "name": "Lateral Raise (Cable)",
+      "sessions": 10,
+      "stalled": true,
+      "trend_4w_pct": 0.0
+    },
+    "leg_extension": {
+      "best": 70.0,
+      "e1rm_12w": [
+        [
+          "2026-08-17",
+          70.0
+        ],
+        [
+          "2026-08-24",
+          70.0
+        ],
+        [
+          "2026-08-31",
+          70.0
+        ],
+        [
+          "2026-09-07",
+          70.0
+        ],
+        [
+          "2026-09-14",
+          70.0
+        ],
+        [
+          "2026-09-21",
+          70.0
+        ],
+        [
+          "2026-09-28",
+          70.0
+        ],
+        [
+          "2026-10-05",
+          70.0
+        ],
+        [
+          "2026-10-12",
+          70.0
+        ],
+        [
+          "2026-10-19",
+          70.0
+        ]
+      ],
+      "latest": 70.0,
+      "name": "Leg Extension (Machine)",
+      "sessions": 10,
+      "stalled": true,
+      "trend_4w_pct": 0.0
+    },
+    "squat": {
+      "best": 124.13,
+      "e1rm_12w": [
+        [
+          "2026-08-17",
+          101.3
+        ],
+        [
+          "2026-08-24",
+          103.9
+        ],
+        [
+          "2026-08-31",
+          106.4
+        ],
+        [
+          "2026-09-07",
+          108.9
+        ],
+        [
+          "2026-09-14",
+          111.5
+        ],
+        [
+          "2026-09-21",
+          114.0
+        ],
+        [
+          "2026-09-28",
+          116.5
+        ],
+        [
+          "2026-10-05",
+          119.1
+        ],
+        [
+          "2026-10-12",
+          121.6
+        ],
+        [
+          "2026-10-19",
+          124.1
+        ]
+      ],
+      "latest": 124.13,
+      "name": "Squat (Smith Machine)",
+      "sessions": 10,
+      "stalled": false,
+      "trend_4w_pct": 8.89
+    }
+  },
+  "past_advisor_changes": [],
+  "program": {
+    "lower": [
+      [
+        "squat",
+        "Squat (Smith Machine)",
+        3,
+        [
+          7,
+          12
+        ]
+      ],
+      [
+        "leg_extension",
+        "Leg Extension (Machine)",
+        2,
+        [
+          7,
+          12
+        ]
+      ]
+    ],
+    "upper": [
+      [
+        "bench_press",
+        "Bench Press (Barbell)",
+        3,
+        [
+          7,
+          12
+        ]
+      ],
+      [
+        "incline_bench_press",
+        "Incline Bench Press (Smith Machine)",
+        3,
+        [
+          7,
+          12
+        ]
+      ],
+      [
+        "chest_fly",
+        "Chest Fly (Machine)",
+        3,
+        [
+          7,
+          12
+        ]
+      ],
+      [
+        "lateral_raise",
+        "Lateral Raise (Cable)",
+        3,
+        [
+          7,
+          12
+        ]
+      ]
+    ]
+  },
+  "progression": {
+    "censored_misses_14d": [],
+    "deload": {
+      "active": true,
+      "from": "2026-10-26",
+      "reason": "multi_lift_stall",
+      "until": "2026-11-01"
+    },
+    "lift_columns": [
+      "state",
+      "effective rep range",
+      "note"
+    ],
+    "lifts": {
+      "bench_press": [
+        "deload",
+        "7-12",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload"
+      ],
+      "chest_fly": [
+        "deload",
+        "7-15",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload"
+      ],
+      "incline_bench_press": [
+        "deload",
+        "7-12",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load"
+      ],
+      "lateral_raise": [
+        "deload",
+        "7-15",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload"
+      ],
+      "leg_extension": [
+        "deload",
+        "7-12",
+        "deload week (several lifts stalled together): 1 of 2 sets, same load; retest 50 kg after the deload"
+      ],
+      "squat": [
+        "deload",
+        "7-12",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load"
+      ]
+    },
+    "running": {
+      "easy_pace": {
+        "basis": "daniels",
+        "capped": false,
+        "quality_vdot": 45.91,
+        "range": "5:14-6:16",
+        "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it",
+        "vdot": 45.91
+      },
+      "long_run": {
+        "date": "2026-10-25",
+        "km": 3.0,
+        "note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3 km under the weekly cap",
+        "step_back": false
+      },
+      "phase": [
+        "threshold",
+        2
+      ],
+      "quality": {
+        "date": "2026-10-30",
+        "note": "first threshold session of the cycle",
+        "phase": "threshold",
+        "phase_week": 2,
+        "session_type": "threshold"
+      },
+      "vdot": {
+        "day": "2026-10-25",
+        "delta": 3.0,
+        "reason": "VDOT 42.9 -> 45.9 measured from interval reps: 4 x 1000 m on 2026-10-20 at 4:10/km (avg rep HR 168 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 46.1: VDOT 46.1 (capped at +3 per update)",
+        "source": "interval_reps",
+        "vdot": 45.91
+      },
+      "volume": {
+        "cap_km": 13.7,
+        "mean_km_4w": 11.7,
+        "reasoning": "4-week mean 11.7 km -> cap max(11.7 x 1.1, 11.7 + 2, hold 13.6) = 13.7 km; hold: last week ran 13.6 km, held up to 13.6 km (limit 1.1 x the highest of the 4 weeks before it = 14.96 km); single run <= 8.4 km (1.1 x the longest of 30 days)",
+        "single_run_cap_km": 8.4,
+        "target_km": null
+      }
+    },
+    "stall_ladder": {
+      "Bench Press (Barbell)": [
+        0,
+        4,
+        4
+      ],
+      "Chest Fly (Machine)": [
+        0,
+        8,
+        4
+      ],
+      "Incline Bench Press (Smith Machine)": [
+        0,
+        0,
+        4
+      ],
+      "Lateral Raise (Cable)": [
+        0,
+        8,
+        4
+      ],
+      "Leg Extension (Machine)": [
+        0,
+        5,
+        3
+      ],
+      "Squat (Smith Machine)": [
+        0,
+        0,
+        3
+      ]
+    },
+    "stall_ladder_columns": [
+      "ladder step taken",
+      "clean sessions w/o progress",
+      "N"
+    ]
+  },
+  "readiness_14d": [
+    [
+      "2026-10-12",
+      "green",
+      71.0,
+      53.0,
+      8.0
+    ],
+    [
+      "2026-10-13",
+      "green",
+      70.0,
+      53.0,
+      7.0
+    ],
+    [
+      "2026-10-14",
+      "green",
+      69.0,
+      53.0,
+      8.0
+    ],
+    [
+      "2026-10-15",
+      "green",
+      68.0,
+      53.0,
+      7.0
+    ],
+    [
+      "2026-10-16",
+      "green",
+      72.0,
+      53.0,
+      8.0
+    ],
+    [
+      "2026-10-17",
+      "green",
+      71.0,
+      53.0,
+      7.0
+    ],
+    [
+      "2026-10-18",
+      "green",
+      70.0,
+      53.0,
+      8.0
+    ],
+    [
+      "2026-10-19",
+      "green",
+      69.0,
+      53.0,
+      7.0
+    ],
+    [
+      "2026-10-20",
+      "green",
+      68.0,
+      53.0,
+      8.0
+    ],
+    [
+      "2026-10-21",
+      "green",
+      72.0,
+      53.0,
+      7.0
+    ],
+    [
+      "2026-10-22",
+      "green",
+      71.0,
+      53.0,
+      8.0
+    ],
+    [
+      "2026-10-23",
+      "red",
+      54.0,
+      61.0,
+      7.0
+    ],
+    [
+      "2026-10-24",
+      "red",
+      54.0,
+      61.0,
+      8.0
+    ],
+    [
+      "2026-10-25",
+      "yellow",
+      54.0,
+      61.0,
+      7.0
+    ]
+  ],
+  "recent_sessions": [
+    {
+      "date": "2026-10-12",
+      "ex": [
+        [
+          "Bench Press (Barbell)",
+          "72.5x8,72.5x7,72.5x6"
+        ],
+        [
+          "Incline Bench Press (Smith Machine)",
+          "48x9,48x8,48x8"
+        ],
+        [
+          "Chest Fly (Machine)",
+          "30x12,30x11,30x10"
+        ],
+        [
+          "Lateral Raise (Cable)",
+          "10x12,10x12,10x10"
+        ]
+      ],
+      "kind": "upper"
+    },
+    {
+      "date": "2026-10-13",
+      "ex": [
+        [
+          "Squat (Smith Machine)",
+          "96x8,96x8,96x7"
+        ],
+        [
+          "Leg Extension (Machine)",
+          "50x12,50x11"
+        ]
+      ],
+      "kind": "lower"
+    },
+    {
+      "date": "2026-10-13",
+      "hr": 166.0,
+      "kind": "intervals",
+      "km": 7.6,
+      "pace_s_km": 292.0
+    },
+    {
+      "date": "2026-10-15",
+      "hr": 143.0,
+      "kind": "easy",
+      "km": 6.0,
+      "pace_s_km": 330.0
+    },
+    {
+      "date": "2026-10-19",
+      "ex": [
+        [
+          "Bench Press (Barbell)",
+          "72.5x8,72.5x7,72.5x6"
+        ],
+        [
+          "Incline Bench Press (Smith Machine)",
+          "49x9,49x8,49x8"
+        ],
+        [
+          "Chest Fly (Machine)",
+          "30x12,30x11,30x10"
+        ],
+        [
+          "Lateral Raise (Cable)",
+          "10x12,10x12,10x10"
+        ]
+      ],
+      "kind": "upper"
+    },
+    {
+      "date": "2026-10-20",
+      "ex": [
+        [
+          "Squat (Smith Machine)",
+          "98x8,98x8,98x7"
+        ],
+        [
+          "Leg Extension (Machine)",
+          "50x12,50x11"
+        ]
+      ],
+      "kind": "lower"
+    },
+    {
+      "date": "2026-10-20",
+      "hr": 156.0,
+      "kind": "intervals",
+      "km": 7.6,
+      "pace_s_km": 292.0
+    },
+    {
+      "date": "2026-10-22",
+      "hr": 142.0,
+      "kind": "easy",
+      "km": 6.0,
+      "pace_s_km": 330.0
+    }
+  ],
+  "rules": [
+    [
+      "<logged-on>",
+      "running",
+      "running:stagnation",
+      "2026-10-26",
+      "aerobic efficiency +0.5% vs the previous 4 weeks"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "quality:start",
+      "fri_intervals",
+      "first threshold session of the cycle"
+    ],
+    [
+      "<logged-on>",
+      "progression",
+      "deload:multi_lift_stall",
+      "Lateral Raise (Cable)",
+      "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload (2026-10-26 .. 2026-11-01)"
+    ],
+    [
+      "<logged-on>",
+      "progression",
+      "deload:multi_lift_stall",
+      "Chest Fly (Machine)",
+      "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload (2026-10-26 .. 2026-11-01)"
+    ],
+    [
+      "<logged-on>",
+      "progression",
+      "deload:multi_lift_stall",
+      "Incline Bench Press (Smith Machine)",
+      "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-26 .. 2026-11-01)"
+    ],
+    [
+      "<logged-on>",
+      "progression",
+      "deload:multi_lift_stall",
+      "Bench Press (Barbell)",
+      "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload (2026-10-26 .. 2026-11-01)"
+    ],
+    [
+      "<logged-on>",
+      "progression",
+      "deload:multi_lift_stall",
+      "Leg Extension (Machine)",
+      "deload week (several lifts stalled together): 1 of 2 sets, same load; retest 50 kg after the deload (2026-10-26 .. 2026-11-01)"
+    ],
+    [
+      "<logged-on>",
+      "progression",
+      "deload:multi_lift_stall",
+      "Squat (Smith Machine)",
+      "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-26 .. 2026-11-01)"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:weekly_volume_cap",
+      "2026-10-26",
+      "4-week mean 11.7 km -> cap max(11.7 x 1.1, 11.7 + 2, hold 13.6) = 13.7 km; hold: last week ran 13.6 km, held up to 13.6 km (limit 1.1 x the highest of the 4 wee"
+    ],
+    [
+      "<logged-on>",
+      "deload",
+      "deload:multi_lift_stall",
+      "2026-10-26",
+      "4 lifts stalled within 14 days (Bench Press (Barbell), Chest Fly (Machine), Lateral Raise (Cable), Leg Extension (Machine)): no per-lift resets; soft deload 202"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:quality_phase",
+      "2026-10-26",
+      "threshold week 2/12 (cycle 1): threshold session"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:vdot",
+      "2026-10-25",
+      "VDOT 42.9 -> 45.9 measured from interval reps: 4 x 1000 m on 2026-10-20 at 4:10/km (avg rep HR 168 below Z5 174: sub-maximal, so your I pace is at least this) ="
+    ],
+    [
+      "<logged-on>",
+      "readiness",
+      "readiness:hrv_drop_anomaly",
+      "2026-10-25",
+      "HRV >= 15% below baseline for 3 days: possible illness/overreaching or a sensor issue"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:stagnation",
+      "2026-10-19",
+      "aerobic efficiency +0.5% vs the previous 4 weeks"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:weekly_volume_cap",
+      "2026-10-19",
+      "4-week mean 9.8 km -> cap max(9.8 x 1.1, 9.8 + 2, hold 13.6) = 13.6 km; hold: last week ran 13.6 km, held up to 13.6 km (limit 1.1 x the highest of the 4 weeks "
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:quality_phase",
+      "2026-10-19",
+      "threshold week 1/12 (cycle 1): threshold session"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:long_run_progression",
+      "sun_long_run",
+      "3.5 km: no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3.5 km under the weekly cap"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:easy_run_evaluation",
+      "2026-10-22",
+      "passed; decoupling 0.0%"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:easy_pace_calibration",
+      "2026-10-26",
+      "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+    ],
+    [
+      "<logged-on>",
+      "readiness",
+      "readiness:score",
+      "2026-10-25",
+      "yellow: HRV 62 ms (-19% vs 76 baseline); resting HR 52 (+6 vs 46)"
+    ],
+    [
+      "<logged-on>",
+      "running",
+      "running:easy_pace_calibration",
+      "2026-10-19",
+      "Easy pace from your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30): easy VDOT 43.2 vs 42.9 for quality sessions"
+    ]
+  ],
+  "running": {
+    "easy_runs": [
+      [
+        "2026-09-17",
+        "easy",
+        6.0,
+        1.2626,
+        0.0
+      ],
+      [
+        "2026-09-24",
+        "easy",
+        6.0,
+        1.2715,
+        0.0
+      ],
+      [
+        "2026-10-01",
+        "easy",
+        6.0,
+        1.2804,
+        0.0
+      ],
+      [
+        "2026-10-08",
+        "easy",
+        6.0,
+        1.2626,
+        0.0
+      ],
+      [
+        "2026-10-15",
+        "easy",
+        6.0,
+        1.2715,
+        0.0
+      ],
+      [
+        "2026-10-22",
+        "easy",
+        6.0,
+        1.2804,
+        0.0
+      ]
+    ],
+    "intervals": [
+      [
+        "2026-09-29",
+        4,
+        true,
+        -5.6,
+        true,
+        true
+      ],
+      [
+        "2026-10-13",
+        4,
+        true,
+        -5.6,
+        false,
+        true
+      ],
+      [
+        "2026-10-20",
+        4,
+        true,
+        -5.6,
+        true,
+        true
+      ]
+    ],
+    "kpis": {
+      "easy_hr_drift_flags_4w": 0,
+      "efficiency": 1.2715,
+      "efficiency_4w_ago": 1.2715,
+      "efficiency_change_pct": 0.0,
+      "km_this_week": 13.6,
+      "runs_planned_this_week": 3,
+      "runs_this_week": 2,
+      "vdot": 45.91,
+      "vdot_4w_ago": null
+    },
+    "weekly_km_12w": [
+      [
+        "2026-08-03",
+        0.0
+      ],
+      [
+        "2026-08-10",
+        0.0
+      ],
+      [
+        "2026-08-17",
+        0.0
+      ],
+      [
+        "2026-08-24",
+        0.0
+      ],
+      [
+        "2026-08-31",
+        0.0
+      ],
+      [
+        "2026-09-07",
+        0.0
+      ],
+      [
+        "2026-09-14",
+        6.0
+      ],
+      [
+        "2026-09-21",
+        6.0
+      ],
+      [
+        "2026-09-28",
+        13.6
+      ],
+      [
+        "2026-10-05",
+        6.0
+      ],
+      [
+        "2026-10-12",
+        13.6
+      ],
+      [
+        "2026-10-19",
+        13.6
+      ]
+    ]
+  },
+  "schedule": {
+    "columns": [
+      "date",
+      "kind",
+      "status",
+      "km",
+      "moved_from"
+    ],
+    "missed_this_week": [],
+    "rules": {
+      "hard_kinds": [
+        "lower",
+        "intervals"
+      ],
+      "kind_load": {
+        "easy": 1,
+        "intervals": 4,
+        "long": 3,
+        "lower": 4,
+        "rest": 0,
+        "upper": 2
+      },
+      "makeup_priority": [
+        "lower",
+        "intervals",
+        "upper",
+        "long",
+        "easy"
+      ],
+      "max_hard_per_day": 1,
+      "max_sessions_per_day": 2,
+      "min_days_lower_to_intervals": 2,
+      "no_consecutive_hard_days": true,
+      "shorten_max_pct": 50
+    },
+    "run_km_left_under_cap": 0.0,
+    "weeks": [
+      {
+        "sessions": [
+          [
+            "2026-10-25",
+            "long_run",
+            "proposed",
+            3.0,
+            null
+          ]
+        ],
+        "week_start": "2026-10-19"
+      },
+      {
+        "sessions": [
+          [
+            "2026-10-26",
+            "upper",
+            "proposed",
+            null,
+            null
+          ],
+          [
+            "2026-10-27",
+            "lower",
+            "proposed",
+            null,
+            null
+          ],
+          [
+            "2026-10-28",
+            "easy_run",
+            "proposed",
+            3.0,
+            null
+          ],
+          [
+            "2026-10-29",
+            "upper",
+            "proposed",
+            null,
+            null
+          ],
+          [
+            "2026-10-30",
+            "intervals",
+            "proposed",
+            7.0,
+            null
+          ],
+          [
+            "2026-10-31",
+            "rest",
+            "proposed",
+            null,
+            null
+          ],
+          [
+            "2026-11-01",
+            "long_run",
+            "proposed",
+            3.5,
+            null
+          ]
+        ],
+        "week_start": "2026-10-26"
+      }
+    ]
+  },
+  "schema": 1,
+  "swap_candidates": {
+    "bench_press": [
+      "Chest Press (Machine)",
+      "Chest Press (Plate)",
+      "Incline Bench Press (Dumbbell)"
+    ],
+    "chest_fly": [
+      "Chest Press (Machine)",
+      "Chest Press (Plate)",
+      "Incline Bench Press (Dumbbell)"
+    ],
+    "leg_extension": [
+      "Leg Curl (Machine)"
+    ]
+  },
+  "today": "2026-10-25",
+  "upcoming_plan": [
+    {
+      "date": "2026-10-25",
+      "kind": "long_run",
+      "km": 3.0,
+      "readiness": "yellow",
+      "title": "Long run 3 km"
+    },
+    {
+      "date": "2026-10-26",
+      "ex": [
+        "Bench Press (Barbell)",
+        "Incline Bench Press (Smith Machine)",
+        "Chest Fly (Machine)",
+        "Lateral Raise (Cable)"
+      ],
+      "kind": "upper",
+      "title": "Upper (deload)"
+    },
+    {
+      "date": "2026-10-27",
+      "ex": [
+        "Squat (Smith Machine)",
+        "Leg Extension (Machine)"
+      ],
+      "kind": "lower",
+      "title": "Lower (deload)"
+    },
+    {
+      "date": "2026-10-28",
+      "kind": "easy_run",
+      "km": 3.0,
+      "title": "Easy run 3 km"
+    },
+    {
+      "date": "2026-10-29",
+      "ex": [
+        "Bench Press (Barbell)",
+        "Incline Bench Press (Smith Machine)",
+        "Chest Fly (Machine)",
+        "Lateral Raise (Cable)"
+      ],
+      "kind": "upper",
+      "title": "Upper (deload)"
+    },
+    {
+      "date": "2026-10-30",
+      "kind": "intervals",
+      "structure": {
+        "cooldown": {
+          "distance_km": 1.5
+        },
+        "recovery": {
+          "distance_m": 260,
+          "duration_s": 90,
+          "hr_drop_min_bpm": 12.0,
+          "type": "jog"
+        },
+        "session_type": "threshold",
+        "warmup": {
+          "distance_km": 2.0,
+          "hr": {
+            "basis": "lthr",
+            "high": 156,
+            "low": 127,
+            "zone": "Z1-Z2"
+          }
+        },
+        "work": {
+          "distance_m": 1000,
+          "duration_s": 273,
+          "hr": {
+            "high": 173,
+            "low": 166,
+            "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
+            "zone": "Z4"
+          },
+          "pace_label": "4:33",
+          "pace_range_s_per_km": [
+            269.0,
+            277.0
+          ],
+          "pace_s_per_km": 273,
+          "pace_tolerance_pct": 3,
+          "reps": 3
+        }
+      },
+      "title": "Threshold 3x1000 m @ 4:33"
+    },
+    {
+      "date": "2026-10-31",
+      "kind": "rest",
+      "title": "Rest"
+    }
+  ],
+  "week_start": "2026-10-19",
+  "why": {
+    "detail": "Scheduled weekly review of lifting, running and recovery.",
+    "focus": {
+      "kind": "week",
+      "plan": [
+        [
+          "2026-10-25",
+          "long_run",
+          "proposed"
+        ],
+        [
+          "2026-10-26",
+          "upper",
+          "proposed"
+        ],
+        [
+          "2026-10-27",
+          "lower",
+          "proposed"
+        ],
+        [
+          "2026-10-28",
+          "easy_run",
+          "proposed"
+        ],
+        [
+          "2026-10-29",
+          "upper",
+          "proposed"
+        ],
+        [
+          "2026-10-30",
+          "intervals",
+          "proposed"
+        ],
+        [
+          "2026-10-31",
+          "rest",
+          "proposed"
+        ]
+      ],
+      "week_start": "2026-10-25"
+    },
+    "title": "Weekly review, week of 2026-10-25",
+    "type": "weekly_review"
+  }
+}

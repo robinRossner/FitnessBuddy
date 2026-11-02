@@ -1,13 +1,25 @@
 name: backend
 
+# PRs: lint + only the test groups the PR touches (mapping: scripts/test-groups.sh).
+# Pushes (any branch): lint + the full suite, so deploy/push.sh finds a green run for any HEAD.
 on:
   push:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    branches: ["**"]
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths:
+      - "backend/**"
+      - "scripts/test-groups.sh"
+      - ".github/workflows/backend.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -17,11 +29,65 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.13.5"
+          enable-cache: true
       - run: uv python install 3.12
       - run: uv sync --frozen
       - name: ruff
         run: |
           uv run ruff check .
           uv run ruff format --check .
+
+  groups:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.groups.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }}
+      - id: groups
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            git diff --name-only "origin/$BASE_REF...HEAD" | tee changed.txt
+            groups="$(scripts/test-groups.sh < changed.txt)"
+          else
+            groups=all
+          fi
+          # Only the workflow or the mapping script changed: run everything.
+          [ -n "$groups" ] || groups=all
+          echo "groups: $groups"
+          # shellcheck disable=SC2086  # split the group list into one JSON string each
+          matrix="$(printf '%s\n' $groups | jq -R . | jq -cs .)"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: test (${{ matrix.group }})
+    needs: groups
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(needs.groups.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.5"
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen
       - name: pytest
-        run: uv run pytest
+        env:
+          GROUP: ${{ matrix.group }}
+        run: |
+          if [ "$GROUP" = all ]; then
+            uv run pytest
+          else
+            uv run pytest "tests/$GROUP"
+          fi

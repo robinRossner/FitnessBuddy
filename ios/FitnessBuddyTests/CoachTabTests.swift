@@ -3,6 +3,7 @@ import Testing
 @testable import FitnessBuddy
 
 /// Pure helpers behind the restyled Coach tab: "old → new" lines, check-in gauge, settings screen values.
+@Suite(.tags(.coach, .fast))
 struct CoachTabTests {
     // MARK: Old → new
 
@@ -85,7 +86,9 @@ struct CoachTabTests {
     }
 
     @Test func olderServersFallBackToTheApiKeyFlag() throws {
-        let s = try CoachCoding.makeDecoder().decode(CoachSettingsDTO.self, from: Fixture.data("coach_settings"))
+        // what an older server sends: no provider keys
+        let old = #"{"approval_mode":"manual","api_key_configured":true,"dry_run":false,"calls_this_week":0,"max_calls_per_week":4}"#
+        let s = try CoachCoding.makeDecoder().decode(CoachSettingsDTO.self, from: Data(old.utf8))
         #expect(s.credentialConfigured == nil && s.isConnected)
         #expect(CoachSettingsView.runsOn(s) == nil)
         #expect(!CoachSettingsDTO(apiKeyConfigured: false).isConnected)
