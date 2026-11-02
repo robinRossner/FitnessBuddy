@@ -18,6 +18,9 @@ struct RootView: View {
             Tab("Coach", systemImage: "sparkles", value: AppTab.coach) { CoachView() }
                 .badge(states.first?.coachPendingCount ?? 0)
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let expiry = ProvisioningExpiry.installed { AppExpiryTag(expiry: expiry) }
+        }
         .sheet(isPresented: $flow.showChooser) { WorkoutChooserSheet() }
     }
 }

@@ -73,6 +73,10 @@ struct SettingsView: View {
 
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
+                    if let expiry = ProvisioningExpiry.installed {
+                        LabeledContent("App expires", value: ProvisioningExpiry.label(
+                            daysLeft: ProvisioningExpiry.daysLeft(until: expiry, from: Date())))
+                    }
                 }
             }
             .navigationTitle("Settings")
