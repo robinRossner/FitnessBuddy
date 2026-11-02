@@ -1,3 +1,4 @@
+@testable import FitnessCore
 import Foundation
 import SwiftData
 import Testing

@@ -1,4 +1,5 @@
 #if DEBUG
+import FitnessCore
 import Foundation
 
 /// DEBUG-only stand-in for the `/gyms`, `/variants` and `/weight-ladder` endpoints while the demo data is loaded.

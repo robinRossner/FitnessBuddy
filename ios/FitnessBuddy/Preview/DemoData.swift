@@ -1,4 +1,5 @@
 #if DEBUG
+import FitnessCore
 import Foundation
 import SwiftData
 

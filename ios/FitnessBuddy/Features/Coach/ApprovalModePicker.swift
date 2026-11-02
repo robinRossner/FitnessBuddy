@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// The three approval modes as radio rows with a one-line explanation each. Changing it is a PUT, so it is disabled

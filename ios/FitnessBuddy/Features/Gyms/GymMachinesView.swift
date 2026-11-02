@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// The machines of one gym: the program first (by body region), then every other exercise.

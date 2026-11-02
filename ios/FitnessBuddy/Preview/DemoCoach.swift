@@ -1,4 +1,5 @@
 #if DEBUG
+import FitnessCore
 import Foundation
 
 /// DEBUG-only stand-in for the `/coach/*` endpoints while the demo data is loaded: a few proposals, a config history

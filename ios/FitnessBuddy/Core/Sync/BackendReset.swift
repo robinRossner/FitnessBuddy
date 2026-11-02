@@ -1,3 +1,4 @@
+import FitnessCore
 import CryptoKit
 import Foundation
 import SwiftData

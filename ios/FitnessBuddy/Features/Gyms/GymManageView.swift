@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Add, rename and delete gyms; tap one to see its machines.

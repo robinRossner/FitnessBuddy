@@ -1,31 +1,5 @@
+import FitnessCore
 import SwiftUI
-
-/// What an "Ask coach" question is about.
-struct AskCoachContext: Identifiable, Equatable {
-    var scope: CoachScope
-    var refId: String?
-    /// "Incline Dumbbell Press", "Easy run, Oct 24", "This week".
-    var subject: String
-    /// The Coach tab lets the user pick general / week; entry points on a lift or run do not.
-    var allowsScopeSwitch = false
-
-    var id: String { scope.rawValue + "|" + (refId ?? "") }
-
-    static let general = AskCoachContext(scope: .general, refId: nil, subject: "Training in general", allowsScopeSwitch: true)
-    /// The backend accepts any day of the week as `ref_id`, so today identifies this week.
-    static var thisWeek: AskCoachContext { .init(scope: .week, refId: AppClock.todayString, subject: "This week", allowsScopeSwitch: true) }
-    static func lift(id: Int, name: String) -> AskCoachContext { .init(scope: .lift, refId: String(id), subject: name) }
-    static func run(id: String, name: String) -> AskCoachContext { .init(scope: .run, refId: id, subject: name) }
-
-    var symbol: String {
-        switch scope {
-        case .lift: "dumbbell.fill"
-        case .run: "figure.run"
-        case .week: "calendar"
-        case .general: "figure.mixed.cardio"
-        }
-    }
-}
 
 /// The one sheet behind every "Ask coach" button: a context chip, a question with suggestions, Send.
 /// After sending it opens the new (queued) proposal.

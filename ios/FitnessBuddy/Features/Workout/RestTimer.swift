@@ -1,3 +1,4 @@
+import FitnessCore
 import AVFoundation
 import Foundation
 import Observation

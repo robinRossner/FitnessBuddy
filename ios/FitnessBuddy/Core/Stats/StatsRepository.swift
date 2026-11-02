@@ -1,48 +1,6 @@
+import FitnessCore
 import Foundation
 import Observation
-
-/// A typed stats endpoint. The cache key is path + sorted query, so each parameter set is cached separately.
-struct StatsEndpoint<Response: Decodable & Sendable>: Sendable {
-    let path: String
-    var query: [URLQueryItem] = []
-
-    var key: String {
-        path + "?" + query.sorted { $0.name < $1.name }.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&")
-    }
-}
-
-/// Every stats endpoint the app reads. The only place that knows the paths.
-enum StatsEndpoints {
-    static let lifts = StatsEndpoint<LiftsStatsDTO>(path: "/api/v1/stats/lifts")
-
-    /// Full history of one lift variant; ranges (3M / 6M / 1Y / All) are cut on the device so one cache entry serves all.
-    static func liftDetail(_ variantId: Int) -> StatsEndpoint<LiftDetailDTO> {
-        StatsEndpoint(path: "/api/v1/stats/lifts/\(variantId)")
-    }
-    static func weeklyVolume(weeks: Int = 26) -> StatsEndpoint<WeeklyVolumeDTO> {
-        StatsEndpoint(path: "/api/v1/stats/volume/weekly", query: [URLQueryItem(name: "weeks", value: String(weeks))])
-    }
-    static func running(weeks: Int = 26) -> StatsEndpoint<RunningStatsDTO> {
-        StatsEndpoint(path: "/api/v1/stats/running", query: [URLQueryItem(name: "weeks", value: String(weeks))])
-    }
-    static func runAnalysis(_ runId: String) -> StatsEndpoint<RunAnalysisDTO> {
-        StatsEndpoint(path: "/api/v1/runs/\(runId)/analysis")
-    }
-    static func recentRuns(limit: Int = 30) -> StatsEndpoint<[RunSummaryDTO]> {
-        StatsEndpoint(path: "/api/v1/runs", query: [URLQueryItem(name: "limit", value: String(limit))])
-    }
-    static func health(days: Int = 90) -> StatsEndpoint<HealthStatsDTO> {
-        StatsEndpoint(path: "/api/v1/stats/health", query: [URLQueryItem(name: "days", value: String(days))])
-    }
-    static func correlations(days: Int = 120) -> StatsEndpoint<CorrelationsDTO> {
-        StatsEndpoint(path: "/api/v1/stats/correlations", query: [URLQueryItem(name: "days", value: String(days))])
-    }
-}
-
-struct CachedStats<Response: Sendable>: Sendable {
-    var value: Response
-    var fetchedAt: Date
-}
 
 /// Fetches stats and keeps the raw JSON on disk. Views read the cache first and refresh in the background.
 @MainActor

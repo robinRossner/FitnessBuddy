@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Behind the Coach tab's gear: the approval mode (the one coach setting the app can change), what the server runs

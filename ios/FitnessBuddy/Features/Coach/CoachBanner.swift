@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Today: "Coach has 1 proposal to review", tap opens it (or the Coach tab when there are several).

@@ -3,15 +3,20 @@
     {
       "id" : "6F2B3C1E-4D5A-4E7B-9C8D-0A1B2C3D4E01",
       "name" : "Default",
-      "options" : {
-
-      }
+      "options" : {}
     }
   ],
   "defaultOptions" : {
     "codeCoverage" : true
   },
   "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:FitnessCore",
+        "identifier" : "FitnessCoreTests",
+        "name" : "FitnessCoreTests"
+      }
+    },
     {
       "target" : {
         "containerPath" : "container:FitnessBuddy.xcodeproj",

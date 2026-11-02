@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Lays children out left to right and wraps to the next line, so chips never truncate at large Dynamic Type.

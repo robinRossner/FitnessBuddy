@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 struct SetRowView: View {

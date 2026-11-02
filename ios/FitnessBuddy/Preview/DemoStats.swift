@@ -1,4 +1,5 @@
 #if DEBUG
+import FitnessCore
 import Foundation
 
 /// DEBUG-only synthetic answers for the stats endpoints, used while the demo data is loaded (no backend needed).

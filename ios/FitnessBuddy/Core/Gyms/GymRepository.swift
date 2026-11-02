@@ -1,46 +1,6 @@
+import FitnessCore
 import Foundation
 import Observation
-
-/// Every gym endpoint the app uses. The only place that knows the paths.
-enum GymEndpoints {
-    static let gyms = "/api/v1/gyms"
-    static let current = "/api/v1/gyms/current"
-    static let ladderPreview = "/api/v1/weight-ladder/preview"
-    static func gym(_ id: Int) -> String { gyms + "/\(id)" }
-    static func machines(_ gymId: Int) -> String { gym(gymId) + "/machines" }
-    static func variant(_ id: Int) -> String { "/api/v1/variants/\(id)" }
-}
-
-/// Failure of a gym action, in words for the screen.
-enum GymError: LocalizedError, Equatable {
-    case needsConnection
-    case notConfigured
-    /// 409: duplicate name, gym with sessions, current gym, machine already exists.
-    case conflict(String)
-    case failed(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .needsConnection: "Needs a connection"
-        case .notConfigured: "Connect your backend in Settings first"
-        case .conflict(let m), .failed(let m): m
-        }
-    }
-
-    static func map(_ error: Error) -> GymError {
-        if let e = error as? GymError { return e }
-        if let api = error as? APIError {
-            switch api {
-            case .transport: return .needsConnection
-            case .notConfigured: return .notConfigured
-            case .http(409, let body): return .conflict(CoachError.detail(body) ?? "This conflicts with existing data.")
-            case .http(let code, let body): return .failed(CoachError.detail(body) ?? "Server error \(code)")
-            default: return .failed(api.errorDescription ?? "Something went wrong")
-            }
-        }
-        return .failed(error.localizedDescription)
-    }
-}
 
 /// Gyms and per-gym machines: lists are cached raw on disk and shown at once (also offline), refreshed in the
 /// background. Every write needs the network and is never queued.
@@ -297,26 +257,6 @@ final class GymRepository {
             let ladder = try APICoding.makeDecoder().decode(LadderPreviewResponse.self, from: data).weightLadder
             return ladder.isEmpty ? local : ladder
         } catch { return local }
-    }
-}
-
-/// What the machine editor sends.
-struct MachineDraft: Equatable {
-    var name: String
-    var equipmentType: String
-    var notes: String
-    var ladder: [Double]
-
-    var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    /// A save is allowed with a name, and (for stack machines) at least one step.
-    var isValid: Bool { !trimmedName.isEmpty && (!MachineLogic.needsLadder(equipmentType) || !ladder.isEmpty) }
-}
-
-extension String {
-    var trimmedOrNil: String? {
-        let t = trimmingCharacters(in: .whitespacesAndNewlines)
-        return t.isEmpty ? nil : t
     }
 }
 

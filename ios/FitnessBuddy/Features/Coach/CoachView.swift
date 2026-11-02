@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Coach tab: what needs a decision (compact Approve / Decline cards), this week's check-ins with a quiet

@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// "Z1–Z2" capsule coloured by the hottest zone it names; a bpm range ("127–156 bpm") when no zone can be derived.

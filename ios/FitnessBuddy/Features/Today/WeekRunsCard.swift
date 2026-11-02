@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// "This week's running": the week's planned runs (plus moved and make-up ones) with their status, and a quiet
