@@ -22,6 +22,7 @@ Days without a stored plan get a `status: "preview"` entry with `id: null` (comp
 from __future__ import annotations
 
 from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -30,13 +31,16 @@ from sqlalchemy.orm import Session
 from apps.fitness.advisor import service as service_advisor
 from apps.fitness.analytics import health
 from apps.fitness.api.routes import get_db
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import service
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import service
 from apps.fitness.jobs import engine_jobs
-from apps.fitness.settings import get_settings
+from apps.fitness.settings import Settings, get_settings
 from core.auth import require_token
 
 router = APIRouter(dependencies=[Depends(require_token)])
+
+# One settings object per request, handed down to the engine services.
+SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
 def _today() -> date:
@@ -44,10 +48,10 @@ def _today() -> date:
 
 
 @router.get("/plan/today")
-def plan_today(db: Session = Depends(get_db)) -> dict:
+def plan_today(settings: SettingsDep, db: Session = Depends(get_db)) -> dict:
     today = _today()
-    day = service.plan_for_api(db, today, 1)[0]
-    r = service.readiness_for(db, today)
+    day = service.plan_for_api(db, today, 1, settings=settings)[0]
+    r = service.readiness_for(db, today, settings)
     return {
         "date": today.isoformat(),
         "readiness": r.as_dict(),
@@ -59,18 +63,21 @@ def plan_today(db: Session = Depends(get_db)) -> dict:
 
 @router.get("/plan/week")
 def plan_week(
+    settings: SettingsDep,
     start: date | None = Query(None, description="any date; the week (Mon-Sun) containing it"),
     db: Session = Depends(get_db),
 ) -> dict:
     ws = service.monday(start or _today())
-    return {"start": ws.isoformat(), "days": service.plan_for_api(db, ws, 7)}
+    return {"start": ws.isoformat(), "days": service.plan_for_api(db, ws, 7, settings=settings)}
 
 
 @router.get("/readiness")
 def readiness(
-    date_: date | None = Query(None, alias="date"), db: Session = Depends(get_db)
+    settings: SettingsDep,
+    date_: date | None = Query(None, alias="date"),
+    db: Session = Depends(get_db),
 ) -> dict:
-    return service.readiness_for(db, date_ or _today()).as_dict()
+    return service.readiness_for(db, date_ or _today(), settings).as_dict()
 
 
 def _version(v) -> dict:
@@ -87,8 +94,8 @@ def _version(v) -> dict:
 
 
 @router.get("/config")
-def get_config(db: Session = Depends(get_db)) -> dict:
-    cs.ensure_seeded(db, get_settings().engine_config_path)
+def get_config(settings: SettingsDep, db: Session = Depends(get_db)) -> dict:
+    cs.ensure_seeded(db, settings.engine_config_path)
     active = cs.get_active(db)
     return {
         "active": {**_version(active), "content": active.content},
@@ -112,11 +119,14 @@ class DeloadCancel(BaseModel):
 
 
 @router.post("/engine/deload/cancel")
-def cancel_deload(body: DeloadCancel, db: Session = Depends(get_db)) -> dict:
+def cancel_deload(body: DeloadCancel, settings: SettingsDep, db: Session = Depends(get_db)) -> dict:
     """Cancel the lifting deload of a week (docs/api/engine.md). Idempotent."""
     try:
         res = service.cancel_deload(
-            db, week_start=body.week_start, reason=(body.reason or "").strip() or None
+            db,
+            week_start=body.week_start,
+            reason=(body.reason or "").strip() or None,
+            settings=settings,
         )
     except cs.ConfigError as exc:
         raise HTTPException(409, str(exc)) from None

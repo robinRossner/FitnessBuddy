@@ -7,9 +7,9 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.fitness.engine import lifting as L
-from apps.fitness.engine.config import load_engine_config
-from apps.fitness.engine.increments import previous_load, round_down_load
+from apps.fitness.engine.core import lifting as L
+from apps.fitness.engine.core.config import load_engine_config
+from apps.fitness.engine.core.increments import previous_load, round_down_load
 from apps.fitness.settings import FITNESS_DIR
 
 CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")

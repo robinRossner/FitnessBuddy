@@ -18,10 +18,10 @@ from apps.fitness.analytics.running import (
     target_interval_pace,
 )
 from apps.fitness.db.models import Lap, PlannedSession, Run
-from apps.fitness.engine import data as D
-from apps.fitness.engine import running as R
-from apps.fitness.engine.pace import fmt_pace
-from apps.fitness.engine.persist import planned_to_dict
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core.pace import fmt_pace
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store.persist import planned_to_dict
 from apps.fitness.sources.garmin.mapping import RUN_TYPES
 
 

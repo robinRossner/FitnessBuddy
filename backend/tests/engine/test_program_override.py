@@ -6,8 +6,8 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from apps.fitness.engine import service as engine
-from apps.fitness.engine.program import BACKUPS_KEEP, backup_program
+from apps.fitness.engine.core.program import BACKUPS_KEEP, backup_program
+from apps.fitness.engine.store import service as engine
 from apps.fitness.settings import get_settings
 from tests.support.world import PROGRAM_YAML, TODAY
 
@@ -126,7 +126,7 @@ def test_duplicate_exercise_is_422(world, client):
 
 
 def test_variant_override_follows_the_picked_variant(world, db, env, client):
-    from apps.fitness.engine import config_service as cs
+    from apps.fitness.engine.store import config_service as cs
 
     cs.ensure_seeded(db, env.engine_config_path)
     cs.create_version(

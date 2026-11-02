@@ -9,7 +9,7 @@ from statistics import fmean
 from typing import Any
 
 from apps.fitness.db.types import iso_z, utcnow
-from apps.fitness.engine import service
+from apps.fitness.engine.store import service
 from apps.fitness.settings import get_settings
 
 

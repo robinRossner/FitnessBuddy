@@ -7,9 +7,9 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 
 from apps.fitness.db.models import AthleteMetric, ConfigVersion, DecisionLog
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.hr import zones_from_config
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.settings import FITNESS_DIR
 
 V3_PATH = FITNESS_DIR / "config" / "engine.v3.yaml"
@@ -170,12 +170,12 @@ def test_on_new_data_hook_applies_garmin_values_and_never_raises(seeded, monkeyp
     assert "LTHR 171→179" in active.reason
     # a failing engine run must not break the sync
     monkeypatch.setattr(garmin_jobs, "get_settings", lambda: SimpleNamespace(engine_auto_run=True))
-    monkeypatch.setattr("apps.fitness.engine.service.run_engine", lambda *a, **k: 1 / 0)
+    monkeypatch.setattr("apps.fitness.engine.store.service.run_engine", lambda *a, **k: 1 / 0)
     garmin_jobs.on_new_data(SimpleNamespace(results=[]))
 
 
 def test_decision_log_dedupes_per_rule_on_a_shared_subject(seeded):
-    from apps.fitness.engine.decisions import log_decision
+    from apps.fitness.engine.store.decisions import log_decision
 
     kw = {"kind": "running", "subject_type": "week", "subject_id": "w1", "rationale": "x"}
     for _ in range(2):  # two rules on one subject, logged alternately: still one row each

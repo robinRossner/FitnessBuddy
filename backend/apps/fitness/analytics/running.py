@@ -19,13 +19,13 @@ from apps.fitness.analytics import common, planned
 from apps.fitness.analytics.common import num
 from apps.fitness.analytics.zones import ZONES5, time_in_zones
 from apps.fitness.db.models import PlannedSession, Run
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import data as D
-from apps.fitness.engine import running as R
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.hr import HrZones, ZoneBook, zone_book
-from apps.fitness.engine.pace import VdotPaceModel, make_pace_model
-from apps.fitness.engine.vdot import VdotRecord
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.hr import HrZones, ZoneBook, zone_book
+from apps.fitness.engine.core.pace import VdotPaceModel, make_pace_model
+from apps.fitness.engine.core.vdot import VdotRecord
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import data as D
 from apps.fitness.settings import get_settings
 
 PLANNED_TYPES = {"easy_run": "easy", "long_run": "long", "intervals": "intervals"}
@@ -130,8 +130,8 @@ def session_type(ctx: Ctx, run: R.RunData) -> str:
 
 def hr_lines(ctx: Ctx, run: R.RunData) -> tuple[float | None, float | None]:
     """(green line, safety ceiling) in bpm of the run's quality session type, on its own zones."""
-    from apps.fitness.engine.quality import hr_lines as quality_hr_lines
-    from apps.fitness.engine.quality import type_spec
+    from apps.fitness.engine.core.quality import hr_lines as quality_hr_lines
+    from apps.fitness.engine.core.quality import type_spec
 
     spec = type_spec(ctx.rc, session_type(ctx, run))
     green, ceiling = quality_hr_lines(ctx.zones_for(run), spec)

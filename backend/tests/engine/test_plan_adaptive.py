@@ -9,9 +9,9 @@ from alembic import command
 from sqlalchemy import create_engine, text
 
 from apps.fitness.db.models import PlannedSession
-from apps.fitness.engine import data as D
-from apps.fitness.engine import persist as P
-from apps.fitness.engine import service as engine
+from apps.fitness.engine.store import data as D
+from apps.fitness.engine.store import persist as P
+from apps.fitness.engine.store import service as engine
 from tests.support.db import alembic_config
 from tests.support.world import TODAY
 

@@ -2,9 +2,9 @@
 
 import pytest
 
-from apps.fitness.engine.config import EngineConfig, HeartRateConfig, load_engine_config
-from apps.fitness.engine.hr import compute_zones, zones_from_config
-from apps.fitness.engine.pace import (
+from apps.fitness.engine.core.config import EngineConfig, HeartRateConfig, load_engine_config
+from apps.fitness.engine.core.hr import compute_zones, zones_from_config
+from apps.fitness.engine.core.pace import (
     FRAC_INTERVAL,
     FRAC_THRESHOLD,
     PaceModel,

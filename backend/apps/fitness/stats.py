@@ -276,7 +276,7 @@ def rebuild_stats(
 
 def rebuild_with_config(db: Session, variant_ids: Collection[int] | None = None) -> int:
     """`rebuild_stats` with the active engine config (bodyweight fallback, e1RM rep limits)."""
-    from apps.fitness.engine.config import load_engine_config
+    from apps.fitness.engine.core.config import load_engine_config
     from apps.fitness.settings import get_settings
 
     cfg = load_engine_config(get_settings().engine_config_path)

@@ -5,14 +5,14 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.fitness.engine import easy_pace as EP
-from apps.fitness.engine import quality as Q
-from apps.fitness.engine import running as R
-from apps.fitness.engine import vdot as V
-from apps.fitness.engine.config import EasyCalibrationConfig, EngineConfig
-from apps.fitness.engine.hr import zones_from_config
-from apps.fitness.engine.pace import FRAC_EASY_FAST, easy_range_for_vdot, vdot_for_pace
-from apps.fitness.engine.planner import PlanInputs, generate_week
+from apps.fitness.engine.core import easy_pace as EP
+from apps.fitness.engine.core import quality as Q
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core import vdot as V
+from apps.fitness.engine.core.config import EasyCalibrationConfig, EngineConfig
+from apps.fitness.engine.core.hr import zones_from_config
+from apps.fitness.engine.core.pace import FRAC_EASY_FAST, easy_range_for_vdot, vdot_for_pace
+from apps.fitness.engine.core.planner import PlanInputs, generate_week
 from tests.support.db import alembic_config
 
 CAL = EasyCalibrationConfig()  # window 28 d, 3 runs, >= 25 min, HR <= 154, +4 VDOT max
@@ -260,7 +260,7 @@ def test_migration_0013_adds_the_calibration_keys(tmp_path):
     from alembic import command
     from sqlalchemy import create_engine, text
 
-    from apps.fitness.engine.config import EngineConfig
+    from apps.fitness.engine.core.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
     acfg = alembic_config(url)

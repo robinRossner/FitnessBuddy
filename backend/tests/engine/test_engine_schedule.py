@@ -2,8 +2,8 @@
 
 from datetime import date, timedelta
 
-from apps.fitness.engine import scheduling as S
-from apps.fitness.engine.config import load_engine_config
+from apps.fitness.engine.core import scheduling as S
+from apps.fitness.engine.core.config import load_engine_config
 from apps.fitness.settings import FITNESS_DIR
 
 TEMPLATE = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml").weekly_template

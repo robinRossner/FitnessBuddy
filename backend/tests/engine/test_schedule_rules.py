@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from apps.fitness.engine.config import EngineConfig
-from apps.fitness.engine.schedule_rules import (
+from apps.fitness.engine.core.config import EngineConfig
+from apps.fitness.engine.core.schedule_rules import (
     Edit,
     Layout,
     Rules,
@@ -134,7 +134,7 @@ def test_volume_problem_only_when_the_change_adds_minimum_km():
 
 
 def test_v4_seed_file_carries_the_schedule_defaults():
-    from apps.fitness.engine.config import ScheduleConfig, load_engine_config
+    from apps.fitness.engine.core.config import ScheduleConfig, load_engine_config
     from apps.fitness.settings import FITNESS_DIR
 
     v4 = load_engine_config(FITNESS_DIR / "config" / "engine.v4.yaml")

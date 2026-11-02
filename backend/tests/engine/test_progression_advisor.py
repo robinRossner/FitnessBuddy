@@ -11,7 +11,7 @@ import yaml
 from apps.fitness.advisor import prompt, summary
 from apps.fitness.advisor import service as S
 from apps.fitness.advisor import validator as V
-from apps.fitness.engine import service as engine
+from apps.fitness.engine.store import service as engine
 from apps.fitness.settings import FITNESS_DIR
 from tests.support.world import TODAY
 

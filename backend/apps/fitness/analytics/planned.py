@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.analytics import common
 from apps.fitness.db.models import PlannedSession
-from apps.fitness.engine import config_service as cs
+from apps.fitness.engine.store import config_service as cs
 from apps.fitness.settings import get_settings
 
 LIFTING_KINDS = frozenset({"upper", "lower"})

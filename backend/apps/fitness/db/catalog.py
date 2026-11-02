@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import Exercise
 from apps.fitness.db.types import EquipmentType
+from apps.fitness.engine.core.config_files import cached_yaml
 
 BODY_REGIONS = ("Chest", "Back", "Shoulders", "Arms", "Legs", "Core", "Other")
 MUSCLE_REGION = {
@@ -53,7 +53,7 @@ class CatalogExercise:
 
 
 def load_catalog(path: Path) -> dict[str, CatalogExercise]:
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = cached_yaml(path)  # shared parse (cached until the file changes): read only
     out: dict[str, CatalogExercise] = {}
     for item in data["exercises"]:
         region = item.get("body_region") or region_of_muscle(item["primary_muscle"])

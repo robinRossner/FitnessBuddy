@@ -6,14 +6,19 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.fitness.engine import interval_vdot as IV
-from apps.fitness.engine import quality as Q
-from apps.fitness.engine import running as R
-from apps.fitness.engine import vdot as V
-from apps.fitness.engine.config import VdotConfig, VdotFromIntervalsConfig, load_engine_config
-from apps.fitness.engine.hr import zones_from_config
-from apps.fitness.engine.pace import FRAC_INTERVAL, FRAC_THRESHOLD, pace_at_fraction, vdot_for_pace
-from apps.fitness.engine.planner import PlanInputs, generate_week
+from apps.fitness.engine.core import interval_vdot as IV
+from apps.fitness.engine.core import quality as Q
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core import vdot as V
+from apps.fitness.engine.core.config import VdotConfig, VdotFromIntervalsConfig, load_engine_config
+from apps.fitness.engine.core.hr import zones_from_config
+from apps.fitness.engine.core.pace import (
+    FRAC_INTERVAL,
+    FRAC_THRESHOLD,
+    pace_at_fraction,
+    vdot_for_pace,
+)
+from apps.fitness.engine.core.planner import PlanInputs, generate_week
 from apps.fitness.settings import FITNESS_DIR
 from tests.support.db import alembic_config
 
@@ -280,7 +285,7 @@ def test_migration_0014_adds_the_keys(tmp_path):
     from alembic import command
     from sqlalchemy import create_engine, text
 
-    from apps.fitness.engine.config import EngineConfig
+    from apps.fitness.engine.core.config import EngineConfig
 
     url = f"sqlite:///{tmp_path / 'm.db'}"
     acfg = alembic_config(url)

@@ -6,10 +6,10 @@ from __future__ import annotations
 import pytest
 
 from apps.fitness.advisor import validator as V
-from apps.fitness.engine import config_service as cs
-from apps.fitness.engine import rest as R
-from apps.fitness.engine import service as engine
-from apps.fitness.engine.config import EngineConfig, load_engine_config
+from apps.fitness.engine.core.config import EngineConfig, load_engine_config
+from apps.fitness.engine.store import config_service as cs
+from apps.fitness.engine.store import rest as R
+from apps.fitness.engine.store import service as engine
 from apps.fitness.settings import FITNESS_DIR
 from tests.support.world import TODAY
 

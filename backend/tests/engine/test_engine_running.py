@@ -5,9 +5,9 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.fitness.engine import running as R
-from apps.fitness.engine.config import load_engine_config
-from apps.fitness.engine.hr import zones_from_config
+from apps.fitness.engine.core import running as R
+from apps.fitness.engine.core.config import load_engine_config
+from apps.fitness.engine.core.hr import zones_from_config
 from apps.fitness.settings import FITNESS_DIR
 
 CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml")
