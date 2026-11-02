@@ -179,7 +179,7 @@ struct ExerciseSettingsTests {
 @Suite(.tags(.workout))
 struct FinishReminderTests {
     @Test func lastSetArmsTheReminderThreeMinutesAfterTheRest() throws {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel(); timer.cancelFinishReminder() }
         timer.start(seconds: 120, variantId: 5, finishReminder: true)
         let end = try #require(timer.endDate)
@@ -189,7 +189,7 @@ struct FinishReminderTests {
     }
 
     @Test func skippingTheRestCountsFromNowAndAnotherSetCancels() throws {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel(); timer.cancelFinishReminder() }
         timer.start(seconds: 120, variantId: 5, finishReminder: true)
         timer.cancel()

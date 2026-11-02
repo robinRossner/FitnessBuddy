@@ -9,6 +9,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var env = env
+        @Bindable var flow = env.workoutFlow
         TabView(selection: $env.selectedTab) {
             Tab("Summary", systemImage: "heart.text.square.fill", value: AppTab.summary) { TodayView() }
             Tab("Workout", systemImage: "dumbbell.fill", value: AppTab.workout) { WorkoutTabView() }
@@ -17,6 +18,6 @@ struct RootView: View {
             Tab("Coach", systemImage: "sparkles", value: AppTab.coach) { CoachView() }
                 .badge(states.first?.coachPendingCount ?? 0)
         }
-        .sheet(isPresented: $env.showWorkoutChooser) { WorkoutChooserSheet() }
+        .sheet(isPresented: $flow.showChooser) { WorkoutChooserSheet() }
     }
 }

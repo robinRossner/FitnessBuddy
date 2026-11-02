@@ -275,7 +275,7 @@ struct RestUploadTests {
 @Suite(.tags(.workout))
 struct RestTimerRetargetTests {
     @Test func aRunningRestFollowsTheNewTimeOfItsExercise() {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel() }
         timer.start(seconds: 120, variantId: 5)
         timer.retarget(variantId: 5, to: 180)
@@ -284,7 +284,7 @@ struct RestTimerRetargetTests {
     }
 
     @Test func otherExercisesAndIdleTimersAreIgnored() {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel() }
         timer.retarget(variantId: 5, to: 180)
         #expect(!timer.isRunning)
@@ -294,7 +294,7 @@ struct RestTimerRetargetTests {
     }
 
     @Test func plusMinusFifteenIsAOneOffAdjustment() {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel() }
         timer.start(seconds: 120, variantId: 5)
         timer.adjust(by: 15)
@@ -305,7 +305,7 @@ struct RestTimerRetargetTests {
     }
 
     @Test func aShorterTimeNeverEndsInThePast() {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel() }
         timer.start(seconds: 300, variantId: 5)
         timer.retarget(variantId: 5, to: 60, now: Date().addingTimeInterval(100))  // already 100 s into the rest

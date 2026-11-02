@@ -98,7 +98,7 @@ enum PreviewData {
         if startWorkout {
             let rows = (try? container.mainContext.fetch(FetchDescriptor<CachedPlannedSession>())) ?? []
             if let row = rows.first(where: { $0.date == AppClock.todayString && $0.kind == "upper" }) {
-                env.startWorkout(from: row)
+                env.workoutFlow.start(from: row)
             }
         }
         return env

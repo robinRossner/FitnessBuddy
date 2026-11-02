@@ -53,7 +53,7 @@ struct WorkoutChooserSheet: View {
                 .listStyle(.insetGrouped)
 
                 Button {
-                    if let selected { env.startWorkout(selected) }
+                    if let selected { env.workoutFlow.start(selected) }
                     dismiss()
                 } label: {
                     Label("Start", systemImage: "play.fill").font(.headline).frame(maxWidth: .infinity, minHeight: 36)

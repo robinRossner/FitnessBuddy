@@ -9,7 +9,7 @@ private func makeEnv() throws -> AppEnvironment {
     let defaults = UserDefaults(suiteName: "backend-reset-tests")!
     defaults.removePersistentDomain(forName: "backend-reset-tests")
     let settings = SettingsStore(defaults: defaults, loadToken: false)
-    return AppEnvironment(container: try Persistence.makeContainer(inMemory: true), settings: settings)
+    return AppEnvironment(container: try Persistence.makeContainer(inMemory: true), settings: settings, testing: true)
 }
 
 @MainActor
@@ -87,7 +87,7 @@ struct BackendChangeTests {
 
     @Test func savingANewBackendWipesCacheAndResetsCursor() async throws {
         let env = try makeEnv()
-        await env.saveBackend(url: "https://one.example.com", token: "tok-1")
+        await env.backend.saveBackend(url: "https://one.example.com", token: "tok-1")
         try seed(env)
         let state = SyncState.current(in: env.context)
         state.backendFingerprint = env.settings.fingerprint  // as left behind by a finished sync
@@ -97,9 +97,9 @@ struct BackendChangeTests {
         let mine = LocalSession(name: "Mine", endedAt: .now)
         env.context.insert(mine)
         try env.context.save()
-        #expect(env.unsyncedRecordCount == 1)
+        #expect(env.backend.unsyncedRecordCount == 1)
 
-        await env.saveBackend(url: "https://two.example.com/", token: "tok-1")
+        await env.backend.saveBackend(url: "https://two.example.com/", token: "tok-1")
 
         let ctx = env.context
         #expect(SyncState.current(in: ctx).cursor == nil)
@@ -119,24 +119,24 @@ struct BackendChangeTests {
 
     @Test func changingOnlyTheTokenWipesToo() async throws {
         let env = try makeEnv()
-        await env.saveBackend(url: "https://one.example.com", token: "tok-1")
+        await env.backend.saveBackend(url: "https://one.example.com", token: "tok-1")
         try seed(env)
         SyncState.current(in: env.context).backendFingerprint = env.settings.fingerprint
         SyncState.current(in: env.context).cursor = "c123"
 
-        await env.saveBackend(url: "https://one.example.com", token: "tok-2")
+        await env.backend.saveBackend(url: "https://one.example.com", token: "tok-2")
         #expect(SyncState.current(in: env.context).cursor == nil)
         #expect(try env.context.fetch(FetchDescriptor<CachedGym>()).isEmpty)
     }
 
     @Test func resavingTheSameBackendKeepsTheCache() async throws {
         let env = try makeEnv()
-        await env.saveBackend(url: "https://one.example.com", token: "tok-1")
+        await env.backend.saveBackend(url: "https://one.example.com", token: "tok-1")
         try seed(env)
         SyncState.current(in: env.context).backendFingerprint = env.settings.fingerprint
         SyncState.current(in: env.context).cursor = "c123"
 
-        await env.saveBackend(url: " https://one.example.com/ ", token: "tok-1\n")
+        await env.backend.saveBackend(url: " https://one.example.com/ ", token: "tok-1\n")
         #expect(SyncState.current(in: env.context).cursor == "c123")
         #expect(try env.context.fetch(FetchDescriptor<CachedGym>()).count == 1)
     }
@@ -147,7 +147,7 @@ struct BackendChangeTests {
         #expect(SyncState.current(in: env.context).demoActive)
         #expect(!(try env.context.fetch(FetchDescriptor<LocalSession>())).isEmpty)
 
-        await env.saveBackend(url: "http://localhost:8000", token: "tok")
+        await env.backend.saveBackend(url: "http://localhost:8000", token: "tok")
 
         let ctx = env.context
         #expect(!SyncState.current(in: ctx).demoActive)
@@ -161,13 +161,13 @@ struct BackendChangeTests {
 
     @Test func resetLocalDataKeepsUnsyncedWorkouts() async throws {
         let env = try makeEnv()
-        await env.saveBackend(url: "https://one.example.com", token: "tok-1")
+        await env.backend.saveBackend(url: "https://one.example.com", token: "tok-1")
         try seed(env)
         let mine = LocalSession(name: "Mine", endedAt: .now)
         env.context.insert(mine)
         try env.context.save()
 
-        await env.resetLocalDataAndResync()
+        await env.backend.resetLocalDataAndResync()
 
         #expect(try env.context.fetch(FetchDescriptor<LocalSession>()).map(\.name) == ["Mine"])
         #expect(SyncState.current(in: env.context).cursor == nil)

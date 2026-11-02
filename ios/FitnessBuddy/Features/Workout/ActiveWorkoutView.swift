@@ -125,10 +125,10 @@ struct ActiveWorkoutView: View {
             let changed = TemplateChange.offer(for: session, sets: sets, in: context)
             let finishTitle = drop ? "Finish and drop \(uncompletedCount) unchecked set\(uncompletedCount == 1 ? "" : "s")" : "Finish workout"
             if let changed {
-                Button("\(finishTitle), update template") { env.finishWorkout(session, updateTemplate: changed) }
-                Button("\(finishTitle), keep template") { env.finishWorkout(session) }
+                Button("\(finishTitle), update template") { env.workoutFlow.finish(session, updateTemplate: changed) }
+                Button("\(finishTitle), keep template") { env.workoutFlow.finish(session) }
             } else {
-                Button(finishTitle) { env.finishWorkout(session) }
+                Button(finishTitle) { env.workoutFlow.finish(session) }
             }
             Button("Keep going", role: .cancel) {}
         } message: {
@@ -151,7 +151,7 @@ struct ActiveWorkoutView: View {
             Text("All its sets are removed from this workout.")
         }
         .confirmationDialog("Discard this workout?", isPresented: $confirmDiscard, titleVisibility: .visible) {
-            Button("Discard workout", role: .destructive) { env.discardWorkout(session) }
+            Button("Discard workout", role: .destructive) { env.workoutFlow.discard(session) }
             Button("Keep going", role: .cancel) {}
         }
     }

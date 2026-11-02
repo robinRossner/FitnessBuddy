@@ -48,10 +48,15 @@ final class RestTimer {
     @ObservationIgnored var onEvent: ((RestTimerEvent) -> Void)?
     @ObservationIgnored private var finishTask: Task<Void, Never>?
     @ObservationIgnored private let center: UNUserNotificationCenter?
-    @ObservationIgnored private let bell = BellPlayer()
+    @ObservationIgnored private let silent: Bool
+    @ObservationIgnored private let bell: BellPlayer
 
-    init(center: UNUserNotificationCenter? = nil) {
+    /// `silent`: no system notification center and no sound (unit tests run hosted in the app); an injected `center`
+    /// is still used.
+    init(center: UNUserNotificationCenter? = nil, silent: Bool = false) {
         self.center = center
+        self.silent = silent
+        self.bell = BellPlayer(enabled: !silent)
     }
 
     var isRunning: Bool { endDate != nil }
@@ -144,8 +149,8 @@ final class RestTimer {
     // MARK: Notifications
 
     private var notificationCenter: UNUserNotificationCenter? {
-        // Unit tests run hosted in the app; only touch the real center when explicitly injected or in a real run.
-        center ?? (AppEnvironment.isRunningTests ? nil : .current())
+        // Only touch the real center when explicitly injected or when not silent (unit tests run hosted in the app).
+        center ?? (silent ? nil : .current())
     }
 
     /// Asks once (the system remembers the answer). Called at launch too, so the first rest's notification is not
@@ -194,11 +199,14 @@ final class RestTimer {
 /// again once the bell has rung so it does not linger as the app's audio claim.
 @MainActor
 final class BellPlayer {
+    private let enabled: Bool
     private var player: AVAudioPlayer?
     private var releaseTask: Task<Void, Never>?
 
+    init(enabled: Bool = true) { self.enabled = enabled }
+
     func play() {
-        guard !AppEnvironment.isRunningTests else { return }
+        guard enabled else { return }
         if player == nil {
             let name = (WorkoutNotifications.bellFile as NSString).deletingPathExtension
             let ext = (WorkoutNotifications.bellFile as NSString).pathExtension
