@@ -145,16 +145,15 @@ def _verdict(
         }
     ev = R.evaluate_easy_run(rd, zones, ctx.rc.easy, after_lower=after_lower)
     reasons = list(ev.reasons) + list(ev.notes)
+    share_label = R.easy_share_label(ev.pct_source, zones.easy_high)
     if not reasons:
         if ev.avg_hr is not None:
             reasons.append(f"avg HR {ev.avg_hr:.0f} within the easy ceiling {zones.easy_high}")
         if ev.pct_at_or_below_cap is not None:
-            reasons.append(
-                f"{ev.pct_at_or_below_cap:.0f}% of the time at or below {zones.easy_high}"
-            )
+            reasons.append(f"{ev.pct_at_or_below_cap:.0f}% of the time {share_label}")
     hr = f"avg HR {ev.avg_hr:.0f}" if ev.avg_hr is not None else "no HR data"
     share = (
-        f", {ev.pct_at_or_below_cap:.0f}% at or below {zones.easy_high}"
+        f", {ev.pct_at_or_below_cap:.0f}% {share_label}"
         if ev.pct_at_or_below_cap is not None
         else ""
     )

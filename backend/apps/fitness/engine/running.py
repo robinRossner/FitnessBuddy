@@ -27,6 +27,7 @@ from apps.fitness.engine.pace import PaceObservation
 WORK_INTENSITIES = {"active", "interval"}
 REST_INTENSITIES = {"recovery", "rest"}
 SKIP_INTENSITIES = {"warmup", "cooldown"}
+EASY_GARMIN_ZONES = 3  # Garmin z1..z3 count as easy in the easy-run time share
 
 
 @dataclass(frozen=True)
@@ -105,30 +106,22 @@ def decoupling_pct(laps: Sequence[LapData]) -> float | None:
     return round((e1 - e2) / e1 * 100, 2)
 
 
-def fraction_at_or_below(
+def easy_time_fraction(
     cap: float,
     time_in_zones_s: dict[str, float] | None,
-    floors: Sequence[float] | None,
     laps: Sequence[LapData] = (),
 ) -> tuple[float | None, str]:
-    """Share (0..1) of the time at or below HR `cap`, and how it was estimated.
+    """Share (0..1) of the time that counts as easy, and how it was measured.
 
-    Prefers Garmin's zone seconds (zone floors from athlete_metrics; a zone straddling the cap is
-    split linearly), else the laps (a lap counts fully if its avg HR is <= cap), else None.
+    Prefers Garmin's own seconds in z1..EASY_GARMIN_ZONES, so it follows the zones set on Garmin
+    (resting / max HR) without any bpm conversion here; else the laps (a lap counts fully if its
+    avg HR is <= cap), else None.
     """
-    if time_in_zones_s and floors and len(floors) >= 2:
-        secs = [float(time_in_zones_s.get(f"z{i + 1}", 0.0)) for i in range(len(floors))]
+    if time_in_zones_s:
+        secs = [float(time_in_zones_s.get(f"z{i}", 0.0)) for i in range(1, 6)]
         total = sum(secs)
         if total > 0:
-            below = 0.0
-            for i, s in enumerate(secs):
-                lo = float(floors[i]) if i > 0 else 0.0
-                hi = float(floors[i + 1]) - 1 if i + 1 < len(floors) else 250.0
-                if hi <= cap:
-                    below += s
-                elif lo <= cap:
-                    below += s * (cap - lo + 1) / (hi - lo + 1)
-            return below / total, "garmin_zones"
+            return sum(secs[:EASY_GARMIN_ZONES]) / total, "garmin_zones"
     ls = [lap for lap in laps if lap.avg_hr and lap.duration_s > 0]
     if ls:
         total = sum(lap.duration_s for lap in ls)
@@ -355,6 +348,13 @@ class EasyEval:
         return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.__dict__.items()}
 
 
+def easy_share_label(source: str, cap: float) -> str:
+    """What the time share of `easy_time_fraction` measures, for messages."""
+    if source == "garmin_zones":
+        return f"in Garmin Z1-Z{EASY_GARMIN_ZONES}"
+    return f"at or below {cap}"
+
+
 def evaluate_easy_run(
     run: RunData, zones: HrZones, cfg: EasyRunConfig, *, after_lower: bool = False
 ) -> EasyEval:
@@ -370,12 +370,12 @@ def evaluate_easy_run(
     elif run.avg_hr > cap:
         ok = False
         reasons.append(f"avg HR {run.avg_hr:.0f} above the easy ceiling {cap}")
-    frac, src = fraction_at_or_below(cap, run.time_in_zones_s, run.zone_floors, run.laps)
+    frac, src = easy_time_fraction(cap, run.time_in_zones_s, run.laps)
     pct = None if frac is None else frac * 100
     if pct is not None and pct < cfg.pass_pct_time_at_or_below_cap:
         ok = False
         reasons.append(
-            f"only {pct:.0f}% of the time at/below {cap} (need {cfg.pass_pct_time_at_or_below_cap:g}%)"  # noqa: E501
+            f"only {pct:.0f}% of the time {easy_share_label(src, cap)} (need {cfg.pass_pct_time_at_or_below_cap:g}%)"  # noqa: E501
         )
     dec = decoupling_pct(run.laps)
     flag = dec is not None and dec > cfg.decoupling_flag_pct

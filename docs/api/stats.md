@@ -483,7 +483,8 @@ Works for any run id of `/api/v1/runs`. Examples: `stats_run_analysis_intervals.
 - `verdict.passed`: interval runs -> the engine's `evaluate_intervals` (by pace: >= 80 % of the
   reps on pace, a fade of at most 3 %, all prescribed reps; HR above the ceiling only turns the
   summary into "on pace, but HR above the ceiling"); easy / long -> `evaluate_easy_run` (avg HR
-  at or below the ceiling and enough time under it; the day after a lower-body session an HR
+  at or below the ceiling and enough time in Garmin Z1-Z3, or under the ceiling by laps when
+  Garmin has no zone seconds; `pct_at_or_below_cap` holds that share; the day after a lower-body session an HR
   miss is a note and `passed` stays true); `null` when there is nothing to judge (non-running
   activity, interval title without lap structure). `reasons` are the engine's messages; for a
   clean run they are short positive facts instead.

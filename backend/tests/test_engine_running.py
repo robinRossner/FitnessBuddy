@@ -55,21 +55,35 @@ def test_easy_run_fails_on_time_share_even_with_low_average():
         [lap(310, 154)] * 4, avg_hr=154, zones_s={"z1": 0, "z2": 0, "z3": 800, "z4": 450, "z5": 0}
     )
     ev = R.evaluate_easy_run(r, ZONES, RC.easy)
-    assert not ev.passed and ev.pct_at_or_below_cap == pytest.approx(65.8, abs=0.5)
+    assert not ev.passed and ev.pct_at_or_below_cap == pytest.approx(64)
     assert any("need 80%" in x for x in ev.reasons)
 
 
 def test_fraction_split_uses_laps_when_no_zone_data():
     laps = [lap(330, 150), lap(330, 150), lap(330, 150), lap(300, 165)]
-    frac, src = R.fraction_at_or_below(156, None, None, laps)
+    frac, src = R.easy_time_fraction(156, None, laps)
     assert src == "laps" and frac == pytest.approx(0.75, abs=0.02)
-    assert R.fraction_at_or_below(156, None, None, []) == (None, "none")
+    assert R.easy_time_fraction(156, None, []) == (None, "none")
+    r = run(laps, zones_s=None)
+    ev = R.evaluate_easy_run(r, ZONES, RC.easy)
+    assert any("at or below 156" in x for x in ev.reasons)
 
 
-def test_zone_straddling_the_cap_is_interpolated():
-    # all time in Garmin z4 (156..175): cap 160 -> 5 of 20 bpm below
-    frac, _ = R.fraction_at_or_below(160, {"z4": 100.0}, FLOORS)
-    assert frac == pytest.approx(5 / 20)
+def test_time_share_is_garmins_z1_to_z3_whatever_the_bpm_cap():
+    # Garmin's zones decide, not the cap: z4 never counts, however high the cap is
+    zones_s = {"z1": 10.0, "z2": 20.0, "z3": 70.0, "z4": 80.0, "z5": 20.0}
+    for cap in (140, 156, 190):
+        assert R.easy_time_fraction(cap, zones_s) == (0.5, "garmin_zones")
+
+
+def test_easy_run_fails_on_time_in_z4_even_below_the_bpm_ceiling():
+    # avg 152 is under the 156 ceiling, but Garmin puts most of the run in z4 (zones moved lower)
+    r = run(
+        [lap(310, 152)] * 4, avg_hr=152, zones_s={"z1": 0, "z2": 0, "z3": 500, "z4": 750, "z5": 0}
+    )
+    ev = R.evaluate_easy_run(r, ZONES, RC.easy)
+    assert not ev.passed and ev.pct_at_or_below_cap == pytest.approx(40)
+    assert any("in Garmin Z1-Z3" in x and "need 80%" in x for x in ev.reasons)
 
 
 def test_efficiency_is_speed_per_hr():

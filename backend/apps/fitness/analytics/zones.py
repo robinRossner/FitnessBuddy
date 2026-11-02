@@ -6,7 +6,7 @@ Mapping (the engine derives z1, z2, z3, z4, z5a, z5b, z5c from the active LTHR):
 Sources, best first:
   garmin_zones  Garmin's per-second zone seconds (their zone floors, `athlete_metrics`) re-binned
                 onto the engine zones, assuming the time inside a Garmin zone is spread evenly
-                over its bpm range (same simplification as `running.fraction_at_or_below`).
+                over its bpm range.
   laps          each lap's duration goes to the zone of its average HR.
   none          no HR data: all zeros.
 """
