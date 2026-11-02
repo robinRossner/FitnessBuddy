@@ -30,14 +30,14 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.fitness.advisor import service
+from apps.fitness.advisor._common import advisor_config, program_raw, resolve_settings
 from apps.fitness.analytics import common, lifts, running
 from apps.fitness.db.models import AdvisorChange, ConfigVersion, Outcome
 from apps.fitness.engine import config_service as cs
 from apps.fitness.engine import data as D
 from apps.fitness.engine import running as R
 from apps.fitness.engine.program import apply_overrides
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -163,7 +163,7 @@ def evaluate_version(
 
     rows = lifts.rows_by_variant(db)
     cfg = cs.load_active(db)[0]
-    program = service.program_raw(settings)
+    program = program_raw(settings)
     prog = apply_overrides(program, cfg.exercise_overrides) if program else None
     gym = D.current_gym(db, settings.gyms_path)
 
@@ -243,9 +243,9 @@ def _describe(m: Metric) -> str:
 def run_outcome_check(
     db: Session, settings: Settings | None = None, *, today: date | None = None
 ) -> list[Outcome]:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     today = today or common.today()
-    lo, hi = service.advisor_config(db, s).outcome_after_days
+    lo, hi = advisor_config(db, s).outcome_after_days
     tz = ZoneInfo(s.user_tz)
     done = set(
         db.scalars(select(Outcome.config_version_id).where(Outcome.config_version_id.is_not(None)))

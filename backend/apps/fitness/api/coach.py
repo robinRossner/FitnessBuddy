@@ -18,20 +18,20 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.advisor import claude, service
 from apps.fitness.advisor.serialize import history_json, proposal_json
 from apps.fitness.api.routes import get_db
-from apps.fitness.db.models import AdvisorConsultation
 from apps.fitness.jobs.advisor_jobs import run_consultation
-from apps.fitness.settings import get_settings
+from apps.fitness.settings import Settings, get_settings
 from core.auth import require_token
 
 router = APIRouter(prefix="/coach", dependencies=[Depends(require_token)])
 
 Status = Literal["pending", "applied", "rejected", "all"]
+# the app settings, once per request (overridable like any dependency)
+AppSettings = Annotated[Settings, Depends(get_settings)]
 
 
 class ApproveBody(BaseModel):
@@ -60,10 +60,10 @@ def _errors() -> Iterator[None]:
         raise HTTPException(exc.status_code, str(exc)) from None
 
 
-def _settings_json(db: Session) -> dict:
-    s = service.coach_settings(db)
+def _settings_json(db: Session, settings: Settings) -> dict:
+    s = service.coach_settings(db, settings)
     return {
-        **claude.provider_status(get_settings()),
+        **claude.provider_status(settings),
         "approval_mode": s.approval_mode,
         "api_key_configured": s.api_key_configured,
         "dry_run": s.dry_run,
@@ -78,15 +78,7 @@ def list_proposals(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     db: Session = Depends(get_db),
 ) -> dict:
-    q = select(AdvisorConsultation).order_by(AdvisorConsultation.id.desc())
-    if status == "pending":
-        rows = service.pending_proposals(db)[:limit]
-    else:
-        if status == "applied":
-            q = q.where(AdvisorConsultation.status.in_(("applied", "partially_applied")))
-        elif status == "rejected":
-            q = q.where(AdvisorConsultation.status == "rejected")
-        rows = list(db.scalars(q.limit(limit)))
+    rows = service.list_proposals(db, status, limit)
     return {"items": [proposal_json(db, c) for c in rows]}
 
 
@@ -99,46 +91,55 @@ def get_proposal(proposal_id: str, db: Session = Depends(get_db)) -> dict:
 
 @router.post("/proposals/{proposal_id}/approve")
 def approve(
-    proposal_id: str, body: ApproveBody | None = None, db: Session = Depends(get_db)
+    proposal_id: str,
+    settings: AppSettings,
+    body: ApproveBody | None = None,
+    db: Session = Depends(get_db),
 ) -> dict:
     with _errors():
-        c = service.get_consultation(db, proposal_id)
-        version = service.approve(db, c, (body.change_ids if body else None))
-    if version is not None:
-        service.rerun_engine_after_change()
-    db.refresh(c)
+        c = service.approve_proposal(
+            db, proposal_id, (body.change_ids if body else None), settings=settings
+        )
     return proposal_json(db, c)
 
 
 @router.post("/proposals/{proposal_id}/reject")
 def reject(proposal_id: str, body: RejectBody | None = None, db: Session = Depends(get_db)) -> dict:
     with _errors():
-        c = service.get_consultation(db, proposal_id)
-        service.reject(db, c, body.note if body else None)
+        c = service.reject_proposal(db, proposal_id, body.note if body else None)
     return proposal_json(db, c)
 
 
 @router.post("/ask", status_code=202)
-def ask(body: AskBody, background: BackgroundTasks, db: Session = Depends(get_db)) -> dict:
+def ask(
+    body: AskBody,
+    background: BackgroundTasks,
+    settings: AppSettings,
+    db: Session = Depends(get_db),
+) -> dict:
     with _errors():
-        c = service.start_ask(db, scope=body.scope, ref_id=body.ref_id, question=body.question)
-    background.add_task(run_consultation, c.id)
+        c = service.start_ask(
+            db, scope=body.scope, ref_id=body.ref_id, question=body.question, settings=settings
+        )
+    background.add_task(run_consultation, c.id, settings)
     return proposal_json(db, c)
 
 
 @router.get("/history")
-def history(db: Session = Depends(get_db)) -> dict:
-    service.advisor_config(db)  # makes sure the config is seeded
+def history(settings: AppSettings, db: Session = Depends(get_db)) -> dict:
+    service.advisor_config(db, settings)  # makes sure the config is seeded
     return history_json(db)
 
 
 @router.get("/settings")
-def get_coach_settings(db: Session = Depends(get_db)) -> dict:
-    return _settings_json(db)
+def get_coach_settings(settings: AppSettings, db: Session = Depends(get_db)) -> dict:
+    return _settings_json(db, settings)
 
 
 @router.put("/settings")
-def put_coach_settings(body: SettingsBody, db: Session = Depends(get_db)) -> dict:
+def put_coach_settings(
+    body: SettingsBody, settings: AppSettings, db: Session = Depends(get_db)
+) -> dict:
     with _errors():
-        service.set_approval_mode(db, body.approval_mode)
-    return _settings_json(db)
+        service.set_approval_mode(db, body.approval_mode, settings)
+    return _settings_json(db, settings)

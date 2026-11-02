@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.advisor import validator as V
+from apps.fitness.advisor._common import resolve_settings
 from apps.fitness.analytics import common, health, lifts, running
 from apps.fitness.db.models import (
     AdvisorChange,
@@ -38,7 +39,7 @@ from apps.fitness.engine import schedule_rules as SR
 from apps.fitness.engine import service
 from apps.fitness.engine.config import EngineConfig
 from apps.fitness.engine.program import Program, apply_overrides
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -606,7 +607,7 @@ def build_input(
     question: str | None,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     cs.ensure_seeded(db, s.engine_config_path)
     cfg, row = cs.load_active(db)
     today = common.today()
