@@ -31,11 +31,11 @@ from apps.fitness.advisor._common import (
     RUNNABLE,
     STALE_RUNNING_MIN,
     USAGE_LIMIT_MESSAGE,
-    NotFound,
     _all_changes,
     advisor_config,
     program_raw,
     rerun_hook,
+    resolve_settings,
     settle_status,
     user_today,
 )
@@ -48,7 +48,7 @@ from apps.fitness.db.models import (
 )
 from apps.fitness.db.types import utcnow
 from apps.fitness.engine import config_service as cs
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 from apps.fitness.sources.garmin.redact import redact
 
 log = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def create_consultation(
     week_start: date | None = None,
     settings: Settings | None = None,
 ) -> AdvisorConsultation:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     c = AdvisorConsultation(
         kind=kind,
         status=status,
@@ -128,7 +128,7 @@ def execute(
     Safe to call twice: only queued / awaiting_key / dry_run consultations run. Never raises for
     API problems; they end up in `status` / `error`.
     """
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     c = db.get(AdvisorConsultation, consultation_id)
     if c is None or c.status not in RUNNABLE:
         return c
@@ -379,16 +379,6 @@ def _auto_apply(
         (on_applied or rerun_hook())()
 
 
-def get_consultation(db: Session, ref: str | int) -> AdvisorConsultation:
-    try:
-        c = db.get(AdvisorConsultation, int(ref))
-    except (TypeError, ValueError):
-        c = None
-    if c is None:
-        raise NotFound(f"proposal '{ref}' not found")
-    return c
-
-
 def recover_stale(db: Session, settings: Settings | None = None) -> int:
     """A consultation that stayed queued / running (server restarted mid-call) is marked failed."""
     cutoff = utcnow() - timedelta(minutes=STALE_RUNNING_MIN)
@@ -417,7 +407,7 @@ def retry_awaiting_key(
     limit: int = 3,
 ) -> int:
     """Once a key exists, run the consultations that were waiting for it."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     if s.advisor_key is None or s.advisor_dry_run:
         return 0
     since = utcnow() - timedelta(days=max_age_days)
@@ -452,7 +442,7 @@ def retry_usage_limited(
     limit: int = 3,
 ) -> int:
     """Run again the ask / weekly consultations that stopped on the subscription usage limit."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     if s.advisor_key is None or s.advisor_dry_run:
         return 0
     since = utcnow() - timedelta(days=max_age_days)
@@ -479,6 +469,19 @@ def pending_summary(db: Session) -> dict[str, Any]:
         "pending_count": len(pending),
         "latest_pending_id": str(pending[0].id) if pending else None,
     }
+
+
+def list_proposals(db: Session, status: str = "all", limit: int = 50) -> list[AdvisorConsultation]:
+    """Proposals of GET /coach/proposals, newest first: `pending` (changes still to decide),
+    `applied` (incl. partially applied), `rejected` or `all`."""
+    if status == "pending":
+        return pending_proposals(db)[:limit]
+    q = select(AdvisorConsultation).order_by(AdvisorConsultation.id.desc())
+    if status == "applied":
+        q = q.where(AdvisorConsultation.status.in_(("applied", "partially_applied")))
+    elif status == "rejected":
+        q = q.where(AdvisorConsultation.status == "rejected")
+    return list(db.scalars(q.limit(limit)))
 
 
 def pending_proposals(db: Session) -> list[AdvisorConsultation]:

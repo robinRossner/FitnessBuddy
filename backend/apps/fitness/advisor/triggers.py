@@ -19,6 +19,7 @@ from apps.fitness.advisor._common import (
     TRIGGER_MAP,
     WEEKLY_REVIEW,
     advisor_config,
+    resolve_settings,
     user_today,
 )
 from apps.fitness.advisor.budget import _weekly_done, budget_allows
@@ -30,7 +31,7 @@ from apps.fitness.db.models import (
 from apps.fitness.db.types import utcnow
 from apps.fitness.engine import schedule_rules as SR
 from apps.fitness.engine import service as engine_service
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -211,7 +212,7 @@ def run_trigger_batch(
     on_applied: Callable[[], None] | None = None,
 ) -> AdvisorConsultation | None:
     """Batch every worthwhile open trigger into ONE consultation (within the weekly budget)."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     today = today or user_today(s)
     rows = open_triggers(db, s, today)
     db.commit()
@@ -251,7 +252,7 @@ def run_weekly_review(
     on_applied: Callable[[], None] | None = None,
 ) -> AdvisorConsultation | None:
     """The Sunday review: one call per week, including whatever triggers are still open."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     today = today or user_today(s)
     week = engine_service.monday(today)
     if _weekly_done(db, week):

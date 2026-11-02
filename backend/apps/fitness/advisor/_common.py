@@ -77,8 +77,14 @@ class AskLimit(AdvisorError):
     status_code = 429
 
 
+def resolve_settings(settings: Settings | None) -> Settings:
+    """`settings` when the caller passed them, else the app's (`get_settings()`): the advisor's one
+    fallback. Entry points resolve once at the top and pass the result to every helper."""
+    return settings if settings is not None else get_settings()
+
+
 def advisor_config(db: Session, settings: Settings | None = None) -> AdvisorConfig:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     cs.ensure_seeded(db, s.engine_config_path)
     return cs.load_active(db)[0].advisor_cfg
 
@@ -115,6 +121,16 @@ def program_raw(settings: Settings):
         return engine_service.get_program(settings)
     except (OSError, ValueError):
         return None
+
+
+def get_consultation(db: Session, ref: str | int) -> AdvisorConsultation:
+    try:
+        c = db.get(AdvisorConsultation, int(ref))
+    except (TypeError, ValueError):
+        c = None
+    if c is None:
+        raise NotFound(f"proposal '{ref}' not found")
+    return c
 
 
 def _all_changes(c: AdvisorConsultation) -> list[Any]:

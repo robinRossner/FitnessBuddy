@@ -20,7 +20,10 @@ from apps.fitness.advisor._common import (
     Unprocessable,
     _all_changes,
     advisor_config,
+    get_consultation,
     program_raw,
+    rerun_hook,
+    resolve_settings,
     settle_status,
     user_today,
 )
@@ -37,7 +40,7 @@ from apps.fitness.engine import config_service as cs
 from apps.fitness.engine import schedule_edit as SE
 from apps.fitness.engine import service as engine_service
 from apps.fitness.engine.decisions import log_decision
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +71,7 @@ def apply_changes(
     Each change is validated again against the config as it is now (it may have moved since the
     proposal); changes that no longer pass become `invalid`. Returns the new version or None.
     """
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     wanted = set(change_ids)
     todo = [x for x in c.changes if x.id in wanted and x.status == "proposed"]
     if not todo:
@@ -185,9 +188,10 @@ def approve(
                 (s_targets if kind == "s" else p_targets).append(x)
     if not p_targets and not s_targets:
         return None
-    version = apply_changes(db, c, [x.id for x in p_targets], settings=settings)
+    s = resolve_settings(settings)
+    version = apply_changes(db, c, [x.id for x in p_targets], settings=s)
     if s_targets:
-        apply_schedule_changes(db, c, [x.id for x in s_targets], settings=settings)
+        apply_schedule_changes(db, c, [x.id for x in s_targets], settings=s)
     db.commit()
     return version
 
@@ -203,7 +207,7 @@ def apply_schedule_changes(
     the plan as it is now; the placement is written to the planned sessions (a lock the engine
     keeps on every re-run), every change goes to decisions_log with the consultation id, and the
     engine re-plans the affected days only. Returns how many were applied."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     wanted = set(change_ids)
     todo = [x for x in c.schedule_changes if x.id in wanted and x.status == "proposed"]
     if not todo:
@@ -318,6 +322,27 @@ def reject(db: Session, c: AdvisorConsultation, note: str | None) -> AdvisorCons
     return c
 
 
+def approve_proposal(
+    db: Session,
+    ref: str | int,
+    change_ids: list[Any] | None,
+    *,
+    settings: Settings | None = None,
+) -> AdvisorConsultation:
+    """POST /coach/proposals/{id}/approve: `approve`, then re-plan when a new config version was
+    made. Returns the refreshed proposal. Raises NotFound / Conflict / Unprocessable."""
+    c = get_consultation(db, ref)
+    if approve(db, c, change_ids, settings=settings) is not None:
+        rerun_hook()()
+    db.refresh(c)
+    return c
+
+
+def reject_proposal(db: Session, ref: str | int, note: str | None) -> AdvisorConsultation:
+    """POST /coach/proposals/{id}/reject. Raises NotFound / Conflict."""
+    return reject(db, get_consultation(db, ref), note)
+
+
 @dataclass
 class CoachSettings:
     approval_mode: str
@@ -328,7 +353,7 @@ class CoachSettings:
 
 
 def coach_settings(db: Session, settings: Settings | None = None) -> CoachSettings:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     cfg = advisor_config(db, s)
     return CoachSettings(
         cfg.approval_mode,
@@ -342,7 +367,7 @@ def coach_settings(db: Session, settings: Settings | None = None) -> CoachSettin
 def set_approval_mode(db: Session, mode: str, settings: Settings | None = None) -> ConfigVersion:
     if mode not in ("manual", "auto-low-risk", "auto"):
         raise Unprocessable("approval_mode must be manual, auto-low-risk or auto")
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     cs.ensure_seeded(db, s.engine_config_path)
     version = cs.create_version(
         db,

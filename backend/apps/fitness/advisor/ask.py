@@ -17,6 +17,7 @@ from apps.fitness.advisor._common import (
     Unprocessable,
     _local_midnight_utc,
     advisor_config,
+    resolve_settings,
     user_today,
 )
 from apps.fitness.advisor.consultations import create_consultation
@@ -26,13 +27,13 @@ from apps.fitness.db.models import (
     Run,
 )
 from apps.fitness.engine import service as engine_service
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
 
 def asks_today(db: Session, today: date, settings: Settings | None = None) -> int:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     since = _local_midnight_utc(today, s)
     return (
         db.scalar(
@@ -45,7 +46,7 @@ def asks_today(db: Session, today: date, settings: Settings | None = None) -> in
 
 
 def check_ask_budget(db: Session, today: date, settings: Settings | None = None) -> None:
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     limit = advisor_config(db, s).max_ask_per_day
     if asks_today(db, today, s) >= limit:
         raise AskLimit(f"Daily limit of {limit} coach questions reached. Try again tomorrow.")
@@ -102,7 +103,7 @@ def start_ask(
     settings: Settings | None = None,
 ) -> AdvisorConsultation:
     """Create the consultation of an "Ask coach" tap (checks the daily limit). Does not run it."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     question = (question or "").strip()
     if not question:
         raise Unprocessable("question must not be empty")

@@ -13,13 +13,14 @@ from apps.fitness.settings import Settings, get_settings
 log = logging.getLogger(__name__)
 
 
-def run_consultation(consultation_id: int) -> None:
+def run_consultation(consultation_id: int, settings: Settings | None = None) -> None:
     """Background task of POST /coach/ask (also used to re-run a waiting consultation)."""
     from apps.fitness.advisor import service
 
+    s = settings or get_settings()
     try:
         with dbsession.get_session_factory()() as db:
-            service.execute(db, consultation_id)
+            service.execute(db, consultation_id, settings=s)
     except Exception:
         log.exception("advisor consultation %s crashed", consultation_id)
 

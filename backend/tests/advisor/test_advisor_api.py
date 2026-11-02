@@ -339,3 +339,16 @@ def test_dry_run_setting_is_reported_and_nothing_is_called(
     got = c.get(f"/api/v1/coach/proposals/{p['id']}").json()
     assert got["status"] == "dry_run" and got["input_summary"]["lifts"]
     assert fake.calls == []
+
+
+def test_coach_routes_pass_their_settings_dependency_to_the_advisor(client, env, fake):
+    """The router's settings (one `get_settings` dependency) reach the service and the background
+    run: overriding the dependency alone switches the coach to dry run."""
+    from apps.fitness.settings import get_settings
+
+    dry = env.model_copy(update={"advisor_dry_run": True})
+    app.dependency_overrides[get_settings] = lambda: dry
+    assert client.get("/api/v1/coach/settings").json()["dry_run"] is True
+    p = ask(client).json()
+    assert client.get(f"/api/v1/coach/proposals/{p['id']}").json()["status"] == "dry_run"
+    assert fake.calls == [] and get_settings().advisor_dry_run is False

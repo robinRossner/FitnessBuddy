@@ -11,20 +11,25 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from apps.fitness.advisor._common import COUNTED, _local_midnight_utc, advisor_config
+from apps.fitness.advisor._common import (
+    COUNTED,
+    _local_midnight_utc,
+    advisor_config,
+    resolve_settings,
+)
 from apps.fitness.db.models import (
     AdvisorConsultation,
 )
 from apps.fitness.engine import service as engine_service
 from apps.fitness.engine.config import AdvisorConfig
-from apps.fitness.settings import Settings, get_settings
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
 
 def calls_this_week(db: Session, today: date, settings: Settings | None = None) -> int:
     """Trigger + weekly calls since Monday (the budget; "Ask coach" is not counted)."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     since = _local_midnight_utc(engine_service.monday(today), s)
     return (
         db.scalar(
@@ -58,7 +63,7 @@ def budget_allows(
 ) -> tuple[bool, str]:
     """Weekly review: at most `max_calls_per_week` calls. Trigger batches keep one call back for
     the weekly review while it has not run this week."""
-    s = settings or get_settings()
+    s = resolve_settings(settings)
     limit = advisor_config(db, s).max_calls_per_week
     used = calls_this_week(db, today, s)
     if kind == "trigger" and not _weekly_done(db, engine_service.monday(today)):
