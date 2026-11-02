@@ -1,3 +1,4 @@
+import FitnessCore
 import Charts
 import SwiftUI
 
@@ -148,34 +149,5 @@ struct FreshnessLabel<R: Decodable & Sendable>: View {
             return "Couldn't refresh: \(failure)"
         }
         return StatsFreshness.label(fetchedAt: resource.fetchedAt, offline: resource.isOffline, now: now)
-    }
-}
-
-/// Shown instead of a screen's content while nothing is cached: loading, not configured, or the error.
-struct StatsPlaceholder<R: Decodable & Sendable>: View {
-    let resource: StatsResource<R>
-    var symbol = "chart.xyaxis.line"
-    var emptyTitle = "No data yet"
-
-    var body: some View {
-        Card {
-            if !resource.isConfigured {
-                Label("Connect your backend", systemImage: "icloud.and.arrow.down").font(.headline)
-                Text("Add the backend URL and API token in Settings (Today tab). Stats are cached afterwards and stay available offline.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            } else if let failure = resource.failure {
-                Label(resource.isOffline ? "Offline" : "Couldn't load", systemImage: resource.isOffline ? "icloud.slash" : "exclamationmark.triangle")
-                    .font(.headline)
-                Text(resource.isOffline ? "Nothing cached yet. Connect once and this screen stays available offline." : failure)
-                    .font(.subheadline).foregroundStyle(.secondary)
-            } else {
-                HStack(spacing: 10) {
-                    ProgressView()
-                    Text("Loading \(emptyTitle.lowercased())…").font(.subheadline).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 80)
-            }
-        }
-        .accessibilityElement(children: .combine)
     }
 }

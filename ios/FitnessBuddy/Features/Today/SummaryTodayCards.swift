@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
@@ -226,7 +227,7 @@ struct PlannedLiftView: View {
                     AdjustmentNote(lines: item.adjustments, level: item.readiness?.level ?? .unknown)
                 }
                 Button {
-                    if active.first != nil { env.selectedTab = .workout } else { env.startWorkout(from: row) }
+                    if active.first != nil { env.selectedTab = .workout } else { env.workoutFlow.start(from: row) }
                     dismiss()
                 } label: {
                     Label(active.first != nil ? "Resume Workout" : "Start Workout", systemImage: "play.fill")

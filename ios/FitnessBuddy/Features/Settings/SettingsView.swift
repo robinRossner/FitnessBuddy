@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
@@ -64,7 +65,7 @@ struct SettingsView: View {
                 #if DEBUG
                 Section {
                     Button("Load demo data") { DemoData.load(into: env.context, settings: env.settings); env.sync.didResetData() }
-                    Button("Clear demo data", role: .destructive) { env.clearDemoData() }
+                    Button("Clear demo data", role: .destructive) { env.backend.clearDemoData() }
                 } header: { Text("Debug") } footer: {
                     Text("Demo data is local only: sync is paused while it is loaded, and it is removed as soon as a backend is saved.")
                 }
@@ -170,7 +171,7 @@ struct SettingsView: View {
             Button("Sync now") { env.sync.request(.manual) }
                 .disabled(env.sync.status == .syncing || !env.settings.isConfigured || (state?.demoActive ?? false))
             Button("Reset local data & resync", role: .destructive) {
-                unsynced = env.unsyncedRecordCount
+                unsynced = env.backend.unsyncedRecordCount
                 confirmReset = true
             }
             .disabled(env.sync.status == .syncing || !env.settings.isConfigured || (state?.demoActive ?? false))
@@ -231,9 +232,9 @@ struct SettingsView: View {
 
     /// Warns first when unsynced real records exist and the save wipes the cache; otherwise applies straight away.
     private func requestSave(thenDismiss: Bool) {
-        let wipes = env.backendChangeWipes(url: draftURL.trimmingCharacters(in: .whitespacesAndNewlines),
+        let wipes = env.backend.backendChangeWipes(url: draftURL.trimmingCharacters(in: .whitespacesAndNewlines),
                                            token: draftToken.trimmingCharacters(in: .whitespacesAndNewlines))
-        unsynced = env.unsyncedRecordCount
+        unsynced = env.backend.unsyncedRecordCount
         if wipes && unsynced > 0 {
             confirmSaveThenDismiss = thenDismiss
             confirmSave = true
@@ -245,7 +246,7 @@ struct SettingsView: View {
     private func save(thenDismiss: Bool) async {
         saving = true
         saveNote = nil
-        let stored = await env.saveBackend(url: draftURL, token: draftToken)
+        let stored = await env.backend.saveBackend(url: draftURL, token: draftToken)
         draftURL = env.settings.backendURL
         draftToken = env.settings.apiToken
         saving = false
@@ -257,7 +258,7 @@ struct SettingsView: View {
     }
 
     private func resetAndResync() async {
-        await env.resetLocalDataAndResync()
+        await env.backend.resetLocalDataAndResync()
     }
 
     private func testConnection() async {

@@ -1,54 +1,12 @@
+import FitnessCore
 import Foundation
 import Observation
-
-/// Every gym endpoint the app uses. The only place that knows the paths.
-enum GymEndpoints {
-    static let gyms = "/api/v1/gyms"
-    static let current = "/api/v1/gyms/current"
-    static let ladderPreview = "/api/v1/weight-ladder/preview"
-    static func gym(_ id: Int) -> String { gyms + "/\(id)" }
-    static func machines(_ gymId: Int) -> String { gym(gymId) + "/machines" }
-    static func variant(_ id: Int) -> String { "/api/v1/variants/\(id)" }
-}
-
-/// Failure of a gym action, in words for the screen.
-enum GymError: LocalizedError, Equatable {
-    case needsConnection
-    case notConfigured
-    /// 409: duplicate name, gym with sessions, current gym, machine already exists.
-    case conflict(String)
-    case failed(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .needsConnection: "Needs a connection"
-        case .notConfigured: "Connect your backend in Settings first"
-        case .conflict(let m), .failed(let m): m
-        }
-    }
-
-    static func map(_ error: Error) -> GymError {
-        if let e = error as? GymError { return e }
-        if let api = error as? APIError {
-            switch api {
-            case .transport: return .needsConnection
-            case .notConfigured: return .notConfigured
-            case .http(409, let body): return .conflict(CoachError.detail(body) ?? "This conflicts with existing data.")
-            case .http(let code, let body): return .failed(CoachError.detail(body) ?? "Server error \(code)")
-            default: return .failed(api.errorDescription ?? "Something went wrong")
-            }
-        }
-        return .failed(error.localizedDescription)
-    }
-}
 
 /// Gyms and per-gym machines: lists are cached raw on disk and shown at once (also offline), refreshed in the
 /// background. Every write needs the network and is never queued.
 @MainActor
 @Observable
-final class GymRepository {
-    typealias Transport = @Sendable (_ method: String, _ path: String, _ query: [URLQueryItem], _ body: Data?) async throws -> Data
-
+final class GymRepository: RemoteRepository {
     private(set) var list: GymListDTO?
     private(set) var listFetchedAt: Date?
     private(set) var machines: [Int: GymMachinesDTO] = [:]
@@ -60,39 +18,16 @@ final class GymRepository {
     /// Machines still to set up at the gym that was just switched to (from `PUT /gyms/current`).
     private(set) var lastUnmappedCount: Int?
 
-    @ObservationIgnored private let store: any StatsCacheStore
-    @ObservationIgnored private let appSettings: SettingsStore
-    @ObservationIgnored private let network: NetworkMonitor
-    @ObservationIgnored private let isDemo: @MainActor () -> Bool
     @ObservationIgnored private var lastNamespace: String?
-    #if DEBUG
-    @ObservationIgnored var demoTransport: Transport?
-    #endif
-    /// Tests inject a fake transport here.
-    @ObservationIgnored var transportOverride: Transport?
     /// Called after a write that changes the plan (gym switch, machine saved): re-plans (sync).
     @ObservationIgnored var afterPlanChange: (() async -> Void)?
 
     init(settings: SettingsStore, network: NetworkMonitor, store: any StatsCacheStore,
          isDemo: @escaping @MainActor () -> Bool = { false }) {
-        self.appSettings = settings
-        self.network = network
-        self.store = store
-        self.isDemo = isDemo
+        super.init(settings: settings, network: network, store: store, isDemo: isDemo)
     }
 
     // MARK: State
-
-    var namespace: String { isDemo() ? "demo" : (appSettings.fingerprint ?? "unconfigured") }
-    var canFetch: Bool { transport() != nil }
-
-    /// Writes need a reachable server (the demo answers locally).
-    var canWrite: Bool { isDemo() || (appSettings.isConfigured && network.isConnected) }
-
-    var writeBlockedHint: String? {
-        if canWrite { return nil }
-        return appSettings.isConfigured ? "Needs a connection" : "Connect your backend in Settings"
-    }
 
     /// The gym the app uses: the server's value, else the one stored locally (offline).
     var currentGymId: Int? { GymSync.resolve(local: appSettings.currentGymId, server: list?.currentGymId) }
@@ -107,17 +42,6 @@ final class GymRepository {
 
     func machineList(_ gymId: Int) -> GymMachinesDTO? { machines[gymId] }
 
-    // MARK: Transport
-
-    private func transport() -> Transport? {
-        if let transportOverride { return transportOverride }
-        #if DEBUG
-        if isDemo(), let demoTransport { return demoTransport }
-        #endif
-        guard !isDemo(), appSettings.isConfigured, let client = appSettings.makeClient() else { return nil }
-        return { method, path, query, body in try await client.perform(method: method, path: path, query: query, body: body) }
-    }
-
     // MARK: Loading
 
     private func syncNamespace() {
@@ -131,14 +55,14 @@ final class GymRepository {
     /// Cache first (immediately), then the network.
     func loadList() async {
         syncNamespace()
-        if list == nil { readListCache() }
+        if list == nil { await readListCache() }
         guard canFetch else { return }
         await fetchList()
     }
 
     func loadMachines(gymId: Int) async {
         syncNamespace()
-        if machines[gymId] == nil { readMachinesCache(gymId) }
+        if machines[gymId] == nil { await readMachinesCache(gymId) }
         guard canFetch else { return }
         await fetchMachines(gymId: gymId)
     }
@@ -149,8 +73,8 @@ final class GymRepository {
         isRefreshing = true
         defer { isRefreshing = false }
         do {
-            let data = try await transport("GET", GymEndpoints.gyms, [], nil)
-            let dto = try decode(GymListDTO.self, data)
+            let data = try await transport.get(path: GymEndpoints.gyms)
+            let dto = try await decode(GymListDTO.self, data)
             guard ns == namespace else { return }
             store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: "gyms")
             list = dto
@@ -166,8 +90,8 @@ final class GymRepository {
         isRefreshing = true
         defer { isRefreshing = false }
         do {
-            let data = try await transport("GET", GymEndpoints.machines(gymId), [], nil)
-            let dto = try decode(GymMachinesDTO.self, data)
+            let data = try await transport.get(path: GymEndpoints.machines(gymId))
+            let dto = try await decode(GymMachinesDTO.self, data)
             guard ns == namespace else { return }
             store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: Self.machinesKey(gymId))
             machines[gymId] = dto
@@ -178,13 +102,12 @@ final class GymRepository {
     }
 
     private func noteFailure(_ error: Error) {
-        if Task.isCancelled || (error as? APIError)?.isCancellation == true || error is CancellationError { return }
-        failure = APIError.message(for: error)
-        if case APIError.transport = error { isOffline = true } else { isOffline = false }
+        guard let f = RemoteRepository.failure(for: error) else { return }
+        failure = f.message; isOffline = f.offline
     }
 
-    private func decode<T: Decodable>(_ type: T.Type, _ data: Data) throws -> T {
-        do { return try APICoding.makeDecoder().decode(T.self, from: data) }
+    private func decode<T: Decodable & Sendable>(_ type: T.Type, _ data: Data) async throws -> T {
+        do { return try await Self.decode(T.self, from: data) }
         catch { throw APIError.decoding(error) }
     }
 
@@ -196,17 +119,19 @@ final class GymRepository {
 
     private static func machinesKey(_ gymId: Int) -> String { "gym/\(gymId)/machines" }
 
-    private func readListCache() {
-        if let e = store.read(namespace: namespace, key: "gyms"), let dto = try? APICoding.makeDecoder().decode(GymListDTO.self, from: e.data) {
-            list = dto; listFetchedAt = e.fetchedAt
-        }
+    private func readListCache() async {
+        let ns = namespace
+        guard let e = store.read(namespace: ns, key: "gyms"), let dto = try? await Self.decode(GymListDTO.self, from: e.data),
+              ns == namespace, list == nil else { return }
+        list = dto; listFetchedAt = e.fetchedAt
     }
 
-    private func readMachinesCache(_ gymId: Int) {
-        if let e = store.read(namespace: namespace, key: Self.machinesKey(gymId)),
-           let dto = try? APICoding.makeDecoder().decode(GymMachinesDTO.self, from: e.data) {
-            machines[gymId] = dto; machinesFetchedAt[gymId] = e.fetchedAt
-        }
+    private func readMachinesCache(_ gymId: Int) async {
+        let ns = namespace
+        guard let e = store.read(namespace: ns, key: Self.machinesKey(gymId)),
+              let dto = try? await Self.decode(GymMachinesDTO.self, from: e.data),
+              ns == namespace, machines[gymId] == nil else { return }
+        machines[gymId] = dto; machinesFetchedAt[gymId] = e.fetchedAt
     }
 
     private func resetState() {
@@ -227,7 +152,7 @@ final class GymRepository {
         guard canWrite else { throw appSettings.isConfigured ? GymError.needsConnection : GymError.notConfigured }
         guard let transport = transport() else { throw GymError.notConfigured }
         let data = try body.map { try APICoding.makeEncoder().encode(AnyEncodable($0)) }
-        do { return try await transport(method, path, [], data) }
+        do { return try await transport.data(method: method, path: path, query: [], body: data) }
         catch { throw GymError.map(error) }
     }
 
@@ -293,36 +218,9 @@ final class GymRepository {
         guard canWrite, let transport = transport() else { return local }
         do {
             let body = try APICoding.makeEncoder().encode(LadderPreviewRequest(start: start, step: step, count: count, extra: extra.isEmpty ? nil : extra))
-            let data = try await transport("POST", GymEndpoints.ladderPreview, [], body)
+            let data = try await transport.perform(method: "POST", path: GymEndpoints.ladderPreview, body: body)
             let ladder = try APICoding.makeDecoder().decode(LadderPreviewResponse.self, from: data).weightLadder
             return ladder.isEmpty ? local : ladder
         } catch { return local }
     }
-}
-
-/// What the machine editor sends.
-struct MachineDraft: Equatable {
-    var name: String
-    var equipmentType: String
-    var notes: String
-    var ladder: [Double]
-
-    var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    /// A save is allowed with a name, and (for stack machines) at least one step.
-    var isValid: Bool { !trimmedName.isEmpty && (!MachineLogic.needsLadder(equipmentType) || !ladder.isEmpty) }
-}
-
-extension String {
-    var trimmedOrNil: String? {
-        let t = trimmingCharacters(in: .whitespacesAndNewlines)
-        return t.isEmpty ? nil : t
-    }
-}
-
-/// Type-erases an `Encodable` so request bodies can be passed around.
-private struct AnyEncodable: Encodable {
-    let value: Encodable
-    init(_ value: Encodable) { self.value = value }
-    func encode(to encoder: Encoder) throws { try value.encode(to: encoder) }
 }

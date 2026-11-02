@@ -1,3 +1,4 @@
+import FitnessCore
 import Charts
 import SwiftUI
 
@@ -11,7 +12,7 @@ struct RunAnalysisView: View {
         let analysis = analysis
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let data = analysis.value {
+                LoadableContent(analysis.value, else: analysis.loadState("run analysis")) { data in
                     RunHeaderCard(run: data.run, planned: data.planned)
                     RunTiles(run: data.run)
                     VerdictCard(verdict: data.verdict)
@@ -24,8 +25,6 @@ struct RunAnalysisView: View {
                             ChartEmpty(symbol: "flag.checkered", message: "This activity has no lap data.", height: 80)
                         }
                     }
-                } else {
-                    StatsPlaceholder(resource: analysis, symbol: "figure.run", emptyTitle: "run analysis")
                 }
                 AskCoachButton(title: "Ask coach about this run",
                                context: .run(id: runId, name: analysis.value?.run.name ?? "This run"))

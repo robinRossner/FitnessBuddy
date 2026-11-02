@@ -1,4 +1,5 @@
 #if DEBUG
+import FitnessCore
 import Foundation
 
 /// DEBUG-only stand-in for the `/gyms`, `/variants` and `/weight-ladder` endpoints while the demo data is loaded.
@@ -58,8 +59,8 @@ final class DemoGyms: @unchecked Sendable {
         ]
     }
 
-    var transport: GymRepository.Transport {
-        { [self] method, path, _, body in try lock.withLock { try handle(method, path, body) } }
+    var transport: any APITransport {
+        ClosureTransport { [self] method, path, _, body in try lock.withLock { try handle(method, path, body) } }
     }
 
     private func handle(_ method: String, _ path: String, _ body: Data?) throws -> Data {

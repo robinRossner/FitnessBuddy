@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// The machines of one gym: the program first (by body region), then every other exercise.
@@ -40,12 +41,9 @@ struct GymMachinesView: View {
         }
         .overlay {
             if data == nil {
-                if env.gyms.isRefreshing {
-                    ProgressView()
-                } else {
-                    ContentUnavailableView("No machines loaded", systemImage: "icloud.slash",
-                                           description: Text(env.gyms.failure ?? "Open this screen with a connection once to load the machines."))
-                }
+                LoadableContent(env.gyms.isRefreshing ? .loading() : .empty(
+                    title: "No machines loaded", symbol: "icloud.slash",
+                    message: env.gyms.failure ?? "Open this screen with a connection once to load the machines."), style: .screen)
             }
         }
         .navigationTitle(gymName)

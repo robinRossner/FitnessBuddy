@@ -9,6 +9,10 @@ options:
 configFiles:
   Debug: Config/Debug.xcconfig
   Release: Config/Release.xcconfig
+packages:
+  # Foundation-only core (API client + DTOs, logic, transforms); `cd FitnessCore && swift test` is the fast loop.
+  FitnessCore:
+    path: FitnessCore
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -23,6 +27,8 @@ targets:
     platform: iOS
     sources:
       - path: FitnessBuddy
+    dependencies:
+      - package: FitnessCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.robinrossner.FitnessBuddy

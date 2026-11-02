@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
@@ -14,6 +15,8 @@ struct TodayView: View {
     @AppStorage(SummaryLogic.pinnedKey) private var pinnedRaw = SummaryLogic.defaultPinnedRaw
     @State private var showSettings: Bool
     @State private var editingPins = false
+    @State private var weekRunsMemo = Memo<WeekInputs, WeekRunsModel>()
+    @State private var nextLiftMemo = Memo<NextLiftInputs, NextLift?>()
     private let openSheet: String?
 
     /// `-uiSheet settings|readiness|run|weekrun|pins` opens that sheet at launch (screenshots, DEBUG only).
@@ -50,21 +53,43 @@ struct TodayView: View {
 
     private var runDays: Set<String> { Set((recentRuns.value ?? []).compactMap(\.day)) }
 
+    private struct WeekInputs: Equatable {
+        var plan: [PlanRowKey]
+        var runs: Date?
+        var finished: [FinishedDayRef]
+        var today: String
+    }
+
+    /// Recomputed only when the plan, the runs or the finished sessions change (not on every render).
     private var weekRuns: WeekRunsModel {
-        WeekRunsModel.build(
-            days: AppClock.weekDays(containing: AppClock.now),
-            items: planned.compactMap(\.item),
-            runs: recentRuns.value ?? [],
-            finished: finished.map { FinishedDayRef(plannedId: $0.plannedSessionId, day: AppClock.dayString($0.startedAt), kind: $0.kind) },
-            today: today)
+        let finishedRefs = finished.map { FinishedDayRef(plannedId: $0.plannedSessionId, day: AppClock.dayString($0.startedAt), kind: $0.kind) }
+        let key = WeekInputs(plan: planned.map(PlanRowKey.init), runs: recentRuns.fetchedAt, finished: finishedRefs, today: today)
+        return weekRunsMemo(key) {
+            WeekRunsModel.build(days: AppClock.weekDays(containing: AppClock.now), items: planned.compactMap(\.item),
+                                runs: recentRuns.value ?? [], finished: finishedRefs, today: today)
+        }
     }
 
     private func completedSession(for row: CachedPlannedSession) -> LocalSession? {
         finished.first { $0.plannedSessionId == row.id }
     }
 
-    private var nextLift: (row: CachedPlannedSession, when: String, subtitle: String)? {
+    private typealias NextLift = (row: CachedPlannedSession, when: String, subtitle: String)
+
+    private struct NextLiftInputs: Equatable {
+        var plan: [PlanRowKey]
+        var doneIds: Set<String>
+        var today: String
+    }
+
+    private var nextLift: NextLift? {
         let doneIds = Set(finished.compactMap(\.plannedSessionId))
+        return nextLiftMemo(NextLiftInputs(plan: planned.map(PlanRowKey.init), doneIds: doneIds, today: today)) {
+            computeNextLift(doneIds: doneIds)
+        }
+    }
+
+    private func computeNextLift(doneIds: Set<String>) -> NextLift? {
         let refs = planned.compactMap { row -> PlannedLiftRef? in
             guard WorkoutChooserLogic.liftingKinds.contains(row.kind) else { return nil }
             return PlannedLiftRef(id: row.id, date: row.date, kind: row.kind, title: row.title,

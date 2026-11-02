@@ -1,3 +1,4 @@
+import FitnessCore
 import Foundation
 import SwiftData
 
@@ -28,7 +29,7 @@ actor SyncEngine {
         self.container = container
     }
 
-    func sync(using client: APIClient) async throws -> SyncReport {
+    func sync(using client: any APITransport) async throws -> SyncReport {
         var report = SyncReport()
         // Demo data is local-only: never talk to a server while it is loaded.
         if SyncState.current(in: ModelContext(container)).demoActive { return report }
@@ -97,7 +98,7 @@ actor SyncEngine {
 
     /// Returns true if at least one plan call worked. Throws the first error only when none did, so a wrong
     /// contract / token / URL is never swallowed (a single flaky call among working ones is not an error).
-    func refreshPlan(using client: APIClient) async throws -> Bool {
+    func refreshPlan(using client: any APITransport) async throws -> Bool {
         var ok = false
         var firstError: Error?
         let thisWeek = AppClock.weekStart(of: AppClock.now)

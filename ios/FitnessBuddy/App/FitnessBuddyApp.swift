@@ -1,9 +1,11 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
 @main
 struct FitnessBuddyApp: App {
-    @State private var env = AppEnvironment()
+    /// The one place that decides test mode: unit tests run hosted in this app (the runner sets this variable).
+    @State private var env = AppEnvironment(testing: ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {

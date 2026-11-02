@@ -1,3 +1,4 @@
+import FitnessCore
 import Charts
 import SwiftData
 import SwiftUI
@@ -13,6 +14,7 @@ struct RunningProgressView: View {
     @Environment(AppEnvironment.self) private var env
     @Query private var planned: [CachedPlannedSession]
     @State private var openPlanned: PlannedRunSheet?
+    @State private var dashboardMemo = Memo<DashboardInputs, Dashboard>()
 
     private var running: StatsResource<RunningStatsDTO> { env.stats.resource(StatsEndpoints.running()) }
     private var recent: StatsResource<[RunSummaryDTO]> { env.stats.resource(StatsEndpoints.recentRuns()) }
@@ -24,26 +26,51 @@ struct RunningProgressView: View {
         return n > 0 ? n : nil
     }
 
+    /// Everything the cards show, recomputed only when the stats or the plan change.
+    private struct Dashboard {
+        var weekRuns: [ProgressWeekRun]
+        var kpis: RunKpiValues?
+        var overview: RunningOverview?
+        var zoneWeeks: [RunWeekDTO]
+    }
+
+    private struct DashboardInputs: Equatable {
+        var running: Date?
+        var recent: Date?
+        var plan: [PlanRowKey]
+        var today: String
+    }
+
+    private func dashboard(_ running: StatsResource<RunningStatsDTO>, _ recent: StatsResource<[RunSummaryDTO]>) -> Dashboard {
+        let today = AppClock.todayString
+        let key = DashboardInputs(running: running.fetchedAt, recent: recent.fetchedAt, plan: planned.map(PlanRowKey.init), today: today)
+        return dashboardMemo(key) {
+            let items = planned.compactMap(\.item)
+            let days = AppClock.weekDays(containing: AppClock.now)
+            let weekRows = WeekRunsModel.build(days: days, items: items, runs: recent.value ?? [], finished: [], today: today).rows
+            let weekRuns = ProgressModel.weekRuns(runs: recent.value ?? [], planned: weekRows, days: days)
+            guard let data = running.value else { return Dashboard(weekRuns: weekRuns, kpis: nil, overview: nil, zoneWeeks: []) }
+            let kpis = RunStackTransforms.kpis(data, plannedRunsThisWeek: plannedRunsThisWeek)
+            return Dashboard(weekRuns: weekRuns, kpis: kpis, overview: ProgressModel.runningOverview(data, kpis: kpis, plan: items),
+                             zoneWeeks: Array(RunTransforms.weeksWithRuns(data.weekly).suffix(12)))
+        }
+    }
+
     var body: some View {
         let running = running, recent = recent
-        let items = planned.compactMap(\.item)
-        let days = AppClock.weekDays(containing: AppClock.now)
-        let weekRows = WeekRunsModel.build(days: days, items: items, runs: recent.value ?? [], finished: [],
-                                           today: AppClock.todayString).rows
-        let weekRuns = ProgressModel.weekRuns(runs: recent.value ?? [], planned: weekRows, days: days)
+        let board = dashboard(running, recent)
+        let weekRuns = board.weekRuns
         VStack(alignment: .leading, spacing: Kit.groupSpacing) {
-            if let data = running.value {
-                let kpis = RunStackTransforms.kpis(data, plannedRunsThisWeek: plannedRunsThisWeek)
-                let overview = ProgressModel.runningOverview(data, kpis: kpis, plan: items)
+            if let data = running.value, let kpis = board.kpis, let overview = board.overview {
                 VStack(alignment: .leading, spacing: 12) {
                     RunningTiles(overview: overview, kpis: kpis)
                     DistanceCard(overview: overview)
                 }
                 WeekRunsSection(runs: weekRuns, plannedKm: overview.kmPlannedThisWeek, open: { openPlanned = PlannedRunSheet(item: $0) })
                 FitnessSection(data: data, kpis: kpis)
-                ZonesCard(weeks: Array(RunTransforms.weeksWithRuns(data.weekly).suffix(12)))
+                ZonesCard(weeks: board.zoneWeeks)
             } else {
-                StatsPlaceholder(resource: running, symbol: "figure.run", emptyTitle: "running stats")
+                LoadableContent(running.loadState("running stats"))
                 WeekRunsSection(runs: weekRuns, plannedKm: nil, open: { openPlanned = PlannedRunSheet(item: $0) })
             }
             RecentRunsSection(runs: recent.value ?? [], loaded: recent.value != nil)
@@ -290,7 +317,7 @@ struct RunningRouteView: View {
                     let kpis = RunStackTransforms.kpis(data)
                     if route == .vdot { VdotDetailView(points: data.vdot, fit: data.vdotFit, kpis: kpis) } else { EfficiencyDetailView(points: data.efficiency, kpis: kpis) }
                 } else {
-                    ScrollView { StatsPlaceholder(resource: running, symbol: "figure.run", emptyTitle: "running stats").pagePadding() }
+                    ScrollView { LoadableContent(running.loadState("running stats")).pagePadding() }
                         .screenStyle()
                 }
             }
@@ -563,10 +590,8 @@ private struct AllRunsView: View {
         let recent = recent
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let runs = recent.value, !runs.isEmpty {
-                    RunRows(runs: runs)
-                } else {
-                    StatsPlaceholder(resource: recent, symbol: "figure.run", emptyTitle: "runs")
+                LoadableContent((recent.value ?? []).isEmpty ? recent.loadState("runs") : nil) {
+                    RunRows(runs: recent.value ?? [])
                 }
                 FreshnessLabel(resource: recent)
             }

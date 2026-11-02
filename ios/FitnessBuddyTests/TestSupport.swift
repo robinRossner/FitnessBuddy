@@ -1,3 +1,4 @@
+@testable import FitnessCore
 import Foundation
 import SwiftData
 import Testing
@@ -53,4 +54,36 @@ func setDTO(_ id: UUID, session: UUID, updated: String, weight: Double = 50, rep
     SyncSetDTO(id: id.uuidString.lowercased(), sessionId: session.uuidString.lowercased(), variantId: 42, exerciseOrder: 1,
                setOrder: 1, setType: "working", weightKg: weight, reps: reps, durationS: nil,
                completedAt: date("2026-10-26T16:10:00.000Z"), notes: nil, updatedAt: date(updated), deletedAt: deleted.map(date))
+}
+
+/// Records requests and answers like a server (status + JSON body), failing exactly like `APIClient`:
+/// a thrown error becomes `APIError.transport`, a non-2xx status `APIError.unauthorized` / `.http`.
+final class FakeTransport: APITransport, @unchecked Sendable {
+    struct Request: Sendable {
+        var method: String
+        var path: String
+        var query: [URLQueryItem]
+        var body: String
+    }
+    typealias Handler = @Sendable (Request) throws -> (Int, String)
+
+    private let lock = NSLock()
+    private var _requests: [Request] = []
+    private var _handler: Handler
+
+    init(_ handler: @escaping Handler) { _handler = handler }
+
+    var requests: [Request] { lock.withLock { _requests } }
+    var handler: Handler {
+        get { lock.withLock { _handler } }
+        set { lock.withLock { _handler = newValue } }
+    }
+
+    func data(method: String, path: String, query: [URLQueryItem], body: Data?) async throws -> Data {
+        let request = Request(method: method, path: path, query: query, body: String(decoding: body ?? Data(), as: UTF8.self))
+        lock.withLock { _requests.append(request) }
+        let (status, json): (Int, String)
+        do { (status, json) = try handler(request) } catch { throw APIError.transport(error) }
+        return try APIClient.validate(status: status, body: Data(json.utf8))
+    }
 }

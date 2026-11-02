@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Progress tab: Lifting | Running | Insights under one large title, each a page of the design kit (DesignKit.swift).
@@ -69,25 +70,4 @@ struct ProgressTabView: View {
 
 struct RunRoute: Hashable, Identifiable {
     let id: String
-}
-
-/// "Oct 24" for a `YYYY-MM-DD` string.
-enum DayLabel {
-    /// "Fri"
-    static func weekday(_ day: String?) -> String {
-        guard let day, let d = DayKey.date(day) else { return "–" }
-        return d.formatted(.dateTime.weekday(.abbreviated))
-    }
-    static func short(_ day: String?) -> String {
-        guard let day, let d = DayKey.date(day) else { return "–" }
-        return d.formatted(.dateTime.month(.abbreviated).day())
-    }
-    static func medium(_ day: String?) -> String {
-        guard let day, let d = DayKey.date(day) else { return "–" }
-        return d.formatted(.dateTime.month(.abbreviated).day().year())
-    }
-    static func monthYear(_ day: String?) -> String {
-        guard let day, let d = DayKey.date(day) else { return "–" }
-        return d.formatted(.dateTime.month(.abbreviated).year())
-    }
 }

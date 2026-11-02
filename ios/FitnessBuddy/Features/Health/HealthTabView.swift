@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
@@ -31,11 +32,9 @@ struct HealthTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Kit.groupSpacing) {
-                    if let data = health.value {
+                    LoadableContent(health.value, else: health.loadState("health data")) { data in
                         ReadinessBreakdownCard(summary: readiness(data), time: readinessTime(data),
                                                startOpen: openSheet == "readiness")
-                    } else {
-                        StatsPlaceholder(resource: health, symbol: "heart.text.square.fill", emptyTitle: "health data")
                     }
                     signals(health.value, sources: sources)
                     WeighInsSection(measurements: measurements, hasAnyWeight: !sources.bodyweight.isEmpty,

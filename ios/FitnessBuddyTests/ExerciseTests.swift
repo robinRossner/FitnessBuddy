@@ -1,3 +1,4 @@
+@testable import FitnessCore
 import Foundation
 import SwiftData
 import Testing
@@ -178,7 +179,7 @@ struct ExerciseSettingsTests {
 @Suite(.tags(.workout))
 struct FinishReminderTests {
     @Test func lastSetArmsTheReminderThreeMinutesAfterTheRest() throws {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel(); timer.cancelFinishReminder() }
         timer.start(seconds: 120, variantId: 5, finishReminder: true)
         let end = try #require(timer.endDate)
@@ -188,7 +189,7 @@ struct FinishReminderTests {
     }
 
     @Test func skippingTheRestCountsFromNowAndAnotherSetCancels() throws {
-        let timer = RestTimer()
+        let timer = RestTimer(silent: true)
         defer { timer.cancel(); timer.cancelFinishReminder() }
         timer.start(seconds: 120, variantId: 5, finishReminder: true)
         timer.cancel()
@@ -201,16 +202,5 @@ struct FinishReminderTests {
     @Test func restIsSilentInTheAppReminderIsShown() {
         #expect(WorkoutNotifications.inAppPresentation(forId: WorkoutNotifications.restId).isEmpty)
         #expect(WorkoutNotifications.inAppPresentation(forId: WorkoutNotifications.finishReminderId).contains(.banner))
-    }
-}
-
-// MARK: - Today
-
-@Suite(.tags(.workout, .fast))
-struct TodayTitleTests {
-    @Test func liftingCardsOnlyNameTheHalf() {
-        #expect(PlanFormat.cardTitle(type: "lifting", kind: "upper", title: "Upper (deload)") == "Upper body")
-        #expect(PlanFormat.cardTitle(type: "lifting", kind: "lower", title: nil) == "Lower body")
-        #expect(PlanFormat.cardTitle(type: "easy_run", kind: "easy_run", title: nil) == "Easy run")
     }
 }

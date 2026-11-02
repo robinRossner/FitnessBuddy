@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Readiness on the Health tab: the headline, then HRV, resting HR and sleep each against its own baseline (from the

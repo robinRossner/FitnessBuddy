@@ -1,39 +1,7 @@
+@testable import FitnessCore
 import Foundation
 import Testing
 @testable import FitnessBuddy
-
-@Suite(.tags(.stats, .fast))
-struct StatsFreshnessTests {
-    let now = date("2026-10-25T12:00:00.000Z")
-
-    @Test func freshWithinFifteenMinutes() {
-        #expect(StatsFreshness.isFresh(fetchedAt: now.addingTimeInterval(-60), now: now))
-        #expect(StatsFreshness.isFresh(fetchedAt: now.addingTimeInterval(-14 * 60), now: now))
-        #expect(!StatsFreshness.isFresh(fetchedAt: now.addingTimeInterval(-15 * 60), now: now))
-        #expect(!StatsFreshness.isFresh(fetchedAt: nil, now: now))
-        #expect(!StatsFreshness.isFresh(fetchedAt: now.addingTimeInterval(120), now: now))  // clock went backwards
-        #expect(!StatsFreshness.isFresh(fetchedAt: now.addingTimeInterval(-1), now: now, maxAge: 0))
-    }
-
-    @Test func relativeLabels() {
-        #expect(StatsFreshness.relative(now.addingTimeInterval(-20), now: now) == "just now")
-        #expect(StatsFreshness.relative(now.addingTimeInterval(-5 * 60), now: now) == "5 min ago")
-        #expect(StatsFreshness.relative(now.addingTimeInterval(-2 * 3600 - 100), now: now) == "2 h ago")
-        #expect(StatsFreshness.relative(now.addingTimeInterval(-3 * 86_400), now: now) == "3 d ago")
-        #expect(StatsFreshness.label(fetchedAt: now.addingTimeInterval(-2 * 3600), offline: false, now: now) == "Updated 2 h ago")
-        #expect(StatsFreshness.label(fetchedAt: nil, offline: false, now: now) == nil)
-        #expect(StatsFreshness.label(fetchedAt: nil, offline: true, now: now) == "Offline")
-    }
-
-    @Test func offlineLabelNamesTheCachedTime() {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
-        let earlier = date("2026-10-24T14:03:00.000Z")
-        #expect(StatsFreshness.label(fetchedAt: earlier, offline: true, now: now, calendar: cal) == "Offline, showing data from Oct 24, 14:03")
-        let sameDay = date("2026-10-25T08:30:00.000Z")
-        #expect(StatsFreshness.label(fetchedAt: sameDay, offline: true, now: now, calendar: cal) == "Offline, showing data from 08:30")
-    }
-}
 
 @Suite(.tags(.stats))
 struct StatsCacheStoreTests {
@@ -84,7 +52,7 @@ struct StatsRepositoryTests {
                           settings: SettingsStore? = nil) -> StatsRepository {
         let settings = settings ?? SettingsStore(defaults: UserDefaults(suiteName: "stats-tests-\(UUID().uuidString)")!, loadToken: false)
         let repo = StatsRepository(settings: settings, store: store)
-        repo.transportOverride = { _, _ in try transport.call() }
+        repo.transportOverride = ClosureTransport { _, _, _, _ in try transport.call() }
         return repo
     }
 
@@ -93,10 +61,10 @@ struct StatsRepositoryTests {
     @Test func fetchCachesRawJsonAndCachedReadsItBack() async throws {
         let t = CountingTransport(body: liftsJSON)
         let repo = makeRepo(t)
-        #expect(repo.cached(StatsEndpoints.lifts) == nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) == nil)
         let fresh = try await repo.fetch(StatsEndpoints.lifts, now: date("2026-10-25T12:00:00.000Z"))
         #expect(fresh.value.lifts.count == 1)
-        let hit = try #require(repo.cached(StatsEndpoints.lifts))
+        let hit = try #require(await repo.cached(StatsEndpoints.lifts))
         #expect(hit.fetchedAt == date("2026-10-25T12:00:00.000Z") && hit.value.lifts[0].name == "Squat")
         #expect(repo.store.read(namespace: repo.namespace, key: StatsEndpoints.lifts.key)?.data == Data(liftsJSON.utf8))
     }
@@ -105,7 +73,7 @@ struct StatsRepositoryTests {
         let t = CountingTransport(body: #"{"lifts":[{"name":"no id"}]}"#)
         let repo = makeRepo(t)
         await #expect(throws: APIError.self) { try await repo.fetch(StatsEndpoints.lifts) }
-        #expect(repo.cached(StatsEndpoints.lifts) == nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) == nil)
     }
 
     @Test func resourceFetchesOnceWhileFreshAndAgainWhenStaleForcedOrAfterSync() async throws {
@@ -164,9 +132,8 @@ struct StatsRepositoryTests {
         settings.update(url: "http://10.0.0.4:8000", token: "token-a")
         let repo = makeRepo(t, store: store, settings: settings)
         _ = try await repo.fetch(StatsEndpoints.lifts)
-        #expect(repo.cached(StatsEndpoints.lifts) != nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) != nil)
         settings.update(url: "http://10.0.0.5:8000", token: "other-token")
-        #expect(repo.cached(StatsEndpoints.lifts) == nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) == nil)
     }
 }
-

@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Toolbar "Sync" button (next to `SyncStatusBadge`): the backend pulls Garmin now, then the app syncs and reloads

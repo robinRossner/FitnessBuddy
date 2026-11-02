@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 struct ProposalDetailView: View {
@@ -38,15 +39,8 @@ struct ProposalDetailView: View {
 
     private var loadingOrError: some View {
         VStack(spacing: 12) {
-            if let loadError {
-                ContentUnavailableView {
-                    Label(env.coach.isOffline ? "Offline" : "Couldn't load", systemImage: env.coach.isOffline ? "icloud.slash" : "exclamationmark.triangle")
-                } description: { Text(loadError) } actions: {
-                    Button("Try again") { Task { await load() } }
-                }
-            } else {
-                ProgressView()
-            }
+            LoadableContent(loadError.map { env.coach.isOffline ? .offline($0) : .failed($0) } ?? .loading(), style: .screen,
+                            retry: { Task { await load() } })
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -408,7 +402,7 @@ struct ProposalDetailView: View {
     /// Cached copy first, then the server, then (for a queued / running proposal) poll while the screen is visible.
     private func load() async {
         timedOut = false
-        env.coach.loadCachedDetail(proposalId)
+        await env.coach.loadCachedDetail(proposalId)
         await refreshOnce()
         guard let p = proposal, CoachLogic.shouldPoll(p.status), env.coach.canFetch else { return }
         polling = true

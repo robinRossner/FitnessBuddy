@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
@@ -8,7 +9,7 @@ struct WorkoutTabView: View {
     private var active: [LocalSession]
 
     var body: some View {
-        @Bindable var env = env
+        @Bindable var flow = env.workoutFlow
         NavigationStack {
             if let session = active.first {
                 ActiveWorkoutView(session: session)
@@ -16,7 +17,7 @@ struct WorkoutTabView: View {
                 WorkoutStartView()
             }
         }
-        .sheet(item: $env.finishedSummary) { summary in
+        .sheet(item: $flow.finishedSummary) { summary in
             WorkoutSummarySheet(summary: summary)
         }
     }
@@ -99,13 +100,13 @@ struct WorkoutStartView: View {
             }
             .buttonStyle(.plain)
         } else if let next {
-            Button { env.startWorkout(next) } label: {
+            Button { env.workoutFlow.start(next) } label: {
                 nextLabel(title: next.title, when: next.detail.isEmpty ? nil : next.detail.capitalizedFirst,
                           line: "Same exercises, last weights and reps", action: "Start Workout")
             }
             .buttonStyle(.plain)
         } else {
-            Button { env.startWorkout(from: nil) } label: {
+            Button { env.workoutFlow.start(from: nil) } label: {
                 nextLabel(title: "Empty Workout", when: nil, line: "Add exercises as you go", action: "Start Workout")
             }
             .buttonStyle(.plain)
@@ -225,7 +226,7 @@ struct WorkoutStartView: View {
     private var library: some View {
         Card(padding: 0) {
             VStack(spacing: 0) {
-                Button { env.showWorkoutChooser = true } label: {
+                Button { env.workoutFlow.showChooser = true } label: {
                     libraryLabel("Choose a Workout", symbol: "list.bullet.rectangle", detail: "Plan, repeat or empty")
                         .padding(.vertical, 10)
                         .contentShape(Rectangle())

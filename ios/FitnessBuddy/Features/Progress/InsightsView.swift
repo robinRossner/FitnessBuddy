@@ -1,3 +1,4 @@
+import FitnessCore
 import Charts
 import SwiftUI
 
@@ -28,7 +29,7 @@ struct InsightsContent: View {
     var body: some View {
         let correlations = correlations
         VStack(alignment: .leading, spacing: Kit.groupSpacing) {
-            if let items = correlations.value?.items {
+            LoadableContent(correlations.value?.items, else: correlations.loadState("insights")) { items in
                 let groups = InsightTransforms.grouped(items)
                 if groups.isEmpty {
                     Card { ChartEmpty(symbol: "lightbulb", message: "Not enough data yet. Patterns between sleep, HRV and training show up after a few weeks.") }
@@ -57,8 +58,6 @@ struct InsightsContent: View {
                         }
                     }
                 }
-            } else {
-                StatsPlaceholder(resource: correlations, symbol: "lightbulb", emptyTitle: "insights")
             }
             FreshnessLabel(resource: correlations)
         }
@@ -96,28 +95,6 @@ private struct InsightsSummaryCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-enum CorrelationText {
-    static func strength(_ r: Double) -> String {
-        let a = abs(r)
-        // Same cut-offs as the backend note: <0.2 negligible, <0.4 weak, <0.6 moderate, else strong.
-        if a < 0.2 { return "No clear link" }
-        let word = a < 0.4 ? "Weak" : (a < 0.6 ? "Moderate" : "Strong")
-        return "\(word) \(r > 0 ? "positive" : "negative") link"
-    }
-
-    /// Least-squares line through the points (nil with fewer than 3 points or no spread in x).
-    static func trendLine(_ pts: [CorrelationPointDTO]) -> (x0: Double, y0: Double, x1: Double, y1: Double)? {
-        guard pts.count >= 3 else { return nil }
-        let n = Double(pts.count)
-        let mx = pts.map(\.x).reduce(0, +) / n, my = pts.map(\.y).reduce(0, +) / n
-        let sxx = pts.map { ($0.x - mx) * ($0.x - mx) }.reduce(0, +)
-        guard sxx > 0 else { return nil }
-        let slope = pts.map { ($0.x - mx) * ($0.y - my) }.reduce(0, +) / sxx
-        let lo = pts.map(\.x).min()!, hi = pts.map(\.x).max()!
-        return (lo, my + slope * (lo - mx), hi, my + slope * (hi - mx))
     }
 }
 

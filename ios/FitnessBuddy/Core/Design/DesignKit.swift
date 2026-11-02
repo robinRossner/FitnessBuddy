@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 // MARK: - Design kit (Apple Health-like look of the five tabs)
@@ -359,17 +360,6 @@ struct MetricTile: View {
 
 // MARK: - Highlights
 
-struct HighlightBar: Identifiable, Equatable {
-    var value: String
-    var unit: String
-    /// "Last week", "8-week average".
-    var label: String
-    /// 0...1 bar length relative to the longest bar.
-    var fraction: Double
-    /// The current value: drawn in the card colour, the comparison in grey.
-    var highlighted: Bool
-    var id: String { label }
-}
 
 /// Health's highlight: one sentence and (usually two) comparison bars; opens the related chart.
 struct HighlightCard<Destination: View>: View {

@@ -1,3 +1,4 @@
+import FitnessCore
 import Foundation
 import Observation
 import SwiftData
@@ -48,6 +49,9 @@ final class SyncCoordinator {
     /// Runs (or joins) a sync; returns when it finished. Safe to call from `.refreshable`.
     func sync(_ reason: SyncReason) async {
         guard enabled else { return }
+        // Back in the foreground shortly after a good sync with nothing to upload: skip the round trip.
+        if reason == .foreground, inFlight == nil,
+           SyncThrottle.skipsForegroundSync(lastSuccess: lastSyncAt, hasPendingUploads: hasPendingUploads()) { return }
         if let inFlight {
             rerunRequested = reason != .pullToRefresh
             await inFlight.value
@@ -86,6 +90,15 @@ final class SyncCoordinator {
         }
         inFlight = task
         await task.value
+    }
+
+    /// Anything a sync would push: dirty sessions, sets or body measurements, rest times, template changes.
+    func hasPendingUploads() -> Bool {
+        let ctx = ModelContext(container)
+        let dirty = ((try? ctx.fetchCount(FetchDescriptor<LocalSession>(predicate: #Predicate { $0.dirty }))) ?? 1)
+            + ((try? ctx.fetchCount(FetchDescriptor<LocalSet>(predicate: #Predicate { $0.dirty }))) ?? 1)
+            + ((try? ctx.fetchCount(FetchDescriptor<LocalBodyMeasurement>(predicate: #Predicate { $0.dirty }))) ?? 1)
+        return dirty > 0 || !RestSettings.pending(in: ctx).isEmpty || !TemplateSync.pending().isEmpty
     }
 
     /// Stops a running sync and waits until it is really gone (before wiping the data it would write into).

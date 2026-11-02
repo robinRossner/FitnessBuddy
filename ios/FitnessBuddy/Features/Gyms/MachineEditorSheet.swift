@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// One weight step as a chip; tap removes it (when `onRemove` is set).

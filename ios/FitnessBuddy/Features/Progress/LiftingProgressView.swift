@@ -1,3 +1,4 @@
+import FitnessCore
 import Charts
 import SwiftData
 import SwiftUI
@@ -9,6 +10,7 @@ struct LiftingProgressView: View {
     @Query private var planned: [CachedPlannedSession]
     @Query(filter: #Predicate<LocalSession> { $0.endedAt != nil && $0.deletedAt == nil }) private var finished: [LocalSession]
     @State private var showAllLifts = false
+    @State private var dashboardMemo = Memo<DashboardInputs, Dashboard>()
 
     private var lifts: StatsResource<LiftsStatsDTO> { env.stats.resource(StatsEndpoints.lifts) }
     private var volume: StatsResource<WeeklyVolumeDTO> { env.stats.resource(StatsEndpoints.weeklyVolume()) }
@@ -20,27 +22,53 @@ struct LiftingProgressView: View {
         return n > 0 ? n : nil
     }
 
+    /// Everything the cards show, recomputed only when the stats, the plan or the finished sessions change.
+    private struct Dashboard {
+        var kpis: LiftingKpis
+        var series: [SessionsWeek]
+        var targets: [Int: NextLiftTarget]
+    }
+
+    private struct DashboardInputs: Equatable {
+        var lifts: Date?
+        var volume: Date?
+        var plan: [PlanRowKey]
+        var doneIds: Set<String>
+        var today: String
+    }
+
+    private func dashboard(_ lifts: StatsResource<LiftsStatsDTO>, _ volume: StatsResource<WeeklyVolumeDTO>) -> Dashboard {
+        let doneIds = Set(finished.compactMap(\.plannedSessionId))
+        let today = AppClock.todayString
+        let key = DashboardInputs(lifts: lifts.fetchedAt, volume: volume.fetchedAt, plan: planned.map(PlanRowKey.init),
+                                  doneIds: doneIds, today: today)
+        return dashboardMemo(key) {
+            let all = lifts.value?.lifts ?? []
+            let weeks = volume.value?.weeks ?? []
+            let items = planned.compactMap(\.item)
+            var targets: [Int: NextLiftTarget] = [:]
+            for lift in all {
+                targets[lift.variantId] = ProgressModel.nextTarget(variantId: lift.variantId, items: items, doneIds: doneIds, today: today)
+            }
+            return Dashboard(kpis: LiftingDashboard.kpis(weeks: weeks, lifts: all, plannedThisWeekFallback: plannedThisWeek),
+                             series: LiftingDashboard.series(weeks, lifts: all, range: .eightWeeks), targets: targets)
+        }
+    }
+
     var body: some View {
         let lifts = lifts, volume = volume
         VStack(alignment: .leading, spacing: Kit.groupSpacing) {
-            if lifts.value == nil && volume.value == nil {
-                StatsPlaceholder(resource: lifts, symbol: "dumbbell.fill", emptyTitle: "lifting stats")
-            } else {
-                let all = lifts.value?.lifts ?? []
-                let weeks = volume.value?.weeks ?? []
-                LiftingTiles(kpis: LiftingDashboard.kpis(weeks: weeks, lifts: all, plannedThisWeekFallback: plannedThisWeek))
-                SessionsCard(series: LiftingDashboard.series(weeks, lifts: all, range: .eightWeeks))
-                ProgramLiftsSection(lifts: all, target: target(for:), showAll: { showAllLifts = true })
+            LoadableContent(lifts.value == nil && volume.value == nil ? lifts.loadState("lifting stats") : nil) {
+                let board = dashboard(lifts, volume)
+                LiftingTiles(kpis: board.kpis)
+                SessionsCard(series: board.series)
+                ProgramLiftsSection(lifts: lifts.value?.lifts ?? [], target: { board.targets[$0.variantId] },
+                                    showAll: { showAllLifts = true })
             }
             FreshnessLabel(resource: lifts)
         }
         .loadsStats([lifts, volume])
         .sheet(isPresented: $showAllLifts) { AllLiftsSheet(lifts: lifts.value?.lifts ?? []) }
-    }
-
-    private func target(for lift: LiftSummaryDTO) -> NextLiftTarget? {
-        ProgressModel.nextTarget(variantId: lift.variantId, items: planned.compactMap(\.item),
-                                 doneIds: Set(finished.compactMap(\.plannedSessionId)), today: AppClock.todayString)
     }
 }
 

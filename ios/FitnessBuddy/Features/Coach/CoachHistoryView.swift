@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// The config version timeline: who changed what and why, how it turned out, and a way back.

@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftData
 import SwiftUI
 
@@ -40,8 +41,8 @@ struct ExercisePickerView: View {
             }
             .overlay {
                 if variants.isEmpty && exercises.isEmpty {
-                    ContentUnavailableView("No exercises yet", systemImage: "arrow.triangle.2.circlepath",
-                                           description: Text("Sync with the backend to load your exercise library."))
+                    LoadableContent(.empty(title: "No exercises yet", symbol: "arrow.triangle.2.circlepath",
+                                           message: "Sync with the backend to load your exercise library."), style: .screen)
                 }
             }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))

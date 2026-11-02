@@ -1,3 +1,4 @@
+import FitnessCore
 import SwiftUI
 
 /// Health-style editor for Summary's Pinned metrics: remove or reorder pinned ones, add from the rest, reset.
