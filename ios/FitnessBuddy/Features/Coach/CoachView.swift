@@ -202,16 +202,11 @@ struct CoachStatusNotice: View {
                        text: "Requests are built but not sent to Claude; nothing is applied.")
             }
         } else if !coach.canFetch {
-            notice("Not Set Up", symbol: "link", color: .secondary,
-                   text: "Add the backend URL and API token in Settings to use the coach.")
+            LoadableContent(.notConfigured("Add the backend URL and API token in Settings to use the coach."), style: .notice)
         } else if let failure = coach.failure {
-            notice(coach.isOffline ? "Offline" : "Couldn't Load", symbol: coach.isOffline ? "icloud.slash" : "exclamationmark.triangle",
-                   color: .secondary, text: coach.isOffline ? "Nothing cached yet." : failure)
+            LoadableContent(coach.isOffline ? .offline("Nothing cached yet.") : .failed(failure), style: .notice)
         } else if !coach.didFinishFirstLoad {
-            Card {
-                HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Loading…").foregroundStyle(.secondary) }
-                    .font(.subheadline)
-            }
+            LoadableContent(.loading(), style: .notice)
         }
     }
 

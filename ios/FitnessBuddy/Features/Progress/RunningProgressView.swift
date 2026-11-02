@@ -70,7 +70,7 @@ struct RunningProgressView: View {
                 FitnessSection(data: data, kpis: kpis)
                 ZonesCard(weeks: board.zoneWeeks)
             } else {
-                StatsPlaceholder(resource: running, symbol: "figure.run", emptyTitle: "running stats")
+                LoadableContent(running.loadState("running stats"))
                 WeekRunsSection(runs: weekRuns, plannedKm: nil, open: { openPlanned = PlannedRunSheet(item: $0) })
             }
             RecentRunsSection(runs: recent.value ?? [], loaded: recent.value != nil)
@@ -317,7 +317,7 @@ struct RunningRouteView: View {
                     let kpis = RunStackTransforms.kpis(data)
                     if route == .vdot { VdotDetailView(points: data.vdot, fit: data.vdotFit, kpis: kpis) } else { EfficiencyDetailView(points: data.efficiency, kpis: kpis) }
                 } else {
-                    ScrollView { StatsPlaceholder(resource: running, symbol: "figure.run", emptyTitle: "running stats").pagePadding() }
+                    ScrollView { LoadableContent(running.loadState("running stats")).pagePadding() }
                         .screenStyle()
                 }
             }
@@ -590,10 +590,8 @@ private struct AllRunsView: View {
         let recent = recent
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let runs = recent.value, !runs.isEmpty {
-                    RunRows(runs: runs)
-                } else {
-                    StatsPlaceholder(resource: recent, symbol: "figure.run", emptyTitle: "runs")
+                LoadableContent((recent.value ?? []).isEmpty ? recent.loadState("runs") : nil) {
+                    RunRows(runs: recent.value ?? [])
                 }
                 FreshnessLabel(resource: recent)
             }

@@ -39,11 +39,9 @@ struct MachineSetupSheet: View {
         } else {
             NavigationStack {
                 VStack(spacing: 12) {
-                    if loading { ProgressView() }
-                    else {
-                        ContentUnavailableView("Can't open the machine", systemImage: "icloud.slash",
-                                               description: Text(message ?? "Open Settings > Gym to set it up."))
-                    }
+                    LoadableContent(loading ? .loading() : .empty(title: "Can't open the machine", symbol: "icloud.slash",
+                                                                  message: message ?? "Open Settings > Gym to set it up."),
+                                    style: .screen)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .navigationTitle(target.name)

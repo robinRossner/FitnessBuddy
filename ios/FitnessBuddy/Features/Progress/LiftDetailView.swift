@@ -36,7 +36,7 @@ struct LiftDetailView: View {
                     VolumeChartCard(points: points)
                     PRListSection(prs: data.prs)
                 } else {
-                    StatsPlaceholder(resource: detail, symbol: "dumbbell.fill", emptyTitle: "lift history")
+                    LoadableContent(detail.loadState("lift history"))
                     if let target { NextSessionCard(target: target) }
                 }
                 VStack(alignment: .leading, spacing: 12) {

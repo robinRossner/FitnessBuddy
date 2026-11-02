@@ -40,11 +40,9 @@ struct GymManageView: View {
         }
         .overlay {
             if gyms.isEmpty {
-                if env.gyms.isRefreshing { ProgressView() }
-                else {
-                    ContentUnavailableView("No gyms loaded", systemImage: "building.2",
-                                           description: Text(env.gyms.failure ?? "Open this screen with a connection once to load your gyms."))
-                }
+                LoadableContent(env.gyms.isRefreshing ? .loading() : .empty(
+                    title: "No gyms loaded", symbol: "building.2",
+                    message: env.gyms.failure ?? "Open this screen with a connection once to load your gyms."), style: .screen)
             }
         }
         .navigationTitle("Manage gyms")

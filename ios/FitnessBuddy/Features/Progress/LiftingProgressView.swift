@@ -58,9 +58,7 @@ struct LiftingProgressView: View {
     var body: some View {
         let lifts = lifts, volume = volume
         VStack(alignment: .leading, spacing: Kit.groupSpacing) {
-            if lifts.value == nil && volume.value == nil {
-                StatsPlaceholder(resource: lifts, symbol: "dumbbell.fill", emptyTitle: "lifting stats")
-            } else {
+            LoadableContent(lifts.value == nil && volume.value == nil ? lifts.loadState("lifting stats") : nil) {
                 let board = dashboard(lifts, volume)
                 LiftingTiles(kpis: board.kpis)
                 SessionsCard(series: board.series)

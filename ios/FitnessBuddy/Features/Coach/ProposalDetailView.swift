@@ -39,15 +39,8 @@ struct ProposalDetailView: View {
 
     private var loadingOrError: some View {
         VStack(spacing: 12) {
-            if let loadError {
-                ContentUnavailableView {
-                    Label(env.coach.isOffline ? "Offline" : "Couldn't load", systemImage: env.coach.isOffline ? "icloud.slash" : "exclamationmark.triangle")
-                } description: { Text(loadError) } actions: {
-                    Button("Try again") { Task { await load() } }
-                }
-            } else {
-                ProgressView()
-            }
+            LoadableContent(loadError.map { env.coach.isOffline ? .offline($0) : .failed($0) } ?? .loading(), style: .screen,
+                            retry: { Task { await load() } })
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

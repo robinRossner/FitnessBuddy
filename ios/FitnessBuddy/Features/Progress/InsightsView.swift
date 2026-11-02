@@ -29,7 +29,7 @@ struct InsightsContent: View {
     var body: some View {
         let correlations = correlations
         VStack(alignment: .leading, spacing: Kit.groupSpacing) {
-            if let items = correlations.value?.items {
+            LoadableContent(correlations.value?.items, else: correlations.loadState("insights")) { items in
                 let groups = InsightTransforms.grouped(items)
                 if groups.isEmpty {
                     Card { ChartEmpty(symbol: "lightbulb", message: "Not enough data yet. Patterns between sleep, HRV and training show up after a few weeks.") }
@@ -58,8 +58,6 @@ struct InsightsContent: View {
                         }
                     }
                 }
-            } else {
-                StatsPlaceholder(resource: correlations, symbol: "lightbulb", emptyTitle: "insights")
             }
             FreshnessLabel(resource: correlations)
         }
