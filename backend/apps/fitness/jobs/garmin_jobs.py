@@ -37,7 +37,7 @@ DAY_KINDS = (*LIGHT_KINDS, HR_ZONES)
 _lock = threading.Lock()  # one sync at a time, whether CLI-in-process or scheduled
 
 
-def on_new_data(report: SyncReport) -> None:
+def on_new_data(report: SyncReport, settings: Settings | None = None) -> None:
     """Hook: after new Garmin data, (1) auto-update max HR / LTHR in the engine config if Garmin
     reports different values (new config version, author=engine), then (2) re-run the engine
     (reconcile + plan current and next week). Never raises: a sync must not fail because of it."""
@@ -51,7 +51,7 @@ def on_new_data(report: SyncReport) -> None:
 
         with session_scope() as db:
             service.record_config_check(db)
-        if get_settings().engine_auto_run:
+        if (settings or get_settings()).engine_auto_run:
             with session_scope() as db:
                 summary = service.run_engine(db)
             log.info(
@@ -68,14 +68,14 @@ def on_new_data(report: SyncReport) -> None:
         log.exception("engine run after Garmin sync failed")
 
 
-def after_sync(report: SyncReport) -> None:
+def after_sync(report: SyncReport, settings: Settings | None = None) -> None:
     """Post-processing shared by every sync entry point."""
     if report.weights_changed:  # bodyweight feeds e1RM of bodyweight-loaded lifts
         with session_scope() as db:
             n = rebuild_with_config(db)
         log.info("stats rebuilt after new Garmin weights (%d rows)", n)
     if report.new_data:
-        on_new_data(report)
+        on_new_data(report, settings)
 
 
 def run_sync(
@@ -103,7 +103,7 @@ def run_sync(
             rate_limit_waits=rate_limit_waits,
         )
         report = sync.sync(kinds)
-        after_sync(report)
+        after_sync(report, s)
         return report
     finally:
         _lock.release()

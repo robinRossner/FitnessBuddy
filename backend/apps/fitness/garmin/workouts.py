@@ -822,9 +822,11 @@ def _enabled(s: Settings) -> bool:
     return bool(s.garmin_push_workouts and s.garmin_email and s.garmin_password)
 
 
-def push_job(session_factory: sessionmaker[Session] | None = None) -> None:
+def push_job(
+    settings: Settings | None = None, session_factory: sessionmaker[Session] | None = None
+) -> None:
     """Scheduled push (evening + early morning). Never raises."""
-    s = get_settings()
+    s = settings or get_settings()
     if not _enabled(s):
         return
     try:
@@ -859,10 +861,10 @@ def push_if_changed(
         return None
 
 
-def push_soon(reason: str) -> None:
+def push_soon(reason: str, settings: Settings | None = None) -> None:
     """Hook after an engine re-run: push changed runs in a background thread. Only in the
     server process (SCHEDULER_ENABLED) so local runs and tests never talk to Garmin."""
-    s = get_settings()
+    s = settings or get_settings()
     if not (s.scheduler_enabled and s.garmin_push_after_engine and _enabled(s)):
         return
     threading.Thread(

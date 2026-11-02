@@ -215,7 +215,9 @@ def manual(client, session_factory, monkeypatch, tmp_path):
     app.dependency_overrides[get_settings_dep] = lambda: s  # the client fixture clears it
     monkeypatch.setattr(garmin_jobs, "get_session_factory", lambda: session_factory)
     monkeypatch.setattr(garmin_jobs, "build_source", build_source)
-    monkeypatch.setattr(garmin_jobs, "on_new_data", env.hooks.append)
+    monkeypatch.setattr(
+        garmin_jobs, "on_new_data", lambda report, settings=None: env.hooks.append(report)
+    )
     manual_sync_guard.reset()
     yield env
     manual_sync_guard.reset()

@@ -175,7 +175,7 @@ def garmin_backfill(
         report = sync.backfill(start, _kinds(kinds), restart=restart)
     except GarminError as exc:
         raise _fail(exc) from None
-    after_sync(report)
+    after_sync(report, s)
     _echo_report(report)
 
 
@@ -197,7 +197,7 @@ def garmin_sync(
         report = sync.sync(_kinds(kinds))
     except GarminError as exc:
         raise _fail(exc) from None
-    after_sync(report)
+    after_sync(report, s)
     _echo_report(report)
 
 
