@@ -409,7 +409,7 @@ struct ProposalDetailView: View {
     /// Cached copy first, then the server, then (for a queued / running proposal) poll while the screen is visible.
     private func load() async {
         timedOut = false
-        env.coach.loadCachedDetail(proposalId)
+        await env.coach.loadCachedDetail(proposalId)
         await refreshOnce()
         guard let p = proposal, CoachLogic.shouldPoll(p.status), env.coach.canFetch else { return }
         polling = true

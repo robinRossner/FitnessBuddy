@@ -61,10 +61,10 @@ struct StatsRepositoryTests {
     @Test func fetchCachesRawJsonAndCachedReadsItBack() async throws {
         let t = CountingTransport(body: liftsJSON)
         let repo = makeRepo(t)
-        #expect(repo.cached(StatsEndpoints.lifts) == nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) == nil)
         let fresh = try await repo.fetch(StatsEndpoints.lifts, now: date("2026-10-25T12:00:00.000Z"))
         #expect(fresh.value.lifts.count == 1)
-        let hit = try #require(repo.cached(StatsEndpoints.lifts))
+        let hit = try #require(await repo.cached(StatsEndpoints.lifts))
         #expect(hit.fetchedAt == date("2026-10-25T12:00:00.000Z") && hit.value.lifts[0].name == "Squat")
         #expect(repo.store.read(namespace: repo.namespace, key: StatsEndpoints.lifts.key)?.data == Data(liftsJSON.utf8))
     }
@@ -73,7 +73,7 @@ struct StatsRepositoryTests {
         let t = CountingTransport(body: #"{"lifts":[{"name":"no id"}]}"#)
         let repo = makeRepo(t)
         await #expect(throws: APIError.self) { try await repo.fetch(StatsEndpoints.lifts) }
-        #expect(repo.cached(StatsEndpoints.lifts) == nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) == nil)
     }
 
     @Test func resourceFetchesOnceWhileFreshAndAgainWhenStaleForcedOrAfterSync() async throws {
@@ -132,8 +132,8 @@ struct StatsRepositoryTests {
         settings.update(url: "http://10.0.0.4:8000", token: "token-a")
         let repo = makeRepo(t, store: store, settings: settings)
         _ = try await repo.fetch(StatsEndpoints.lifts)
-        #expect(repo.cached(StatsEndpoints.lifts) != nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) != nil)
         settings.update(url: "http://10.0.0.5:8000", token: "other-token")
-        #expect(repo.cached(StatsEndpoints.lifts) == nil)
+        #expect(await repo.cached(StatsEndpoints.lifts) == nil)
     }
 }

@@ -55,14 +55,14 @@ final class GymRepository: RemoteRepository {
     /// Cache first (immediately), then the network.
     func loadList() async {
         syncNamespace()
-        if list == nil { readListCache() }
+        if list == nil { await readListCache() }
         guard canFetch else { return }
         await fetchList()
     }
 
     func loadMachines(gymId: Int) async {
         syncNamespace()
-        if machines[gymId] == nil { readMachinesCache(gymId) }
+        if machines[gymId] == nil { await readMachinesCache(gymId) }
         guard canFetch else { return }
         await fetchMachines(gymId: gymId)
     }
@@ -74,7 +74,7 @@ final class GymRepository: RemoteRepository {
         defer { isRefreshing = false }
         do {
             let data = try await transport.get(path: GymEndpoints.gyms)
-            let dto = try decode(GymListDTO.self, data)
+            let dto = try await decode(GymListDTO.self, data)
             guard ns == namespace else { return }
             store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: "gyms")
             list = dto
@@ -91,7 +91,7 @@ final class GymRepository: RemoteRepository {
         defer { isRefreshing = false }
         do {
             let data = try await transport.get(path: GymEndpoints.machines(gymId))
-            let dto = try decode(GymMachinesDTO.self, data)
+            let dto = try await decode(GymMachinesDTO.self, data)
             guard ns == namespace else { return }
             store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: Self.machinesKey(gymId))
             machines[gymId] = dto
@@ -106,8 +106,8 @@ final class GymRepository: RemoteRepository {
         failure = f.message; isOffline = f.offline
     }
 
-    private func decode<T: Decodable>(_ type: T.Type, _ data: Data) throws -> T {
-        do { return try APICoding.makeDecoder().decode(T.self, from: data) }
+    private func decode<T: Decodable & Sendable>(_ type: T.Type, _ data: Data) async throws -> T {
+        do { return try await Self.decode(T.self, from: data) }
         catch { throw APIError.decoding(error) }
     }
 
@@ -119,17 +119,19 @@ final class GymRepository: RemoteRepository {
 
     private static func machinesKey(_ gymId: Int) -> String { "gym/\(gymId)/machines" }
 
-    private func readListCache() {
-        if let e = store.read(namespace: namespace, key: "gyms"), let dto = try? APICoding.makeDecoder().decode(GymListDTO.self, from: e.data) {
-            list = dto; listFetchedAt = e.fetchedAt
-        }
+    private func readListCache() async {
+        let ns = namespace
+        guard let e = store.read(namespace: ns, key: "gyms"), let dto = try? await Self.decode(GymListDTO.self, from: e.data),
+              ns == namespace, list == nil else { return }
+        list = dto; listFetchedAt = e.fetchedAt
     }
 
-    private func readMachinesCache(_ gymId: Int) {
-        if let e = store.read(namespace: namespace, key: Self.machinesKey(gymId)),
-           let dto = try? APICoding.makeDecoder().decode(GymMachinesDTO.self, from: e.data) {
-            machines[gymId] = dto; machinesFetchedAt[gymId] = e.fetchedAt
-        }
+    private func readMachinesCache(_ gymId: Int) async {
+        let ns = namespace
+        guard let e = store.read(namespace: ns, key: Self.machinesKey(gymId)),
+              let dto = try? await Self.decode(GymMachinesDTO.self, from: e.data),
+              ns == namespace, machines[gymId] == nil else { return }
+        machines[gymId] = dto; machinesFetchedAt[gymId] = e.fetchedAt
     }
 
     private func resetState() {

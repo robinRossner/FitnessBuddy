@@ -55,7 +55,7 @@ final class CoachRepository: RemoteRepository {
             resetState()
             lastNamespace = ns
         }
-        if proposals.isEmpty && history.isEmpty && settings == nil { readCache(ns) }
+        if proposals.isEmpty && history.isEmpty && settings == nil { await readCache(ns) }
         let generationChanged = lastGeneration != nil && lastGeneration != generation
         lastGeneration = generation
         let fresh = StatsFreshness.isFresh(fetchedAt: proposalsFetchedAt, maxAge: Self.maxAge)
@@ -85,44 +85,40 @@ final class CoachRepository: RemoteRepository {
     }
 
     func refreshProposals() async {
-        await refresh(key: "proposals", method: "GET", path: CoachEndpoints.proposals,
-                      query: [URLQueryItem(name: "status", value: "all"), URLQueryItem(name: "limit", value: "100")]) { data in
-            let list = try CoachCoding.makeDecoder().decode(CoachProposalListDTO.self, from: data)
-            return { [self] in
-                proposals = list.items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
-                for p in list.items { merge(p) }
-                proposalsFetchedAt = .now
-                notifyPending()
-            }
+        await refresh(key: "proposals", path: CoachEndpoints.proposals,
+                      query: [URLQueryItem(name: "status", value: "all"), URLQueryItem(name: "limit", value: "100")],
+                      as: CoachProposalListDTO.self) { list in
+            proposals = list.items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            for p in list.items { merge(p) }
+            proposalsFetchedAt = .now
+            notifyPending()
         }
     }
 
     func refreshHistory() async {
-        await refresh(key: "history", method: "GET", path: CoachEndpoints.history, query: []) { data in
-            let h = try CoachCoding.makeDecoder().decode(CoachHistoryDTO.self, from: data)
-            return { [self] in history = h.versions; historyFetchedAt = .now }
+        await refresh(key: "history", path: CoachEndpoints.history, as: CoachHistoryDTO.self) { h in
+            history = h.versions; historyFetchedAt = .now
         }
     }
 
     func refreshSettings() async {
-        await refresh(key: "settings", method: "GET", path: CoachEndpoints.settings, query: []) { data in
-            let s = try CoachCoding.makeDecoder().decode(CoachSettingsDTO.self, from: data)
-            return { [self] in settings = s; settingsFetchedAt = .now }
+        await refresh(key: "settings", path: CoachEndpoints.settings, as: CoachSettingsDTO.self) { s in
+            settings = s; settingsFetchedAt = .now
         }
     }
 
-    /// GET, decode (a response that does not decode is not cached), cache the raw body, then apply.
-    private func refresh(key: String, method: String, path: String, query: [URLQueryItem],
-                         decode: (Data) throws -> (@MainActor () -> Void)) async {
+    /// GET, decode off the main actor (a response that does not decode is not cached), cache the raw body, then apply.
+    private func refresh<T: Decodable & Sendable>(key: String, path: String, query: [URLQueryItem] = [], as type: T.Type,
+                                                  apply: (T) -> Void) async {
         guard let transport = transport() else { return }
         let ns = namespace
         do {
-            let data = try await transport.data(method: method, path: path, query: query, body: nil)
-            let apply: @MainActor () -> Void
-            do { apply = try decode(data) } catch { throw APIError.decoding(error) }
+            let data = try await transport.get(path: path, query: query)
+            let value: T
+            do { value = try await Self.decodeCoach(T.self, data) } catch { throw APIError.decoding(error) }
             guard ns == namespace else { return }  // the backend changed while we waited
             store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: key)
-            apply()
+            apply(value)
             failure = nil; isOffline = false
         } catch {
             guard let f = RemoteRepository.failure(for: error) else { return }
@@ -130,18 +126,31 @@ final class CoachRepository: RemoteRepository {
         }
     }
 
-    private func readCache(_ ns: String) {
-        let decoder = CoachCoding.makeDecoder()
-        if let e = store.read(namespace: ns, key: "proposals"), let list = try? decoder.decode(CoachProposalListDTO.self, from: e.data) {
-            proposals = list.items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
-            proposalsFetchedAt = e.fetchedAt
+    /// The cached list, history and settings, decoded together off the main actor.
+    private func readCache(_ ns: String) async {
+        let p = store.read(namespace: ns, key: "proposals"), h = store.read(namespace: ns, key: "history"),
+            s = store.read(namespace: ns, key: "settings")
+        async let list = Self.cachedValue(CoachProposalListDTO.self, p)
+        async let hist = Self.cachedValue(CoachHistoryDTO.self, h)
+        async let sets = Self.cachedValue(CoachSettingsDTO.self, s)
+        let (l, hv, sv) = await (list, hist, sets)
+        guard ns == namespace else { return }  // the backend changed while decoding
+        if let l, let p {
+            proposals = l.items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            proposalsFetchedAt = p.fetchedAt
         }
-        if let e = store.read(namespace: ns, key: "history"), let h = try? decoder.decode(CoachHistoryDTO.self, from: e.data) {
-            history = h.versions; historyFetchedAt = e.fetchedAt
-        }
-        if let e = store.read(namespace: ns, key: "settings"), let s = try? decoder.decode(CoachSettingsDTO.self, from: e.data) {
-            settings = s; settingsFetchedAt = e.fetchedAt
-        }
+        if let hv, let h { history = hv.versions; historyFetchedAt = h.fetchedAt }
+        if let sv, let s { settings = sv; settingsFetchedAt = s.fetchedAt }
+    }
+
+    /// Coach payloads use the raw-key decoder (see `CoachCoding`).
+    private nonisolated static func decodeCoach<T: Decodable & Sendable>(_ type: T.Type, _ data: Data) async throws -> T {
+        try await decode(T.self, from: data, decoder: { CoachCoding.makeDecoder() })
+    }
+
+    private nonisolated static func cachedValue<T: Decodable & Sendable>(_ type: T.Type, _ entry: StatsCacheEntry?) async -> T? {
+        guard let entry else { return nil }
+        return try? await decodeCoach(T.self, entry.data)
     }
 
     private func resetState() {
@@ -173,10 +182,10 @@ final class CoachRepository: RemoteRepository {
     // MARK: One proposal
 
     /// Reads the cached copy of a proposal (offline detail view).
-    func loadCachedDetail(_ id: String) {
+    func loadCachedDetail(_ id: String) async {
         guard details[id] == nil || details[id]?.inputSummary == nil,
-              let e = store.read(namespace: namespace, key: "proposal/" + id),
-              let p = try? CoachCoding.makeDecoder().decode(CoachProposalDTO.self, from: e.data) else { return }
+              let p = await Self.cachedValue(CoachProposalDTO.self, store.read(namespace: namespace, key: "proposal/" + id))
+        else { return }
         if details[id] == nil { merge(p) }
     }
 
@@ -187,7 +196,7 @@ final class CoachRepository: RemoteRepository {
         let ns = namespace
         do {
             let data = try await transport.get(path: CoachEndpoints.proposal(id))
-            let p = try decodeProposal(data)
+            let p = try await decodeProposal(data)
             if ns == namespace {
                 store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: "proposal/" + id)
                 absorb(p)
@@ -203,8 +212,8 @@ final class CoachRepository: RemoteRepository {
         return outcome
     }
 
-    private func decodeProposal(_ data: Data) throws -> CoachProposalDTO {
-        do { return try CoachCoding.makeDecoder().decode(CoachProposalDTO.self, from: data) }
+    private func decodeProposal(_ data: Data) async throws -> CoachProposalDTO {
+        do { return try await Self.decodeCoach(CoachProposalDTO.self, data) }
         catch { throw APIError.decoding(error) }
     }
 
@@ -229,7 +238,7 @@ final class CoachRepository: RemoteRepository {
     /// Approve the given changes; then re-plan (sync) and refresh, so Today and Progress follow the new config.
     func approve(_ id: String, changeIds: [String]) async throws -> CoachProposalDTO {
         let data = try await write("POST", CoachEndpoints.approve(id), body: CoachApproveRequest(changeIds: changeIds))
-        let p = try decodeProposal(data)
+        let p = try await decodeProposal(data)
         absorb(p)
         await configChanged()
         return details[id] ?? p
@@ -238,7 +247,7 @@ final class CoachRepository: RemoteRepository {
     func reject(_ id: String, note: String?) async throws -> CoachProposalDTO {
         let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let data = try await write("POST", CoachEndpoints.reject(id), body: CoachRejectRequest(note: trimmed?.isEmpty == false ? trimmed : nil))
-        let p = try decodeProposal(data)
+        let p = try await decodeProposal(data)
         absorb(p)
         await refreshProposals()
         return details[id] ?? p
@@ -248,7 +257,7 @@ final class CoachRepository: RemoteRepository {
     func ask(scope: CoachScope, refId: String?, question: String) async throws -> CoachProposalDTO {
         let data = try await write("POST", CoachEndpoints.ask,
                                    body: CoachAskRequest(scope: scope, refId: refId, question: question.trimmingCharacters(in: .whitespacesAndNewlines)))
-        let p = try decodeProposal(data)
+        let p = try await decodeProposal(data)
         absorb(p)
         await refreshSettings()  // calls this week
         return p
@@ -261,7 +270,7 @@ final class CoachRepository: RemoteRepository {
 
     func setApprovalMode(_ mode: ApprovalMode) async throws {
         let data = try await write("PUT", CoachEndpoints.settings, body: CoachSettingsUpdate(approvalMode: mode))
-        if let s = try? CoachCoding.makeDecoder().decode(CoachSettingsDTO.self, from: data) {
+        if let s = try? await Self.decodeCoach(CoachSettingsDTO.self, data) {
             settings = s; settingsFetchedAt = .now
             store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: namespace, key: "settings")
         } else {

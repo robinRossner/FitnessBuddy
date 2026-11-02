@@ -12,9 +12,10 @@ final class StatsRepository: RemoteRepository {
         super.init(settings: settings, network: network, store: store, isDemo: isDemo)
     }
 
-    func cached<R: Decodable & Sendable>(_ endpoint: StatsEndpoint<R>) -> CachedStats<R>? {
+    /// The cached copy (decoded off the main actor), or nil.
+    func cached<R: Decodable & Sendable>(_ endpoint: StatsEndpoint<R>) async -> CachedStats<R>? {
         guard let entry = cacheEntry(endpoint.key),
-              let value = try? APICoding.makeDecoder().decode(R.self, from: entry.data) else { return nil }
+              let value = try? await Self.decode(R.self, from: entry.data) else { return nil }
         return CachedStats(value: value, fetchedAt: entry.fetchedAt)
     }
 
@@ -24,7 +25,7 @@ final class StatsRepository: RemoteRepository {
         let ns = namespace
         let data = try await transport.get(path: endpoint.path, query: endpoint.query)
         let value: R
-        do { value = try APICoding.makeDecoder().decode(R.self, from: data) }
+        do { value = try await Self.decode(R.self, from: data) }
         catch { throw APIError.decoding(error) }
         writeCache(data, key: endpoint.key, namespace: ns, at: now)
         return CachedStats(value: value, fetchedAt: now)
@@ -83,7 +84,7 @@ final class StatsResource<R: Decodable & Sendable>: StatsLoadable {
         let ns = repository.namespace
         let generationChanged = followsSync && lastGeneration != nil && lastGeneration != generation
         if value == nil || lastNamespace != ns || generationChanged {
-            if let hit = repository.cached(endpoint) {
+            if let hit = await repository.cached(endpoint) {
                 value = hit.value; fetchedAt = hit.fetchedAt
             } else if lastNamespace != ns {
                 value = nil; fetchedAt = nil

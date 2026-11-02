@@ -60,6 +60,16 @@ class RemoteRepository {
         store.write(StatsCacheEntry(data: data, fetchedAt: date), namespace: ns, key: key)
     }
 
+    // MARK: Decoding
+
+    /// Decodes off the main actor (a large stats or coach payload would otherwise stall scrolling and navigation);
+    /// the caller gets the value back on its own actor.
+    nonisolated static func decode<T: Decodable & Sendable>(
+        _ type: T.Type, from data: Data, decoder: @escaping @Sendable () -> JSONDecoder = { APICoding.makeDecoder() }
+    ) async throws -> T {
+        try await Task.detached(priority: .userInitiated) { try decoder().decode(T.self, from: data) }.value
+    }
+
     // MARK: Errors
 
     /// What a failed refresh shows: the message, and whether the server was unreachable (the screen then shows the

@@ -342,7 +342,33 @@ enum Persistence {
 // MARK: - Decoded views of cached payloads
 
 extension CachedPlannedSession {
-    var item: PlanItemDTO? { try? APICoding.makeDecoder().decode(PlanItemDTO.self, from: payload) }
+    /// The decoded plan item. Views read it for every row on every render, so decoded values are kept per payload
+    /// (`PlanItemCache`); a changed payload (new sync) is a different key and decodes once.
+    var item: PlanItemDTO? { PlanItemCache.item(for: payload) }
+}
+
+/// Decoded `PlanItemDTO`s keyed by their JSON payload. Kept outside the model on purpose: writing a model property
+/// from a getter that runs during a view update would invalidate the view again. `NSCache` is thread-safe and
+/// evicts under memory pressure.
+enum PlanItemCache {
+    private final class Box {
+        let item: PlanItemDTO?
+        init(_ item: PlanItemDTO?) { self.item = item }
+    }
+
+    nonisolated(unsafe) private static let cache: NSCache<NSData, Box> = {
+        let cache = NSCache<NSData, Box>()
+        cache.countLimit = 200
+        return cache
+    }()
+
+    static func item(for payload: Data) -> PlanItemDTO? {
+        let key = payload as NSData
+        if let hit = cache.object(forKey: key) { return hit.item }
+        let item = try? APICoding.makeDecoder().decode(PlanItemDTO.self, from: payload)
+        cache.setObject(Box(item), forKey: key)
+        return item
+    }
 }
 
 extension SyncState {
