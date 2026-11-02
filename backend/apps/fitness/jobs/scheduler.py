@@ -12,9 +12,9 @@ import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from apps.fitness.garmin.base import ALL_KINDS
 from apps.fitness.jobs.garmin_jobs import DAY_KINDS, run_sync
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.base import ALL_KINDS
 from core.scheduler import add_cron_job, hhmm
 
 log = logging.getLogger(__name__)
@@ -66,12 +66,12 @@ def add_advisor_jobs(sched: BackgroundScheduler, settings: Settings) -> None:
 
 
 def add_workout_push_jobs(sched: BackgroundScheduler, settings: Settings) -> None:
-    """Planned runs -> Garmin watch (apps/fitness/garmin_workouts): in the evening so tomorrow
+    """Planned runs -> Garmin watch (apps/fitness/garmin/workouts.py): in the evening so tomorrow
     morning's run is on the watch before bed, and early in the morning (after the nightly sync)
     so a readiness change still lands. The watch picks it up on its next phone sync."""
     if not settings.garmin_push_workouts:
         return
-    from apps.fitness.garmin_workouts import push_job
+    from apps.fitness.garmin.workouts import push_job
 
     for t in (x for x in settings.garmin_push_times.split(",") if x.strip()):
         h, m = hhmm(t)

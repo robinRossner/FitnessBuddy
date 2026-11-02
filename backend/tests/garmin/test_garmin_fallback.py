@@ -8,17 +8,17 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.base import DAILY_SUMMARY, HRV, SLEEP, GarminSource
-from apps.fitness.sources.garmin.composite import CompositeSource
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.base import DAILY_SUMMARY, HRV, SLEEP, GarminSource
+from apps.fitness.garmin.composite import CompositeSource
+from apps.fitness.garmin.errors import (
     NotFoundError,
     RateLimitedError,
     ServerError,
     SourceUnavailable,
 )
-from apps.fitness.sources.garmin.factory import build_source
-from apps.fitness.sources.garmin.python_garminconnect import PythonGarminConnectSource
+from apps.fitness.garmin.factory import build_source
+from apps.fitness.garmin.python_garminconnect import PythonGarminConnectSource
+from apps.fitness.settings import Settings
 from tests.support.garmin_fakes import (
     SAMPLE_LAPS,
     FakeSource,

@@ -1,1 +1,1 @@
-"""Garmin data sources behind the GarminSource protocol."""
+"""Compatibility shims for `apps.fitness.garmin` (base, errors, mapping) and `core.redact`."""

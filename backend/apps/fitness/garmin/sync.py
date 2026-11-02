@@ -38,8 +38,7 @@ from apps.fitness.db.models import (
     SyncState,
 )
 from apps.fitness.db.types import MeasurementSource, Source, utcnow
-from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     ALL_KINDS,
     DAILY_KINDS,
@@ -51,12 +50,13 @@ from apps.fitness.sources.garmin.base import (
     GarminSource,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     GarminError,
     NotFoundError,
     RateLimitedError,
     SourceUnavailable,
 )
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -549,7 +549,7 @@ class GarminSync:
 
     def reparse(self) -> dict[str, int]:
         """Re-run the parsers over `garmin_raw` (no network): activities, daily kinds, weight."""
-        from apps.fitness.sources.garmin import mapping
+        from apps.fitness.garmin import mapping
 
         counts = {"activity": 0, "daily": 0, "weight": 0}
         with self._scope() as db:

@@ -2,7 +2,7 @@
 
 Used only when GARMIN_EMAIL / GARMIN_PASSWORD are set and GARMIN_SOURCE selects it (or `auto`
 and the Personal API failed). `GarminConnectLogin` is also the login of the workout push
-(`apps.fitness.garmin_workouts`). Garmin blocks/429s repeated SSO logins, so:
+(`apps.fitness.garmin.workouts`). Garmin blocks/429s repeated SSO logins, so:
 - login happens lazily, at most once per process; a failure is remembered and re-raised
   without trying again;
 - tokens are persisted in `garmin_connect_token_dir` (python-garminconnect's own token file),
@@ -23,8 +23,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from apps.fitness.sources.garmin import mapping
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin import mapping
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     DAILY_SUMMARY,
     HRV,
@@ -36,15 +36,15 @@ from apps.fitness.sources.garmin.base import (
     DailyHealthData,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     GarminError,
     NotFoundError,
     RateLimitedError,
     ServerError,
     SourceUnavailable,
 )
-from apps.fitness.sources.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
-from apps.fitness.sources.garmin.redact import install_log_redaction, register_secret
+from apps.fitness.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
+from core.redact import install_log_redaction, register_secret
 
 log = logging.getLogger(__name__)
 

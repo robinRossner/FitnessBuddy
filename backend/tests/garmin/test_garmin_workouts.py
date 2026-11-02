@@ -1,4 +1,4 @@
-"""Planned runs -> Garmin workouts (fitness/garmin_workouts.py) against a fake python-garminconnect
+"""Planned runs -> Garmin workouts (fitness/garmin/workouts.py) against a fake python-garminconnect
 client: workout JSON per run type, names, idempotency, replace on change, cleanup of past / done /
 removed workouts, foreign workouts untouched, scheduler wiring, endpoint auth. No network."""
 
@@ -11,14 +11,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.fitness import garmin_workouts as gw
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import PlannedSession, Run
 from apps.fitness.db.types import Source
+from apps.fitness.garmin import workouts as gw
+from apps.fitness.garmin.errors import SourceUnavailable
+from apps.fitness.garmin.python_garminconnect import GarminConnectLogin
 from apps.fitness.jobs.scheduler import build_scheduler
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.errors import SourceUnavailable
-from apps.fitness.sources.garmin.python_garminconnect import GarminConnectLogin
 from core.auth import get_api_token
 from server import app
 

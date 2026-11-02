@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.base import GarminSource
-from apps.fitness.sources.garmin.composite import CompositeSource
-from apps.fitness.sources.garmin.errors import SourceUnavailable
-from apps.fitness.sources.garmin.personal_api import PersonalApiSource
-from apps.fitness.sources.garmin.personal_client import PersonalApiClient
-from apps.fitness.sources.garmin.python_garminconnect import (
+from apps.fitness.garmin.base import GarminSource
+from apps.fitness.garmin.composite import CompositeSource
+from apps.fitness.garmin.errors import SourceUnavailable
+from apps.fitness.garmin.personal_api import PersonalApiSource
+from apps.fitness.garmin.personal_client import PersonalApiClient
+from apps.fitness.garmin.python_garminconnect import (
     PythonGarminConnectSource,
     resume_only_factory,
 )
+from apps.fitness.settings import Settings
 
 
 def _personal(s: Settings) -> PersonalApiSource:

@@ -17,10 +17,10 @@ from apps.fitness.engine import quality as Q
 from apps.fitness.engine import running as R
 from apps.fitness.engine.hr import GARMIN_ZONES_SINCE, zone_book, zones_from_config
 from apps.fitness.engine.planner import _hr, generate_week
+from apps.fitness.garmin.base import HR_ZONES
 from apps.fitness.jobs.garmin_jobs import DAY_KINDS, LIGHT_KINDS
 from apps.fitness.jobs.scheduler import build_scheduler
 from apps.fitness.settings import FITNESS_DIR, Settings
-from apps.fitness.sources.garmin.base import HR_ZONES
 from tests.engine.test_engine_planner import CFG, easy_run, inputs, interval_run
 
 OLD = (98.0, 117.0, 137.0, 156.0, 176.0)  # % of max HR: easy ceiling 155

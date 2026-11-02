@@ -8,9 +8,7 @@ from collections.abc import Callable
 
 from apps.fitness.analytics import cache as stats_cache
 from apps.fitness.db.session import get_session_factory, session_scope
-from apps.fitness.garmin_sync import GarminSync, SyncReport
-from apps.fitness.settings import Settings, get_settings
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     ALL_KINDS,
     DAILY_SUMMARY,
@@ -19,7 +17,9 @@ from apps.fitness.sources.garmin.base import (
     SLEEP,
     GarminSource,
 )
-from apps.fitness.sources.garmin.factory import build_source
+from apps.fitness.garmin.factory import build_source
+from apps.fitness.garmin.sync import GarminSync, SyncReport
+from apps.fitness.settings import Settings, get_settings
 from apps.fitness.stats import rebuild_with_config
 
 log = logging.getLogger(__name__)

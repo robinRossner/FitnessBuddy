@@ -13,14 +13,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from apps.fitness import garmin_workouts
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import DailyHealth, Run
+from apps.fitness.garmin import workouts as garmin_workouts
+from apps.fitness.garmin.errors import GarminError, RateLimitedError, SourceUnavailable
+from apps.fitness.garmin.manual import Verdict, manual_sync_guard
+from apps.fitness.garmin.mapping import RUN_TYPES
 from apps.fitness.jobs.garmin_jobs import LIGHT_KINDS, run_sync
-from apps.fitness.manual_sync import Verdict, manual_sync_guard
 from apps.fitness.settings import Settings, get_settings
-from apps.fitness.sources.garmin.errors import GarminError, RateLimitedError, SourceUnavailable
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
 from core.auth import require_token
 
 router = APIRouter(dependencies=[Depends(require_token)])

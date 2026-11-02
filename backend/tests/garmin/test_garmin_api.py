@@ -10,10 +10,10 @@ from fastapi.testclient import TestClient
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import DailyHealth, Lap, Run
 from apps.fitness.db.types import Source
-from apps.fitness.garmin_sync import run_id
+from apps.fitness.garmin.errors import GarminError, RateLimitedError, SourceUnavailable
+from apps.fitness.garmin.sync import run_id
 from apps.fitness.jobs.scheduler import build_scheduler
 from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.errors import GarminError, RateLimitedError, SourceUnavailable
 from core.auth import get_api_token
 from server import app
 from tests.support.garmin_fakes import FakeSource, activity_raw, hrv_raw, sleep_raw
@@ -165,7 +165,7 @@ def test_lifespan_starts_and_stops_scheduler_when_enabled(monkeypatch):
 
 
 def test_engine_hook_is_a_harmless_placeholder(pin_session_factory, monkeypatch):
-    from apps.fitness.garmin_sync import SyncReport
+    from apps.fitness.garmin.sync import SyncReport
     from apps.fitness.jobs.garmin_jobs import on_new_data
     from apps.fitness.settings import get_settings
 
@@ -188,15 +188,15 @@ class Env:
 
     @property
     def today(self) -> str:
-        from apps.fitness import garmin_workouts
+        from apps.fitness.garmin import workouts as garmin_workouts
 
         return garmin_workouts.user_today(self.settings).isoformat()
 
 
 @pytest.fixture
 def manual(client, session_factory, monkeypatch, tmp_path):
+    from apps.fitness.garmin.manual import manual_sync_guard
     from apps.fitness.jobs import garmin_jobs
-    from apps.fitness.manual_sync import manual_sync_guard
 
     s = Settings(
         _env_file=None,
@@ -336,14 +336,14 @@ def test_manual_sync_garmin_errors(client, manual, error, code):
     manual.error = error
     res = post_sync(client)
     assert res.status_code == code and str(error) in res.json()["detail"]
-    from apps.fitness.manual_sync import manual_sync_guard
+    from apps.fitness.garmin.manual import manual_sync_guard
 
     today = date.fromisoformat(manual.today)
     assert manual_sync_guard.count(today) == 1  # a failed attempt still counts
 
 
 def test_guard_rolls_over_at_local_midnight_and_refunds():
-    from apps.fitness.manual_sync import ManualSyncGuard, seconds_to_next_midnight
+    from apps.fitness.garmin.manual import ManualSyncGuard, seconds_to_next_midnight
 
     clock = [1000.0]
     guard = ManualSyncGuard(lambda: clock[0])

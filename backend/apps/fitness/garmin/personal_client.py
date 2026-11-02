@@ -30,7 +30,7 @@ from typing import Any
 
 import httpx
 
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     BadRequestError,
     GarminError,
     KeyExpiredError,
@@ -39,7 +39,7 @@ from apps.fitness.sources.garmin.errors import (
     ServerError,
     SourceUnavailable,
 )
-from apps.fitness.sources.garmin.redact import install_log_redaction, redact, register_secret
+from core.redact import install_log_redaction, redact, register_secret
 
 log = logging.getLogger(__name__)
 

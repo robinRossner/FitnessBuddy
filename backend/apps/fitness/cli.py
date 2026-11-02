@@ -77,7 +77,7 @@ def stats_rebuild() -> None:
 
 
 def _kinds(value: str | None) -> tuple[str, ...]:
-    from apps.fitness.sources.garmin.base import ALL_KINDS
+    from apps.fitness.garmin.base import ALL_KINDS
 
     if not value:
         return ALL_KINDS
@@ -101,9 +101,9 @@ def garmin_check(
     from sqlalchemy import func
 
     from apps.fitness.db.models import DailyHealth, Run, SyncState
-    from apps.fitness.sources.garmin.errors import GarminError
-    from apps.fitness.sources.garmin.factory import build_source
-    from apps.fitness.sources.garmin.personal_api import PersonalApiSource
+    from apps.fitness.garmin.errors import GarminError
+    from apps.fitness.garmin.factory import build_source
+    from apps.fitness.garmin.personal_api import PersonalApiSource
 
     s = get_settings()
     try:
@@ -164,10 +164,10 @@ def garmin_backfill(
 ) -> None:
     """Fetch history in resumable chunks (re-run to continue after an interruption)."""
     from apps.fitness.db.session import get_session_factory
-    from apps.fitness.garmin_sync import DEFAULT_RATE_LIMIT_WAITS, GarminSync
+    from apps.fitness.garmin.errors import GarminError
+    from apps.fitness.garmin.factory import build_source
+    from apps.fitness.garmin.sync import DEFAULT_RATE_LIMIT_WAITS, GarminSync
     from apps.fitness.jobs.garmin_jobs import after_sync
-    from apps.fitness.sources.garmin.errors import GarminError
-    from apps.fitness.sources.garmin.factory import build_source
 
     s = get_settings()
     start = since.date() if since else s.garmin_since
@@ -193,10 +193,10 @@ def garmin_sync(
 ) -> None:
     """Incremental sync: from the stored cursor minus a small overlap up to today."""
     from apps.fitness.db.session import get_session_factory
-    from apps.fitness.garmin_sync import GarminSync
+    from apps.fitness.garmin.errors import GarminError
+    from apps.fitness.garmin.factory import build_source
+    from apps.fitness.garmin.sync import GarminSync
     from apps.fitness.jobs.garmin_jobs import after_sync
-    from apps.fitness.sources.garmin.errors import GarminError
-    from apps.fitness.sources.garmin.factory import build_source
 
     s = get_settings()
     try:
@@ -212,7 +212,7 @@ def garmin_sync(
 def garmin_reparse() -> None:
     """Re-run the parsers over stored raw JSON (no network)."""
     from apps.fitness.db.session import get_session_factory
-    from apps.fitness.garmin_sync import GarminSync
+    from apps.fitness.garmin.sync import GarminSync
 
     s = get_settings()
     sync = GarminSync(get_session_factory(), None, s)
@@ -235,8 +235,8 @@ def garmin_push_workouts(
     """Planned runs -> Garmin workouts scheduled on their day (docs/api/garmin.md)."""
     import json as _json
 
-    from apps.fitness import garmin_workouts as gw
-    from apps.fitness.sources.garmin.errors import GarminError
+    from apps.fitness.garmin import workouts as gw
+    from apps.fitness.garmin.errors import GarminError
 
     s = get_settings()
     try:

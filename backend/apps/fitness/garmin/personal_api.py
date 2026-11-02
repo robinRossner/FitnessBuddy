@@ -7,8 +7,8 @@ from collections.abc import Iterable
 from datetime import date, timedelta
 from typing import Any
 
-from apps.fitness.sources.garmin import mapping
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin import mapping
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     DAILY_SUMMARY,
     HRV,
@@ -20,9 +20,9 @@ from apps.fitness.sources.garmin.base import (
     DailyHealthData,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import BadRequestError, NotFoundError
-from apps.fitness.sources.garmin.fit import FitError, parse_laps, unzip_fit
-from apps.fitness.sources.garmin.personal_client import PersonalApiClient
+from apps.fitness.garmin.errors import BadRequestError, NotFoundError
+from apps.fitness.garmin.fit import FitError, parse_laps, unzip_fit
+from apps.fitness.garmin.personal_client import PersonalApiClient
 
 log = logging.getLogger(__name__)
 

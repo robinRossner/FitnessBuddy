@@ -62,7 +62,7 @@ def run_engine_now(db: Session, reason: str = "API") -> RunSummary:
 def push_runs_soon(reason: str) -> None:
     """Changed planned runs -> Garmin watch, in the background (only in the server process)."""
     try:
-        from apps.fitness.garmin_workouts import push_soon
+        from apps.fitness.garmin.workouts import push_soon
 
         push_soon(reason)
     except Exception:

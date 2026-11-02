@@ -50,10 +50,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import PlannedSession, Run
+from apps.fitness.garmin.errors import GarminError, NotFoundError, SourceUnavailable
+from apps.fitness.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.python_garminconnect import shared_login, translate_error
 from apps.fitness.settings import Settings, get_settings
-from apps.fitness.sources.garmin.errors import GarminError, NotFoundError, SourceUnavailable
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
-from apps.fitness.sources.garmin.python_garminconnect import shared_login, translate_error
 
 log = logging.getLogger(__name__)
 
