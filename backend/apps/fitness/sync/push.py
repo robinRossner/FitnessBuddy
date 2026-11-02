@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.analytics import cache as stats_cache
-from apps.fitness.bodyweight import local_day
+from apps.fitness.bodyweight.service import local_day
 from apps.fitness.db.models import (
     BodyMeasurement,
     ExerciseVariant,

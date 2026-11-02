@@ -10,13 +10,13 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from apps.fitness import gym_service as gs
 from apps.fitness.db.models import Exercise, ExerciseVariant, Gym
 from apps.fitness.db.types import utcnow
 from apps.fitness.engine import config_service as cs
 from apps.fitness.engine import lifting as L
 from apps.fitness.engine import service as engine
 from apps.fitness.engine.config import EngineConfig
+from apps.fitness.gyms import service as gs
 from apps.fitness.importers.strong.importer import ImportOptions, run_import, variant_uuid
 from apps.fitness.settings import FITNESS_DIR
 from tests.support.world import AUTH, TODAY

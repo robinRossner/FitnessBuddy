@@ -13,7 +13,13 @@ from apps.fitness.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from apps.fitness.gyms import GymConfigError, GymPeriods, GymSpec, load_gyms
+from apps.fitness.gyms.catalog import (
+    GymConfigError,
+    GymPeriods,
+    GymSpec,
+    clear_gyms_cache,
+    load_gyms,
+)
 from apps.fitness.importers.strong.importer import ImportOptions, run_import, variant_uuid
 from apps.fitness.importers.strong.report import weight_jumps
 from apps.fitness.settings import FITNESS_DIR
@@ -102,6 +108,18 @@ def test_period_boundaries_are_inclusive_start():
     assert p.resolve(date(2026, 8, 24)).name == "Gym 2"
     assert p.resolve(date(2026, 8, 25)).name == "Gym 3"
     assert p.resolve(date(2030, 1, 1)).name == "Gym 3"
+
+
+def test_load_gyms_is_cached_until_the_file_changes(tmp_path):
+    path = tmp_path / "gyms.yaml"
+    path.write_text(GYMS, encoding="utf-8")
+    first = load_gyms(path)
+    assert load_gyms(path) is first  # parsed once
+    path.write_text(GYMS + "  - {key: gym4, name: Gym 4, start: 2027-01-01}\n", encoding="utf-8")
+    second = load_gyms(path)
+    assert second is not first and second.latest.name == "Gym 4"
+    clear_gyms_cache()
+    assert load_gyms(path) is not second
 
 
 def load_gyms_from(text: str) -> GymPeriods:

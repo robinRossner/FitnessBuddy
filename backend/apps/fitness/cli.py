@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 import typer
 from sqlalchemy import select
 
-from apps.fitness.bodyweight import manual_id, upsert_measurement
+from apps.fitness.bodyweight.service import manual_id, upsert_measurement
 from apps.fitness.db.models import BodyMeasurement
 from apps.fitness.db.session import session_scope
 from apps.fitness.settings import get_settings

@@ -18,9 +18,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
-from apps.fitness import gym_service as gs
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import Exercise, ExerciseVariant
+from apps.fitness.gyms import service as gs
 from apps.fitness.jobs.engine_jobs import rerun_engine
 from apps.fitness.settings import get_settings
 from core.auth import require_token

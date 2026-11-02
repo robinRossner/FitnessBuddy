@@ -236,7 +236,7 @@ def config_out(db: Session, settings: Settings) -> dict[str, Any]:
 def gym_config(db: Session, settings: Settings) -> dict[str, Any]:
     """The current gym and the gym list (docs/api/gyms.md); never fails a pull."""
     try:
-        from apps.fitness import gym_service
+        from apps.fitness.gyms import service as gym_service
 
         listing = gym_service.list_gyms(db, settings)
         return {"current_gym_id": listing["current_gym_id"], "gyms": listing["gyms"]}

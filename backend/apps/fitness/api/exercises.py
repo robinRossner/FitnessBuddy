@@ -22,7 +22,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from apps.fitness import exercise_service as xs
 from apps.fitness.api.routes import get_db
 from apps.fitness.db.models import Exercise, ExerciseVariant, PlannedSession
 from apps.fitness.db.types import utcnow
@@ -31,6 +30,7 @@ from apps.fitness.engine import rest
 from apps.fitness.engine import service as engine
 from apps.fitness.engine.config import REST_MAX_S, REST_MIN_S, EngineConfig
 from apps.fitness.engine.program import KINDS, apply_overrides, set_kind_slots
+from apps.fitness.exercises import service as xs
 from apps.fitness.jobs.engine_jobs import rerun_engine, run_engine_now
 from apps.fitness.settings import get_settings
 from apps.fitness.sync.pull import exercise_out, program_rep_ranges, variant_out

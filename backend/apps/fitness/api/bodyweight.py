@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.api.routes import get_db
-from apps.fitness.bodyweight import upsert_measurement
+from apps.fitness.bodyweight.service import upsert_measurement
 from apps.fitness.db.models import BodyMeasurement
 from apps.fitness.db.types import MeasurementSource, utcnow
 from apps.fitness.settings import get_settings

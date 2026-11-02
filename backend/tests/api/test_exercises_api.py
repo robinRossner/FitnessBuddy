@@ -8,12 +8,12 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 
-from apps.fitness import gym_service as gs
 from apps.fitness.db.catalog import CatalogExercise, sync_catalog
 from apps.fitness.db.models import Exercise, ExerciseVariant
 from apps.fitness.db.types import EquipmentType
 from apps.fitness.engine import data
-from apps.fitness.exercise_service import generic_variant_key, is_user_generic_variant
+from apps.fitness.exercises.service import generic_variant_key, is_user_generic_variant
+from apps.fitness.gyms import service as gs
 from tests.support.world import AUTH
 
 
