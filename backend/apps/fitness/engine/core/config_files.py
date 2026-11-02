@@ -44,7 +44,12 @@ def cached_yaml(path: str | os.PathLike[str]) -> Any:
 
 def load_raw(path: str | os.PathLike[str]) -> dict[str, Any]:
     """The parsed YAML of `path` as a fresh dict the caller may change."""
-    return copy.deepcopy(cached_yaml(path))
+    return raw_at(file_key(path))
+
+
+def raw_at(key: FileKey) -> Any:
+    """A private copy of the parsed file under `key` (for caches keyed on `file_key`)."""
+    return copy.deepcopy(_parse(key))
 
 
 def content_hash(raw: dict[str, Any]) -> str:

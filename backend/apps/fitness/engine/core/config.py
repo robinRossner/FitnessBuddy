@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
+
+from apps.fitness.engine.core.config_files import FileKey, file_key, raw_at, register_cache
 
 # File reading and hashing live in the leaf module (seeding uses them without the models below).
 from apps.fitness.engine.core.config_files import content_hash as content_hash
@@ -554,4 +557,15 @@ class EngineConfig(_Model):
 
 
 def load_engine_config(path: Path) -> EngineConfig:
-    return EngineConfig.model_validate(load_raw(path))
+    """The validated config file, cached until the file changes (see `config_files`). The model
+    is frozen and shared between callers: build a changed copy with `model_copy`, never mutate
+    its dicts."""
+    return _validated(file_key(path))
+
+
+@lru_cache(maxsize=16)
+def _validated(key: FileKey) -> EngineConfig:
+    return EngineConfig.model_validate(raw_at(key))
+
+
+register_cache(_validated.cache_clear)

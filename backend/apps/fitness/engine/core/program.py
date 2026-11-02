@@ -12,6 +12,7 @@ variant or the one at the current gym.
 
 from __future__ import annotations
 
+import copy
 import math
 import os
 import shutil
@@ -23,7 +24,7 @@ from pathlib import Path
 from statistics import fmean, median
 from typing import Any
 
-import yaml
+from apps.fitness.engine.core.config_files import cached_yaml
 
 KINDS = ("upper", "lower")
 BACKUPS_KEEP = 20
@@ -58,7 +59,7 @@ class Program:
 
 
 def load_program(path: Path) -> Program:
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    data = cached_yaml(path) or {}  # shared parse: read only
     days: dict[str, list[ProgramExercise]] = {}
     for kind, items in (data.get("days") or {}).items():
         out = []
@@ -78,7 +79,7 @@ def load_program(path: Path) -> Program:
                 )
             )
         days[str(kind)] = out
-    return Program(days, data.get("generated") or {})
+    return Program(days, copy.deepcopy(data.get("generated") or {}))
 
 
 def seed_live_program(live: Path, seed: Path) -> None:
