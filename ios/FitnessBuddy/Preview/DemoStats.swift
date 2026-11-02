@@ -165,9 +165,17 @@ enum DemoStats {
                     VdotPointDTO(date: day(41), value: 49.6, source: "green_sessions", delta: 0.6, reason: "VDOT 49.0 -> 49.6: 2 quality sessions passed easily"),
                     VdotPointDTO(date: day(20), value: 50.6, source: "interval_reps", delta: 1.0, reason: "VDOT 49.6 -> 50.6 measured from interval reps")]
         let vdotFit = [VdotPointDTO(date: day(62), value: 48.6), VdotPointDTO(date: day(41), value: 49.2), VdotPointDTO(date: day(20), value: 49.5), VdotPointDTO(date: day(6), value: 49.7)]
-        let intervals = (0..<5).map { i -> IntervalSessionDTO in
-            IntervalSessionDTO(date: day(5 + i * 14), runId: "run-i\(i)", reps: 5 + i % 2, targetPaceSPerKm: 262, avgWorkPaceSPerKm: 262 + (i % 3 == 1 ? 8 : -2),
-                               avgWorkHr: 168 + Double(i), targetHrLow: 164, targetHrHigh: 174, hrInRange: i != 3, recoveryOk: i != 2, passed: i == 3 ? false : (i % 3 == 1 ? false : true))
+        var intervals: [IntervalSessionDTO] = []
+        for i in 0..<5 {
+            // Typed step by step: one long literal expression here times out the type checker on older Xcodes.
+            let slow: Bool = i % 3 == 1
+            let paceDelta: Double = slow ? 8 : -2
+            let workPace: Double = 262 + paceDelta
+            let workHr: Double = 168 + Double(i)
+            let passed: Bool = i != 3 && !slow
+            intervals.append(IntervalSessionDTO(date: day(5 + i * 14), runId: "run-i\(i)", reps: 5 + i % 2, targetPaceSPerKm: 262,
+                                                avgWorkPaceSPerKm: workPace, avgWorkHr: workHr, targetHrLow: 164, targetHrHigh: 174,
+                                                hrInRange: i != 3, recoveryOk: i != 2, passed: passed))
         }
         let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: eff.last?.efficiency, efficiency4wAgo: 1.24,
                               efficiencyChangePct: 4.6, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: 2, runsPlannedThisWeek: 3,
