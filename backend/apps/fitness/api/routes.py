@@ -2,28 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.fitness.api.deps import get_db as get_db  # its old home; routers import it from deps
+from apps.fitness.api.deps import service_errors
 from apps.fitness.db.models import ExerciseSessionStats, ExerciseVariant, TrainingSession
-from apps.fitness.db.session import get_session_factory
+from apps.fitness.exercises import service as xs
+from apps.fitness.sync import history
 from core.auth import require_token
 
 public_router = APIRouter()  # /health only
 router = APIRouter(dependencies=[Depends(require_token)])
-
-
-def get_db() -> Iterator[Session]:
-    db = get_session_factory()()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 class _Out(BaseModel):
@@ -70,35 +63,15 @@ def health() -> dict[str, str]:
 def list_sessions(
     limit: int = Query(50, ge=1, le=500), db: Session = Depends(get_db)
 ) -> list[TrainingSession]:
-    return list(
-        db.scalars(
-            select(TrainingSession)
-            .where(TrainingSession.deleted_at.is_(None))
-            .order_by(TrainingSession.started_at_utc.desc())
-            .limit(limit)
-        )
-    )
+    return history.recent_sessions(db, limit)
 
 
 @router.get("/variants", response_model=list[VariantOut])
 def list_variants(db: Session = Depends(get_db)) -> list[ExerciseVariant]:
-    return list(
-        db.scalars(
-            select(ExerciseVariant)
-            .where(ExerciseVariant.deleted_at.is_(None))
-            .order_by(ExerciseVariant.name)
-        )
-    )
+    return xs.active_variants(db)
 
 
 @router.get("/variants/{variant_id}/stats", response_model=list[StatOut])
 def variant_stats(variant_id: int, db: Session = Depends(get_db)) -> list[ExerciseSessionStats]:
-    if db.get(ExerciseVariant, variant_id) is None:
-        raise HTTPException(404, "variant not found")
-    return list(
-        db.scalars(
-            select(ExerciseSessionStats)
-            .where(ExerciseSessionStats.variant_id == variant_id)
-            .order_by(ExerciseSessionStats.session_date)
-        )
-    )
+    with service_errors():
+        return history.variant_stats(db, variant_id)

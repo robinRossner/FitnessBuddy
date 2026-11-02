@@ -11,16 +11,15 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.fitness.api.routes import get_db
-from apps.fitness.bodyweight import upsert_measurement
+from apps.fitness.api.deps import get_db, get_settings_dep, service_errors
+from apps.fitness.bodyweight import service
 from apps.fitness.db.models import BodyMeasurement
-from apps.fitness.db.types import MeasurementSource, utcnow
-from apps.fitness.settings import get_settings
+from apps.fitness.db.types import MeasurementSource
+from apps.fitness.settings import Settings
 from core.auth import require_token
 
 router = APIRouter(prefix="/bodyweight", dependencies=[Depends(require_token)])
@@ -57,41 +56,27 @@ def list_measurements(
     to: date | None = None,
     db: Session = Depends(get_db),
 ) -> list[BodyMeasurement]:
-    q = select(BodyMeasurement).where(BodyMeasurement.deleted_at.is_(None))
-    if from_:
-        q = q.where(BodyMeasurement.day >= from_)
-    if to:
-        q = q.where(BodyMeasurement.day <= to)
-    return list(db.scalars(q.order_by(BodyMeasurement.measured_at)))
+    return service.list_measurements(db, from_, to)
 
 
 @router.post("", response_model=MeasurementOut)
 def upsert(
-    body: MeasurementIn, response: Response, db: Session = Depends(get_db)
+    body: MeasurementIn,
+    response: Response,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> BodyMeasurement:
-    existing = db.get(BodyMeasurement, body.id)
-    if existing is not None and existing.deleted_at is not None:
-        raise HTTPException(409, "measurement was deleted")
-    row, created = upsert_measurement(
-        db,
-        id=body.id,
-        measured_at=body.measured_at,
-        weight_kg=body.weight_kg,
-        tz=get_settings().user_tz,
-        source=body.source,
-        note=body.note,
-    )
-    db.commit()
+    with service_errors():
+        row, created = service.save_measurement(
+            db, id=body.id, measured_at=body.measured_at, weight_kg=body.weight_kg,
+            source=body.source, note=body.note, settings=settings,
+        )  # fmt: skip
     response.status_code = 201 if created else 200
     return row
 
 
 @router.delete("/{measurement_id}", status_code=204)
 def delete(measurement_id: str, db: Session = Depends(get_db)) -> Response:
-    row = db.get(BodyMeasurement, measurement_id)
-    if row is None:
-        raise HTTPException(404, "measurement not found")
-    if row.deleted_at is None:
-        row.deleted_at = utcnow()
-        db.commit()
+    with service_errors():
+        service.delete_measurement(db, measurement_id)
     return Response(status_code=204)

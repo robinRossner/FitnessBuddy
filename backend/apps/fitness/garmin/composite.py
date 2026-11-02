@@ -14,7 +14,7 @@ import logging
 from collections.abc import Callable, Iterable
 from datetime import date, timedelta
 
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin.base import (
     DAILY_KINDS,
     ActivityDetail,
     ActivitySummary,
@@ -23,7 +23,7 @@ from apps.fitness.sources.garmin.base import (
     GarminSource,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import SourceUnavailable
+from apps.fitness.garmin.errors import SourceUnavailable
 
 log = logging.getLogger(__name__)
 

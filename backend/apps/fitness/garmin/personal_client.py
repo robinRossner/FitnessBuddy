@@ -30,7 +30,7 @@ from typing import Any
 
 import httpx
 
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     BadRequestError,
     GarminError,
     KeyExpiredError,
@@ -39,7 +39,8 @@ from apps.fitness.sources.garmin.errors import (
     ServerError,
     SourceUnavailable,
 )
-from apps.fitness.sources.garmin.redact import install_log_redaction, redact, register_secret
+from apps.fitness.garmin.pacing import MinInterval, Sleeper
+from core.redact import install_log_redaction, redact, register_secret
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ class PersonalApiClient:
         max_retry_wait_s: float = 120.0,
         transport: httpx.BaseTransport | None = None,
         clock: Callable[[], float] = time.time,
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Sleeper = time.sleep,
         jitter: Callable[[], float] = random.random,
     ) -> None:
         if not api_key or not api_key.strip():
@@ -101,13 +102,11 @@ class PersonalApiClient:
         register_secret(self._key)
         self.base_url = base_url.rstrip("/")
         self.token_cache_path = token_cache_path
-        self.interval_s = interval_s
         self.max_retries = max_retries
         self.max_retry_wait_s = max_retry_wait_s
         self._clock = clock
-        self._sleep = sleep
+        self._pacer = MinInterval(interval_s, sleep, clock)
         self._jitter = jitter
-        self._last_request = 0.0
         self._token: BearerToken | None = None
         self._http = httpx.Client(timeout=timeout_s, transport=transport)
         self._fingerprint = hashlib.sha256(f"{self.base_url}\0{self._key}".encode()).hexdigest()
@@ -191,11 +190,6 @@ class PersonalApiClient:
 
     # ------------------------------------------------------------------ requests
 
-    def _pace(self) -> None:
-        wait = self._last_request + self.interval_s - self._clock()
-        if wait > 0:
-            self._sleep(wait)
-
     def _backoff(self, attempt: int, hint: float | None) -> float:
         base = min(self.max_retry_wait_s, 2.0 * (2**attempt))
         wait = hint if hint is not None else base * (0.5 + self._jitter())
@@ -208,8 +202,7 @@ class PersonalApiClient:
         last_exc: Exception | None = None
         resp: httpx.Response | None = None
         for attempt in range(self.max_retries + 1):
-            self._pace()
-            self._last_request = self._clock()
+            self._pacer.wait()
             self.requests_made += 1
             try:
                 resp = self._http.request(method, url, headers=headers, params=params)
@@ -220,7 +213,7 @@ class PersonalApiClient:
                     break
                 wait = self._backoff(attempt, None)
                 log.warning("network error (%s); retry in %.0fs", type(exc).__name__, wait)
-                self._sleep(wait)
+                self._pacer.sleep(wait)
                 continue
             if resp.status_code == 429 or resp.status_code >= 500:
                 hint = _retry_after_s(resp, datetime.now(UTC))
@@ -232,7 +225,7 @@ class PersonalApiClient:
                     break
                 wait = self._backoff(attempt, hint)
                 log.warning("HTTP %s from Garmin; retry in %.0fs", resp.status_code, wait)
-                self._sleep(wait)
+                self._pacer.sleep(wait)
                 continue
             return resp
         if resp is not None and resp.status_code == 429:

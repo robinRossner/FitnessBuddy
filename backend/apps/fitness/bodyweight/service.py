@@ -10,14 +10,16 @@ from __future__ import annotations
 import uuid
 from bisect import bisect_right
 from collections.abc import Iterable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import BodyMeasurement
-from apps.fitness.db.types import MeasurementSource
+from apps.fitness.db.types import MeasurementSource, utcnow
+from apps.fitness.errors import ServiceError
+from apps.fitness.settings import Settings, get_settings
 
 # Namespace for deterministic ids of CLI-made manual entries (one per day).
 _NAMESPACE = uuid.UUID("0b1d6c5e-8f43-4a8a-9d52-6a2f1c3e7b90")
@@ -110,3 +112,73 @@ def upsert_measurement(
         row.note = note
     db.flush()
     return row, created
+
+
+# --------------------------------------------------------------------------- operations
+
+
+def list_measurements(
+    db: Session, from_: date | None = None, to: date | None = None
+) -> list[BodyMeasurement]:
+    """Live entries (inclusive day range), oldest first."""
+    q = select(BodyMeasurement).where(BodyMeasurement.deleted_at.is_(None))
+    if from_:
+        q = q.where(BodyMeasurement.day >= from_)
+    if to:
+        q = q.where(BodyMeasurement.day <= to)
+    return list(db.scalars(q.order_by(BodyMeasurement.measured_at)))
+
+
+def save_measurement(
+    db: Session,
+    *,
+    id: str,
+    measured_at: datetime,
+    weight_kg: float,
+    source: MeasurementSource = MeasurementSource.MANUAL,
+    note: str | None = None,
+    settings: Settings | None = None,
+) -> tuple[BodyMeasurement, bool]:
+    """Idempotent upsert by the client's id, committed. Returns (row, created); 409 when the id
+    was deleted (a tombstone is never revived from the app)."""
+    s = settings or get_settings()
+    existing = db.get(BodyMeasurement, id)
+    if existing is not None and existing.deleted_at is not None:
+        raise ServiceError(409, "measurement was deleted")
+    row, created = upsert_measurement(
+        db, id=id, measured_at=measured_at, weight_kg=weight_kg, tz=s.user_tz, source=source,
+        note=note,
+    )  # fmt: skip
+    db.commit()
+    return row, created
+
+
+def delete_measurement(db: Session, measurement_id: str) -> None:
+    """Tombstone an entry, committed (idempotent; 404 for an unknown id)."""
+    row = db.get(BodyMeasurement, measurement_id)
+    if row is None:
+        raise ServiceError(404, "measurement not found")
+    if row.deleted_at is None:
+        row.deleted_at = utcnow()
+        db.commit()
+
+
+def add_manual(
+    db: Session,
+    weight_kg: float,
+    day: date | None = None,
+    note: str | None = None,
+    settings: Settings | None = None,
+) -> tuple[BodyMeasurement, bool]:
+    """The CLI weigh-in: one entry per local day (noon), default today; revives a deleted entry
+    of that day. Flushes; the caller's transaction commits."""
+    s = settings or get_settings()
+    tz = ZoneInfo(s.user_tz)
+    d = day or datetime.now(tz).date()
+    old = db.get(BodyMeasurement, manual_id(d))
+    if old is not None and old.deleted_at is not None:
+        old.deleted_at = None  # an explicit CLI add revives a deleted entry
+    return upsert_measurement(
+        db, id=manual_id(d), measured_at=datetime.combine(d, time(12, 0), tzinfo=tz),
+        weight_kg=weight_kg, tz=s.user_tz, note=note,
+    )  # fmt: skip

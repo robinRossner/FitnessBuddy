@@ -13,8 +13,8 @@ from typing import Any
 
 import fitdecode
 
-from apps.fitness.sources.garmin.base import LapData
-from apps.fitness.sources.garmin.mapping import pace_s_per_km
+from apps.fitness.garmin.base import LapData
+from apps.fitness.garmin.mapping import pace_s_per_km
 
 
 class FitError(Exception):

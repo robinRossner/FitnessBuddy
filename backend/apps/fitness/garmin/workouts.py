@@ -47,13 +47,15 @@ from garminconnect.workout import (
     WorkoutSegment,
 )
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from apps.fitness.db.models import PlannedSession, Run
+from apps.fitness.db.session import session_scope
+from apps.fitness.garmin.errors import GarminError, NotFoundError, SourceUnavailable
+from apps.fitness.garmin.mapping import RUN_TYPES
+from apps.fitness.garmin.pacing import FixedPause, Pacer, Sleeper
+from apps.fitness.garmin.python_garminconnect import shared_login, translate_error
 from apps.fitness.settings import Settings, get_settings
-from apps.fitness.sources.garmin.errors import GarminError, NotFoundError, SourceUnavailable
-from apps.fitness.sources.garmin.mapping import RUN_TYPES
-from apps.fitness.sources.garmin.python_garminconnect import shared_login, translate_error
 
 log = logging.getLogger(__name__)
 
@@ -534,11 +536,11 @@ def fingerprint(specs: list[WorkoutSpec]) -> str:
 class _Remote:
     """Paced, error-translated calls on a logged-in python-garminconnect client."""
 
-    def __init__(self, api: Any, pace_s: float, sleep: Callable[[float], None]) -> None:
-        self.api, self.pace_s, self.sleep = api, pace_s, sleep
+    def __init__(self, api: Any, pacer: Pacer) -> None:
+        self.api, self.pacer = api, pacer
 
     def __call__(self, method: str, *args: Any, **kwargs: Any) -> Any:
-        self.sleep(self.pace_s)
+        self.pacer.wait()
         try:
             return getattr(self.api, method)(*args, **kwargs)
         except Exception as exc:
@@ -757,7 +759,7 @@ def push_workouts(
     today: date | None = None,
     extra_day: date | None = None,
     dry_run: bool = False,
-    sleep: Callable[[float], None] = time.sleep,
+    sleep: Sleeper = time.sleep,
     lock_timeout_s: float = 120.0,
 ) -> PushReport:
     """Bring our Garmin workouts in line with the open planned runs (see module docstring).
@@ -790,7 +792,7 @@ def push_workouts(
     if not _push_lock.acquire(timeout=lock_timeout_s):
         raise GarminError("another workout push is still running")
     try:
-        remote = _Remote(client_provider(s), s.garmin_request_interval_s, sleep)
+        remote = _Remote(client_provider(s), FixedPause(s.garmin_request_interval_s, sleep))
         ours = list_ours(remote)
         keep = {w.planned_session_id for w in ours if w.planned_session_id in candidates}
         report.workouts = desired_workouts(candidates, today, window_to, keep, extra_day)
@@ -821,29 +823,31 @@ def _enabled(s: Settings) -> bool:
     return bool(s.garmin_push_workouts and s.garmin_email and s.garmin_password)
 
 
-def push_job() -> None:
+def push_job(
+    settings: Settings | None = None, session_factory: sessionmaker[Session] | None = None
+) -> None:
     """Scheduled push (evening + early morning). Never raises."""
-    from apps.fitness.db.session import session_scope
-
-    s = get_settings()
+    s = settings or get_settings()
     if not _enabled(s):
         return
     try:
-        with session_scope() as db:
+        with session_scope(session_factory) as db:
             push_workouts(db, s)
     except Exception as exc:  # never break the scheduler; messages carry no secrets
         log.warning("scheduled Garmin workout push failed: %s", type(exc).__name__ + f": {exc}")
 
 
-def push_if_changed(reason: str, settings: Settings | None = None) -> PushReport | None:
+def push_if_changed(
+    reason: str,
+    settings: Settings | None = None,
+    session_factory: sessionmaker[Session] | None = None,
+) -> PushReport | None:
     """Push only when the wanted workouts differ from the last successful push of this process
     (an engine re-run that left the runs alone costs no Garmin request). Never raises."""
-    from apps.fitness.db.session import session_scope
-
     s = settings or get_settings()
     try:
         today = user_today(s)
-        with session_scope() as db:
+        with session_scope(session_factory) as db:
             cands = open_runs(db, today, s.garmin_push_days)
             wanted = desired_workouts(cands, today, today + timedelta(days=s.garmin_push_days))
             if _last_fingerprint is not None and fingerprint(wanted) == _last_fingerprint:
@@ -858,10 +862,10 @@ def push_if_changed(reason: str, settings: Settings | None = None) -> PushReport
         return None
 
 
-def push_soon(reason: str) -> None:
+def push_soon(reason: str, settings: Settings | None = None) -> None:
     """Hook after an engine re-run: push changed runs in a background thread. Only in the
     server process (SCHEDULER_ENABLED) so local runs and tests never talk to Garmin."""
-    s = get_settings()
+    s = settings or get_settings()
     if not (s.scheduler_enabled and s.garmin_push_after_engine and _enabled(s)):
         return
     threading.Thread(

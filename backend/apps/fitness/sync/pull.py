@@ -40,7 +40,8 @@ from apps.fitness.engine import rest, service
 from apps.fitness.engine.config import EngineConfig
 from apps.fitness.engine.persist import planned_to_dict
 from apps.fitness.engine.program import apply_overrides
-from apps.fitness.settings import Settings
+from apps.fitness.errors import ServiceError
+from apps.fitness.settings import Settings, get_settings
 
 PAGE_SIZE = 2000
 HISTORY_DAYS = 120
@@ -236,7 +237,7 @@ def config_out(db: Session, settings: Settings) -> dict[str, Any]:
 def gym_config(db: Session, settings: Settings) -> dict[str, Any]:
     """The current gym and the gym list (docs/api/gyms.md); never fails a pull."""
     try:
-        from apps.fitness import gym_service
+        from apps.fitness.gyms import service as gym_service
 
         listing = gym_service.list_gyms(db, settings)
         return {"current_gym_id": listing["current_gym_id"], "gyms": listing["gyms"]}
@@ -330,3 +331,13 @@ def pull(
         out[key].append(ser[key](row))
     out["config"] = config_out(db, settings)
     return out
+
+
+def pull_page(
+    db: Session, since: str | None, settings: Settings | None = None, *, limit: int = PAGE_SIZE
+) -> dict[str, Any]:
+    """`pull` for the API: a bad cursor is a ServiceError 400."""
+    try:
+        return pull(db, since, settings or get_settings(), limit=limit)
+    except BadCursor as exc:
+        raise ServiceError(400, str(exc)) from None

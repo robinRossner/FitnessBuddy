@@ -16,7 +16,7 @@ import os
 import time
 import uuid
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from enum import IntEnum
@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from apps.fitness.bodyweight import upsert_measurement
+from apps.fitness.bodyweight.service import upsert_measurement
 from apps.fitness.db.models import (
     AthleteMetric,
     BodyMeasurement,
@@ -37,9 +37,9 @@ from apps.fitness.db.models import (
     Run,
     SyncState,
 )
+from apps.fitness.db.session import session_scope
 from apps.fitness.db.types import MeasurementSource, Source, utcnow
-from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     ALL_KINDS,
     DAILY_KINDS,
@@ -51,12 +51,14 @@ from apps.fitness.sources.garmin.base import (
     GarminSource,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     GarminError,
     NotFoundError,
     RateLimitedError,
     SourceUnavailable,
 )
+from apps.fitness.garmin.pacing import Sleeper
+from apps.fitness.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -166,7 +168,7 @@ class GarminSync:
         settings: Settings,
         *,
         today: Callable[[], date] | None = None,
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Sleeper = time.sleep,
         progress: Callable[[str], None] = lambda msg: None,
         rate_limit_waits: tuple[float, ...] = DEFAULT_RATE_LIMIT_WAITS,
     ) -> None:
@@ -180,17 +182,8 @@ class GarminSync:
 
     # ------------------------------------------------------------------ infrastructure
 
-    @contextmanager
-    def _scope(self) -> Iterator[Session]:
-        db = self.factory()
-        try:
-            yield db
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+    def _scope(self) -> AbstractContextManager[Session]:
+        return session_scope(self.factory)
 
     def _guarded(self, label: str, fn: Callable[[], Any]) -> Any:
         """Run `fn`, waiting out persistent 429s a bounded number of times."""
@@ -549,7 +542,7 @@ class GarminSync:
 
     def reparse(self) -> dict[str, int]:
         """Re-run the parsers over `garmin_raw` (no network): activities, daily kinds, weight."""
-        from apps.fitness.sources.garmin import mapping
+        from apps.fitness.garmin import mapping
 
         counts = {"activity": 0, "daily": 0, "weight": 0}
         with self._scope() as db:

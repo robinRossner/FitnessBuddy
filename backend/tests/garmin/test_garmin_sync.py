@@ -17,10 +17,8 @@ from apps.fitness.db.models import (
     Run,
     SyncState,
 )
-from apps.fitness.garmin_sync import GarminSync, chunk_ranges, run_id, weight_id
-from apps.fitness.settings import Settings
-from apps.fitness.sources.garmin import mapping
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin import mapping
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     ALL_KINDS,
     DAILY_SUMMARY,
@@ -30,12 +28,14 @@ from apps.fitness.sources.garmin.base import (
     ActivityDetail,
     LapData,
 )
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     GarminError,
     NotFoundError,
     RateLimitedError,
     SourceUnavailable,
 )
+from apps.fitness.garmin.sync import GarminSync, chunk_ranges, run_id, weight_id
+from apps.fitness.settings import Settings
 from tests.support.garmin_fakes import (
     FakeSource,
     activity_raw,

@@ -11,15 +11,13 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from apps.fitness import __version__
-from apps.fitness.api.routes import get_db
-from apps.fitness.db.models import ExerciseVariant
-from apps.fitness.db.types import iso_z, utcnow
+from apps.fitness.api.deps import get_db, get_settings_dep, service_errors
 from apps.fitness.jobs.engine_jobs import rerun_engine
-from apps.fitness.settings import get_settings
+from apps.fitness.settings import Settings
 from apps.fitness.sync import history as history_mod
 from apps.fitness.sync import pull as pull_mod
 from apps.fitness.sync import push as push_mod
@@ -39,14 +37,15 @@ def health() -> dict[str, str]:
 
 @router.post("/sync/push", response_model=PushResponse)
 def sync_push(
-    body: PushRequest, background: BackgroundTasks, db: Session = Depends(get_db)
+    body: PushRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> PushResponse:
-    out = push_mod.apply_push(db, body, get_settings())
-    push_mod.finish_push(db, out)
-    db.commit()
-    if out.training_changed:  # after the response; failures are logged inside
-        background.add_task(rerun_engine, "sync push")
-    return PushResponse(server_time=iso_z(utcnow()) or "", results=out.results)
+    # the engine re-run happens after the response; failures are logged inside
+    return push_mod.push(
+        db, body, settings, replan=lambda reason: background.add_task(rerun_engine, reason)
+    )
 
 
 @router.get("/sync/pull")
@@ -54,11 +53,10 @@ def sync_pull(
     since: str = Query("", description="cursor from the previous pull; empty = snapshot"),
     limit: int = Query(pull_mod.PAGE_SIZE, ge=1, le=5000, description="page size (records)"),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> dict[str, Any]:
-    try:
-        return pull_mod.pull(db, since, get_settings(), limit=limit)
-    except pull_mod.BadCursor as exc:
-        raise HTTPException(400, str(exc)) from None
+    with service_errors():
+        return pull_mod.pull_page(db, since, settings, limit=limit)
 
 
 @router.get("/variants/{variant_id}/history")
@@ -67,6 +65,5 @@ def variant_history(
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    if db.get(ExerciseVariant, variant_id) is None:
-        raise HTTPException(404, "variant not found")
-    return history_mod.variant_history(db, variant_id, limit)
+    with service_errors():
+        return history_mod.checked_variant_history(db, variant_id, limit)

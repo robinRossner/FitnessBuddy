@@ -2,7 +2,7 @@
 
 Used only when GARMIN_EMAIL / GARMIN_PASSWORD are set and GARMIN_SOURCE selects it (or `auto`
 and the Personal API failed). `GarminConnectLogin` is also the login of the workout push
-(`apps.fitness.garmin_workouts`). Garmin blocks/429s repeated SSO logins, so:
+(`apps.fitness.garmin.workouts`). Garmin blocks/429s repeated SSO logins, so:
 - login happens lazily, at most once per process; a failure is remembered and re-raised
   without trying again;
 - tokens are persisted in `garmin_connect_token_dir` (python-garminconnect's own token file),
@@ -23,8 +23,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from apps.fitness.sources.garmin import mapping
-from apps.fitness.sources.garmin.base import (
+from apps.fitness.garmin import mapping
+from apps.fitness.garmin.base import (
     ACTIVITIES,
     DAILY_SUMMARY,
     HRV,
@@ -36,15 +36,16 @@ from apps.fitness.sources.garmin.base import (
     DailyHealthData,
     WeightEntry,
 )
-from apps.fitness.sources.garmin.errors import (
+from apps.fitness.garmin.errors import (
     GarminError,
     NotFoundError,
     RateLimitedError,
     ServerError,
     SourceUnavailable,
 )
-from apps.fitness.sources.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
-from apps.fitness.sources.garmin.redact import install_log_redaction, register_secret
+from apps.fitness.garmin.fit import FitError, laps_from_splits, parse_laps, unzip_fit
+from apps.fitness.garmin.pacing import FixedPause, Sleeper
+from core.redact import install_log_redaction, register_secret
 
 log = logging.getLogger(__name__)
 
@@ -191,11 +192,10 @@ class PythonGarminConnectSource:
         *,
         pace_s: float = 1.0,
         client_factory: Callable[[str, str], Any] = _default_factory,
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Sleeper = time.sleep,
     ) -> None:
         self._login = GarminConnectLogin(email, password, token_dir, client_factory=client_factory)
-        self._pace_s = pace_s
-        self._sleep = sleep
+        self._pacer = FixedPause(pace_s, sleep)
 
     @property
     def _api(self) -> Any:
@@ -211,7 +211,7 @@ class PythonGarminConnectSource:
 
     def _call(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api = self._client()
-        self._sleep(self._pace_s)
+        self._pacer.wait()
         try:
             return getattr(api, method)(*args, **kwargs)
         except Exception as exc:

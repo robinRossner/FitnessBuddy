@@ -9,6 +9,7 @@ in one transaction. Sessions are applied before sets, sets before nothing else d
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -19,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.analytics import cache as stats_cache
-from apps.fitness.bodyweight import local_day
+from apps.fitness.bodyweight.service import local_day
 from apps.fitness.db.models import (
     BodyMeasurement,
     ExerciseVariant,
@@ -28,11 +29,18 @@ from apps.fitness.db.models import (
     TrainingSession,
     WorkoutSet,
 )
-from apps.fitness.db.types import MeasurementSource, SessionKind, SetType, Source
+from apps.fitness.db.types import MeasurementSource, SessionKind, SetType, Source, iso_z, utcnow
 from apps.fitness.engine.persist import LIFT_MATCH
-from apps.fitness.settings import Settings
+from apps.fitness.settings import Settings, get_settings
 from apps.fitness.stats import rebuild_with_config
-from apps.fitness.sync.schemas import BodyMeasurementIn, PushRequest, PushResult, SessionIn, SetIn
+from apps.fitness.sync.schemas import (
+    BodyMeasurementIn,
+    PushRequest,
+    PushResponse,
+    PushResult,
+    SessionIn,
+    SetIn,
+)
 
 log = logging.getLogger(__name__)
 
@@ -248,3 +256,20 @@ def finish_push(db: Session, out: PushOutcome) -> None:
     except Exception:
         log.exception("post-push planned-session linking / stats refresh failed")
     stats_cache.invalidate()
+
+
+def push(
+    db: Session,
+    req: PushRequest,
+    settings: Settings | None = None,
+    *,
+    replan: Callable[[str], None] | None = None,
+) -> PushResponse:
+    """The whole push in one transaction: apply, link + stats, commit. Then `replan("sync push")`
+    when training data changed (the API passes a background engine re-run)."""
+    out = apply_push(db, req, settings or get_settings())
+    finish_push(db, out)
+    db.commit()
+    if out.training_changed and replan is not None:
+        replan("sync push")
+    return PushResponse(server_time=iso_z(utcnow()) or "", results=out.results)

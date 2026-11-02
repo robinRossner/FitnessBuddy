@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import date, datetime
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
 import typer
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from apps.fitness.bodyweight import manual_id, upsert_measurement
-from apps.fitness.db.models import BodyMeasurement
+from apps.fitness.bodyweight import service as bodyweight_service
 from apps.fitness.db.session import session_scope
-from apps.fitness.settings import get_settings
+from apps.fitness.settings import Settings, get_settings
 from apps.fitness.stats import rebuild_with_config
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
@@ -28,6 +30,15 @@ cli.add_typer(garmin, name="garmin")
 cli.add_typer(advisor, name="advisor")
 
 
+@contextmanager
+def _command(settings: Settings | None = None) -> Iterator[tuple[Session, Settings]]:
+    """The one place a command gets its settings (resolved once) and its transaction (commit on
+    success, rollback on error)."""
+    s = settings or get_settings()
+    with session_scope() as db:
+        yield db, s
+
+
 def _rebuild(db) -> int:
     return rebuild_with_config(db)
 
@@ -40,15 +51,9 @@ def bodyweight_add(
     rebuild: Annotated[bool, typer.Option("--rebuild/--no-rebuild")] = True,
 ) -> None:
     """Record a manual weigh-in. One entry per day: running it again the same day updates it."""
-    s = get_settings()
-    d: date = day.date() if day else datetime.now(ZoneInfo(s.user_tz)).date()
-    when = datetime.combine(d, time(12, 0), tzinfo=ZoneInfo(s.user_tz))
-    with session_scope() as db:
-        old = db.get(BodyMeasurement, manual_id(d))
-        if old is not None and old.deleted_at is not None:
-            old.deleted_at = None  # an explicit CLI add revives a deleted entry
-        row, created = upsert_measurement(
-            db, id=manual_id(d), measured_at=when, weight_kg=weight_kg, tz=s.user_tz, note=note
+    with _command() as (db, s):
+        row, created = bodyweight_service.add_manual(
+            db, weight_kg, day.date() if day else None, note, settings=s
         )
         n = _rebuild(db) if rebuild else None
     typer.echo(
@@ -59,25 +64,20 @@ def bodyweight_add(
 
 @bodyweight.command("list")
 def bodyweight_list() -> None:
-    with session_scope() as db:
-        rows = db.scalars(
-            select(BodyMeasurement)
-            .where(BodyMeasurement.deleted_at.is_(None))
-            .order_by(BodyMeasurement.measured_at)
-        )
-        for r in rows:
+    with _command() as (db, _):
+        for r in bodyweight_service.list_measurements(db):
             typer.echo(f"{r.day}  {r.weight_kg:g} kg  {r.source}  {r.id}  {r.note or ''}")
 
 
 @stats.command("rebuild")
 def stats_rebuild() -> None:
     """Recompute e1RM and per-session stats (e.g. after changing the bodyweight log)."""
-    with session_scope() as db:
+    with _command() as (db, _):
         typer.echo(f"exercise_session_stats rows: {_rebuild(db)}")
 
 
 def _kinds(value: str | None) -> tuple[str, ...]:
-    from apps.fitness.sources.garmin.base import ALL_KINDS
+    from apps.fitness.garmin.base import ALL_KINDS
 
     if not value:
         return ALL_KINDS
@@ -98,12 +98,10 @@ def garmin_check(
     source: Annotated[str | None, typer.Option(help="personal_api | garminconnect | auto")] = None,
 ) -> None:
     """Exchange the token, hit one cheap endpoint per data kind, show what is reachable."""
-    from sqlalchemy import func
-
-    from apps.fitness.db.models import DailyHealth, Run, SyncState
-    from apps.fitness.sources.garmin.errors import GarminError
-    from apps.fitness.sources.garmin.factory import build_source
-    from apps.fitness.sources.garmin.personal_api import PersonalApiSource
+    from apps.fitness.garmin import service as garmin_service
+    from apps.fitness.garmin.errors import GarminError
+    from apps.fitness.garmin.factory import build_source
+    from apps.fitness.garmin.personal_api import PersonalApiSource
 
     s = get_settings()
     try:
@@ -133,21 +131,16 @@ def garmin_check(
             typer.echo("fallback source selected: no probe (would require a login)")
     except GarminError as exc:
         raise _fail(exc) from None
-    with session_scope() as db:
-        typer.echo("local coverage:")
-        n_runs, first_run, last_run = db.execute(
-            select(
-                func.count(Run.id), func.min(Run.started_at_local), func.max(Run.started_at_local)
-            ).where(Run.deleted_at.is_(None))
-        ).one()
-        typer.echo(f"  activities     {n_runs} ({first_run} .. {last_run})")
-        n_days, first_day, last_day = db.execute(
-            select(func.count(DailyHealth.id), func.min(DailyHealth.day), func.max(DailyHealth.day))
-        ).one()
-        typer.echo(f"  daily_health   {n_days} ({first_day} .. {last_day})")
-        for st in db.scalars(select(SyncState).order_by(SyncState.kind)):
-            err = f"  last error: {st.last_error}" if st.last_error else ""
-            typer.echo(f"  cursor {st.kind:14} {st.cursor_date}{err}")
+    with _command(s) as (db, _):
+        cov = garmin_service.local_coverage(db)
+    typer.echo("local coverage:")
+    n_runs, first_run, last_run = cov["activities"]
+    typer.echo(f"  activities     {n_runs} ({first_run} .. {last_run})")
+    n_days, first_day, last_day = cov["daily_health"]
+    typer.echo(f"  daily_health   {n_days} ({first_day} .. {last_day})")
+    for kind, cursor, last_error in cov["cursors"]:
+        err = f"  last error: {last_error}" if last_error else ""
+        typer.echo(f"  cursor {kind:14} {cursor}{err}")
 
 
 @garmin.command("backfill")
@@ -164,10 +157,10 @@ def garmin_backfill(
 ) -> None:
     """Fetch history in resumable chunks (re-run to continue after an interruption)."""
     from apps.fitness.db.session import get_session_factory
-    from apps.fitness.garmin_sync import DEFAULT_RATE_LIMIT_WAITS, GarminSync
+    from apps.fitness.garmin.errors import GarminError
+    from apps.fitness.garmin.factory import build_source
+    from apps.fitness.garmin.sync import DEFAULT_RATE_LIMIT_WAITS, GarminSync
     from apps.fitness.jobs.garmin_jobs import after_sync
-    from apps.fitness.sources.garmin.errors import GarminError
-    from apps.fitness.sources.garmin.factory import build_source
 
     s = get_settings()
     start = since.date() if since else s.garmin_since
@@ -182,7 +175,7 @@ def garmin_backfill(
         report = sync.backfill(start, _kinds(kinds), restart=restart)
     except GarminError as exc:
         raise _fail(exc) from None
-    after_sync(report)
+    after_sync(report, s)
     _echo_report(report)
 
 
@@ -193,10 +186,10 @@ def garmin_sync(
 ) -> None:
     """Incremental sync: from the stored cursor minus a small overlap up to today."""
     from apps.fitness.db.session import get_session_factory
-    from apps.fitness.garmin_sync import GarminSync
+    from apps.fitness.garmin.errors import GarminError
+    from apps.fitness.garmin.factory import build_source
+    from apps.fitness.garmin.sync import GarminSync
     from apps.fitness.jobs.garmin_jobs import after_sync
-    from apps.fitness.sources.garmin.errors import GarminError
-    from apps.fitness.sources.garmin.factory import build_source
 
     s = get_settings()
     try:
@@ -204,7 +197,7 @@ def garmin_sync(
         report = sync.sync(_kinds(kinds))
     except GarminError as exc:
         raise _fail(exc) from None
-    after_sync(report)
+    after_sync(report, s)
     _echo_report(report)
 
 
@@ -212,7 +205,7 @@ def garmin_sync(
 def garmin_reparse() -> None:
     """Re-run the parsers over stored raw JSON (no network)."""
     from apps.fitness.db.session import get_session_factory
-    from apps.fitness.garmin_sync import GarminSync
+    from apps.fitness.garmin.sync import GarminSync
 
     s = get_settings()
     sync = GarminSync(get_session_factory(), None, s)
@@ -235,12 +228,11 @@ def garmin_push_workouts(
     """Planned runs -> Garmin workouts scheduled on their day (docs/api/garmin.md)."""
     import json as _json
 
-    from apps.fitness import garmin_workouts as gw
-    from apps.fitness.sources.garmin.errors import GarminError
+    from apps.fitness.garmin import workouts as gw
+    from apps.fitness.garmin.errors import GarminError
 
-    s = get_settings()
     try:
-        with session_scope() as db:
+        with _command() as (db, s):
             report = gw.push_workouts(
                 db,
                 s,
@@ -304,7 +296,7 @@ def engine_plan(
     s = get_settings()
     today = service.user_today(s)
     target = _day(day) or today
-    with session_scope() as db:
+    with _command(s) as (db, _):
         try:
             if dry_run:
                 plan, _cfg, _cv = service.plan_week(
@@ -340,8 +332,7 @@ def engine_deload_cancel(
     (author user), so later engine runs keep the week cancelled."""
     from apps.fitness.engine import service
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         try:
             res = service.cancel_deload(
                 db, week_start=week.date(), reason=reason, replan=replan, settings=s
@@ -364,8 +355,7 @@ def engine_run(
     from apps.fitness.engine import service
     from apps.fitness.engine.render import render_week
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         try:
             summary = service.run_engine(db, weeks=weeks, settings=s)
         except FileNotFoundError as exc:
@@ -391,7 +381,7 @@ def engine_readiness(
 
     s = get_settings()
     d = _day(day) or service.user_today(s)
-    with session_scope() as db:
+    with _command(s) as (db, _):
         r = service.readiness_for(db, d, s)
     typer.echo(f"{r.day}: {r.color}{'' if r.known else ' (no data)'} - {r.reason}")
     for sig in r.signals:
@@ -405,8 +395,7 @@ def engine_evaluate_runs(
     """Evaluate recent runs: easy-run pass/fail, efficiency, HR drift, interval sessions."""
     from apps.fitness.engine import service
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         rows = service.evaluate_runs(db, today=service.user_today(s), weeks=weeks, settings=s)
     for r in rows:
         ev = r["evaluation"]
@@ -430,7 +419,7 @@ def engine_triggers(status: Annotated[str, typer.Option()] = "open") -> None:
     """List advisor triggers."""
     from apps.fitness.db.models import AdvisorTrigger
 
-    with session_scope() as db:
+    with _command() as (db, _):
         for t in db.scalars(
             select(AdvisorTrigger)
             .where(AdvisorTrigger.status == status)
@@ -449,8 +438,7 @@ def engine_program_generate(
     """Derive data/program/program.yaml from the recent Upper/Lower sessions at the current gym."""
     from apps.fitness.engine import service
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         _program, text = service.generate_program(db, weeks=weeks, settings=s, write=write)
     typer.echo(text)
     if write:
@@ -462,8 +450,7 @@ def engine_config_show() -> None:
     """The active config version and its lineage."""
     from apps.fitness.engine import config_service as cs
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         cs.ensure_seeded(db, s.engine_config_path)
         for v in cs.history(db):
             mark = "*" if v.is_active else " "
@@ -477,7 +464,7 @@ def engine_config_rollback(version: str) -> None:
     """Make an older version's content active again (as a new version)."""
     from apps.fitness.engine import config_service as cs
 
-    with session_scope() as db:
+    with _command() as (db, _):
         try:
             row = cs.rollback(db, version, author="user")
         except cs.ConfigError as exc:
@@ -498,8 +485,7 @@ def engine_config_set(
 
     from apps.fitness.engine import config_service as cs
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         cs.ensure_seeded(db, s.engine_config_path)
         try:
             row = cs.create_version(db, {path: yaml.safe_load(value)}, reason=reason, author=author)
@@ -513,8 +499,7 @@ def engine_config_check_garmin() -> None:
     """Apply Garmin's latest max HR / LTHR to the config now (the sync hook does this too)."""
     from apps.fitness.engine import config_service as cs
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         cs.ensure_seeded(db, s.engine_config_path)
         row = cs.apply_garmin_hr(db)
         typer.echo(
@@ -530,8 +515,7 @@ def advisor_status() -> None:
     from apps.fitness.advisor import service
     from apps.fitness.db.models import AdvisorConsultation, AdvisorTrigger
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         st = service.coach_settings(db, s)
         typer.echo(
             f"model {s.advisor_model}; key {'set' if st.api_key_configured else 'NOT set'}; "
@@ -553,8 +537,7 @@ def advisor_run(
     """Run an advisor job now (respects ADVISOR_DRY_RUN, the missing-key rule and the budget)."""
     from apps.fitness.advisor import outcomes, service
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         if what == "weekly":
             c = service.run_weekly_review(db, s)
         elif what == "triggers":
@@ -578,8 +561,7 @@ def advisor_input() -> None:
     """Build the weekly-review input now and print its size per section (nothing is stored)."""
     from apps.fitness.advisor import service, summary
 
-    s = get_settings()
-    with session_scope() as db:
+    with _command() as (db, s):
         info = service.weekly_trigger_info(service.engine_service.monday(service.user_today(s)), [])
         doc = summary.build_input(db, trigger=info, question=None, settings=s)
     typer.echo(f"total ~{summary.estimate_tokens(doc)} tokens (chars / 4)")

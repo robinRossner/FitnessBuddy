@@ -24,6 +24,7 @@ from __future__ import annotations
 from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -128,6 +129,19 @@ def _as_date(value: object, where: str) -> date | None:
 
 
 def load_gyms(path: Path) -> GymPeriods:
+    """The parsed gyms file, cached until the file changes (path, mtime, size). Treat the result
+    as read-only: it is shared between callers."""
+    st = Path(path).stat()
+    return _load_gyms_cached(Path(path), st.st_mtime_ns, st.st_size)
+
+
+def clear_gyms_cache() -> None:
+    """Forget every parsed gyms file (the CLI after an edit within the same second; tests)."""
+    _load_gyms_cached.cache_clear()
+
+
+@lru_cache(maxsize=8)
+def _load_gyms_cached(path: Path, _mtime_ns: int, _size: int) -> GymPeriods:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     specs: list[GymSpec] = []
     for i, item in enumerate(data.get("gyms") or []):
