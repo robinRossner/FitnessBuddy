@@ -1,13 +1,20 @@
 import Foundation
 
 /// Date helpers for plan days ("YYYY-MM-DD", Monday-based weeks). DEBUG builds can pin "today"
-/// (used by the demo data so the Today screen shows a lifting day regardless of the real weekday).
+/// (used by the demo data so the Today screen shows a lifting day regardless of the real weekday), and freeze the clock
+/// (`-uiFixedNow`, set by `UITestSupport`) so UI-test screenshots do not change between runs.
 public enum AppClock: Sendable {
     public static let overrideKey = "debug.todayOverride"
+
+    #if DEBUG
+    /// Frozen instant for UI tests; set once at launch, before anything reads the clock.
+    nonisolated(unsafe) public static var fixedNow: Date?
+    #endif
 
     public static var calendar: Calendar {
         var c = Calendar(identifier: .iso8601)
         c.timeZone = .current
+        c.locale = AppLocale.current
         return c
     }
 
@@ -22,8 +29,18 @@ public enum AppClock: Sendable {
         return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: 12))
     }
 
+    /// The current instant as the UI sees it: the frozen time under `-uiFixedNow`, else the real time. Ignores the
+    /// day pin of `overrideKey`, so freshness labels and cache timestamps keep real elapsed time in demo mode.
+    public static var instant: Date {
+        #if DEBUG
+        if let fixedNow { return fixedNow }
+        #endif
+        return Date()
+    }
+
     public static var now: Date {
         #if DEBUG
+        if let fixedNow { return fixedNow }
         if let s = UserDefaults.standard.string(forKey: overrideKey), let d = date(fromDay: s) { return d }
         #endif
         return Date()

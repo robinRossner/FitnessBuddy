@@ -68,7 +68,7 @@ struct SetRowView: View {
     private var missingText: String {
         let what = [missing.contains(.weight) ? "weight" : nil, missing.contains(.reps) ? "reps" : nil,
                     missing.contains(.duration) ? "seconds" : nil].compactMap { $0 }
-        return "Enter " + ListFormatter.localizedString(byJoining: what) + " to log this set"
+        return "Enter " + what.formatted(.list(type: .and).locale(AppLocale.current)) + " to log this set"
     }
 
     /// Once the user fills a field in, drop it from the red list.
@@ -114,6 +114,7 @@ struct SetRowView: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(trigger: set.completedAt) { _, new in new != nil ? .impact(weight: .medium) : nil }
+        .accessibilityIdentifier(AXID.Workout.setCheck(exercise: set.exerciseOrder, set: set.setOrder))
         .accessibilityLabel(set.isCompleted ? "Set \(label) completed" : "Complete set \(label)")
         .accessibilityHint("Logs the shown weight and reps")
     }

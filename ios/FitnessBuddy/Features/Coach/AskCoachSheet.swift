@@ -35,6 +35,7 @@ struct AskCoachSheet: View {
                         TextField("What do you want to know?", text: $question, axis: .vertical)
                             .lineLimit(4...8)
                             .focused($focused)
+                            .accessibilityIdentifier(AXID.Coach.askField)
                             .padding(12)
                             .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
@@ -53,16 +54,20 @@ struct AskCoachSheet: View {
             .navigationTitle("Ask coach")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.accessibilityIdentifier(AXID.Coach.askCancel)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { send() } label: {
                         if sending { ProgressView() } else { Text("Send").bold() }
                     }
                     .disabled(!canSend)
+                    .accessibilityIdentifier(AXID.Coach.askSend)
                 }
             }
             .task { await env.coach.load() }
         }
+        .screenIdentifier(AXID.Coach.askSheet)
         .presentationDetents([.large])
     }
 

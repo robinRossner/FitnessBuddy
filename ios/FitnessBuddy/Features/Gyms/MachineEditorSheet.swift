@@ -133,6 +133,7 @@ struct MachineEditorSheet: View {
             .task(id: GeneratorKey(start: start, step: step, count: count)) { await refreshPreview() }
         }
         .interactiveDismissDisabled(saving)
+        .screenIdentifier(AXID.Summary.machineEditor)
     }
 
     // MARK: Steps

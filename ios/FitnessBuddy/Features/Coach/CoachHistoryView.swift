@@ -32,6 +32,7 @@ struct CoachHistoryView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(coach.history.isEmpty ? AXID.Coach.loading : AXID.Coach.history)
         .navigationTitle("Config History")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await coach.refreshHistory() }

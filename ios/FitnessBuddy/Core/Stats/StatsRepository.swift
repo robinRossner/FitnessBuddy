@@ -20,7 +20,7 @@ final class StatsRepository: RemoteRepository {
     }
 
     /// Network fetch; a response that does not decode is not cached.
-    func fetch<R: Decodable & Sendable>(_ endpoint: StatsEndpoint<R>, now: Date = .now) async throws -> CachedStats<R> {
+    func fetch<R: Decodable & Sendable>(_ endpoint: StatsEndpoint<R>, now: Date = AppClock.instant) async throws -> CachedStats<R> {
         guard let transport = transport() else { throw APIError.notConfigured }
         let ns = namespace
         let data = try await transport.get(path: endpoint.path, query: endpoint.query)

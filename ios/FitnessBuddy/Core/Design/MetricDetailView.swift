@@ -110,8 +110,9 @@ private struct MetricChart: View {
         .chartXScale(domain: data.map(\.key))
         .chartXAxis {
             AxisMarks(values: labelKeys) { value in
-                AxisTick()
-                AxisValueLabel {
+                // No tick line: it ran through the middle of the label. The last label ends at its position so it is
+                // not cut off at the card's edge or run into the y-axis labels.
+                AxisValueLabel(anchor: labelAnchor(value.index, of: labelKeys.count)) {
                     if let key = value.as(String.self), let text = labels[key] { Text(text).font(.caption2).fixedSize() }
                 }
             }
@@ -127,6 +128,11 @@ private struct MetricChart: View {
         .accessibilityLabel("\(metric.title) chart")
         .accessibilityValue(present.map { "\($0.label ?? "") \(metric.format($0.value)) \(metric.unit)" }.joined(separator: ", "))
     }
+}
+
+/// Where a label hangs off its x position: centred, except the last, which ends at its position.
+private func labelAnchor(_ index: Int, of count: Int) -> UnitPoint {
+    count > 1 && index == count - 1 ? .topTrailing : .top
 }
 
 private struct MetricYScale: ViewModifier {

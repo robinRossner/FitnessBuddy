@@ -90,20 +90,20 @@ final class CoachRepository: RemoteRepository {
                       as: CoachProposalListDTO.self) { list in
             proposals = list.items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
             for p in list.items { merge(p) }
-            proposalsFetchedAt = .now
+            proposalsFetchedAt = AppClock.instant
             notifyPending()
         }
     }
 
     func refreshHistory() async {
         await refresh(key: "history", path: CoachEndpoints.history, as: CoachHistoryDTO.self) { h in
-            history = h.versions; historyFetchedAt = .now
+            history = h.versions; historyFetchedAt = AppClock.instant
         }
     }
 
     func refreshSettings() async {
         await refresh(key: "settings", path: CoachEndpoints.settings, as: CoachSettingsDTO.self) { s in
-            settings = s; settingsFetchedAt = .now
+            settings = s; settingsFetchedAt = AppClock.instant
         }
     }
 
@@ -117,7 +117,7 @@ final class CoachRepository: RemoteRepository {
             let value: T
             do { value = try await Self.decodeCoach(T.self, data) } catch { throw APIError.decoding(error) }
             guard ns == namespace else { return }  // the backend changed while we waited
-            store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: key)
+            store.write(StatsCacheEntry(data: data, fetchedAt: AppClock.instant), namespace: ns, key: key)
             apply(value)
             failure = nil; isOffline = false
         } catch {
@@ -198,7 +198,7 @@ final class CoachRepository: RemoteRepository {
             let data = try await transport.get(path: CoachEndpoints.proposal(id))
             let p = try await decodeProposal(data)
             if ns == namespace {
-                store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: "proposal/" + id)
+                store.write(StatsCacheEntry(data: data, fetchedAt: AppClock.instant), namespace: ns, key: "proposal/" + id)
                 absorb(p)
             }
             return p
@@ -271,8 +271,8 @@ final class CoachRepository: RemoteRepository {
     func setApprovalMode(_ mode: ApprovalMode) async throws {
         let data = try await write("PUT", CoachEndpoints.settings, body: CoachSettingsUpdate(approvalMode: mode))
         if let s = try? await Self.decodeCoach(CoachSettingsDTO.self, data) {
-            settings = s; settingsFetchedAt = .now
-            store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: namespace, key: "settings")
+            settings = s; settingsFetchedAt = AppClock.instant
+            store.write(StatsCacheEntry(data: data, fetchedAt: AppClock.instant), namespace: namespace, key: "settings")
         } else {
             await refreshSettings()
         }

@@ -64,6 +64,7 @@ struct PinEditorSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
+        .screenIdentifier(AXID.Summary.pinEditor)
     }
 
     private func row(_ metric: MetricInfo) -> some View {

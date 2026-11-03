@@ -56,7 +56,7 @@ class RemoteRepository {
         store.read(namespace: ns ?? namespace, key: key)
     }
 
-    func writeCache(_ data: Data, key: String, namespace ns: String, at date: Date = .now) {
+    func writeCache(_ data: Data, key: String, namespace ns: String, at date: Date = AppClock.instant) {
         store.write(StatsCacheEntry(data: data, fetchedAt: date), namespace: ns, key: key)
     }
 

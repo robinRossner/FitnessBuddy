@@ -64,8 +64,10 @@ struct WorkoutChooserSheet: View {
             .background(Color.screenBackground)
             .navigationTitle("Start workout")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.accessibilityIdentifier(AXID.Workout.chooserCancel) } }
         }
+        .screenIdentifier(AXID.Workout.chooser)
+        .stableForScreenshots()
         .presentationDetents([.fraction(0.8), .large])
         .onChange(of: planned.count) { _, _ in selection = nil }
         .onChange(of: finished.count) { _, _ in selection = nil }

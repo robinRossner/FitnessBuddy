@@ -314,7 +314,7 @@ struct WorkoutService {
         if set.completedAt == nil && !set.hasBeenPushed {
             context.delete(set)
         } else {
-            set.deletedAt = .now
+            set.deletedAt = AppClock.instant
             set.touch()
         }
     }
@@ -333,7 +333,7 @@ struct WorkoutService {
             set.weightKg = c.weight ?? (SetValidation.weightOptional(timed: set.isTimed, equipmentType: c.equipment) ? 0 : nil)
             set.reps = c.reps
             set.durationS = c.duration
-            set.completedAt = .now
+            set.completedAt = AppClock.instant
         } else {
             set.completedAt = nil
         }
@@ -404,7 +404,7 @@ struct WorkoutService {
             discard(session)
             return nil
         }
-        let end = Date()
+        let end = AppClock.instant
         session.endedAt = end
         session.touch(end)
         save()
@@ -414,8 +414,8 @@ struct WorkoutService {
     func discard(_ session: LocalSession) {
         for s in sets(of: session) { remove(s) }
         if session.hasBeenPushed {
-            session.deletedAt = .now
-            session.endedAt = session.endedAt ?? .now
+            session.deletedAt = AppClock.instant
+            session.endedAt = session.endedAt ?? AppClock.instant
             session.touch()
         } else {
             context.delete(session)

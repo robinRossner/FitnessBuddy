@@ -55,12 +55,44 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FitnessBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FitnessBuddy"
         BUNDLE_LOADER: "$(TEST_HOST)"
+  # In-process snapshot pass (TestPlans/Snapshots.xctestplan only; `make ios-screens`): hosted in the app like
+  # FitnessBuddyTests, renders every screen of the screenpass walk without relaunching the app.
+  FitnessBuddySnapshots:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FitnessBuddySnapshots
+    dependencies:
+      - target: FitnessBuddy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robinrossner.FitnessBuddySnapshots
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FitnessBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FitnessBuddy"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+  # XCUITest target behind the screenpass flows: navigation walk and flows by real taps (TestPlans/Screenpass.xctestplan
+  # only, `make ios-flows`; Full and Fast do not include it). FitnessBuddy/App/AXID/ (one file per tab) is shared with the app so both use the same identifiers.
+  FitnessBuddyUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: FitnessBuddyUITests
+      - path: FitnessBuddy/App/AXID
+    dependencies:
+      - target: FitnessBuddy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robinrossner.FitnessBuddyUITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: FitnessBuddy
 schemes:
   FitnessBuddy:
     build:
       targets:
         FitnessBuddy: all
         FitnessBuddyTests: [test]
+        FitnessBuddySnapshots: [test]
+        FitnessBuddyUITests: [test]
     run:
       config: Debug
     test:
@@ -69,6 +101,8 @@ schemes:
         - path: TestPlans/Full.xctestplan
           defaultPlan: true
         - path: TestPlans/Fast.xctestplan
+        - path: TestPlans/Screenpass.xctestplan
+        - path: TestPlans/Snapshots.xctestplan
     profile:
       config: Release
     analyze:

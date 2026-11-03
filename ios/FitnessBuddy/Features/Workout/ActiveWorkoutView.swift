@@ -67,6 +67,7 @@ struct ActiveWorkoutView: View {
             }
         }
         .listSectionSpacing(14)
+        .screenIdentifier(AXID.Workout.active)
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(session.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -75,7 +76,7 @@ struct ActiveWorkoutView: View {
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 0) {
                     Text(session.name).font(.subheadline.weight(.semibold)).lineLimit(1)
-                    Text(session.startedAt, style: .timer)
+                    WorkoutElapsedText(startedAt: session.startedAt)
                         .font(.headline.monospacedDigit()).foregroundStyle(Domain.lifting.color)
                 }
                 .accessibilityElement(children: .combine)
@@ -91,6 +92,7 @@ struct ActiveWorkoutView: View {
                 Button("Finish") { confirmFinish = true }
                 .fontWeight(.semibold)
                 .disabled(completedCount == 0)
+                .accessibilityIdentifier(AXID.Workout.finishButton)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -136,6 +138,9 @@ struct ActiveWorkoutView: View {
             Text("\(completedCount) set\(completedCount == 1 ? "" : "s") logged. It is saved and can't be resumed."
                  + (changed ? " You changed the exercises from the plan's \(session.kind) template." : ""))
         }
+        #if DEBUG
+        .task { await openRequestedSheet() }
+        #endif
         .onChange(of: uncompletedCount) { _, open in
             // a set was added or un-ticked: this is no longer the end of the workout
             if open > 0 { env.restTimer.cancelFinishReminder() }
@@ -156,6 +161,21 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    #if DEBUG
+    /// `-uiSheet rest|picker|newExercise|exerciseSetup|reorder|edit` (see `WorkoutUIHooks`): opens that sheet once.
+    private func openRequestedSheet() async {
+        await WorkoutUIHooks.openSheet(["rest", "picker", "newExercise", "exerciseSetup", "reorder", "edit"], slot: "active") { name in
+            let first = groups.first
+            switch name {
+            case "rest": restPickerOrder = first?.order
+            case "reorder": showReorder = true
+            case "edit": editVariantId = first?.sets.first?.variantId
+            default: showAddExercise = true  // the picker opens the nested New / Set up sheet itself
+            }
+        }
+    }
+    #endif
+
     // MARK: Header
 
     /// The time is in the navigation bar (always visible); sets and volume scroll with the list.
@@ -166,6 +186,7 @@ struct ActiveWorkoutView: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(AXID.Workout.setsHeader)
     }
 
     // MARK: Exercise section
@@ -339,7 +360,14 @@ struct ExerciseReorderSheet: View {
                 }
             }
         }
+        .screenIdentifier(AXID.Workout.reorder)
+        .stableForScreenshots()
+        #if DEBUG
+        // the translucent half sheet shows a blur that differs by a level or two between runs; screenshots use the full sheet
+        .presentationDetents(UITestSupport.animationsDisabled ? [.large] : [.medium, .large])
+        #else
         .presentationDetents([.medium, .large])
+        #endif
     }
 }
 
@@ -390,6 +418,8 @@ struct RestTimePickerSheet: View {
                 }
             }
         }
+        .screenIdentifier(AXID.Workout.restPicker)
+        .stableForScreenshots()
         .presentationDetents([.medium])
     }
 }
@@ -402,8 +432,8 @@ struct RestTimerBar: View {
     var body: some View {
         let timer = env.restTimer
         if timer.isRunning {
-            TimelineView(.periodic(from: .now, by: 0.5)) { ctx in
-                let remaining = timer.remaining(at: ctx.date)
+            TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+                let remaining = timer.remaining(at: AppClock.instant)
                 HStack(spacing: 12) {
                     Image(systemName: "timer").foregroundStyle(Domain.lifting.color)
                     VStack(alignment: .leading, spacing: 4) {
@@ -422,11 +452,33 @@ struct RestTimerBar: View {
                         .accessibilityLabel("Skip rest")
                 }
                 .padding(12)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(AXID.Workout.restBar)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
+    }
+}
+
+// MARK: - Elapsed time
+
+/// The running workout's clock. A live timer, except under the screenshot pass's frozen clock (`-uiFixedNow`), where it
+/// shows the fixed elapsed time so pictures don't change.
+private struct WorkoutElapsedText: View {
+    let startedAt: Date
+
+    var body: some View {
+        #if DEBUG
+        if let now = AppClock.fixedNow {
+            Text(Fmt.duration(now.timeIntervalSince(startedAt)))
+        } else {
+            Text(startedAt, style: .timer)
+        }
+        #else
+        Text(startedAt, style: .timer)
+        #endif
     }
 }

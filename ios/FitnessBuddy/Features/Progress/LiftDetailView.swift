@@ -48,6 +48,7 @@ struct LiftDetailView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(detail.value != nil ? AXID.Progress.liftDetail : AXID.Progress.loading)
         .navigationTitle(summary.name.withoutGymSuffix)
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await refreshStats(env, [detail]) }

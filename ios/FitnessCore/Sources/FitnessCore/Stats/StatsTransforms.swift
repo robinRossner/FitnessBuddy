@@ -33,7 +33,7 @@ public enum LiftRange: String, CaseIterable, Identifiable, Sendable {
     case threeMonths = "3M", sixMonths = "6M", year = "1Y", all = "All"
     public var id: String { rawValue }
 
-    public func cutoff(now: Date = .now, calendar: Calendar = .current) -> Date? {
+    public func cutoff(now: Date = AppClock.instant, calendar: Calendar = .current) -> Date? {
         let months: Int
         switch self {
         case .threeMonths: months = 3
@@ -45,7 +45,7 @@ public enum LiftRange: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Points on or after the cutoff (all points for `.all`), sorted by date.
-    public func filter(_ points: [LiftPointDTO], now: Date = .now, calendar: Calendar = .current) -> [LiftPointDTO] {
+    public func filter(_ points: [LiftPointDTO], now: Date = AppClock.instant, calendar: Calendar = .current) -> [LiftPointDTO] {
         let sorted = points.sorted { $0.date < $1.date }
         guard let cutoff = cutoff(now: now, calendar: calendar) else { return sorted }
         let key = DayKey.string(cutoff, calendar: calendar)
@@ -92,7 +92,7 @@ public enum LiftListing: Sendable {
     }
 
     /// PRs in the window = lifts whose latest PR date falls inside it.
-    public static func recentPRCount(_ lifts: [LiftSummaryDTO], days: Int = 30, now: Date = .now, calendar: Calendar = .current) -> Int {
+    public static func recentPRCount(_ lifts: [LiftSummaryDTO], days: Int = 30, now: Date = AppClock.instant, calendar: Calendar = .current) -> Int {
         let key = DayKey.string(DayKey.daysAgo(days, from: now, calendar: calendar), calendar: calendar)
         return lifts.filter { ($0.lastPrDate ?? "") >= key }.count
     }
@@ -117,7 +117,7 @@ public struct WeekSummary: Equatable, Sendable {
 
 public enum VolumeTransforms: Sendable {
     /// This week's lifting numbers (zero when the newest week is an older one).
-    public static func thisWeek(_ weeks: [WeekVolumeDTO], now: Date = .now, calendar: Calendar = .current) -> WeekSummary {
+    public static func thisWeek(_ weeks: [WeekVolumeDTO], now: Date = AppClock.instant, calendar: Calendar = .current) -> WeekSummary {
         let key = DayKey.weekStart(now, calendar: calendar)
         guard let week = weeks.first(where: { $0.weekStart == key }) else { return WeekSummary(sets: 0, volumeKg: 0) }
         return WeekSummary(sets: week.liftingSets ?? 0, volumeKg: week.liftingVolumeKg ?? 0)
@@ -184,7 +184,7 @@ public enum HealthTransforms: Sendable {
     public static func sleepHours(_ seconds: Double?) -> Double? { seconds.map { $0 / 3600 } }
 
     /// Days inside the window (today and the `range - 1` days before), sorted.
-    public static func window(_ days: [HealthDayDTO], range: HealthRange, now: Date = .now, calendar: Calendar = .current) -> [HealthDayDTO] {
+    public static func window(_ days: [HealthDayDTO], range: HealthRange, now: Date = AppClock.instant, calendar: Calendar = .current) -> [HealthDayDTO] {
         let key = DayKey.string(DayKey.daysAgo(range.rawValue - 1, from: now, calendar: calendar), calendar: calendar)
         return days.filter { $0.date >= key }.sorted { $0.date < $1.date }
     }
@@ -266,7 +266,7 @@ public enum BodyweightMerge: Sendable {
         return (latest.weightKg - ref.weightKg) / ref.weightKg * 100
     }
 
-    public static func within(_ entries: [BodyweightEntry], days: Int, now: Date = .now, calendar: Calendar = .current) -> [BodyweightEntry] {
+    public static func within(_ entries: [BodyweightEntry], days: Int, now: Date = AppClock.instant, calendar: Calendar = .current) -> [BodyweightEntry] {
         let key = DayKey.string(DayKey.daysAgo(days - 1, from: now, calendar: calendar), calendar: calendar)
         return entries.filter { $0.day >= key }
     }

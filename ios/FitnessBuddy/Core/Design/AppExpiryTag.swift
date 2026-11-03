@@ -7,8 +7,8 @@ struct AppExpiryTag: View {
 
     var body: some View {
         // Re-checked hourly: the app can stay open across midnight.
-        TimelineView(.periodic(from: .now, by: 3600)) { context in
-            let days = ProvisioningExpiry.daysLeft(until: expiry, from: context.date)
+        TimelineView(.periodic(from: AppClock.instant, by: 3600)) { _ in
+            let days = ProvisioningExpiry.daysLeft(until: expiry, from: AppClock.instant)
             if days <= ProvisioningExpiry.warningDays {
                 Chip(text: "App expires \(ProvisioningExpiry.label(daysLeft: days))",
                      color: days == 0 ? .red : .orange,

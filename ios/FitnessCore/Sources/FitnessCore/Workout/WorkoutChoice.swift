@@ -71,7 +71,7 @@ public enum WorkoutChooserLogic: Sendable {
     /// session of each kind (the one done longest ago first, so the rotation continues) are offered as templates.
     /// The first element is the preselected one.
     public static func choices(planned: [PlannedLiftRef], finished: [FinishedLiftRef], today: String,
-                        locale: Locale = .current, calendar: Calendar = AppClock.calendar) -> [WorkoutChoice] {
+                        locale: Locale = AppLocale.current, calendar: Calendar = AppClock.calendar) -> [WorkoutChoice] {
         let open = planned.filter { !$0.done && liftingKinds.contains($0.kind) }
         let upcoming = open.filter { $0.date >= today }.sorted { ($0.date, $0.title) < ($1.date, $1.title) }
         let missed = open.filter { $0.date < today }.sorted { ($0.date, $0.title) > ($1.date, $1.title) }

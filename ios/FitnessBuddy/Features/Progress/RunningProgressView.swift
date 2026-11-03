@@ -15,6 +15,9 @@ struct RunningProgressView: View {
     @Query private var planned: [CachedPlannedSession]
     @State private var openPlanned: PlannedRunSheet?
     @State private var dashboardMemo = Memo<DashboardInputs, Dashboard>()
+    #if DEBUG
+    @State private var openedDebugSheet = false
+    #endif
 
     private var running: StatsResource<RunningStatsDTO> { env.stats.resource(StatsEndpoints.running()) }
     private var recent: StatsResource<[RunSummaryDTO]> { env.stats.resource(StatsEndpoints.recentRuns()) }
@@ -77,7 +80,20 @@ struct RunningProgressView: View {
             FreshnessLabel(resource: running)
         }
         .loadsStats([running, recent])
+        .screenIdentifier(running.value != nil && recent.value != nil ? AXID.Progress.running : AXID.Progress.loading)
         .sheet(item: $openPlanned) { RunDetailSheet(item: $0.item) }
+        #if DEBUG
+        // `-uiSheet rundetail` (with `-uiTab progress`): the first planned interval run of the week, else the first planned run.
+        .onChange(of: weekRuns, initial: true) { _, rows in
+            guard !openedDebugSheet, ProgressLaunch.sheet == "rundetail" else { return }
+            let planned = rows.compactMap { row -> PlanItemDTO? in
+                if case .planned(let item) = row.target { item } else { nil }
+            }
+            guard let item = planned.first(where: { $0.session?.type == "intervals" }) ?? planned.first else { return }
+            openedDebugSheet = true
+            openPlanned = PlannedRunSheet(item: item)
+        }
+        #endif
     }
 }
 
@@ -321,10 +337,21 @@ struct RunningRouteView: View {
                         .screenStyle()
                 }
             }
+            .screenIdentifier(running.value == nil ? AXID.Progress.loading
+                              : (route == .vdot ? AXID.Progress.vdot : AXID.Progress.efficiency))
             .navigationTitle(route == .vdot ? "VDOT" : "Aerobic Efficiency")
             .refreshable { await refreshStats(env, [running]) }
             .loadsStats([running])
         }
+    }
+}
+
+/// Date x axis of the running detail charts: a grid line per tick and the label centred under it, so the label
+/// never sits on a line (the plot gets padding so the last one stays inside the card).
+@AxisContentBuilder private func runDateAxis() -> some AxisContent {
+    AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+        AxisGridLine().foregroundStyle(.quaternary)
+        AxisValueLabel(format: AppLocale.dateTime.month(.abbreviated).day(), centered: false, anchor: .top, collisionResolution: .disabled)
     }
 }
 
@@ -344,7 +371,7 @@ private struct VdotDetailView: View {
         let c = Domain.running.color
         let items = Self.series(points)
         // The plan's VDOT holds until the next change: draw it on to today.
-        let plan = items.last.map { last in last.0 < .now ? items + [(Date.now, last.1)] : items } ?? []
+        let plan = items.last.map { last in last.0 < AppClock.instant ? items + [(AppClock.instant, last.1)] : items } ?? []
         // Older backends send a per-run fit as `vdot` and no `vdot_fit`: nothing to compare then.
         let fitItems = Self.series(fit)
         let lows = (plan + fitItems).map(\.1)
@@ -384,6 +411,8 @@ private struct VdotDetailView: View {
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .chartYAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel() } }
+                        .chartXAxis { runDateAxis() }
+                        .chartXScale(range: .plotDimension(padding: 12))
                         .frame(height: 200)
                         .accessibilityLabel("Plan VDOT, \(items.count) values")
                         .accessibilityValue("Latest \(Fmt.number(items.last?.1 ?? 0, maxFraction: 2))")
@@ -485,6 +514,8 @@ private struct EfficiencyDetailView: View {
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .chartYAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel() } }
+                        .chartXAxis { runDateAxis() }
+                        .chartXScale(range: .plotDimension(padding: 12))
                         .frame(height: 200)
                         .accessibilityLabel("Aerobic efficiency over \(items.count) runs")
                         .accessibilityValue("Latest \(Fmt.number(items.last?.1 ?? 0, maxFraction: 2)), first \(Fmt.number(items.first?.1 ?? 0, maxFraction: 2))")
@@ -539,12 +570,12 @@ private struct ZonesCard: View {
                 ChartEmpty(symbol: "heart.text.square", message: "Zone data shows up after the first run with heart rate.", height: 110)
             } else {
                 Chart(segments) { seg in
-                    BarMark(x: .value("Week", DayKey.date(seg.weekStart) ?? .now, unit: .weekOfYear),
+                    BarMark(x: .value("Week", DayKey.date(seg.weekStart) ?? AppClock.instant, unit: .weekOfYear),
                             y: .value("Minutes", seg.minutes))
                         .foregroundStyle(by: .value("Zone", seg.name))
                 }
                 .chartForegroundStyleScale(domain: RunTransforms.zoneNames, range: ChartPalette.zones)
-                .chartXAxis { AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in AxisValueLabel(format: .dateTime.month(.abbreviated).day(), anchor: .top) } }
+                .chartXAxis { AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in AxisValueLabel(format: AppLocale.dateTime.month(.abbreviated).day(), anchor: .top) } }
                 .chartLegend(position: .bottom, alignment: .leading, spacing: 8)
                 .chartYAxis { AxisMarks(position: .leading) { v in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel { if let d = v.as(Double.self) { Text("\(Fmt.number(d, maxFraction: 0))") } } } }
                 .frame(height: 190)
@@ -598,6 +629,7 @@ private struct AllRunsView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(recent.value == nil ? AXID.Progress.loading : AXID.Progress.allRuns)
         .navigationTitle("Runs")
         .refreshable { await refreshStats(env, [recent]) }
         .loadsStats([recent])

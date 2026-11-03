@@ -76,9 +76,9 @@ final class GymRepository: RemoteRepository {
             let data = try await transport.get(path: GymEndpoints.gyms)
             let dto = try await decode(GymListDTO.self, data)
             guard ns == namespace else { return }
-            store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: "gyms")
+            store.write(StatsCacheEntry(data: data, fetchedAt: AppClock.instant), namespace: ns, key: "gyms")
             list = dto
-            listFetchedAt = .now
+            listFetchedAt = AppClock.instant
             adoptServerGym(dto.currentGymId)
             failure = nil; isOffline = false
         } catch { noteFailure(error) }
@@ -93,9 +93,9 @@ final class GymRepository: RemoteRepository {
             let data = try await transport.get(path: GymEndpoints.machines(gymId))
             let dto = try await decode(GymMachinesDTO.self, data)
             guard ns == namespace else { return }
-            store.write(StatsCacheEntry(data: data, fetchedAt: .now), namespace: ns, key: Self.machinesKey(gymId))
+            store.write(StatsCacheEntry(data: data, fetchedAt: AppClock.instant), namespace: ns, key: Self.machinesKey(gymId))
             machines[gymId] = dto
-            machinesFetchedAt[gymId] = .now
+            machinesFetchedAt[gymId] = AppClock.instant
             if gymId == currentGymId { lastUnmappedCount = MachineLogic.progress(dto.items).remaining }
             failure = nil; isOffline = false
         } catch { noteFailure(error) }

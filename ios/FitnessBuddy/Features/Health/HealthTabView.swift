@@ -9,15 +9,26 @@ struct HealthTabView: View {
     @Query(sort: \LocalBodyMeasurement.measuredAt, order: .reverse) private var measurements: [LocalBodyMeasurement]
     @State private var span: HealthSignals.Span = .month
     @State private var showWeightSheet = false
+    @State private var path: [HealthRoute] = []
 
     private let openSheet: String?
 
-    /// `-uiSheet weight|readiness` opens that sheet at launch (screenshots, DEBUG only).
+    /// Screens pushed on this tab's stack by value (the signal cards' charts).
+    enum HealthRoute: Hashable {
+        case metric(String)
+    }
+
+    /// `-uiSheet weight|readiness` opens that sheet and `-uiRoute metric/<id>` (`hrv`, `rhr`, `sleep`, `steps`, `bodyweight`)
+    /// pushes that metric's chart at launch (screenshots, DEBUG only; only with `-uiTab health`).
     init() {
         #if DEBUG
-        let d = UserDefaults.standard.string(forKey: "uiSheet")
-        openSheet = d
-        _showWeightSheet = State(initialValue: d == "weight")
+        let d = UserDefaults.standard
+        let isHealth = d.string(forKey: "uiTab") == "health"
+        let sheet = isHealth ? d.string(forKey: "uiSheet") : nil
+        let route = isHealth ? d.string(forKey: "uiRoute") ?? "" : ""
+        openSheet = sheet
+        _showWeightSheet = State(initialValue: sheet == "weight")
+        if route.hasPrefix("metric/") { _path = State(initialValue: [.metric(String(route.dropFirst("metric/".count)))]) }
         #else
         openSheet = nil
         #endif
@@ -29,7 +40,7 @@ struct HealthTabView: View {
         let health = health
         let sources = MetricCatalog.Sources(health: health.value, volume: nil,
                                             localWeights: measurements.map(BodyweightLog.snapshot))
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Kit.groupSpacing) {
                     LoadableContent(health.value, else: health.loadState("health data")) { data in
@@ -50,6 +61,14 @@ struct HealthTabView: View {
                     HStack(spacing: 12) { SyncStatusBadge(); GarminSyncButton(resources: [health]) }
                 }
             }
+            .navigationDestination(for: HealthRoute.self) { route in
+                switch route {
+                case .metric(let id):
+                    if let metric = MetricCatalog.info(id) {
+                        LiveMetricDetailView(metric: metric).screenIdentifier(AXID.Health.metricDetail)
+                    }
+                }
+            }
             .refreshable { await refreshStats(env, [health]) }
             .loadsStats([health])
             .garminSyncBanner()
@@ -57,6 +76,7 @@ struct HealthTabView: View {
                 LogWeightSheet(lastWeight: lastWeight)
             }
         }
+        .screenIdentifier(AXID.Screen.health)
     }
 
     // MARK: Readiness

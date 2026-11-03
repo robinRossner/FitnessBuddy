@@ -2,24 +2,52 @@ import FitnessCore
 import SwiftData
 import SwiftUI
 
+/// Screens the Workout stack can be told to show (only the screenshot launch hooks fill `path`).
+enum WorkoutRoute: Hashable {
+    case plan(String)
+    case detail(UUID)
+}
+
 struct WorkoutTabView: View {
     @Environment(AppEnvironment.self) private var env
+    @State private var path: [WorkoutRoute] = []
     @Query(filter: #Predicate<LocalSession> { $0.endedAt == nil && $0.deletedAt == nil && $0.startedHere },
            sort: \LocalSession.startedAt, order: .reverse)
     private var active: [LocalSession]
 
     var body: some View {
         @Bindable var flow = env.workoutFlow
-        NavigationStack {
-            if let session = active.first {
-                ActiveWorkoutView(session: session)
-            } else {
-                WorkoutStartView()
+        NavigationStack(path: $path) {
+            Group {
+                if let session = active.first {
+                    ActiveWorkoutView(session: session)
+                } else {
+                    WorkoutStartView()
+                }
+            }
+            .navigationDestination(for: WorkoutRoute.self) { route in
+                switch route {
+                case .plan(let id):
+                    if let row = try? env.context.fetch(FetchDescriptor<CachedPlannedSession>(predicate: #Predicate { $0.id == id })).first {
+                        PlannedLiftView(row: row).screenIdentifier(AXID.Workout.plan)
+                    }
+                case .detail(let id):
+                    if let session = try? env.context.fetch(FetchDescriptor<LocalSession>(predicate: #Predicate { $0.id == id })).first {
+                        WorkoutDetailView(session: session)
+                    }
+                }
             }
         }
+        .screenIdentifier(AXID.Screen.workout)
         .sheet(item: $flow.finishedSummary) { summary in
             WorkoutSummarySheet(summary: summary)
         }
+        #if DEBUG
+        .task {
+            let routes = await WorkoutUIHooks.prepare(env)
+            if !routes.isEmpty { path = routes }
+        }
+        #endif
     }
 }
 
@@ -93,12 +121,13 @@ struct WorkoutStartView: View {
     @ViewBuilder private var nextCard: some View {
         if let next, case .planned(let id) = next.source, let row = planned.first(where: { $0.id == id }) {
             NavigationLink {
-                PlannedLiftView(row: row)
+                PlannedLiftView(row: row).screenIdentifier(AXID.Workout.plan)
             } label: {
                 nextLabel(title: next.title, when: next.detail.isEmpty ? nil : next.detail.capitalizedFirst,
                           line: planLine(row), action: "View Plan & Start")
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier(AXID.Workout.nextCard)
         } else if let next {
             Button { env.workoutFlow.start(next) } label: {
                 nextLabel(title: next.title, when: next.detail.isEmpty ? nil : next.detail.capitalizedFirst,
@@ -193,10 +222,11 @@ struct WorkoutStartView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         if done, let session {
             ChevronRowLink { WorkoutDetailView(session: session) } label: { label }
         } else if !done, let plan {
-            ChevronRowLink { PlannedLiftView(row: plan) } label: { label }
+            ChevronRowLink { PlannedLiftView(row: plan).screenIdentifier(AXID.Workout.plan) } label: { label }
         } else {
             label.padding(.vertical, 10)
         }
@@ -204,7 +234,7 @@ struct WorkoutStartView: View {
 
     private func dayName(_ day: String) -> String {
         if day == today { return "Today" }
-        return AppClock.date(fromDay: day)?.formatted(.dateTime.weekday(.wide)) ?? day
+        return AppClock.date(fromDay: day)?.formatted(AppLocale.dateTime.weekday(.wide)) ?? day
     }
 
     // MARK: Recent
@@ -232,6 +262,7 @@ struct WorkoutStartView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(AXID.Workout.chooseButton)
                 .padding(.horizontal, 16)
                 Divider().padding(.leading, 16)
                 ChevronRowLink { GymManageView() } label: {
@@ -272,7 +303,7 @@ private struct RecentWorkoutLabel: View {
     }
 
     private var detail: String {
-        var parts = [session.startedAt.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))]
+        var parts = [session.startedAt.formatted(AppLocale.dateTime.weekday(.abbreviated).day().month(.abbreviated))]
         if let end = session.endedAt, end.timeIntervalSince(session.startedAt) >= 60 {
             parts.append(Fmt.longDuration(end.timeIntervalSince(session.startedAt)))
         }
@@ -333,6 +364,7 @@ struct WorkoutSummarySheet: View {
                     Text("Done").font(.headline).frame(maxWidth: .infinity, minHeight: 36)
                 }
                 .buttonStyle(.borderedProminent).tint(Domain.lifting.color)
+                .accessibilityIdentifier(AXID.Workout.summaryDone)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
@@ -340,6 +372,8 @@ struct WorkoutSummarySheet: View {
             .navigationTitle("Workout complete")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .screenIdentifier(AXID.Workout.summary)
+        .stableForScreenshots()
         .presentationDetents([.large])
     }
 }

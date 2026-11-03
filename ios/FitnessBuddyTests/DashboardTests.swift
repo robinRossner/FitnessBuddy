@@ -13,7 +13,7 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
 @MainActor
 @Suite(.tags(.workout))
 struct WorkoutChooserTests {
-    let locale = Locale(identifier: "en_US")
+    let locale = AppLocale.current
     let today = "2026-10-25"   // Sunday: the long-run day
 
     private func planned(_ id: String, _ date: String, _ kind: String, done: Bool = false) -> PlannedLiftRef {
@@ -95,7 +95,7 @@ struct WorkoutChooserTests {
 struct DashboardAppTests {
     @Test func demoStatsCarryTheNewFields() throws {
         let running = try APICoding.makeDecoder().decode(RunningStatsDTO.self, from: try #require(DemoStats.json(for: "/api/v1/stats/running")))
-        #expect(running.kpis?.vdot4wAgo == 49.8 && running.weekly.last?.runsDetail?.isEmpty == false)
+        #expect(running.kpis?.vdot4wAgo == 49.6 && running.weekly.dropLast().last?.runsDetail?.isEmpty == false)
         let health = try APICoding.makeDecoder().decode(HealthStatsDTO.self, from: try #require(DemoStats.json(for: "/api/v1/stats/health")))
         #expect(health.readinessToday?.headline == "Take it easier")
     }

@@ -18,14 +18,14 @@ enum BodyweightLog {
     }
 
     /// Today keeps the current time; another day is logged at noon local time so its calendar day is unambiguous.
-    static func measuredAt(for day: Date, now: Date = .now, calendar: Calendar = .current) -> Date {
+    static func measuredAt(for day: Date, now: Date = AppClock.instant, calendar: Calendar = .current) -> Date {
         if calendar.isDate(day, inSameDayAs: now) { return now }
         return calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day
     }
 
     @discardableResult
     @MainActor
-    static func add(weightKg: Double, day: Date, note: String? = nil, in ctx: ModelContext, now: Date = .now) -> LocalBodyMeasurement {
+    static func add(weightKg: Double, day: Date, note: String? = nil, in ctx: ModelContext, now: Date = AppClock.instant) -> LocalBodyMeasurement {
         let m = LocalBodyMeasurement(measuredAt: measuredAt(for: day, now: now), weightKg: (weightKg * 10).rounded() / 10,
                                      note: note, updatedAt: now)
         ctx.insert(m)
@@ -34,7 +34,7 @@ enum BodyweightLog {
     }
 
     @MainActor
-    static func delete(_ m: LocalBodyMeasurement, in ctx: ModelContext, now: Date = .now) {
+    static func delete(_ m: LocalBodyMeasurement, in ctx: ModelContext, now: Date = AppClock.instant) {
         m.deletedAt = now
         m.touch(now)
         try? ctx.save()

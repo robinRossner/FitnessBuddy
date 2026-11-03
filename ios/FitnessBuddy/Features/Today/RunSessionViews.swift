@@ -149,6 +149,7 @@ struct RunDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+        .screenIdentifier(AXID.Progress.runDetail)
         .presentationDetents([.medium, .large])
     }
 
@@ -230,7 +231,7 @@ struct RunDetailSheet: View {
 
     private var summary: some View {
         Card(tint: Domain.running.color) {
-            Text(AppClock.date(fromDay: item.date)?.formatted(.dateTime.weekday(.wide).day().month(.wide)) ?? item.date)
+            Text(AppClock.date(fromDay: item.date).map { AppLocale.weekdayDate($0, month: .wide) } ?? item.date)
                 .font(.subheadline).foregroundStyle(.secondary)
             if let from = item.movedFrom {
                 Label("Moved from \(DayLabel.weekday(from))", systemImage: "arrow.uturn.right")

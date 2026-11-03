@@ -4,15 +4,44 @@ import SwiftUI
 
 struct InsightsRoute: Hashable {}
 
+/// One correlation by id (the `-uiRoute insight` launch argument opens it without tapping through).
+struct InsightDetailRoute: Hashable {
+    let id: String
+}
+
+/// Resolves an `InsightDetailRoute` with the cached correlations.
+struct InsightDetailRouteView: View {
+    @Environment(AppEnvironment.self) private var env
+    let id: String
+
+    private var correlations: StatsResource<CorrelationsDTO> { env.stats.resource(StatsEndpoints.correlations()) }
+
+    var body: some View {
+        let correlations = correlations
+        Group {
+            if let item = correlations.value?.items.first(where: { $0.id == id }) {
+                InsightDetailView(item: item).screenIdentifier(AXID.Progress.insightDetail)
+            } else {
+                ScrollView { LoadableContent(correlations.loadState("insights")).pagePadding() }
+                    .screenStyle()
+                    .screenIdentifier(AXID.Progress.loading)
+            }
+        }
+        .loadsStats([correlations])
+    }
+}
+
 /// Insights on their own screen (Summary's "Show All" pushes it): the same content as Progress' Insights segment.
 struct InsightsView: View {
     @Environment(AppEnvironment.self) private var env
 
     var body: some View {
+        let loaded = env.stats.resource(StatsEndpoints.correlations()).value != nil
         ScrollView {
             InsightsContent().pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(loaded ? AXID.Progress.insightsScreen : AXID.Progress.loading)
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await refreshStats(env, [env.stats.resource(StatsEndpoints.correlations())]) }
@@ -46,7 +75,7 @@ struct InsightsContent: View {
                         ForEach(group.items) { item in
                             if InsightTransforms.hasEnoughData(item) {
                                 NavigationLink {
-                                    InsightDetailView(item: item)
+                                    InsightDetailView(item: item).screenIdentifier(AXID.Progress.insightDetail)
                                 } label: {
                                     Card { InsightCardContent(item: item, color: style.color, chartHeight: 150) }
                                 }
@@ -62,6 +91,7 @@ struct InsightsContent: View {
             FreshnessLabel(resource: correlations)
         }
         .loadsStats([correlations])
+        .screenIdentifier(correlations.value != nil ? AXID.Progress.insights : AXID.Progress.loading)
     }
 }
 

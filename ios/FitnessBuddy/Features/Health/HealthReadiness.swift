@@ -58,8 +58,9 @@ struct ReadinessBreakdownCard: View {
         .accessibilityLabel("Readiness: \(summary?.headline ?? "no data yet")")
         .accessibilityValue((summary?.metrics ?? []).map(\.spokenDescription).joined(separator: ". "))
         .accessibilityHint(summary == nil ? "" : "Shows the details")
+        .accessibilityIdentifier(AXID.Health.readinessCard)
         .sheet(isPresented: $showDetails) {
-            if let summary { ReadinessDetailSheet(summary: summary) }
+            if let summary { ReadinessDetailSheet(summary: summary).screenIdentifier(AXID.Health.readiness) }
         }
     }
 }

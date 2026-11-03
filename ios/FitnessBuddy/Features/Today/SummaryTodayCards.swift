@@ -102,6 +102,7 @@ struct NextLiftCard: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(AXID.Summary.nextLiftCard)
         .accessibilityHint("Shows the exercises")
     }
 }
@@ -115,7 +116,7 @@ struct LiftDoneCard: View {
         Card {
             CardHeader(title: PlanFormat.cardTitle(type: "lifting", kind: row.kind, title: row.item?.title ?? row.title),
                        symbol: PlanFormat.symbol(forKind: row.kind), color: Domain.lifting.color, time: "Today")
-            Label("Done · \(Fmt.longDuration((completed.endedAt ?? .now).timeIntervalSince(completed.startedAt)))",
+            Label("Done · \(Fmt.longDuration((completed.endedAt ?? AppClock.instant).timeIntervalSince(completed.startedAt)))",
                   systemImage: "checkmark.circle.fill")
                 .font(.headline).foregroundStyle(.green)
         }
@@ -130,7 +131,7 @@ struct ResumeWorkoutCard: View {
     var body: some View {
         Card {
             CardHeader(title: "Workout", symbol: Domain.lifting.symbol, color: Domain.lifting.color,
-                       time: "Since " + session.startedAt.formatted(date: .omitted, time: .shortened))
+                       time: "Since " + AppLocale.time(session.startedAt))
             Text(session.name.isEmpty ? "Your workout is still running." : session.name).font(.headline)
             Button { env.selectedTab = .workout } label: {
                 Label("Resume Workout", systemImage: "play.fill").frame(maxWidth: .infinity, minHeight: 34)
@@ -146,11 +147,19 @@ struct CoachSummaryCard: View {
     let pendingCount: Int
     let latestId: String?
 
+    /// "2 hours ago" / "yesterday", measured from `AppClock.instant` so a frozen clock gives the same text every run.
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.dateTimeStyle = .named
+        f.locale = AppLocale.current
+        return f
+    }()
+
     var body: some View {
         let proposal = pendingCount == 1 ? latestId.flatMap { env.coach.detail($0) } : nil
         Card {
             CardHeader(title: "Coach", symbol: Domain.coach.symbol, color: Domain.coach.color,
-                       time: proposal?.createdAt?.formatted(.relative(presentation: .named)))
+                       time: proposal?.createdAt.map { Self.relativeFormatter.localizedString(for: $0, relativeTo: AppClock.instant) })
             Text(CoachLogic.bannerTitle(pendingCount: pendingCount)).font(.headline)
             if let text = proposal?.diagnosis ?? proposal?.notesForUser, !text.isEmpty {
                 Text(text).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
@@ -217,7 +226,7 @@ struct PlannedLiftView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(AppClock.date(fromDay: row.date)?.formatted(.dateTime.weekday(.wide).day().month(.wide)) ?? row.date)
+                    Text(AppClock.date(fromDay: row.date).map { AppLocale.weekdayDate($0, month: .wide) } ?? row.date)
                         .font(.subheadline).foregroundStyle(.secondary)
                     HStack(spacing: 6) {
                         if let gym = item?.session?.gym { Chip(text: gym, color: Domain.lifting.color) }
@@ -236,6 +245,7 @@ struct PlannedLiftView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Domain.lifting.color)
+                .accessibilityIdentifier(AXID.Workout.planStart)
                 .listRowSeparator(.hidden)
             }
             if !exercises.isEmpty {
@@ -261,5 +271,6 @@ struct PlannedLiftView: View {
         }
         .navigationTitle(PlanFormat.cardTitle(type: "lifting", kind: row.kind, title: item?.title ?? row.title))
         .navigationBarTitleDisplayMode(.inline)
+        .screenIdentifier(AXID.Summary.plannedLift)
     }
 }

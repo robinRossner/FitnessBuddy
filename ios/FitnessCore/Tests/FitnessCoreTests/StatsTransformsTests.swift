@@ -110,8 +110,8 @@ struct FormattingTests {
         #expect(Fmt.duration(2902.6) == "48:23")
         #expect(Fmt.duration(3725) == "1:02:05")
         #expect(Fmt.longDuration(3900) == "1 h 05 min")
-        // Decimal separator follows the device locale, so build the expectation with the same formatter.
-        let d = { (v: Double) in Fmt.number(v, maxFraction: 1) }
+        // Always a decimal dot, whatever the device region.
+        let d = { (v: Double) in String(format: "%.1f", v) }
         #expect(Fmt.percent(2.34) == "+\(d(2.3)) %")
         #expect(Fmt.percent(-1.26) == "-\(d(1.3)) %")
         #expect(Fmt.percent(0) == "0 %" && Fmt.percent(nil) == "–")

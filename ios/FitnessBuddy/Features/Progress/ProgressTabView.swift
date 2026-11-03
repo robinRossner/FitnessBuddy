@@ -14,18 +14,22 @@ struct ProgressTabView: View {
     @State private var path = NavigationPath()
 
     #if DEBUG
-    /// Launch arguments for screenshots / UI runs: `-uiSegment running|insights`, `-uiLift <variant id>`, `-uiRun <run id>`,
-    /// `-uiSheet insights|vdot|efficiency`.
+    /// Launch arguments for screenshots / UI runs, honoured only with `-uiTab progress`: `-uiSegment running|insights`,
+    /// `-uiLift <variant id>`, `-uiRun <run id>`, `-uiRoute insights|vdot|efficiency|allruns|insight` pushes a screen
+    /// (the first three also as `-uiSheet`, their old spelling), `-uiSheet alllifts|rundetail` opens a sheet.
     init() {
         let d = UserDefaults.standard
+        guard ProgressLaunch.active else { return }
         _segment = State(initialValue: Segment.allCases.first { $0.rawValue.lowercased() == d.string(forKey: "uiSegment") } ?? .lifting)
         var p = NavigationPath()
         if let id = d.string(forKey: "uiLift").flatMap(Int.init) { p.append(LiftSummaryDTO(variantId: id, name: "Lift")) }
         if let id = d.string(forKey: "uiRun") { p.append(RunRoute(id: id)) }
-        switch d.string(forKey: "uiSheet") {
+        switch d.string(forKey: "uiRoute") ?? d.string(forKey: "uiSheet") {
         case "insights": p.append(InsightsRoute())
         case "vdot": p.append(RunningRoute.vdot)
         case "efficiency": p.append(RunningRoute.efficiency)
+        case "allruns": p.append(RunningRoute.allRuns)
+        case "insight": p.append(InsightDetailRoute(id: "sleep_hrv"))
         default: break
         }
         _path = State(initialValue: p)
@@ -64,10 +68,33 @@ struct ProgressTabView: View {
             .navigationDestination(for: InsightsRoute.self) { _ in InsightsView() }
             .navigationDestination(for: RunRoute.self) { RunAnalysisView(runId: $0.id) }
             .navigationDestination(for: RunningRoute.self) { RunningRouteView(route: $0) }
+            .navigationDestination(for: InsightDetailRoute.self) { InsightDetailRouteView(id: $0.id) }
         }
+        .screenIdentifier(AXID.Screen.progress)
+        .persistentSystemOverlays(Self.systemOverlays)
+    }
+
+    /// The home indicator fades out after a few idle seconds, which made screenshots differ by a few pixels; the screenshot
+    /// pass (`-uiNoAnimations`) hides it from the start.
+    private static var systemOverlays: Visibility {
+        #if DEBUG
+        UITestSupport.animationsDisabled ? .hidden : .automatic
+        #else
+        .automatic
+        #endif
     }
 }
 
 struct RunRoute: Hashable, Identifiable {
     let id: String
 }
+
+#if DEBUG
+/// The launch arguments of this tab count only when `-uiTab` names it, so tabs never react to each other's values.
+enum ProgressLaunch {
+    static var active: Bool { UserDefaults.standard.string(forKey: "uiTab") == "progress" }
+
+    /// The `-uiSheet` value when it is meant for this tab.
+    static var sheet: String? { active ? UserDefaults.standard.string(forKey: "uiSheet") : nil }
+}
+#endif

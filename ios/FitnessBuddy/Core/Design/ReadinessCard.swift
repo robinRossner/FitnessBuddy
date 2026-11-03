@@ -190,7 +190,7 @@ struct ReadinessDetailSheet: View {
             .background(Color.screenBackground)
             .navigationTitle("Readiness")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.accessibilityIdentifier(AXID.Health.readinessDone) } }
         }
         .presentationDetents([.medium, .large])
     }

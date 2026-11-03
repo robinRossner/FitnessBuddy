@@ -89,14 +89,14 @@ public enum StatsFreshness: Sendable {
     /// Refetch on appear once the cache is older than this.
     public static let maxAge: TimeInterval = 15 * 60
 
-    public static func isFresh(fetchedAt: Date?, now: Date = .now, maxAge: TimeInterval = StatsFreshness.maxAge) -> Bool {
+    public static func isFresh(fetchedAt: Date?, now: Date = AppClock.instant, maxAge: TimeInterval = StatsFreshness.maxAge) -> Bool {
         guard let fetchedAt else { return false }
         let age = now.timeIntervalSince(fetchedAt)
         return age >= 0 && age < maxAge  // a timestamp from the future (clock change) counts as stale
     }
 
     /// "Updated just now" / "Updated 2 h ago" / "Offline, showing data from Oct 24, 14:03".
-    public static func label(fetchedAt: Date?, offline: Bool, now: Date = .now, calendar: Calendar = .current,
+    public static func label(fetchedAt: Date?, offline: Bool, now: Date = AppClock.instant, calendar: Calendar = .current,
                       locale: Locale = Locale(identifier: "en_US_POSIX")) -> String? {
         guard let fetchedAt else { return offline ? "Offline" : nil }
         if offline {
@@ -108,7 +108,7 @@ public enum StatsFreshness: Sendable {
         return "Updated " + relative(fetchedAt, now: now)
     }
 
-    public static func relative(_ date: Date, now: Date = .now) -> String {
+    public static func relative(_ date: Date, now: Date = AppClock.instant) -> String {
         let s = max(0, now.timeIntervalSince(date))
         switch s {
         case ..<60: return "just now"

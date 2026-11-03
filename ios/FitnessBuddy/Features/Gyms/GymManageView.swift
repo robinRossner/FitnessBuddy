@@ -69,6 +69,7 @@ struct GymManageView: View {
         .alert("Couldn't do that", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(errorMessage ?? "") }
+        .screenIdentifier(AXID.Summary.gymManage)
     }
 
     private func row(_ gym: GymSummaryDTO) -> some View {

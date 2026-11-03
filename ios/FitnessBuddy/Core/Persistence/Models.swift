@@ -31,7 +31,7 @@ final class LocalSession {
     var isDemo: Bool = false
 
     init(id: UUID = UUID(), plannedSessionId: String? = nil, gymId: Int? = nil, kind: String = "other",
-         name: String, startedAt: Date = .now, endedAt: Date? = nil, notes: String? = nil,
+         name: String, startedAt: Date = AppClock.instant, endedAt: Date? = nil, notes: String? = nil,
          updatedAt: Date = .now, deletedAt: Date? = nil, dirty: Bool = true) {
         self.id = id
         self.plannedSessionId = plannedSessionId

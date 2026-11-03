@@ -72,6 +72,7 @@ struct ProposalDetailView: View {
         }
         .refreshable { await refreshOnce() }
         .safeAreaInset(edge: .bottom) { if p.isPending { actionBar(p) } else if p.canDismiss { dismissBar } }
+        .screenIdentifier(AXID.Coach.proposalDetail)
     }
 
     private func headerCard(_ p: CoachProposalDTO) -> some View {
@@ -282,7 +283,7 @@ struct ProposalDetailView: View {
     private func footnote(_ p: CoachProposalDTO) -> some View {
         VStack(spacing: 2) {
             if let cost = p.costUsd {
-                Text("Cost \(cost.formatted(.currency(code: "USD").precision(.fractionLength(cost < 0.1 ? 3 : 2))))")
+                Text("Cost $\(cost.formatted(.number.precision(.fractionLength(cost < 0.1 ? 3 : 2)).locale(AppLocale.current)))")
             }
             if let error = loadError { Text("Couldn't refresh: \(error)").foregroundStyle(.orange) }
         }
@@ -320,6 +321,7 @@ struct ProposalDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Domain.coach.color)
                 .disabled(ids.isEmpty || acting != nil || blocked != nil)
+                .accessibilityIdentifier(AXID.Coach.detailApprove)
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
