@@ -64,7 +64,21 @@ struct ExercisePickerView: View {
                 NewExerciseSheet(initialName: search) { finish($0) }
             }
         }
+        .screenIdentifier(AXID.Workout.exercisePicker)
+        .stableForScreenshots()
+        #if DEBUG
+        .task { await openRequestedSheet() }
+        #endif
     }
+
+    #if DEBUG
+    /// `-uiSheet newExercise|exerciseSetup` (see `WorkoutUIHooks`): opens that nested sheet once.
+    private func openRequestedSheet() async {
+        guard let name = WorkoutUIHooks.takeSheet(["newExercise", "exerciseSetup"], slot: "picker") else { return }
+        try? await Task.sleep(for: .milliseconds(400))
+        if name == "newExercise" { showNew = true } else { setupRow = groups.lazy.flatMap(\.rows).first { $0.variantId == nil } }
+    }
+    #endif
 
     private func rowLabel(_ row: ExercisePickRow) -> some View {
         HStack {
@@ -149,6 +163,8 @@ struct ExerciseSetupSheet: View {
             }
             .interactiveDismissDisabled(saving)
         }
+        .screenIdentifier(AXID.Workout.exerciseSetup)
+        .stableForScreenshots()
         .presentationDetents([.large])
     }
 
@@ -217,6 +233,8 @@ struct NewExerciseSheet: View {
             }
             .interactiveDismissDisabled(saving)
         }
+        .screenIdentifier(AXID.Workout.newExercise)
+        .stableForScreenshots()
     }
 
     private func save() async {
@@ -329,6 +347,8 @@ struct ExerciseEditSheet: View {
             }
             .interactiveDismissDisabled(saving)
         }
+        .screenIdentifier(AXID.Workout.exerciseEdit)
+        .stableForScreenshots()
     }
 
     private func save() async {

@@ -61,7 +61,7 @@ final class RestTimer {
 
     var isRunning: Bool { endDate != nil }
 
-    func remaining(at date: Date = .now) -> TimeInterval {
+    func remaining(at date: Date = AppClock.instant) -> TimeInterval {
         max(0, (endDate ?? date).timeIntervalSince(date))
     }
 
@@ -70,8 +70,8 @@ final class RestTimer {
         let total = TimeInterval(max(5, seconds))
         totalSeconds = total
         self.variantId = variantId
-        startDate = Date()
-        let end = Date().addingTimeInterval(total)
+        startDate = AppClock.instant
+        let end = AppClock.instant.addingTimeInterval(total)
         if finishReminder { finishReminderDate = end } else { cancelFinishReminder() }
         arm(end: end)
         onEvent?(.started(end: end, total: totalSeconds))
@@ -80,7 +80,7 @@ final class RestTimer {
 
     func adjust(by delta: TimeInterval) {
         guard let end = endDate else { return }
-        let newEnd = max(Date().addingTimeInterval(1), end.addingTimeInterval(delta))
+        let newEnd = max(AppClock.instant.addingTimeInterval(1), end.addingTimeInterval(delta))
         totalSeconds = max(1, totalSeconds + delta)
         arm(end: newEnd)
         onEvent?(.adjusted(end: newEnd, total: totalSeconds))
@@ -88,7 +88,7 @@ final class RestTimer {
 
     /// The exercise's rest time was changed while this rest runs: count the running rest as `seconds` in total
     /// (measured from when it started, so ±15 s taps made so far are replaced). Ignored for another exercise.
-    func retarget(variantId: Int, to seconds: Int, now: Date = Date()) {
+    func retarget(variantId: Int, to seconds: Int, now: Date = AppClock.instant) {
         guard endDate != nil, self.variantId == variantId, let start = startDate else { return }
         let newEnd = max(now.addingTimeInterval(1), start.addingTimeInterval(TimeInterval(seconds)))
         totalSeconds = max(1, newEnd.timeIntervalSince(start))
@@ -101,7 +101,7 @@ final class RestTimer {
         guard endDate != nil else { return }
         clear()
         notificationCenter?.removePendingNotificationRequests(withIdentifiers: [WorkoutNotifications.restId])
-        if finishReminderDate != nil { scheduleFinishReminder(restEnd: Date()) }
+        if finishReminderDate != nil { scheduleFinishReminder(restEnd: AppClock.instant) }
         onEvent?(.cancelled)
     }
 
@@ -119,7 +119,7 @@ final class RestTimer {
         scheduleNotification(at: end)
         if finishReminderDate != nil { scheduleFinishReminder(restEnd: end) }
         finishTask = Task { [weak self] in
-            let wait = end.timeIntervalSinceNow
+            let wait = end.timeIntervalSince(AppClock.instant)
             if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
             guard !Task.isCancelled else { return }
             self?.fire()
@@ -127,9 +127,9 @@ final class RestTimer {
     }
 
     private func fire() {
-        guard let end = endDate, end <= Date().addingTimeInterval(0.5) else { return }
+        guard let end = endDate, end <= AppClock.instant.addingTimeInterval(0.5) else { return }
         // Only ring on time with the app open. After a suspension this runs late, and the notification already rang.
-        if Date().timeIntervalSince(end) < 3, UIApplication.shared.applicationState == .active {
+        if AppClock.instant.timeIntervalSince(end) < 3, UIApplication.shared.applicationState == .active {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             bell.play()
         }
@@ -192,7 +192,7 @@ final class RestTimer {
         guard let center = notificationCenter else { return }
         center.removePendingNotificationRequests(withIdentifiers: [id])
         center.removeDeliveredNotifications(withIdentifiers: [id])
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow), repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSince(AppClock.instant)), repeats: false)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 }

@@ -66,6 +66,8 @@ struct WorkoutChooserSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
+        .screenIdentifier(AXID.Workout.chooser)
+        .stableForScreenshots()
         .presentationDetents([.fraction(0.8), .large])
         .onChange(of: planned.count) { _, _ in selection = nil }
         .onChange(of: finished.count) { _, _ in selection = nil }
