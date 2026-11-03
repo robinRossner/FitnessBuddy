@@ -5,8 +5,8 @@
 #   SCREENPASS_DIR=/some/dir ios/scripts/screenpass.sh     (default: ios/.screenpass/shots)
 #   ONLY=coach,health ios/scripts/screenpass.sh             (only those tabs; default: all)
 #
-# ONLY is a comma-separated list of tab names (summary, workout, progress, health, coach); each maps to
-# -only-testing:FitnessBuddyUITests/TabScreens/test<Name> plus that tab's own class <Name>Screens.
+# ONLY is a comma-separated list of tab names (summary, workout, progress, health, coach) and/or flows; each tab maps to
+# -only-testing:FitnessBuddyUITests/TabScreens/test<Name> plus that tab's own class <Name>Screens, `flows` only to FlowsScreens.
 # The dedicated simulator (default "FitnessBuddy Screenpass", iPhone 17 Pro, newest iOS runtime; SCREENPASS_SIM
 # picks another name, so parallel runs don't share one) is created on demand, so the user's own simulators are
 # never touched. Build products go to ios/.screenpass/DerivedData.
@@ -52,8 +52,11 @@ if [ -n "${ONLY:-}" ]; then
     tab="$(echo "$tab" | tr -d ' ')"
     [ -n "$tab" ] || continue
     first="$(echo "${tab:0:1}" | tr '[:lower:]' '[:upper:]')"
-    ONLY_ARGS+=("-only-testing:FitnessBuddyUITests/TabScreens/test${first}${tab:1}"
-                "-only-testing:FitnessBuddyUITests/${first}${tab:1}Screens")
+    case "$tab" in
+      summary|workout|progress|health|coach)
+        ONLY_ARGS+=("-only-testing:FitnessBuddyUITests/TabScreens/test${first}${tab:1}") ;;
+    esac
+    ONLY_ARGS+=("-only-testing:FitnessBuddyUITests/${first}${tab:1}Screens")
   done
 fi
 

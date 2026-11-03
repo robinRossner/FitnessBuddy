@@ -64,7 +64,7 @@ struct WorkoutChooserSheet: View {
             .background(Color.screenBackground)
             .navigationTitle("Start workout")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.accessibilityIdentifier(AXID.Workout.chooserCancel) } }
         }
         .screenIdentifier(AXID.Workout.chooser)
         .stableForScreenshots()

@@ -24,6 +24,7 @@ struct WeighInsSection: View {
             }
         } trailing: {
             Button(action: logWeight) { Label("Log Weight", systemImage: "plus") }
+                .accessibilityIdentifier(AXID.Health.logWeightButton)
                 .font(.subheadline.weight(.semibold))
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
@@ -69,6 +70,7 @@ private struct MyEntriesCard: View {
             .scrollContentBackground(.hidden)
             .frame(height: CGFloat(measurements.count) * rowHeight + 4)
         }
+        .screenIdentifier(AXID.Health.weighInEntries)
     }
 
     private func delete(_ m: LocalBodyMeasurement) {
@@ -101,6 +103,7 @@ struct LogWeightSheet: View {
                             .font(.metric(.largeTitle))
                             .focused($focused)
                             .accessibilityLabel("Weight in kilograms")
+                            .accessibilityIdentifier(AXID.Health.logWeightField)
                         Text("kg").font(.title3).foregroundStyle(.secondary)
                     }
                     DatePicker("Date", selection: $day, in: ...AppClock.instant, displayedComponents: .date)
@@ -113,8 +116,8 @@ struct LogWeightSheet: View {
             .navigationTitle("Log weight")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!isValid) }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.accessibilityIdentifier(AXID.Health.logWeightCancel) }
+                ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!isValid).accessibilityIdentifier(AXID.Health.logWeightSave) }
             }
             .onAppear {
                 if text.isEmpty, let lastWeight { text = Fmt.number(lastWeight, maxFraction: 1) }

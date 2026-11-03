@@ -363,6 +363,7 @@ struct WorkoutSummarySheet: View {
                     Text("Done").font(.headline).frame(maxWidth: .infinity, minHeight: 36)
                 }
                 .buttonStyle(.borderedProminent).tint(Domain.lifting.color)
+                .accessibilityIdentifier(AXID.Workout.summaryDone)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 12)

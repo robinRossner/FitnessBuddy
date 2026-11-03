@@ -303,6 +303,7 @@ struct PendingProposalCard: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Domain.coach.color)
                 .disabled(ids.isEmpty || acting != nil || blocked != nil)
+                .accessibilityIdentifier(AXID.Coach.cardApprove)
                 Button { decline() } label: {
                     HStack(spacing: 6) {
                         if acting == .declining { ProgressView() }
@@ -313,6 +314,7 @@ struct PendingProposalCard: View {
                 .buttonStyle(.bordered)
                 .tint(.secondary)
                 .disabled(acting != nil || blocked != nil)
+                .accessibilityIdentifier(AXID.Coach.cardDecline)
             }
             .controlSize(.large)
             .padding(.top, 2)
@@ -375,6 +377,7 @@ struct DecisionResultCard: View {
             }
             CoachFooterLink(title: "Details", screen: .proposal(proposal.id))
         }
+        .screenIdentifier(AXID.Coach.decisionResult)
         .transition(.opacity)
     }
 

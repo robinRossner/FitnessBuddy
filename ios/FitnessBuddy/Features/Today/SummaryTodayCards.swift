@@ -244,6 +244,7 @@ struct PlannedLiftView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Domain.lifting.color)
+                .accessibilityIdentifier(AXID.Workout.planStart)
                 .listRowSeparator(.hidden)
             }
             if !exercises.isEmpty {

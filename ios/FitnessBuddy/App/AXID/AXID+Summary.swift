@@ -14,5 +14,6 @@ extension AXID {
         static let settingsButton = "summary.settingsButton"
         static let nextLiftCard = "summary.nextLiftCard"
         static let manageGymsRow = "summary.manageGymsRow"
+        static let settingsDone = "summary.settingsDone"
     }
 }

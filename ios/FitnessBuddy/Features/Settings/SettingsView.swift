@@ -86,7 +86,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { done() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { done() }.accessibilityIdentifier(AXID.Summary.settingsDone) }
             }
             .task {
                 guard !loadedDraft else { return }

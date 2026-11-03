@@ -17,5 +17,14 @@ extension AXID {
         static let settingsButton = "coach.settingsButton"
         static let askButton = "coach.askButton"
         static let askCancel = "coach.askCancel"
+        static let askField = "coach.askField"
+        static let askSend = "coach.askSend"
+        /// Approve / Decline on a card of the To Review section.
+        static let cardApprove = "coach.cardApprove"
+        static let cardDecline = "coach.cardDecline"
+        /// The result card shown after a decision from the To Review section.
+        static let decisionResult = "coach.decisionResult"
+        /// "Approve (n)" in the proposal detail's action bar.
+        static let detailApprove = "coach.detailApprove"
     }
 }

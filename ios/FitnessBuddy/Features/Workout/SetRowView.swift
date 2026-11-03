@@ -114,6 +114,7 @@ struct SetRowView: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(trigger: set.completedAt) { _, new in new != nil ? .impact(weight: .medium) : nil }
+        .accessibilityIdentifier(AXID.Workout.setCheck(exercise: set.exerciseOrder, set: set.setOrder))
         .accessibilityLabel(set.isCompleted ? "Set \(label) completed" : "Complete set \(label)")
         .accessibilityHint("Logs the shown weight and reps")
     }
