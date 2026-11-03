@@ -28,6 +28,10 @@ struct CoachTabTests {
         #expect(CoachChangeFormat.title(label: "exercise_overrides.triceps_extension.target_weight",
                                         param: "exercise_overrides.triceps_extension.target_weight") == "Triceps extension target weight")
         #expect(CoachChangeFormat.title(label: "", param: "deload_week") == "Deload week")
+        // Units live with the value, not in the name.
+        #expect(CoachChangeFormat.title(label: "running.intervals.pace_tolerance_pct", param: "running.intervals.pace_tolerance_pct") == "Interval pace tolerance")
+        #expect(CoachChangeFormat.title(label: "running.weekly_volume_floor_km", param: "running.weekly_volume_floor_km") == "Weekly running volume floor")
+        #expect(CoachChangeFormat.title(label: "", param: "running.easy.strides.duration_s") == "Easy strides duration")
     }
 
     @Test func cardLinesPreferOpenChangesThenSchedule() {

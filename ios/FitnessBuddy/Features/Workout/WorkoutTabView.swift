@@ -222,6 +222,7 @@ struct WorkoutStartView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         if done, let session {
             ChevronRowLink { WorkoutDetailView(session: session) } label: { label }
         } else if !done, let plan {
