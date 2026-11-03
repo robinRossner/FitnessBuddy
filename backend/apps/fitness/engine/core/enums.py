@@ -64,6 +64,7 @@ class MeasurementSource(StrEnum):
     MANUAL = "manual"
     GARMIN = "garmin"
     HEALTHKIT = "healthkit"
+    WITHINGS = "withings"
 
 
 class Fidelity(StrEnum):

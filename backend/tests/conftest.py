@@ -34,7 +34,17 @@ from tests.support.world import AUTH, PROGRAM_YAML, TOKEN, World, build_world, c
 
 TESTS_DIR = Path(__file__).parent
 FIXTURES = TESTS_DIR / "fixtures"
-GROUPS = ("engine", "advisor", "garmin", "importers", "api", "gyms", "sync", "analytics")
+GROUPS = (
+    "engine",
+    "advisor",
+    "garmin",
+    "importers",
+    "api",
+    "gyms",
+    "sync",
+    "analytics",
+    "withings",
+)
 DB_FIXTURES = frozenset({"db", "session_factory", "client", "world"})
 
 TEST_MAPPING = """\

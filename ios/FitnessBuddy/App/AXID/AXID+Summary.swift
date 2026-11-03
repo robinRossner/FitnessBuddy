@@ -15,5 +15,11 @@ extension AXID {
         static let nextLiftCard = "summary.nextLiftCard"
         static let manageGymsRow = "summary.manageGymsRow"
         static let settingsDone = "summary.settingsDone"
+        // Settings > Withings (shown once the status is loaded)
+        static let withingsSection = "summary.withingsSection"
+        static let withingsStatus = "summary.withingsStatus"
+        static let withingsConnect = "summary.withingsConnect"
+        static let withingsSync = "summary.withingsSync"
+        static let withingsDisconnect = "summary.withingsDisconnect"
     }
 }

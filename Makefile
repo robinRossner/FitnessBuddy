@@ -22,7 +22,7 @@ test-fast: ## backend tests that need no database (-m "not db")
 	cd backend && uv run pytest -m "not db"
 
 test-group: ## one backend group: make test-group GROUP=engine
-	@[ -n "$(GROUP)" ] || { echo "usage: make test-group GROUP=engine|advisor|garmin|importers|api|gyms|sync|analytics" >&2; exit 2; }
+	@[ -n "$(GROUP)" ] || { echo "usage: make test-group GROUP=engine|advisor|garmin|importers|api|gyms|sync|analytics|withings" >&2; exit 2; }
 	cd backend && uv run pytest tests/$(GROUP)
 
 test-changed: ## backend groups affected by changes vs origin/main (BASE=ref to override)

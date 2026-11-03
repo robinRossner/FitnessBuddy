@@ -33,6 +33,10 @@ enum SnapshotRegistry {
     /// `uiSheet settings|pins`, `uiRoute plannedlift|metric/<id>|settings/gyms|settings/machines|settings/machines/editor`.
     static let summary: [SnapshotScreen] = [
         .init("summary-settings", tab: "summary", ["uiSheet": "settings"], ready: AXID.Summary.settings),
+        .init("summary-settings-withings", tab: "summary", ["uiRoute": "settings/withings"], ready: AXID.Summary.withingsStatus),
+        .init("summary-settings-withings-error", tab: "summary", ["uiRoute": "settings/withings-error"], ready: AXID.Summary.withingsStatus),
+        .init("summary-settings-withings-disconnected", tab: "summary", ["uiRoute": "settings/withings-disconnected"], ready: AXID.Summary.withingsStatus),
+        .init("summary-settings-withings-off", tab: "summary", ["uiRoute": "settings/withings-off"], ready: AXID.Summary.withingsStatus),
         .init("summary-gym-manage", tab: "summary", ["uiRoute": "settings/gyms"], ready: AXID.Summary.gymManage),
         .init("summary-gym-machines", tab: "summary", ["uiRoute": "settings/machines"], ready: AXID.Summary.gymMachines),
         .init("summary-machine-editor", tab: "summary", ["uiRoute": "settings/machines/editor"], ready: AXID.Summary.machineEditor),

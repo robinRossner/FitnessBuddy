@@ -18,7 +18,13 @@ from server import app
 
 LEGACY = "/api/v1"
 FITNESS = "/api/v1/fitness"
-PUBLIC = {"/health", f"{LEGACY}/health", f"{FITNESS}/health"}
+PUBLIC = {
+    "/health",
+    f"{LEGACY}/health",
+    f"{FITNESS}/health",
+    f"{LEGACY}/withings/callback",  # the OAuth redirect target: Withings sends the browser here
+    f"{FITNESS}/withings/callback",
+}
 TOKEN = "prefix-test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 

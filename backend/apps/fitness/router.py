@@ -23,6 +23,8 @@ from apps.fitness.api.routes import public_router, router
 from apps.fitness.api.stats import router as stats_router
 from apps.fitness.api.sync import public as sync_public
 from apps.fitness.api.sync import router as sync_router
+from apps.fitness.api.withings import public_router as withings_public
+from apps.fitness.api.withings import router as withings_router
 
 LEGACY_PREFIX = "/api/v1"
 FITNESS_PREFIX = "/api/v1/fitness"
@@ -39,6 +41,8 @@ _API_ROUTERS = (
     coach_router,
     sync_public,
     sync_router,
+    withings_public,
+    withings_router,
 )
 
 

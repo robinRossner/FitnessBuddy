@@ -122,6 +122,10 @@ public struct APIClient: APITransport {
         public static func program(kind: String) -> String { apiBase + "/program/\(kind)" }
         public static let garminWorkoutsPush = apiBase + "/garmin/workouts/push"
         public static let garminSync = apiBase + "/garmin/sync"
+        public static let withingsStatus = apiBase + "/withings/status"
+        public static let withingsConnect = apiBase + "/withings/connect"
+        public static let withingsSync = apiBase + "/withings/sync"
+        public static let withingsConnection = apiBase + "/withings/connection"
     }
 
     public func health() async throws -> HealthDTO {
@@ -163,6 +167,39 @@ public struct APIClient: APITransport {
 
     public static let garminSyncRequestTimeout: TimeInterval = 90
     public static let garminSyncResourceTimeout: TimeInterval = 120
+
+    // MARK: Withings (smart scale; the server imports the weigh-ins, they reach the app through the normal sync pull)
+
+    public func withingsStatus() async throws -> WithingsStatusDTO {
+        try await send(path: Endpoints.withingsStatus)
+    }
+
+    /// The page to sign in at; 503 (`APIError.http`) when the server has no Withings credentials.
+    public func withingsConnect() async throws -> WithingsConnectDTO {
+        let body = try JSONSerialization.data(withJSONObject: ["client": "app"])
+        return try await send(path: Endpoints.withingsConnect, method: "POST", body: body)
+    }
+
+    /// "Sync now": the server asks Withings for new weigh-ins. 429 / 502 / 503 arrive as `APIError.http`.
+    public func withingsSync() async throws -> WithingsSyncResultDTO {
+        var req = try makeRequest(path: Endpoints.withingsSync, query: [], method: "POST", authorized: true, body: nil)
+        req.timeoutInterval = Self.withingsSyncTimeout
+        let cfg = session.configuration
+        cfg.timeoutIntervalForRequest = max(cfg.timeoutIntervalForRequest, Self.withingsSyncTimeout)
+        cfg.timeoutIntervalForResource = max(cfg.timeoutIntervalForResource, Self.withingsSyncTimeout + 15)
+        let longSession = URLSession(configuration: cfg)
+        defer { longSession.finishTasksAndInvalidate() }
+        let respData = try await execute(req, using: longSession)
+        do { return try APICoding.makeDecoder().decode(WithingsSyncResultDTO.self, from: respData) }
+        catch { throw APIError.decoding(error) }
+    }
+
+    public static let withingsSyncTimeout: TimeInterval = 45
+
+    /// Removes the server's Withings tokens (204). Imported weigh-ins stay.
+    public func withingsDisconnect() async throws {
+        _ = try await raw(path: Endpoints.withingsConnection, query: [], method: "DELETE", authorized: true, body: nil)
+    }
 
     // MARK: Transport
 

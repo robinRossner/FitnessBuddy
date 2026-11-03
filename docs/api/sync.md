@@ -28,6 +28,7 @@ Base URL `https://<host>/api/v1`, JSON only.
 | GET | `/api/v1/variants/{id}/history?limit=10` | yes | previous performance of a variant |
 | GET | `/api/v1/plan/today`, `/api/v1/plan/week?start=` | yes | plan (existing, see below) |
 | POST | `/api/v1/engine/deload/cancel` | yes | cancel the lifting deload of a week ([engine.md](engine.md)) |
+| GET/POST/DELETE | `/api/v1/withings/...` | yes (callback: no) | Withings scale connection and import, see [Withings](#withings) |
 
 ### GET /api/v1/health
 
@@ -352,6 +353,75 @@ The Friday quality session of the same week, abridged:
   `label` keep their meaning; with `calibrated` they come from the athlete's own easy runs instead
   of the quality VDOT. Interval paces are unchanged. Rules: [decisions.md](../spec/decisions.md)
   "Easy pace calibration (2026-10-28)".
+
+## Withings
+
+Smart-scale weigh-ins are imported into the bodyweight log (`source = withings`, `note =
+"withings"`); they reach the app through the normal `GET /sync/pull` as `body_measurements`
+(pull rows carry no `source`; the note is the only trace). Everything is inert while the server has
+no `WITHINGS_CLIENT_ID` / `WITHINGS_CLIENT_SECRET` / `WITHINGS_REDIRECT_URI`: `status` reports
+`configured: false`, the other bearer endpoints answer `503` `{"detail": "Withings is not
+configured"}` and no import is scheduled. All paths are also served under `/api/v1/fitness/...`.
+Timestamps in these responses are UTC with `Z` and whole seconds (no fractional digits).
+Rules: [decisions.md](../spec/decisions.md) "Withings weigh-ins (2026-11-03)".
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/withings/status` | bearer | configured / connected, last import, latest weigh-in |
+| POST | `/api/v1/withings/connect` | bearer | the Withings consent URL to open in a web session |
+| POST | `/api/v1/withings/sync` | bearer | import new weigh-ins now |
+| DELETE | `/api/v1/withings/connection` | bearer | forget the stored tokens |
+| GET | `/api/v1/withings/callback?code=&state=` | **none** | OAuth redirect target (Withings sends the browser here) |
+
+### GET /api/v1/withings/status
+
+Never `503`; works unconfigured.
+
+```json
+{"configured": true, "connected": true, "last_sync_at": "2026-11-03T06:15:02Z",
+ "last_error": null, "latest_measured_at": "2026-11-03T05:31:10Z", "latest_weight_kg": 81.25}
+```
+
+`connected` needs `configured` and a stored token. `last_sync_at` = last successful import,
+`last_error` = the last failure (cleared by the next success; also set when Withings revoked the
+connection). `latest_*` = newest non-deleted `withings` weigh-in, else `null`.
+
+### POST /api/v1/withings/connect
+
+Body `{"client": "app" | "web"}` (optional, default `app`). Response `{"authorize_url": "https://
+account.withings.com/oauth2_user/authorize2?..."}`; open it in `ASWebAuthenticationSession` (or a
+browser). `client` is signed into the OAuth `state` (valid 10 minutes) and decides what the
+callback does. `503` when not configured.
+
+### POST /api/v1/withings/sync
+
+```json
+{"status": "synced", "new_measurements": 2, "latest_measured_at": "2026-11-03T05:31:10Z",
+ "latest_weight_kg": 81.25}
+```
+
+`status`: `synced`; `busy` (another import is running, nothing done); `not_connected` (no stored
+token, or Withings refused the refresh token: the token file is then deleted and `status`
+shows the error until the user connects again). `new_measurements` counts newly created rows
+(re-reads and edits are not counted). Errors: `503` not configured, `502` Withings failed
+(`detail` says which status, never a token), `429` + `Retry-After` (seconds) when Withings rate
+limits. Pull afterwards to get the rows.
+
+### DELETE /api/v1/withings/connection
+
+`204`, idempotent (also when unconfigured). Deletes the tokens only; imported weigh-ins and the
+import history stay.
+
+### GET /api/v1/withings/callback
+
+Public (no bearer). Query `code` + `state`, or `error` (the user declined). The state is checked
+first; only then is the code exchanged and the token file written.
+
+- `client = app`: `302` to `{WITHINGS_APP_REDIRECT_URL}?result=connected` (default
+  `fitnessbuddy://withings?result=connected`), or `?result=error&reason=<denied | exchange_failed>`.
+- `client = web`: a small HTML page, `200` connected / `400` failed.
+- Bad, forged or expired `state` (client unknown): always the HTML page with `400`, never a
+  redirect (`503` page when the server is not configured).
 
 ## Errors
 

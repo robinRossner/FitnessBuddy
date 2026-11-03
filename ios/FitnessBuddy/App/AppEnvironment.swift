@@ -27,6 +27,8 @@ final class AppEnvironment {
     let sync: SyncCoordinator
     /// The toolbar "Sync" button: backend pulls Garmin now, then the app syncs with the backend.
     let garmin: GarminSyncController
+    /// Settings > Withings: connect the smart scale; the server imports the weigh-ins.
+    let withings: WithingsController
     let restTimer: RestTimer
     let stats: StatsRepository
     let coach: CoachRepository
@@ -88,12 +90,37 @@ final class AppEnvironment {
             isDemo: isDemo,
             syncApp: { await sync.sync(.manual) },
             refresh: { resources in await loadStats(resources, generation: sync.generation, maxAge: 0, force: true) }))
+        let stats = self.stats
+        self.withings = WithingsController(hooks: .init(
+            status: {
+                guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
+                return try await client.withingsStatus()
+            },
+            connect: {
+                guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
+                guard let url = URL(string: try await client.withingsConnect().authorizeUrl) else { throw APIError.http(502, nil) }
+                return url
+            },
+            sync: {
+                guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
+                return try await client.withingsSync()
+            },
+            disconnect: {
+                guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
+                try await client.withingsDisconnect()
+            },
+            isDemo: isDemo,
+            syncApp: { await sync.sync(.manual) },
+            refreshStats: {
+                await loadStats([stats.resource(StatsEndpoints.health())], generation: sync.generation, maxAge: 0, force: true)
+            }))
         workoutFlow = WorkoutFlow(context: container.mainContext, settings: settings, restTimer: restTimer, sync: sync)
         backend = BackendResetController(context: container.mainContext, settings: settings, sync: sync, coach: coach, gyms: gyms)
         #if DEBUG
         self.stats.demoTransport = DemoStats.transport
         self.coach.demoTransport = DemoCoach.shared.transport
         self.gyms.demoTransport = DemoGyms.shared.transport
+        self.withings.demoStatus = DemoWithings.status
         #endif
         coach.afterPlanChange = { [weak self] in await self?.sync.sync(.manual) }
         gyms.afterPlanChange = { [weak self] in await self?.sync.sync(.manual) }

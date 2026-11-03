@@ -6,11 +6,11 @@
 #   git diff --name-only main | scripts/test-groups.sh
 #
 # Prints the affected groups space-separated in a fixed order
-# (engine advisor garmin importers api gyms sync analytics), `all` when a shared file changed,
+# (engine advisor garmin importers api gyms sync analytics withings), `all` when a shared file changed,
 # or an empty line when no backend test is affected. Paths are repo-relative.
 set -euo pipefail
 
-GROUPS_ORDER="engine advisor garmin importers api gyms sync analytics"
+GROUPS_ORDER="engine advisor garmin importers api gyms sync analytics withings"
 hit=" "
 all=0
 
@@ -30,6 +30,7 @@ classify() {
     backend/apps/fitness/engine/*) add engine analytics advisor ;;
     backend/apps/fitness/advisor/*) add advisor ;;
     backend/apps/fitness/garmin/*) add garmin sync ;;
+    backend/apps/fitness/withings/* | backend/apps/fitness/jobs/withings_jobs.py) add withings ;;
     backend/apps/fitness/importers/*) add importers ;;
     backend/apps/fitness/analytics/* | backend/apps/fitness/stats.py | \
       backend/apps/fitness/bodyweight/*)
@@ -45,7 +46,7 @@ classify() {
       all=1 ;;
     backend/tests/engine/* | backend/tests/advisor/* | backend/tests/garmin/* | \
       backend/tests/importers/* | backend/tests/api/* | backend/tests/gyms/* | \
-      backend/tests/sync/* | backend/tests/analytics/*)
+      backend/tests/sync/* | backend/tests/analytics/* | backend/tests/withings/*)
       p="${p#backend/tests/}"; add "${p%%/*}" ;;
     backend/*) all=1 ;;
     *) ;;

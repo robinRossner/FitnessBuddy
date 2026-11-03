@@ -79,6 +79,18 @@ class Settings(CoreSettings):
     garmin_manual_sync_daily_max: int = 30
     garmin_push_after_engine: bool = True  # also push when an engine re-run changed a run
 
+    # Withings smart scale (apps/fitness/withings, docs/api/sync.md "Withings"). Inert until all of
+    # id, secret and redirect URI are set: the endpoints answer 503 and no job is scheduled.
+    withings_client_id: str | None = None
+    withings_client_secret: SecretStr | None = None
+    # The exact public callback URL registered in the Withings developer app, e.g.
+    # https://<domain>/api/v1/fitness/withings/callback
+    withings_redirect_uri: str | None = None
+    withings_app_redirect_url: str = "fitnessbuddy://withings"  # where the callback sends the app
+    withings_token_cache_path: Path = BACKEND_DIR / "var" / "withings_token.json"
+    withings_sync_times: str = "06:15,09:15,13:15,20:15"  # scheduler_tz
+    withings_backfill_days: int = 365  # first sync reaches back this far
+
     # Scheduler job times (the switch itself is core's `scheduler_enabled`).
     sync_nightly_time: str = "03:30"  # full incremental sync
     # lighter runs (activities, daily summary, sleep, HRV). The early ones catch the morning: sleep
@@ -102,6 +114,17 @@ class Settings(CoreSettings):
     advisor_weekly_time: str = "20:00"  # every Sunday, scheduler_tz
     advisor_trigger_time: str = "18:30"  # daily (not Sundays): batch open advisor_triggers
     advisor_outcome_time: str = "04:15"  # daily: outcomes of changes applied 21-28 days ago
+
+    @property
+    def withings_configured(self) -> bool:
+        """Client id, client secret and redirect URI are all set (blank counts as unset)."""
+        secret = self.withings_client_secret
+        return bool(
+            (self.withings_client_id or "").strip()
+            and secret is not None
+            and secret.get_secret_value().strip()
+            and (self.withings_redirect_uri or "").strip()
+        )
 
     @property
     def live_program_path(self) -> Path:

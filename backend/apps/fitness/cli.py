@@ -1,4 +1,4 @@
-"""Small admin CLI: `uv run python -m apps.fitness.cli {bodyweight|stats|garmin} ...`."""
+"""Small admin CLI: `uv run python -m apps.fitness.cli {bodyweight|stats|garmin|withings} ...`."""
 
 from __future__ import annotations
 
@@ -27,6 +27,8 @@ advisor = typer.Typer(no_args_is_help=True, help="Claude advisor (docs/api/coach
 garmin = typer.Typer(no_args_is_help=True, help="Garmin sync (read-only) + workout push")
 cli.add_typer(stats, name="stats")
 cli.add_typer(garmin, name="garmin")
+withings = typer.Typer(no_args_is_help=True, help="Withings scale: weigh-ins into bodyweight")
+cli.add_typer(withings, name="withings")
 cli.add_typer(advisor, name="advisor")
 
 
@@ -257,6 +259,58 @@ def garmin_push_workouts(
         for spec in report.workouts:
             typer.echo(f"\n# {spec.name}  (planned session {spec.run.planned_session_id})")
             typer.echo(_json.dumps(spec.payload(), indent=2))
+
+
+def _service_call(fn):
+    """Run a Withings service call, printing a ServiceError instead of a traceback."""
+    from apps.fitness.errors import ServiceError
+
+    try:
+        return fn()
+    except ServiceError as exc:
+        typer.echo(f"ERROR ({exc.status}): {exc.message}", err=True)
+        raise typer.Exit(1) from None
+
+
+@withings.command("status")
+def withings_status() -> None:
+    """Is Withings configured and connected, and when did it last sync?"""
+    from apps.fitness.withings import service
+
+    with _command() as (db, s):
+        info = service.status(db, s)
+    for key, value in info.items():
+        typer.echo(f"{key:20} {value}")
+
+
+@withings.command("connect")
+def withings_connect() -> None:
+    """Print the Withings consent URL (open it in a browser; the callback stores the tokens)."""
+    from apps.fitness.withings import service
+
+    typer.echo(_service_call(lambda: service.authorize_url("web")))
+
+
+@withings.command("sync")
+def withings_sync() -> None:
+    """Import new weigh-ins now (and rebuild the stats if there are any)."""
+    from apps.fitness.withings import service
+
+    with _command() as (db, s):
+        out = _service_call(lambda: service.sync_now(db, s))
+    typer.echo(
+        f"{out['status']}: {out['new_measurements']} new; latest "
+        f"{out['latest_weight_kg']} kg at {out['latest_measured_at']}"
+    )
+
+
+@withings.command("disconnect")
+def withings_disconnect() -> None:
+    """Forget the stored Withings tokens (imported weigh-ins stay)."""
+    from apps.fitness.withings import service
+
+    service.disconnect()
+    typer.echo("disconnected")
 
 
 engine = typer.Typer(no_args_is_help=True, help="Deterministic training engine")

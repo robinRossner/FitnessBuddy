@@ -50,6 +50,7 @@ markers = [
     "gyms: gyms, machines and variant resolution (tests/gyms)",
     "sync: app sync push / pull (tests/sync)",
     "analytics: stats, bodyweight and the stats API (tests/analytics)",
+    "withings: Withings client, OAuth state, sync, API and scheduler (tests/withings)",
     "db: uses a migrated SQLite database (deselect with -m 'not db' for a fast run)",
 ]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]

@@ -1,3 +1,4 @@
+import AuthenticationServices
 import FitnessCore
 import SwiftData
 import SwiftUI
@@ -5,6 +6,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.webAuthenticationSession) private var webAuth
     @Query private var states: [SyncState]
 
     // Backend fields are edited as a draft and applied explicitly ("Save & sync" / Done).
@@ -21,6 +23,7 @@ struct SettingsView: View {
     @State private var confirmSave = false
     @State private var confirmSaveThenDismiss = false
     @State private var confirmReset = false
+    @State private var confirmDisconnect = false
     @State private var unsynced = 0
     @State private var discardAlert = false
 
@@ -53,6 +56,7 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             Form {
                 backendSection
                 GymSettingsSection()
@@ -63,6 +67,7 @@ struct SettingsView: View {
                 } header: { Text("Training") } footer: {
                     Text("Off: weight and reps start at today's target and last session's numbers are hidden, so you just go for it.")
                 }
+                withingsSection
                 syncSection
                 coachSection
 
@@ -82,6 +87,15 @@ struct SettingsView: View {
                             daysLeft: ProvisioningExpiry.daysLeft(until: expiry, from: AppClock.instant)))
                     }
                 }
+            }
+            #if DEBUG
+            // `-uiRoute settings/withings...` (screenshots): the Withings section is below the fold.
+            .task {
+                guard SummaryDebugRoute.path?.hasPrefix("settings/withings") == true else { return }
+                try? await Task.sleep(for: .milliseconds(100))
+                proxy.scrollTo(AXID.Summary.withingsSection, anchor: .top)
+            }
+            #endif
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -105,6 +119,10 @@ struct SettingsView: View {
                 Text("All synced and cached data on this device is deleted and downloaded again from the backend."
                      + (unsynced > 0 ? " \(unsynced) unsynced record\(unsynced == 1 ? "" : "s") stay on this device and are sent afterwards." : ""))
             }
+            .confirmationDialog("Disconnect Withings?", isPresented: $confirmDisconnect, titleVisibility: .visible) {
+                Button("Disconnect", role: .destructive) { Task { await env.withings.disconnect() } }
+                Button("Cancel", role: .cancel) {}
+            } message: { Text("New weigh-ins are no longer imported. The ones already in the app stay.") }
             .alert("Backend not saved", isPresented: $discardAlert) {
                 Button("Discard changes", role: .destructive) { dismiss() }
                 Button("Keep editing", role: .cancel) {}
@@ -163,6 +181,74 @@ struct SettingsView: View {
             Text("Changing the URL or token deletes the cached data from the old backend and downloads everything again. "
                  + "Plain http:// works for local-network addresses only. Use https:// anywhere else.")
         }
+    }
+
+    // MARK: Withings
+
+    private var withingsSection: some View {
+        let withings = env.withings
+        return Section {
+            if let status = withings.status {
+                let lines = WithingsLogic.statusLines(status, now: withings.now)
+                LabeledContent("Status", value: lines.headline)
+                    .accessibilityIdentifier(AXID.Summary.withingsStatus)
+                if let lastSync = lines.lastSync { LabeledContent("Last sync", value: lastSync) }
+                if let latest = lines.latestWeighIn { LabeledContent("Latest weigh-in", value: latest) }
+                if status.configured {
+                    if status.connected {
+                        Button { Task { await withings.syncNow() } } label: {
+                            HStack {
+                                Text("Sync now")
+                                Spacer()
+                                if withings.activity == .syncing { ProgressView() }
+                            }
+                        }
+                        .disabled(withings.isBusy)
+                        .accessibilityIdentifier(AXID.Summary.withingsSync)
+                        Button("Disconnect", role: .destructive) { confirmDisconnect = true }
+                            .disabled(withings.isBusy)
+                            .accessibilityIdentifier(AXID.Summary.withingsDisconnect)
+                    } else {
+                        Button { Task { await withings.connect(authenticate: authenticateWithings) } } label: {
+                            HStack {
+                                Text("Connect Withings")
+                                Spacer()
+                                if withings.activity == .connecting { ProgressView() }
+                            }
+                        }
+                        .disabled(withings.isBusy)
+                        .accessibilityIdentifier(AXID.Summary.withingsConnect)
+                    }
+                }
+                if let error = status.lastError, status.connected {
+                    Label("Last sync failed: \(error)", systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote).foregroundStyle(.orange)
+                }
+            } else if withings.loading {
+                HStack { Text("Status"); Spacer(); ProgressView() }
+                    .accessibilityIdentifier(AXID.Summary.withingsStatus + ".loading")
+            } else if let error = withings.loadError {
+                Text(error).font(.footnote).foregroundStyle(.secondary)
+            } else {
+                Text("Save a backend above to connect a scale.").font(.footnote).foregroundStyle(.secondary)
+            }
+            if let feedback = withings.feedback {
+                Label(feedback.text, systemImage: feedback.tone.icon)
+                    .font(.footnote).foregroundStyle(feedback.tone.color)
+            }
+        } header: { Text("Withings") } footer: {
+            if withings.status?.configured == false {
+                Text("Weigh-ins from a Withings scale can be imported once the server has Withings credentials.")
+            } else {
+                Text("Weigh-ins from your Withings scale are imported by the server and show up in Health.")
+            }
+        }
+        .id(AXID.Summary.withingsSection)
+        .task(id: env.settings.backendURL) { await withings.refresh() }
+    }
+
+    private func authenticateWithings(_ url: URL) async throws -> URL {
+        try await webAuth.authenticate(using: url, callbackURLScheme: WithingsCallback.scheme)
     }
 
     private var coachSection: some View {
@@ -289,6 +375,23 @@ struct SettingsView: View {
             testResult = .failed("Server reachable, but the token was rejected: Unauthorized, check the token.")
         } catch {
             testResult = .failed("Server reachable, token check failed: \(APIError.message(for: error))")
+        }
+    }
+}
+
+private extension WithingsLogic.Feedback.Tone {
+    var icon: String {
+        switch self {
+        case .success: "checkmark.circle.fill"
+        case .neutral: "info.circle"
+        case .warning: "exclamationmark.triangle.fill"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .success: .green
+        case .neutral: .secondary
+        case .warning: .orange
         }
     }
 }
