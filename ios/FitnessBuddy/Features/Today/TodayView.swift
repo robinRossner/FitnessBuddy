@@ -15,18 +15,32 @@ struct TodayView: View {
     @AppStorage(SummaryLogic.pinnedKey) private var pinnedRaw = SummaryLogic.defaultPinnedRaw
     @State private var showSettings: Bool
     @State private var editingPins = false
+    @State private var path: [SummaryRoute] = []
     @State private var weekRunsMemo = Memo<WeekInputs, WeekRunsModel>()
     @State private var nextLiftMemo = Memo<NextLiftInputs, NextLift?>()
     private let openSheet: String?
 
-    /// `-uiSheet settings|readiness|run|weekrun|pins` opens that sheet at launch (screenshots, DEBUG only).
+    /// Screens pushed on this tab's stack by value (the other pushes are plain `NavigationLink`s).
+    enum SummaryRoute: Hashable {
+        case nextLift
+        case metric(String)
+    }
+
+    /// `-uiSheet settings|readiness|run|weekrun|pins` opens that sheet at launch, `-uiRoute plannedlift|metric/<id>|settings/...`
+    /// shows a screen (screenshots, DEBUG only, with `-uiTab summary`; see `SummaryDebugRoute`).
     init() {
         #if DEBUG
-        openSheet = UserDefaults.standard.string(forKey: "uiSheet")
+        openSheet = SummaryDebugRoute.sheet
+        let route = SummaryDebugRoute.path ?? ""
+        var start: [SummaryRoute] = []
+        if route == "plannedlift" { start = [.nextLift] }
+        if route.hasPrefix("metric/") { start = [.metric(String(route.dropFirst("metric/".count)))] }
+        _path = State(initialValue: start)
+        _showSettings = State(initialValue: openSheet == "settings" || route == "settings" || route.hasPrefix("settings/"))
         #else
         openSheet = nil
+        _showSettings = State(initialValue: false)
         #endif
-        _showSettings = State(initialValue: openSheet == "settings")
         _editingPins = State(initialValue: openSheet == "pins")
     }
 
@@ -108,7 +122,7 @@ struct TodayView: View {
     // MARK: Body
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Kit.groupSpacing) {
                     PageSection("Today") { todayGroup } trailing: {
@@ -132,6 +146,17 @@ struct TodayView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel("Settings")
+                        .accessibilityIdentifier(AXID.Summary.settingsButton)
+                }
+            }
+            .navigationDestination(for: SummaryRoute.self) { route in
+                switch route {
+                case .nextLift:
+                    if let next = nextLift { PlannedLiftView(row: next.row) }
+                case .metric(let id):
+                    if let metric = MetricCatalog.info(id) {
+                        LiveMetricDetailView(metric: metric).screenIdentifier(AXID.Summary.metricDetail)
+                    }
                 }
             }
             .refreshable { await refreshStats(env, resources) }
@@ -197,7 +222,7 @@ struct TodayView: View {
             ForEach(ids, id: \.self) { id in
                 if let metric = MetricCatalog.info(id) {
                     MetricCard(metric: metric, points: MetricCatalog.points(metric, from: sources)) {
-                        LiveMetricDetailView(metric: metric)
+                        LiveMetricDetailView(metric: metric).screenIdentifier(AXID.Summary.metricDetail)
                     }
                 }
             }
@@ -217,7 +242,9 @@ struct TodayView: View {
                     HighlightCard(title: h.title, symbol: h.symbol, color: h.domain.color, sentence: h.sentence, bars: h.bars) {
                         switch h.target {
                         case .metric(let id):
-                            if let metric = MetricCatalog.info(id) { LiveMetricDetailView(metric: metric) }
+                            if let metric = MetricCatalog.info(id) {
+                                LiveMetricDetailView(metric: metric).screenIdentifier(AXID.Summary.metricDetail)
+                            }
                         case .lift(let lift):
                             LiftDetailView(lift: lift)
                         }

@@ -8,6 +8,10 @@ struct GymSettingsSection: View {
     @Query(filter: #Predicate<CachedGym> { $0.deletedAt == nil }, sort: \CachedGym.name) private var cachedGyms: [CachedGym]
     @State private var switching = false
     @State private var errorMessage: String?
+    /// Set only by the DEBUG launch route (`-uiRoute settings/gyms|machines|machines/editor`, see `SummaryDebugRoute`).
+    @State private var launchPush: LaunchPush?
+
+    private enum LaunchPush: Hashable { case manage, machines }
 
     private var currentId: Int? { env.gyms.currentGymId }
 
@@ -25,6 +29,13 @@ struct GymSettingsSection: View {
     var body: some View {
         Section {
             currentRow
+                .navigationDestination(item: $launchPush) { push in
+                    switch push {
+                    case .manage: GymManageView()
+                    case .machines:
+                        if let id = currentId, let name = currentName { GymMachinesView(gymId: id, gymName: name) }
+                    }
+                }
             Picker("Change gym", selection: Binding(get: { currentId }, set: { change(to: $0) })) {
                 if currentId == nil { Text("Not set").tag(Int?.none) }
                 ForEach(choices, id: \.id) { Text($0.name).tag(Int?.some($0.id)) }
@@ -41,6 +52,7 @@ struct GymSettingsSection: View {
                 }
             }
             NavigationLink("Manage gyms") { GymManageView() }
+                .accessibilityIdentifier(AXID.Summary.manageGymsRow)
             if let errorMessage {
                 Label(errorMessage, systemImage: "xmark.octagon.fill").font(.footnote).foregroundStyle(.red)
             }
@@ -54,6 +66,11 @@ struct GymSettingsSection: View {
         .task {
             await env.gyms.loadList()
             if let id = env.gyms.currentGymId { await env.gyms.loadMachines(gymId: id) }
+            #if DEBUG
+            let route = SummaryDebugRoute.path ?? ""
+            if route == "settings/gyms" { launchPush = .manage }
+            if route.hasPrefix("settings/machines") { launchPush = .machines }
+            #endif
         }
     }
 

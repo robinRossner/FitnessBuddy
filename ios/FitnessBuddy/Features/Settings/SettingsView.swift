@@ -112,6 +112,7 @@ struct SettingsView: View {
             .interactiveDismissDisabled(draftChanged)
             .onDisappear { env.sync.request(.settings) }
         }
+        .screenIdentifier(AXID.Summary.settings)
     }
 
     // MARK: Sections
