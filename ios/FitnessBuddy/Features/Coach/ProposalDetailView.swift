@@ -321,6 +321,7 @@ struct ProposalDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Domain.coach.color)
                 .disabled(ids.isEmpty || acting != nil || blocked != nil)
+                .accessibilityIdentifier(AXID.Coach.detailApprove)
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)

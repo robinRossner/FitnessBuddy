@@ -92,6 +92,7 @@ struct ActiveWorkoutView: View {
                 Button("Finish") { confirmFinish = true }
                 .fontWeight(.semibold)
                 .disabled(completedCount == 0)
+                .accessibilityIdentifier(AXID.Workout.finishButton)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -185,6 +186,7 @@ struct ActiveWorkoutView: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(AXID.Workout.setsHeader)
     }
 
     // MARK: Exercise section
@@ -450,6 +452,8 @@ struct RestTimerBar: View {
                         .accessibilityLabel("Skip rest")
                 }
                 .padding(12)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(AXID.Workout.restBar)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)

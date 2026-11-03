@@ -18,5 +18,18 @@ extension AXID {
         /// Tappable controls on the start screen.
         static let nextCard = "workout.nextCard"
         static let chooseButton = "workout.chooseButton"
+        static let chooserCancel = "workout.chooserCancel"
+        /// "Start Workout" on the plan preview.
+        static let planStart = "workout.planStart"
+        /// The Sets / Volume tiles at the top of the running workout (one element, label like "Sets, 1/18, Volume, ...").
+        static let setsHeader = "workout.setsHeader"
+        /// The check button of a set row: `workout.setCheck.<exerciseOrder>.<setOrder>`.
+        static let setCheckPrefix = "workout.setCheck."
+        static func setCheck(exercise: Int, set: Int) -> String { "\(setCheckPrefix)\(exercise).\(set)" }
+        static let finishButton = "workout.finishButton"
+        /// "Done" on the workout summary sheet.
+        static let summaryDone = "workout.summaryDone"
+        /// The rest bar shown after a set is logged.
+        static let restBar = "workout.restBar"
     }
 }
