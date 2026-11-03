@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 /// Base class for the screenpass walk: launches the app with the deterministic launch-argument
@@ -65,12 +66,12 @@ class ScreenpassCase: XCTestCase {
             return
         }
         dismissSystemAlerts()
-        var png = XCUIScreen.main.screenshot().pngRepresentation
+        var png = Self.capture()
         var stable = false
         let deadline = Date().addingTimeInterval(6)
         while Date() < deadline {
             Thread.sleep(forTimeInterval: 0.3)
-            let next = XCUIScreen.main.screenshot().pngRepresentation
+            let next = Self.capture()
             if next == png {
                 stable = true
                 break
@@ -91,5 +92,16 @@ class ScreenpassCase: XCTestCase {
         attachment.name = name
         attachment.lifetime = .deleteOnSuccess
         add(attachment)
+    }
+
+    /// The screen without the bottom strip (1/50 of the height, below the tab bar) that holds the home indicator:
+    /// the system fades it on its own schedule, so it would make identical screens differ between runs.
+    private static func capture() -> Data {
+        let image = XCUIScreen.main.screenshot().image
+        guard let cg = image.cgImage,
+              let cropped = cg.cropping(to: CGRect(x: 0, y: 0, width: cg.width, height: cg.height - cg.height / 50)),
+              let png = UIImage(cgImage: cropped).pngData()
+        else { return XCUIScreen.main.screenshot().pngRepresentation }
+        return png
     }
 }
