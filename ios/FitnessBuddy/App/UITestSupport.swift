@@ -20,6 +20,11 @@ enum UITestSupport {
     static func configureLaunch() {
         guard !configured else { return }
         configured = true
+        applyClockAndAnimations()
+    }
+
+    @MainActor
+    private static func applyClockAndAnimations() {
         if let id = defaults.string(forKey: "uiTimeZone"), let zone = TimeZone(identifier: id) { NSTimeZone.default = zone }
         if let text = defaults.string(forKey: "uiFixedNow") { AppClock.fixedNow = parse(text) }
         if animationsDisabled { UIView.setAnimationsEnabled(false) }
@@ -49,9 +54,36 @@ enum UITestSupport {
         try? env.context.delete(model: LocalBodyMeasurement.self)
         try? env.context.save()
         env.stats.reset()
-        for key in [AppClock.overrideKey, LastSession.defaultsKey, SummaryLogic.pinnedKey, TemplateSync.key] {
-            defaults.removeObject(forKey: key)
-        }
+        for key in resetKeys { defaults.removeObject(forKey: key) }
+    }
+
+    /// Preferences a reset launch starts without.
+    private static let resetKeys = [AppClock.overrideKey, LastSession.defaultsKey, SummaryLogic.pinnedKey, TemplateSync.key]
+
+    // MARK: In-process snapshots
+
+    /// The app state of a `-uiReset YES -uiDemo YES` launch, built inside the running app for one screen of the in-process
+    /// snapshot pass (`FitnessBuddySnapshots`). The caller has put the launch values (`uiFixedNow`, `uiTimeZone`,
+    /// `uiNoAnimations`, `uiReset`, `uiTab` and the deep links) into `UserDefaults.standard` first; everything that reads
+    /// them (`AppEnvironment.selectedTab`, the tabs' launch hooks) does so when the root view is mounted. Isolated like the
+    /// unit tests (in-memory store and caches, throwaway settings, no sync, no Keychain, no notifications or sound), with
+    /// the demo data loaded and the one-shot launch state (workout hooks, demo coach and gyms) fresh.
+    @MainActor
+    static func makeSnapshotEnvironment() -> AppEnvironment {
+        applyClockAndAnimations()
+        WorkoutUIHooks.resetConsumed()
+        DemoCoach.reset()
+        DemoGyms.reset()
+        for key in resetKeys { defaults.removeObject(forKey: key) }
+        let suite = "screenpass-snapshots"
+        let settingsDefaults = UserDefaults(suiteName: suite) ?? .standard
+        settingsDefaults.removePersistentDomain(forName: suite)
+        let settings = SettingsStore(defaults: settingsDefaults, loadToken: false)
+        let container = (try? Persistence.makeContainer(inMemory: true)) ?? { fatalError("Could not create the in-memory store") }()
+        let env = AppEnvironment(container: container, settings: settings, testing: true)
+        DemoData.load(into: env.context, settings: settings)
+        env.sync.didResetData()
+        return env
     }
 }
 

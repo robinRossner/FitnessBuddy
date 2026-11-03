@@ -74,9 +74,9 @@ struct ExercisePickerView: View {
     #if DEBUG
     /// `-uiSheet newExercise|exerciseSetup` (see `WorkoutUIHooks`): opens that nested sheet once.
     private func openRequestedSheet() async {
-        guard let name = WorkoutUIHooks.takeSheet(["newExercise", "exerciseSetup"], slot: "picker") else { return }
-        try? await Task.sleep(for: .milliseconds(400))
-        if name == "newExercise" { showNew = true } else { setupRow = groups.lazy.flatMap(\.rows).first { $0.variantId == nil } }
+        await WorkoutUIHooks.openSheet(["newExercise", "exerciseSetup"], slot: "picker") { name in
+            if name == "newExercise" { showNew = true } else { setupRow = groups.lazy.flatMap(\.rows).first { $0.variantId == nil } }
+        }
     }
     #endif
 
