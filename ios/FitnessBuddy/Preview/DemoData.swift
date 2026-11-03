@@ -19,7 +19,7 @@ enum Samples {
 
 /// DEBUG-only: fills the local store as if a sync had happened, so the UI can be exercised without a backend.
 enum DemoData {
-    /// The sample week is re-dated to the current week (the week of `-uiFixedNow` when set); "today" is pinned to its Monday (an Upper day, yellow readiness).
+    /// The sample week is re-dated to the current week (the week of `-uiFixedNow` when set); "today" is the weekday of the frozen clock (yellow readiness, as on the Health tab).
     @MainActor
     static func load(into ctx: ModelContext, settings: SettingsStore?) {
         // Demo is a separate mode: rows it creates are flagged `isDemo` (never pushed, wiped as soon as a real
@@ -32,7 +32,11 @@ enum DemoData {
         _ = try? SyncMerge.apply(pull, in: ctx)
         for s in (try? ctx.fetch(FetchDescriptor<LocalSession>())) ?? [] where !knownSessions.contains(s.id) { s.isDemo = true; s.dirty = false }
         for s in (try? ctx.fetch(FetchDescriptor<LocalSet>())) ?? [] where !knownSets.contains(s.id) { s.isDemo = true; s.dirty = false }
-        for b in (try? ctx.fetch(FetchDescriptor<LocalBodyMeasurement>())) ?? [] where !knownBodies.contains(b.id) { b.isDemo = true; b.dirty = false }
+        // The sample weigh-in is re-dated to yesterday morning (the Health series in `DemoStats` ends on that day, same weight).
+        let weighIn = DayKey.daysAgo(1, from: AppClock.instant).addingTimeInterval(-2 * 3600)
+        for b in (try? ctx.fetch(FetchDescriptor<LocalBodyMeasurement>())) ?? [] where !knownBodies.contains(b.id) {
+            b.isDemo = true; b.dirty = false; b.measuredAt = weighIn
+        }
         SyncState.current(in: ctx).demoActive = true
 
         let days = AppClock.weekDays(containing: AppClock.instant)
@@ -52,7 +56,9 @@ enum DemoData {
         PlanCache.store(week: week, in: ctx)
 
         var today = Samples.decode(PlanTodayDTO.self, "plan_today")
-        today.date = days[0]
+        // The cached readiness counts as "today's" only when it carries today's date (`TodayView.readinessSummary`).
+        today.date = days[offset]
+        today.readiness?.date = days[offset]
         today.sessions = []  // already stored via the week
         PlanCache.store(today: today, in: ctx)
         let state = SyncState.current(in: ctx)
@@ -60,7 +66,7 @@ enum DemoData {
         state.coachLatestPendingId = DemoCoach.pendingId
 
         UserDefaults.standard.set(days[offset], forKey: AppClock.overrideKey)
-        settings?.currentGymId = 3
+        settings?.currentGymId = DemoGyms.currentGymId
         try? ctx.save()
     }
 
