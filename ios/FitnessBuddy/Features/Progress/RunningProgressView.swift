@@ -351,7 +351,7 @@ struct RunningRouteView: View {
 @AxisContentBuilder private func runDateAxis() -> some AxisContent {
     AxisMarks(values: .automatic(desiredCount: 4)) { _ in
         AxisGridLine().foregroundStyle(.quaternary)
-        AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: false, anchor: .top, collisionResolution: .disabled)
+        AxisValueLabel(format: AppLocale.dateTime.month(.abbreviated).day(), centered: false, anchor: .top, collisionResolution: .disabled)
     }
 }
 
