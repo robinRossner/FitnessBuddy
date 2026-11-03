@@ -126,7 +126,7 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Kit.groupSpacing) {
                     PageSection("Today") { todayGroup } trailing: {
-                        Text(AppClock.now.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
+                        Text(AppLocale.weekdayDate(AppClock.now))
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
                     thisWeek

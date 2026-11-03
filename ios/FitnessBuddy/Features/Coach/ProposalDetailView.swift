@@ -283,7 +283,7 @@ struct ProposalDetailView: View {
     private func footnote(_ p: CoachProposalDTO) -> some View {
         VStack(spacing: 2) {
             if let cost = p.costUsd {
-                Text("Cost \(cost.formatted(.currency(code: "USD").precision(.fractionLength(cost < 0.1 ? 3 : 2))))")
+                Text("Cost $\(cost.formatted(.number.precision(.fractionLength(cost < 0.1 ? 3 : 2)).locale(AppLocale.current)))")
             }
             if let error = loadError { Text("Couldn't refresh: \(error)").foregroundStyle(.orange) }
         }

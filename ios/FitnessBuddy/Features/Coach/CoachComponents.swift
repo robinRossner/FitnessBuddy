@@ -272,14 +272,14 @@ struct CoachStatusChip: View {
 }
 
 extension Date {
-    /// "Today 14:03" / "Oct 24, 14:03".
+    /// "Today 14:03" / "24 Oct, 14:03".
     var coachLabel: String {
         let cal = Calendar.current
-        let time = formatted(.dateTime.hour().minute())
+        let time = formatted(AppLocale.dateTime.hour().minute())
         let now = AppClock.instant
         if cal.isDate(self, inSameDayAs: now) { return "Today " + time }
         if let yesterday = cal.date(byAdding: .day, value: -1, to: now), cal.isDate(self, inSameDayAs: yesterday) { return "Yesterday " + time }
-        return formatted(.dateTime.month(.abbreviated).day()) + ", " + time
+        return formatted(AppLocale.dateTime.month(.abbreviated).day()) + ", " + time
     }
 }
 

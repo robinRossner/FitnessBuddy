@@ -12,6 +12,7 @@ struct FitnessBuddyApp: App {
         WindowGroup {
             RootView()
                 .environment(env)
+                .environment(\.locale, AppLocale.current)
                 .modelContainer(env.container)
                 #if DEBUG
                 .uiTestHooks()

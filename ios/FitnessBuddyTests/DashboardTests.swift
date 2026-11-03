@@ -13,7 +13,7 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
 @MainActor
 @Suite(.tags(.workout))
 struct WorkoutChooserTests {
-    let locale = Locale(identifier: "en_US")
+    let locale = AppLocale.current
     let today = "2026-10-25"   // Sunday: the long-run day
 
     private func planned(_ id: String, _ date: String, _ kind: String, done: Bool = false) -> PlannedLiftRef {

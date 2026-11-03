@@ -233,7 +233,7 @@ struct WorkoutStartView: View {
 
     private func dayName(_ day: String) -> String {
         if day == today { return "Today" }
-        return AppClock.date(fromDay: day)?.formatted(.dateTime.weekday(.wide)) ?? day
+        return AppClock.date(fromDay: day)?.formatted(AppLocale.dateTime.weekday(.wide)) ?? day
     }
 
     // MARK: Recent
@@ -302,7 +302,7 @@ private struct RecentWorkoutLabel: View {
     }
 
     private var detail: String {
-        var parts = [session.startedAt.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))]
+        var parts = [session.startedAt.formatted(AppLocale.dateTime.weekday(.abbreviated).day().month(.abbreviated))]
         if let end = session.endedAt, end.timeIntervalSince(session.startedAt) >= 60 {
             parts.append(Fmt.longDuration(end.timeIntervalSince(session.startedAt)))
         }

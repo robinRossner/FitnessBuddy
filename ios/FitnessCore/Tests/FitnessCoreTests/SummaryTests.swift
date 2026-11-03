@@ -124,7 +124,7 @@ struct SummaryLogicTests {
     @Test func nextLiftSkipsDoneSessions() throws {
         let refs = [PlannedLiftRef(id: "a", date: "2026-10-25", kind: "upper", title: "Upper", done: true, exerciseCount: 5),
                     PlannedLiftRef(id: "b", date: "2026-10-27", kind: "lower", title: "Lower", done: false, exerciseCount: 6)]
-        let next = try #require(SummaryLogic.nextLift(planned: refs, today: "2026-10-25", locale: Locale(identifier: "en_US")))
+        let next = try #require(SummaryLogic.nextLift(planned: refs, today: "2026-10-25", locale: AppLocale.current))
         #expect(next.id == "b")
         #expect(next.when == "Tue")
         #expect(next.subtitle == "6 exercises")

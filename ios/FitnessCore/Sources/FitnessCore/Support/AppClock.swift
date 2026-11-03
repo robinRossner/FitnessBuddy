@@ -14,6 +14,7 @@ public enum AppClock: Sendable {
     public static var calendar: Calendar {
         var c = Calendar(identifier: .iso8601)
         c.timeZone = .current
+        c.locale = AppLocale.current
         return c
     }
 

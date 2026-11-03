@@ -562,7 +562,7 @@ private struct ZonesCard: View {
                         .foregroundStyle(by: .value("Zone", seg.name))
                 }
                 .chartForegroundStyleScale(domain: RunTransforms.zoneNames, range: ChartPalette.zones)
-                .chartXAxis { AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in AxisValueLabel(format: .dateTime.month(.abbreviated).day(), anchor: .top) } }
+                .chartXAxis { AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in AxisValueLabel(format: AppLocale.dateTime.month(.abbreviated).day(), anchor: .top) } }
                 .chartLegend(position: .bottom, alignment: .leading, spacing: 8)
                 .chartYAxis { AxisMarks(position: .leading) { v in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel { if let d = v.as(Double.self) { Text("\(Fmt.number(d, maxFraction: 0))") } } } }
                 .frame(height: 190)
