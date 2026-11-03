@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "6F2B3C1E-4D5A-4E7B-9C8D-0A1B2C3D4E04",
+      "name" : "Default",
+      "options" : {}
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "commandLineArgumentEntries" : [
+      { "argument" : "-AppleLanguages" },
+      { "argument" : "(en)" },
+      { "argument" : "-AppleLocale" },
+      { "argument" : "en_DE" }
+    ],
+    "environmentVariableEntries" : [
+      { "key" : "TZ", "value" : "Europe\/Berlin" }
+    ]
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:FitnessBuddy.xcodeproj",
+        "identifier" : "BA43D91155F3D07369CABF40",
+        "name" : "FitnessBuddySnapshots"
+      }
+    }
+  ],
+  "version" : 1
+}

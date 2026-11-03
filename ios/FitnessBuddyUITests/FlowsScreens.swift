@@ -1,6 +1,7 @@
 import XCTest
 
-/// Phase 3: navigation and key flows driven by real taps (the other classes open screens by launch argument).
+/// Navigation and key flows driven by real taps (`make ios-flows`; every other screen is rendered in-process by the
+/// FitnessBuddySnapshots target).
 /// `testNavigationWalk` takes no pictures: it is the proof that tabs, pushes and sheets work when tapped. The flow
 /// tests shoot the states in between (`flow-*.png`). The clock is frozen (`-uiFixedNow`), so a workout started by
 /// taps starts at the frozen instant and its timers show fixed values.
@@ -13,10 +14,15 @@ final class FlowsScreens: ScreenpassCase {
         launch(tab: "summary")
         waitForScreen(AXID.Screen.summary)
 
-        // Summary: the planned lift is pushed, Settings is a sheet.
+        // Summary: the planned lift is pushed, Settings is a sheet with a push inside it (Manage gyms).
         push(tap: AXID.Summary.nextLiftCard, expecting: AXID.Summary.plannedLift)
         pop(from: AXID.Summary.plannedLift, to: AXID.Screen.summary)
-        sheet(tap: AXID.Summary.settingsButton, expecting: AXID.Summary.settings, close: AXID.Summary.settingsDone)
+        push(tap: AXID.Summary.settingsButton, expecting: AXID.Summary.settings)
+        push(tap: AXID.Summary.manageGymsRow, expecting: AXID.Summary.gymManage)
+        app.navigationBars["Manage gyms"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(element(AXID.Summary.gymManage).waitForNonExistence(timeout: 10), "screenpass: Manage gyms did not go away")
+        tap(AXID.Summary.settingsDone)
+        XCTAssertTrue(element(AXID.Summary.settings).waitForNonExistence(timeout: 10), "screenpass: Settings did not close")
 
         // Workout: the plan preview is pushed, the chooser is a sheet.
         openTab("Workout", expecting: AXID.Screen.workout)

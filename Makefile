@@ -10,7 +10,7 @@ XCODEBUILD = set -o pipefail; cd ios && xcodebuild -project FitnessBuddy.xcodepr
 XCPRETTY := $(if $(shell command -v xcbeautify 2>/dev/null),| xcbeautify,)
 
 .PHONY: help test test-fast test-group test-changed lint format typecheck \
-	ios-gen ios-build ios-core-test ios-test-fast ios-test ios-screens check deploy
+	ios-gen ios-build ios-core-test ios-test-fast ios-test check deploy
 
 help: ## list the targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'

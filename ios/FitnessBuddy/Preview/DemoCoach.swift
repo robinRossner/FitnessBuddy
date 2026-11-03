@@ -5,7 +5,11 @@ import Foundation
 /// DEBUG-only stand-in for the `/coach/*` endpoints while the demo data is loaded: a few proposals, a config history
 /// and settings, with approve / reject / ask / rollback acting on this in-memory state.
 final class DemoCoach: @unchecked Sendable {
-    static let shared = DemoCoach()
+    /// Replaced by `reset()` (the in-process snapshot pass builds a fresh app state per screen).
+    nonisolated(unsafe) private(set) static var shared = DemoCoach()
+
+    /// A fresh, freshly dated demo state (proposal times are relative to `AppClock.instant` when seeded).
+    static func reset() { shared = DemoCoach() }
 
     private let lock = NSLock()
     private var proposals: [[String: Any]] = []

@@ -27,6 +27,9 @@ enum WorkoutUIHooks {
     private static var defaults: UserDefaults { .standard }
     nonisolated(unsafe) private static var consumed: Set<String> = []
 
+    /// Forgets which requests ran, as on a fresh launch (the in-process snapshot pass mounts the app once per screen).
+    static func resetConsumed() { consumed = [] }
+
     private static var enabled: Bool { defaults.string(forKey: "uiTab") == "workout" }
     static var mode: String? { enabled ? defaults.string(forKey: "uiWorkout") : nil }
     static var sheet: String? { enabled ? defaults.string(forKey: "uiSheet") : nil }
@@ -36,6 +39,18 @@ enum WorkoutUIHooks {
     static func takeSheet(_ names: Set<String>, slot: String) -> String? {
         guard let sheet, names.contains(sheet), consumed.insert(slot).inserted else { return nil }
         return sheet
+    }
+
+    /// Opens the requested sheet of `slot` once, after `delay` (the sheet under it settles first). A view that goes
+    /// away before then (SwiftUI can build a sheet's content twice and cancel the first `.task`) leaves the request to
+    /// the view that stays.
+    @MainActor
+    static func openSheet(_ names: Set<String>, slot: String, after delay: Duration = .milliseconds(400),
+                          _ open: (String) -> Void) async {
+        guard let sheet, names.contains(sheet), !consumed.contains(slot) else { return }
+        try? await Task.sleep(for: delay)
+        guard !Task.isCancelled, let name = takeSheet(names, slot: slot) else { return }
+        open(name)
     }
 
     /// Runs the launch request that changes data or navigation of the idle screen, once. Returns the routes to push.

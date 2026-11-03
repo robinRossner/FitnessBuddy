@@ -11,12 +11,7 @@ struct FitnessBuddyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environment(env)
-                .environment(\.locale, AppLocale.current)
-                .modelContainer(env.container)
-                #if DEBUG
-                .uiTestHooks()
-                #endif
+                .appRoot(env)
                 .task { env.start() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
@@ -28,5 +23,18 @@ struct FitnessBuddyApp: App {
                     }
                 }
         }
+    }
+}
+
+extension View {
+    /// What the root view gets from the app: the environment, the fixed app locale, the store and (DEBUG) the UI-test
+    /// hooks. Shared with the in-process snapshot pass, so its screens are mounted exactly like the app's.
+    func appRoot(_ env: AppEnvironment) -> some View {
+        environment(env)
+            .environment(\.locale, AppLocale.current)
+            .modelContainer(env.container)
+            #if DEBUG
+            .uiTestHooks()
+            #endif
     }
 }

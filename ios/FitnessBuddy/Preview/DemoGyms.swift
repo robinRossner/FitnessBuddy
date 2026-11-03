@@ -7,7 +7,10 @@ import Foundation
 /// still to set up). Exercise and variant ids are those of `Samples/sync_pull.json` (Gym 4 variant = Gym 3 variant + 100),
 /// so the machine lists agree with the exercise picker and the planned lifts.
 final class DemoGyms: @unchecked Sendable {
-    static let shared = DemoGyms()
+    /// Replaced by `reset()` (the in-process snapshot pass builds a fresh app state per screen).
+    nonisolated(unsafe) private(set) static var shared = DemoGyms()
+
+    static func reset() { shared = DemoGyms() }
     /// The gym the demo starts at (`DemoData` stores it as the local current gym).
     static let currentGymId = 4
 

@@ -164,14 +164,14 @@ struct ActiveWorkoutView: View {
     #if DEBUG
     /// `-uiSheet rest|picker|newExercise|exerciseSetup|reorder|edit` (see `WorkoutUIHooks`): opens that sheet once.
     private func openRequestedSheet() async {
-        guard let name = WorkoutUIHooks.takeSheet(["rest", "picker", "newExercise", "exerciseSetup", "reorder", "edit"], slot: "active") else { return }
-        try? await Task.sleep(for: .milliseconds(400))
-        let first = groups.first
-        switch name {
-        case "rest": restPickerOrder = first?.order
-        case "reorder": showReorder = true
-        case "edit": editVariantId = first?.sets.first?.variantId
-        default: showAddExercise = true  // the picker opens the nested New / Set up sheet itself
+        await WorkoutUIHooks.openSheet(["rest", "picker", "newExercise", "exerciseSetup", "reorder", "edit"], slot: "active") { name in
+            let first = groups.first
+            switch name {
+            case "rest": restPickerOrder = first?.order
+            case "reorder": showReorder = true
+            case "edit": editVariantId = first?.sets.first?.variantId
+            default: showAddExercise = true  // the picker opens the nested New / Set up sheet itself
+            }
         }
     }
     #endif
