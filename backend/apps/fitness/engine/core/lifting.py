@@ -32,6 +32,16 @@ Next target, in this order:
 9. otherwise +1 rep per set (capped at the effective top) on the better of the last two.
 
 The first prescription for a variant without history has no weight (the app asks for one).
+
+Per-exercise progression mode (`LiftSpec.progression`, `Exercise.progression`): the order above is
+for `load` (default). `time` (plank, L-sit) prescribes +`timed_step_s` on the best hold and skips
+everything above. `reps` (captain's chair knee raise: bodyweight work where an added-weight step
+makes no sense) keeps the logged load (0 for bodyweight) and never steps it; it still honours
+the deload window (1) and otherwise sets every set's target to that set's reps last session
++ 1, clamped to the exercise's rep range (config `strength.reps_rep_range` unless the program
+says otherwise); sets beyond the last session's count copy its last set. A miss on a
+censored day (yellow / red readiness, ...) does not lower the target. At the top of the range
+it holds and the note suggests a harder variation.
 """
 
 from __future__ import annotations
@@ -43,6 +53,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from apps.fitness.engine.core.config import BreakTier, EngineConfig
+from apps.fitness.engine.core.enums import Progression
 from apps.fitness.engine.core.increments import (
     VariantLike,
     next_load,
@@ -94,10 +105,18 @@ class LiftSpec:
     rep_range: tuple[int, int]
     n_sets: int
     increment_kg: float | None = None  # per-exercise override of the load step
-    timed: bool = False
+    progression: str = Progression.LOAD  # load | reps | time (see the module docstring)
     per_week: int = 1  # program days per week with this lift (2 for upper, 1 for lower)
     lower_body: bool = False
     bodyweight_kg: float | None = None  # for bodyweight / assistance loads in the Epley maths
+
+    @property
+    def timed(self) -> bool:
+        return self.progression == Progression.TIME
+
+    @property
+    def reps_only(self) -> bool:
+        return self.progression == Progression.REPS
 
 
 @dataclass(frozen=True)
@@ -589,6 +608,8 @@ def prescribe(
         p = _prescribe_timed(spec, last, cfg)
         p.state = PROGRESSING if last else GRINDING
         return done(p)
+    if spec.reps_only:
+        return done(_prescribe_reps(spec, hist, cfg, ctx, day, analysis))
     if last is None:
         sets = [SetTarget(i + 1, None, lo) for i in range(spec.n_sets)]
         about = (lo + hi + 1) // 2
@@ -979,4 +1000,64 @@ def _prescribe_timed(spec: LiftSpec, last: Exposure | None, cfg: EngineConfig) -
         sets,
         "timed_progression",
         f"best hold last time {best:g}s -> target {best + step:g}s per set",
+    )
+
+
+def _prescribe_reps(
+    spec: LiftSpec,
+    hist: Sequence[Exposure],
+    cfg: EngineConfig,
+    ctx: LiftEnv,
+    day: date,
+    analysis: LiftAnalysis | None,
+) -> LiftPrescription:
+    """`reps` progression: reps only, the load is never stepped (module docstring)."""
+    lo, hi = spec.rep_range
+    last = hist[-1] if hist else None
+    if last is None:
+        sets = [SetTarget(i + 1, 0.0, lo) for i in range(spec.n_sets)]
+        note = f"New lift: do {lo} reps per set"
+        return LiftPrescription(
+            sets, "no_history", f"no history: {lo} reps per set, no added weight", state=BASELINE,
+            note=note,
+        )  # fmt: skip
+    an = analysis or analyze(spec, hist, cfg, ctx)
+    load = an.last.load if an.last else main_load(last)
+    per_set = [lo]
+    for ev in an.evals:  # replay: a miss on a censored day keeps the targets it had
+        if ev.reps and not (ev.censored and ev.miss):
+            per_set = [max(lo, min(hi, r + 1)) for r in ev.reps]
+
+    def goal(i: int) -> int:
+        return per_set[i] if i < len(per_set) else per_set[-1]
+
+    window = next((w for w in ctx.windows if w.covers(day)), None)
+    if window is not None:
+        n = deload_set_count(spec.n_sets, cfg)
+        sets = [SetTarget(i + 1, load, max(lo, goal(i) - 1)) for i in range(n)]
+        note = f"deload week ({window.reason}): {n} of {spec.n_sets} sets, no more reps"
+        return LiftPrescription(
+            sets, f"deload:{window.reason}", note, flags=["deload"], state=DELOAD, note=note,
+            effective_rep_range=(lo, hi),
+        )  # fmt: skip
+    sets = [SetTarget(i + 1, load, goal(i)) for i in range(spec.n_sets)]
+    done_reps = an.last.reps if an.last else ()
+    if done_reps and all(r >= hi for r in done_reps):
+        note = (
+            f"Top of the rep range ({hi} reps): hold {hi} reps and no weight step; "
+            "time for a harder variation of this exercise"
+        )
+        return LiftPrescription(
+            sets, "reps_progression:at_cap", note, flags=["rep_cap"], state=GRINDING, note=note,
+            effective_rep_range=(lo, hi),
+        )  # fmt: skip
+    rose = any(goal(i) > r for i, r in enumerate(done_reps))
+    note = f"Reps only, no added weight: {_fmt_reps([s.reps or 0 for s in sets])} reps"
+    return LiftPrescription(
+        sets,
+        "reps_progression:add_reps" if rose else "reps_progression:hold",
+        note,
+        state=PROGRESSING if an.last and an.last.event else GRINDING,
+        note=note,
+        effective_rep_range=(lo, hi),
     )

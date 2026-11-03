@@ -120,6 +120,8 @@ class Exercise(ServerSeq, Timestamps, Base):
     )
     e1rm_meaningful: Mapped[bool] = mapped_column(Boolean, default=True)
     is_timed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # load | reps | time (engine.core.enums.Progression); is_timed is kept == (progression == time)
+    progression: Mapped[str] = mapped_column(String(8), default="load", server_default="load")
     bodyweight_loaded: Mapped[bool] = mapped_column(Boolean, default=False)
     # The user changed the muscle in the app: the catalog sync keeps their choice.
     edited_by_user: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_false())

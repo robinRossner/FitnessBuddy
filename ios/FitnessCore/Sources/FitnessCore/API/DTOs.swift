@@ -336,8 +336,11 @@ public struct ExerciseDTO: Codable, Sendable, Equatable {
     public var bodyRegion: String?
     public var defaultEquipment: String?
     public var isTimed: Bool?
+    /// `load | reps | time`; nil on older servers (see `resolvedProgression`).
+    public var progression: Progression?
 
-    public init(id: Int, name: String, muscleGroup: String? = nil, movementPattern: String? = nil, bodyRegion: String? = nil, defaultEquipment: String? = nil, isTimed: Bool? = nil) {
+    public init(id: Int, name: String, muscleGroup: String? = nil, movementPattern: String? = nil, bodyRegion: String? = nil,
+                defaultEquipment: String? = nil, isTimed: Bool? = nil, progression: Progression? = nil) {
         self.id = id
         self.name = name
         self.muscleGroup = muscleGroup
@@ -345,6 +348,29 @@ public struct ExerciseDTO: Codable, Sendable, Equatable {
         self.bodyRegion = bodyRegion
         self.defaultEquipment = defaultEquipment
         self.isTimed = isTimed
+        self.progression = progression
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, muscleGroup, movementPattern, bodyRegion, defaultEquipment, isTimed, progression
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        muscleGroup = try c.decodeIfPresent(String.self, forKey: .muscleGroup)
+        movementPattern = try c.decodeIfPresent(String.self, forKey: .movementPattern)
+        bodyRegion = try c.decodeIfPresent(String.self, forKey: .bodyRegion)
+        defaultEquipment = try c.decodeIfPresent(String.self, forKey: .defaultEquipment)
+        isTimed = try c.decodeIfPresent(Bool.self, forKey: .isTimed)
+        // an unknown value (a newer server) counts as absent, so the exercise still decodes
+        progression = (try? c.decodeIfPresent(Progression.self, forKey: .progression)) ?? nil
+    }
+
+    /// The server's `progression`, else derived from `is_timed`.
+    public var resolvedProgression: Progression {
+        progression ?? (isTimed == true ? .time : .load)
     }
 }
 

@@ -33,6 +33,41 @@ struct WorkoutServiceTests {
         #expect(svc.start(from: row, gymId: 4)?.id == session.id)
     }
 
+    @Test func hiddenLastSessionPrefillsTargetsAndNeverLastNumbers() throws {
+        let ctx = try loadedContext()
+        let defaults = try #require(UserDefaults(suiteName: "WorkoutTests-\(UUID().uuidString)"))
+        defaults.set(false, forKey: LastSession.defaultsKey)
+        let row = try #require(try ctx.fetch(FetchDescriptor<CachedPlannedSession>()).first { $0.kind == "lower" })
+        let svc = WorkoutService(context: ctx, defaults: defaults)
+        let session = try #require(svc.start(from: row, gymId: 4))
+        let sets = svc.sets(of: session)
+        let withTarget = sets.filter { $0.targetWeightKg != nil }
+        #expect(!withTarget.isEmpty)
+        #expect(withTarget.allSatisfy { $0.weightKg == $0.targetWeightKg })
+        #expect(sets.contains { $0.prevReps != nil })  // still stored for the ticked-without-values fallback
+
+        // an exercise with history but no plan target: no weight from last session, reps at the top of the range
+        let variant = CachedVariant(id: 9001, exerciseId: 1, name: "Test Curl", gymId: 3, equipmentType: "dumbbell",
+                                    repRangeLow: 8, repRangeHigh: 12)
+        ctx.insert(variant)
+        let old = LocalSession(gymId: nil, kind: "other", name: "Old")
+        old.endedAt = .now.addingTimeInterval(-86_400)
+        ctx.insert(old)
+        let done = LocalSet(sessionId: old.id, variantId: 9001, exerciseOrder: 1, setOrder: 1, weightKg: 20, reps: 9)
+        ctx.insert(done)
+        svc.addExercise(variant, to: session)
+        let added = svc.sets(of: session).filter { $0.variantId == 9001 }
+        #expect(added.count == 1)
+        #expect(added[0].weightKg == nil && added[0].reps == 12)
+        #expect(added[0].prevWeightKg == 20 && added[0].prevReps == 9)
+
+        // setting on: unchanged behaviour
+        let shown = WorkoutService(context: ctx)
+        shown.addExercise(variant, to: session)
+        let second = svc.sets(of: session).filter { $0.variantId == 9001 && $0.exerciseOrder != added[0].exerciseOrder }
+        #expect(second.first?.weightKg == 20 && second.first?.reps == 9)
+    }
+
     @Test func completeEditFinishFlow() throws {
         let ctx = try makeContext()
         let svc = WorkoutService(context: ctx)

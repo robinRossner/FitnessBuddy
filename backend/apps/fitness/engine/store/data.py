@@ -123,7 +123,7 @@ def variant_info(v: ExerciseVariant) -> VariantInfo:
         equipment_type=v.equipment_type,
         load_convention=v.load_convention,
         weight_ladder=[float(w) for w in v.weight_ladder] if v.weight_ladder else None,
-        is_timed=bool(ex.is_timed),
+        progression="time" if ex.is_timed else (ex.progression or "load"),
         increment_kg=float(v.increment_kg) if v.increment_kg else None,
     )
 

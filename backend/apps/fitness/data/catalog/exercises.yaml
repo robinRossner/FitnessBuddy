@@ -20,7 +20,9 @@
 #                        bodyweight | smith | other
 #   e1rm                 is an estimated 1RM meaningful for this movement (false: timed holds,
 #                        pure bodyweight core work)
-#   timed                performed as a hold (logged in seconds)
+#   timed                performed as a hold (logged in seconds); same as progression: time
+#   progression          load (default: double progression with added weight) | reps (reps only,
+#                        the engine never prescribes added weight) | time (timed holds)
 #   bodyweight_loaded    the body is (part of) the load: logged weight = added weight only
 #   aliases              lowercase names used to suggest mappings for new Strong names
 
@@ -72,7 +74,7 @@ exercises:
   # ---------------------------------------------------------------- core
   - {slug: crunch, name: Crunch, primary_muscle: abs, body_region: Core, movement_pattern: trunk_flexion, default_equipment: bodyweight, e1rm: true, aliases: [crunch, cable crunch, decline crunch]}
   - {slug: hanging_leg_raise, name: Hanging Leg Raise, primary_muscle: abs, body_region: Core, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [hanging leg raise]}
-  - {slug: knee_raise, name: Knee Raise, primary_muscle: abs, body_region: Core, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, aliases: [knee raise, captain's chair]}
+  - {slug: knee_raise, name: Knee Raise, primary_muscle: abs, body_region: Core, movement_pattern: hip_flexion, default_equipment: bodyweight, e1rm: false, bodyweight_loaded: true, progression: reps, aliases: [knee raise, captain's chair]}
   - {slug: l_sit, name: L-Sit, primary_muscle: abs, body_region: Core, movement_pattern: isometric_core, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [l-sit, l sit]}
   - {slug: plank, name: Plank, primary_muscle: abs, body_region: Core, movement_pattern: isometric_core, default_equipment: bodyweight, e1rm: false, timed: true, bodyweight_loaded: true, aliases: [plank]}
 

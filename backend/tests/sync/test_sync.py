@@ -461,7 +461,7 @@ def test_pull_shapes_and_catalog(client, db):
     }  # fmt: skip
     assert set(page["exercises"][0]) == {
         "id", "name", "muscle_group", "movement_pattern", "body_region", "default_equipment",
-        "is_timed",
+        "is_timed", "progression",
     }  # fmt: skip
     assert {"id", "name"} <= set(page["gyms"][0])
     cfg = page["config"]

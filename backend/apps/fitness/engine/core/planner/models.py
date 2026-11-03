@@ -30,7 +30,7 @@ class VariantInfo:
     equipment_type: str
     load_convention: str
     weight_ladder: list[float] | None = None
-    is_timed: bool = False
+    progression: str = "load"  # load | reps | time
     increment_kg: float | None = None  # the user's load step for this variant (app setting)
 
 

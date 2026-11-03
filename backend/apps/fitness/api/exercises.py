@@ -3,7 +3,7 @@
 PUT   /api/v1/exercises/{variant_id}/rest      body {"rest_s": 30..600 | null}
 POST  /api/v1/exercises                        a new exercise + its first variant
 POST  /api/v1/exercises/{exercise_id}/variants a variant by equipment (at a gym for machines)
-PATCH /api/v1/exercises/{exercise_id}          the name and / or muscle group
+PATCH /api/v1/exercises/{exercise_id}          the name, muscle group and / or progression mode
 PUT   /api/v1/program/{kind}                   the lifting template of a day kind
 
 
@@ -78,6 +78,7 @@ def put_program(kind: str, body: TemplateBody, db: Db, settings: Cfg) -> dict[st
 Equipment = Literal[
     "barbell", "dumbbell", "machine_stack", "plate_loaded", "cable", "bodyweight", "smith", "other"
 ]
+ProgressionMode = Literal["load", "reps", "time"]
 Increment = Annotated[float, Field(gt=0, le=xs.INCREMENT_MAX_KG)]
 
 
@@ -86,7 +87,8 @@ class ExerciseBody(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=100)]
     muscle_group: str
     equipment_type: Equipment
-    timed: bool = False
+    timed: bool | None = None  # true alone = progression "time"; must not contradict progression
+    progression: ProgressionMode | None = None  # default load
     gym_id: int | None = None  # machines: default is the current gym
     increment_kg: Increment | None = None
 
@@ -101,6 +103,8 @@ class ExercisePatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: Annotated[str, Field(min_length=1, max_length=100)] | None = None
     muscle_group: str | None = None
+    # load | reps; "time" is accepted by the schema but rejected (422) by the service
+    progression: ProgressionMode | None = None
 
 
 @router.post("/exercises", status_code=201)

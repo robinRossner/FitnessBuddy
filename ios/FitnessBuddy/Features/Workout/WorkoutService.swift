@@ -7,6 +7,8 @@ import SwiftData
 @MainActor
 struct WorkoutService {
     let context: ModelContext
+    /// Where the "Show last session" setting is read (tests pass a private suite).
+    var defaults: UserDefaults = .standard
 
     /// While demo data is loaded, everything logged is demo too and can never be pushed.
     private var demoMode: Bool { SyncState.current(in: context).demoActive }
@@ -46,6 +48,33 @@ struct WorkoutService {
         return usable.filter { $0.sessionId == latest.id }
             .sorted { $0.setOrder < $1.setOrder }
             .map { LastSetDTO(weight: $0.weightKg, reps: $0.reps, durationS: $0.durationS) }
+    }
+
+    /// Whether a workout shows (and prefills from) last session's numbers; see `LastSession`.
+    private var showLast: Bool { LastSession.isShown(defaults) }
+
+    /// The target the cached plan holds for set `index` of this exercise (the next planned session that has it).
+    /// Only used while last session is hidden, for exercises added or swapped in outside the plan.
+    private func plannedSet(variantId: Int, index: Int) -> PlannedSetDTO? {
+        let today = AppClock.todayString
+        let plans = (try? context.fetch(FetchDescriptor<CachedPlannedSession>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        for plan in plans where plan.date >= today && plan.status != "done" && plan.status != "skipped" {
+            guard let ex = plan.item?.session?.exercises?.first(where: { $0.variantId == variantId && !$0.sets.isEmpty }),
+                  ex.sets.contains(where: { $0.targetWeight != nil || $0.targetReps != nil || $0.targetDurationS != nil })
+            else { continue }
+            return ex.sets[min(index, ex.sets.count - 1)]
+        }
+        return nil
+    }
+
+    /// Starting values of an ad-hoc set while last session is hidden, and the target it carries (if any).
+    private func hiddenStart(variantId: Int, index: Int, last: LastSetDTO?, repRangeHigh: Int?)
+        -> (values: LastSession.Values, target: LastSession.Values?) {
+        let target = plannedSet(variantId: variantId, index: index).map {
+            LastSession.Values(weight: $0.targetWeight, reps: $0.targetReps, duration: $0.targetDurationS)
+        }
+        let lastValues = last.map { LastSession.Values(weight: $0.weight, reps: $0.reps, duration: $0.durationS) }
+        return (LastSession.hiddenPrefill(target: target, last: lastValues, repRangeHigh: repRangeHigh), target)
     }
 
     private func gymId(named name: String) -> Int? {
@@ -88,7 +117,7 @@ struct WorkoutService {
                 let prev = i < last.count ? last[i] : last.last
                 let set = LocalSet(sessionId: s.id, variantId: variantId, variantName: ex.name, exerciseOrder: order,
                                    setOrder: i + 1, setType: ps.setType,
-                                   weightKg: SetupRules.prefillWeight(target: ps.targetWeight, last: prev?.weight, baseline: baseline),
+                                   weightKg: SetupRules.prefillWeight(target: ps.targetWeight, last: prev?.weight, baseline: baseline, showLast: showLast),
                                    reps: ps.targetReps ?? ex.repRange?.last,
                                    durationS: ps.targetDurationS)
                 set.isDemo = demo
@@ -126,6 +155,17 @@ struct WorkoutService {
             for (j, o) in group.enumerated() {
                 let set = LocalSet(sessionId: s.id, variantId: o.variantId, variantName: o.variantName, exerciseOrder: i + 1,
                                    setOrder: j + 1, setType: o.setType, weightKg: o.weightKg, reps: o.reps, durationS: o.durationS)
+                if !showLast {
+                    // the old numbers are last session: start from the target (or the top of the rep range) instead
+                    let h = hiddenStart(variantId: o.variantId, index: j, last: LastSetDTO(weight: o.weightKg, reps: o.reps, durationS: o.durationS),
+                                        repRangeHigh: variant(o.variantId)?.repRangeHigh)
+                    set.weightKg = h.values.weight
+                    set.reps = h.values.reps
+                    set.durationS = h.values.duration
+                    set.targetWeightKg = h.target?.weight
+                    set.targetReps = h.target?.reps
+                    set.targetDurationS = h.target?.duration
+                }
                 set.isDemo = demo
                 set.prevWeightKg = o.weightKg
                 set.prevReps = o.reps
@@ -148,6 +188,15 @@ struct WorkoutService {
             let set = LocalSet(sessionId: session.id, variantId: variant.id, variantName: variant.name, exerciseOrder: order,
                                setOrder: i + 1, weightKg: p?.weight, reps: p?.reps ?? variant.repRangeHigh,
                                durationS: p?.durationS)
+            if !showLast {
+                let h = hiddenStart(variantId: variant.id, index: i, last: p, repRangeHigh: variant.repRangeHigh)
+                set.weightKg = h.values.weight
+                set.reps = h.values.reps
+                set.durationS = h.values.duration
+                set.targetWeightKg = h.target?.weight
+                set.targetReps = h.target?.reps
+                set.targetDurationS = h.target?.duration
+            }
             set.isDemo = session.isDemo
             set.prevWeightKg = p?.weight
             set.prevReps = p?.reps
@@ -172,7 +221,17 @@ struct WorkoutService {
             set.prevWeightKg = p?.weight
             set.prevReps = p?.reps
             set.prevDurationS = p?.durationS
-            if !set.isCompleted {
+            if !showLast {
+                let h = hiddenStart(variantId: variant.id, index: i, last: p, repRangeHigh: variant.repRangeHigh)
+                set.targetWeightKg = h.target?.weight
+                set.targetReps = h.target?.reps
+                set.targetDurationS = h.target?.duration
+                if !set.isCompleted {
+                    set.weightKg = h.values.weight
+                    set.reps = h.values.reps ?? set.reps
+                    set.durationS = h.values.duration
+                }
+            } else if !set.isCompleted {
                 set.weightKg = p?.weight
                 set.reps = p?.reps ?? set.reps
                 set.durationS = p?.durationS

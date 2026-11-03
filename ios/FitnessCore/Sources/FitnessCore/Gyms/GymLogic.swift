@@ -175,8 +175,9 @@ public enum SetupRules: Sendable {
     public static func isBaseline(state: String?) -> Bool { state == "baseline" }
 
     /// Baseline sets start empty (the hint is only a placeholder); everything else prefills from target, then last.
-    public static func prefillWeight(target: Double?, last: Double?, baseline: Bool) -> Double? {
-        baseline ? nil : (target ?? last)
+    /// With last session hidden (`showLast` false) only the target prefills.
+    public static func prefillWeight(target: Double?, last: Double?, baseline: Bool, showLast: Bool = true) -> Double? {
+        baseline ? nil : (target ?? (showLast ? last : nil))
     }
 
     /// "50" for the placeholder, nil when there is no hint.

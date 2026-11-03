@@ -364,3 +364,119 @@ def test_rename_survives_catalog_sync_and_clashing_variant_names(client, world, 
     db.commit()
     r = client.patch(f"/api/v1/exercises/{world.ex['leg_curl'].id}", json={"name": "Cable Row"})
     assert r.status_code == 409 and "Cable Row (Machine)" in r.text
+
+
+# --------------------------------------------------------------------------- progression mode
+
+
+def _mode(client, ex_id) -> str:
+    body = client.get("/api/v1/sync/pull").json()
+    return next(e for e in body["exercises"] if e["id"] == ex_id)["progression"]
+
+
+def test_create_progression_modes_and_contradictions(client, world, db):
+    def post(name, **extra):
+        return _create(client, name, "bodyweight", **extra)
+
+    assert post("Plain Move").json()["exercise"]["progression"] == "load"
+    r = post("Rep Move", progression="reps")
+    assert r.status_code == 201 and r.json()["exercise"]["progression"] == "reps"
+    assert r.json()["exercise"]["is_timed"] is False
+    r = post("Hold Move", timed=True)
+    assert r.json()["exercise"]["progression"] == "time" and r.json()["exercise"]["is_timed"]
+    r = post("Hold Move 2", timed=True, progression="time")
+    assert r.status_code == 201 and r.json()["exercise"]["progression"] == "time"
+    r = post("Rep Move 2", timed=False, progression="reps")
+    assert r.status_code == 201
+    for bad in ({"timed": True, "progression": "reps"}, {"timed": False, "progression": "time"}):
+        assert post("Bad Move", **bad).status_code == 422
+    assert post("Bad Move", progression="speed").status_code == 422
+    assert db.scalar(select(Exercise).where(Exercise.name == "Bad Move")) is None
+    row = db.scalar(select(Exercise).where(Exercise.name == "Hold Move"))
+    assert row.is_timed and row.progression == "time" and not row.e1rm_meaningful
+
+
+def test_patch_progression_between_load_and_reps(client, world, db, reruns):
+    ex = world.ex["chest_fly"]
+    assert _mode(client, ex.id) == "load"
+    r = client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "reps"})
+    assert r.status_code == 200, r.text
+    assert r.json()["progression"] == "reps" and r.json()["is_timed"] is False
+    assert reruns == ["exercise edited"]  # the plan changes
+    db.refresh(ex)
+    assert ex.progression == "reps" and ex.edited_by_user
+    assert _mode(client, ex.id) == "reps"
+    # the same value again changes nothing
+    assert (
+        client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "reps"}).status_code == 200
+    )
+    assert reruns == ["exercise edited"]
+    r = client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "load", "name": "Pec Fly"})
+    assert (
+        r.status_code == 200 and r.json()["progression"] == "load" and r.json()["name"] == "Pec Fly"
+    )
+    assert (
+        client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "speed"}).status_code == 422
+    )
+
+
+def test_patch_cannot_switch_to_or_from_time(client, world, db):
+    ex = world.ex["chest_fly"]
+    r = client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "time"})
+    assert r.status_code == 422 and "created" in r.json()["detail"]
+    timed = _create(client, "Dead Hang", "bodyweight", timed=True).json()["exercise"]["id"]
+    for mode in ("load", "reps"):
+        assert (
+            client.patch(f"/api/v1/exercises/{timed}", json={"progression": mode}).status_code
+            == 422
+        )
+    assert (
+        client.patch(f"/api/v1/exercises/{timed}", json={"progression": "time"}).status_code == 200
+    )
+    db.expire_all()
+    assert (
+        db.get(Exercise, ex.id).progression == "load" and not db.get(Exercise, ex.id).edited_by_user
+    )
+    assert db.get(Exercise, timed).is_timed and db.get(Exercise, timed).progression == "time"
+
+
+def test_user_progression_survives_catalog_sync_but_new_rows_follow_the_catalog(client, world, db):
+    ex = world.ex["chest_fly"]
+    client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "reps"})
+    entry = CatalogExercise(
+        slug="chest_fly",
+        name="Chest Fly",
+        primary_muscle="chest",
+        movement_pattern="horizontal_adduction",
+        default_equipment=EquipmentType.MACHINE_STACK,
+    )
+    fresh = CatalogExercise(
+        slug="cat_reps", name="Cat Reps", primary_muscle="abs", movement_pattern="trunk_flexion",
+        default_equipment=EquipmentType.BODYWEIGHT, progression="reps",
+    )  # fmt: skip
+    synced = sync_catalog(db, {"chest_fly": entry, "cat_reps": fresh})
+    db.commit()
+    db.refresh(ex)
+    assert ex.progression == "reps"  # the user's choice
+    assert synced["cat_reps"].progression == "reps" and not synced["cat_reps"].is_timed
+
+
+def test_catalog_file_knee_raise_is_reps_and_timed_entries_are_time():
+    from apps.fitness.db.catalog import load_catalog
+    from apps.fitness.settings import FITNESS_DIR
+
+    cat = load_catalog(FITNESS_DIR / "data" / "catalog" / "exercises.yaml")
+    assert cat["knee_raise"].progression == "reps" and not cat["knee_raise"].timed
+    assert cat["plank"].progression == "time" and cat["plank"].timed
+    assert cat["squat"].progression == "load"
+
+
+def test_planner_input_carries_the_mode(client, world, db):
+    ex = world.ex["chest_fly"]
+    v = db.scalars(select(ExerciseVariant).where(ExerciseVariant.exercise_id == ex.id)).first()
+    assert data.variant_info(v).progression == "load"
+    client.patch(f"/api/v1/exercises/{ex.id}", json={"progression": "reps"})
+    db.expire_all()
+    assert data.variant_info(v).progression == "reps"
+    ex.is_timed, ex.progression = True, "time"
+    assert data.variant_info(v).progression == "time"

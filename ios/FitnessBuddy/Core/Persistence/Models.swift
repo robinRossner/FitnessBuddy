@@ -255,9 +255,11 @@ final class CachedExercise {
     var bodyRegion: String? = nil
     var defaultEquipment: String? = nil
     var isTimed: Bool = false
+    /// `Progression` raw value; nil until a server that sends it has been pulled (see `progression`).
+    var progressionRaw: String? = nil
 
     init(id: Int, name: String, muscleGroup: String? = nil, movementPattern: String? = nil,
-         bodyRegion: String? = nil, defaultEquipment: String? = nil, isTimed: Bool = false) {
+         bodyRegion: String? = nil, defaultEquipment: String? = nil, isTimed: Bool = false, progression: Progression? = nil) {
         self.id = id
         self.name = name
         self.muscleGroup = muscleGroup
@@ -265,7 +267,10 @@ final class CachedExercise {
         self.bodyRegion = bodyRegion
         self.defaultEquipment = defaultEquipment
         self.isTimed = isTimed
+        self.progressionRaw = progression?.rawValue
     }
+
+    var progression: Progression { Progression.resolve(progressionRaw, isTimed: isTimed) }
 }
 
 @Model

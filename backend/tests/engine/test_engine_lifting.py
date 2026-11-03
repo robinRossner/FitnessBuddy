@@ -61,7 +61,9 @@ def test_no_history_has_no_weight():
 
 
 def test_timed_hold_progression():
-    p = L.prescribe(spec(timed=True), [L.Exposure(D0, (L.SetResult(None, None, 40.0),))], CFG)
+    p = L.prescribe(
+        spec(progression="time"), [L.Exposure(D0, (L.SetResult(None, None, 40.0),))], CFG
+    )
     assert p.rule == "timed_progression" and p.sets[0].duration_s == 45
 
 

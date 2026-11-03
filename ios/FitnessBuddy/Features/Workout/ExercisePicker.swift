@@ -195,8 +195,8 @@ struct NewExerciseSheet: View {
                     Picker("Type", selection: $draft.equipmentType) {
                         ForEach(ExerciseOptions.equipment, id: \.key) { Text($0.label).tag($0.key) }
                     }
-                    Toggle("Timed (hold, logged in seconds)", isOn: $draft.timed)
-                    IncrementPicker(selection: $draft.incrementKg)
+                    ProgressionPicker(selection: $draft.progression, options: Progression.allCases)
+                    if draft.progression == .load { IncrementPicker(selection: $draft.incrementKg) }
                 } footer: {
                     Text(ExerciseOptions.gymBound.contains(draft.equipmentType)
                          ? "Machines are saved for \(gymName). At another gym you set it up again (one tap in the exercise list)."
@@ -244,6 +244,7 @@ struct ExerciseEditSheet: View {
     @State private var muscle: String
     @State private var equipment: String
     @State private var increment: Double?
+    @State private var progression: Progression
     @State private var saving = false
     @State private var errorText: String?
 
@@ -254,6 +255,7 @@ struct ExerciseEditSheet: View {
         _muscle = State(initialValue: exercise?.muscleGroup ?? "chest")
         _equipment = State(initialValue: variant.equipmentType)
         _increment = State(initialValue: variant.incrementKg)
+        _progression = State(initialValue: exercise?.progression ?? .load)
     }
 
     private var initialName: String {
@@ -264,9 +266,11 @@ struct ExerciseEditSheet: View {
     }
     private var nameValid: Bool { !ExerciseOptions.cleanName(name).isEmpty }
 
+    private var progressionChanged: Bool { exercise != nil && progression != exercise?.progression }
+
     private var changed: Bool {
         nameChanged || (exercise != nil && muscle != exercise?.muscleGroup) || equipment != variant.equipmentType
-            || increment != variant.incrementKg
+            || increment != variant.incrementKg || progressionChanged
     }
 
     private var nameFooter: String {
@@ -293,11 +297,20 @@ struct ExerciseEditSheet: View {
                     Picker("Type", selection: $equipment) {
                         ForEach(ExerciseOptions.equipment, id: \.key) { Text($0.label).tag($0.key) }
                     }
-                    IncrementPicker(selection: $increment)
+                    if let exercise {
+                        if exercise.progression == .time {
+                            LabeledContent("Progression", value: Progression.time.label)
+                        } else {
+                            ProgressionPicker(selection: $progression, options: Progression.editable)
+                        }
+                    }
+                    if progression != .reps { IncrementPicker(selection: $increment) }
                 } header: {
                     Text(variant.name.withoutGymSuffix)
                 } footer: {
-                    Text(increment == nil
+                    Text(progression == .reps
+                         ? "Reps only: the plan never suggests weight. The rep target goes up by one after each clean session, then holds at the top of the range."
+                         : increment == nil
                          ? "Default steps: the machine's weight steps if set (Settings > Gym), else the usual step for the type."
                          : "+ / − and the progression move by \(Fmt.number(increment ?? 0)) kg.")
                 }
@@ -324,6 +337,9 @@ struct ExerciseEditSheet: View {
         do {
             if let exercise, muscle != exercise.muscleGroup {
                 try await env.exercises.setMuscle(exerciseId: exercise.id, muscle: muscle)
+            }
+            if let exercise, progressionChanged {
+                try await env.exercises.setProgression(exerciseId: exercise.id, to: progression)
             }
             if equipment != variant.equipmentType || increment != variant.incrementKg {
                 try await env.exercises.setVariant(variant.id, equipmentType: equipment, incrementKg: increment)
@@ -355,6 +371,17 @@ struct MusclePicker: View {
                     }
                 }
             }
+        }
+    }
+}
+
+struct ProgressionPicker: View {
+    @Binding var selection: Progression
+    let options: [Progression]
+
+    var body: some View {
+        Picker("Progression", selection: $selection) {
+            ForEach(options, id: \.self) { Text($0.label).tag($0) }
         }
     }
 }

@@ -146,20 +146,11 @@ struct NewExerciseDraft: Equatable {
     var name = ""
     var muscleGroup = "chest"
     var equipmentType = "machine_stack"
-    var timed = false
+    var progression: Progression = .load
     var incrementKg: Double?
 
     var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     var isValid: Bool { !trimmedName.isEmpty }
-}
-
-struct ExerciseCreateRequest: Encodable, Sendable {
-    var name: String
-    var muscleGroup: String
-    var equipmentType: String
-    var timed: Bool
-    var gymId: Int?
-    var incrementKg: Double?
 }
 
 struct ExerciseCreateResponse: Decodable, Sendable {
@@ -170,17 +161,6 @@ struct ExerciseCreateResponse: Decodable, Sendable {
 struct VariantAddRequest: Encodable, Sendable {
     var equipmentType: String
     var gymId: Int?
-}
-
-/// `PATCH /exercises/{id}`: only the keys that are set are sent.
-struct ExercisePatchRequest: Encodable, Sendable {
-    var name: String?
-    var muscleGroup: String?
-
-    init(name: String? = nil, muscleGroup: String? = nil) {
-        self.name = name
-        self.muscleGroup = muscleGroup
-    }
 }
 
 /// The exercise, plus the variants a rename gave a new name (absent otherwise).
@@ -252,7 +232,8 @@ struct ExerciseLibrary {
     /// A brand-new exercise with its first variant (machines at `gymId`). Returns the variant to log.
     func create(_ draft: NewExerciseDraft, gymId: Int?) async throws -> CachedVariant {
         let body = ExerciseCreateRequest(name: draft.trimmedName, muscleGroup: draft.muscleGroup, equipmentType: draft.equipmentType,
-                                         timed: draft.timed, gymId: gymId, incrementKg: draft.incrementKg)
+                                         timed: draft.progression == .time, progression: draft.progression,
+                                         gymId: gymId, incrementKg: draft.incrementKg)
         let response = try decode(ExerciseCreateResponse.self, try await send("POST", ExerciseEndpoints.exercises, body))
         SyncMerge.upsert(exercise: response.exercise, existing: cachedExercise(response.exercise.id), in: context)
         let variant = SyncMerge.upsert(variant: response.variant, existing: cachedVariant(response.variant.id), in: context)
@@ -271,6 +252,14 @@ struct ExerciseLibrary {
 
     func setMuscle(exerciseId: Int, muscle: String) async throws {
         let dto = try decode(ExerciseDTO.self, try await send("PATCH", ExerciseEndpoints.exercise(exerciseId), ExercisePatchRequest(muscleGroup: muscle)))
+        SyncMerge.upsert(exercise: dto, existing: cachedExercise(dto.id), in: context)
+        try? context.save()
+    }
+
+    /// Switches a non-timed exercise between weight and reps-only progression; the server re-runs the engine (422 for `time`).
+    func setProgression(exerciseId: Int, to progression: Progression) async throws {
+        let dto = try decode(ExerciseDTO.self, try await send("PATCH", ExerciseEndpoints.exercise(exerciseId),
+                                                              ExercisePatchRequest(progression: progression)))
         SyncMerge.upsert(exercise: dto, existing: cachedExercise(dto.id), in: context)
         try? context.save()
     }

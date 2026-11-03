@@ -36,6 +36,15 @@ class SetType(StrEnum):
     FAILURE = "failure"
 
 
+class Progression(StrEnum):
+    """How an exercise progresses (`Exercise.progression`): added load (double progression),
+    reps only (never a weight step), or time (timed holds)."""
+
+    LOAD = "load"
+    REPS = "reps"
+    TIME = "time"
+
+
 class SessionKind(StrEnum):
     UPPER = "upper"
     LOWER = "lower"

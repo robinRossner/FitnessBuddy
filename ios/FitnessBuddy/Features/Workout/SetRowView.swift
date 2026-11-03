@@ -15,6 +15,7 @@ struct SetRowView: View {
     let onToggle: (Bool) -> Void
     /// Fields the last tick attempt found empty (shown in red until filled in).
     @State private var missing: Set<SetValidation.Field> = []
+    @AppStorage(LastSession.defaultsKey) private var showLast = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -77,16 +78,10 @@ struct SetRowView: View {
     }
 
     private var hint: String? {
-        var parts: [String] = []
-        if let t = fmt(weight: set.targetWeightKg, reps: set.targetReps, duration: set.targetDurationS) { parts.append("Target \(t)") }
-        if let p = fmt(weight: set.prevWeightKg, reps: set.prevReps, duration: set.prevDurationS) { parts.append("Last \(p)") }
-        return parts.isEmpty ? nil : parts.joined(separator: "  ·  ")
-    }
-
-    private func fmt(weight: Double?, reps: Int?, duration: Double?) -> String? {
-        if let duration { return "\(Fmt.number(duration, maxFraction: 0)) s" }
-        guard weight != nil || reps != nil else { return nil }
-        return "\(Fmt.weight(weight)) × \(reps.map(String.init) ?? "–")"
+        LastSession.caption(
+            target: .init(weight: set.targetWeightKg, reps: set.targetReps, duration: set.targetDurationS),
+            last: .init(weight: set.prevWeightKg, reps: set.prevReps, duration: set.prevDurationS),
+            showLast: showLast)
     }
 
     private var typeBadge: some View {

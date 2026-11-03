@@ -12,6 +12,7 @@ from apps.fitness.engine.core.enums import LoadConvention as LoadConvention
 from apps.fitness.engine.core.enums import MappingStatus as MappingStatus
 from apps.fitness.engine.core.enums import MeasurementSource as MeasurementSource
 from apps.fitness.engine.core.enums import PlannedStatus as PlannedStatus
+from apps.fitness.engine.core.enums import Progression as Progression
 from apps.fitness.engine.core.enums import SessionKind as SessionKind
 from apps.fitness.engine.core.enums import SetType as SetType
 

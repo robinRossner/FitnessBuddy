@@ -61,10 +61,12 @@ enum SyncMerge {
             e.bodyRegion = x.bodyRegion ?? e.bodyRegion
             e.defaultEquipment = x.defaultEquipment ?? e.defaultEquipment
             e.isTimed = x.isTimed ?? e.isTimed
+            if let p = x.progression { e.progressionRaw = p.rawValue; e.isTimed = p == .time }
             return e
         }
         let e = CachedExercise(id: x.id, name: x.name, muscleGroup: x.muscleGroup, movementPattern: x.movementPattern,
-                               bodyRegion: x.bodyRegion, defaultEquipment: x.defaultEquipment, isTimed: x.isTimed ?? false)
+                               bodyRegion: x.bodyRegion, defaultEquipment: x.defaultEquipment, isTimed: x.isTimed ?? (x.progression == .time),
+                               progression: x.progression)
         ctx.insert(e)
         return e
     }

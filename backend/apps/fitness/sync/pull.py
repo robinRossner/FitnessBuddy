@@ -160,6 +160,8 @@ def exercise_out(e: Exercise) -> dict[str, Any]:
         "body_region": region_of_muscle(e.primary_muscle),
         "default_equipment": _val(e.default_equipment_type),
         "is_timed": bool(e.is_timed),
+        # load | reps | time; is_timed == (progression == "time")
+        "progression": "time" if e.is_timed else (e.progression or "load"),
     }
 
 

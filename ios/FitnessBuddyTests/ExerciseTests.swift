@@ -204,3 +204,26 @@ struct FinishReminderTests {
         #expect(WorkoutNotifications.inAppPresentation(forId: WorkoutNotifications.finishReminderId).contains(.banner))
     }
 }
+
+// MARK: - Progression cache
+
+@MainActor
+@Suite(.tags(.workout))
+struct ExerciseProgressionCacheTests {
+    @Test func pullFillsTheProgressionAndKeepsItWhenAnOlderPayloadOmitsIt() throws {
+        let ctx = try makeContext()
+        let created = SyncMerge.upsert(exercise: ExerciseDTO(id: 1, name: "Knee Raise", isTimed: false, progression: .reps), existing: nil, in: ctx)
+        #expect(created.progression == .reps && !created.isTimed)
+        SyncMerge.upsert(exercise: ExerciseDTO(id: 1, name: "Knee Raise"), existing: created, in: ctx)
+        #expect(created.progression == .reps)
+        SyncMerge.upsert(exercise: ExerciseDTO(id: 1, name: "Knee Raise", progression: .load), existing: created, in: ctx)
+        #expect(created.progression == .load)
+    }
+
+    @Test func rowsWithoutAStoredProgressionFollowIsTimed() throws {
+        let ctx = try makeContext()
+        let plank = SyncMerge.upsert(exercise: ExerciseDTO(id: 2, name: "Plank", isTimed: true), existing: nil, in: ctx)
+        #expect(plank.progressionRaw == nil && plank.progression == .time)
+        #expect(CachedExercise(id: 3, name: "Row").progression == .load)
+    }
+}

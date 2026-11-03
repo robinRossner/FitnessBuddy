@@ -10,8 +10,9 @@
   exists adds a variant to that exercise (only the same name AND equipment, at the same gym for
   machines, is a duplicate). Renaming an exercise renames its variants with it and keeps the
   plan pointing at them.
-* Edits: the name and muscle of an exercise (`edited_by_user` keeps them through catalog syncs),
-  the equipment type and load step of a variant.
+* Edits: the name, muscle and progression mode (load | reps) of an exercise (`edited_by_user`
+  keeps them through catalog syncs), the equipment type and load step of a variant. `time` is set
+  at creation only: timed exercises log durations, so switching would break their history.
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.db.catalog import MUSCLE_REGION
 from apps.fitness.db.models import Exercise, ExerciseVariant, Gym
-from apps.fitness.db.types import EquipmentType, LoadConvention
+from apps.fitness.db.types import EquipmentType, LoadConvention, Progression
 from apps.fitness.gyms import service as gs
 from apps.fitness.gyms.catalog import GYM_BOUND_EQUIPMENT
 from apps.fitness.settings import Settings, get_settings
@@ -35,6 +36,7 @@ from apps.fitness.sync.pull import exercise_out, program_rep_ranges, variant_out
 MUSCLES = tuple(MUSCLE_REGION)
 EQUIPMENT = tuple(e.value for e in EquipmentType)
 INCREMENT_MAX_KG = 50.0
+PROGRESSIONS = tuple(p.value for p in Progression)
 _NS = uuid.UUID("0c7f4f8e-4f86-4d0a-9a43-3f0f5b3f6a21")  # user-made generic variants
 
 # muscle -> movement pattern of a new exercise (only used for grouping and the coach summary)
@@ -105,6 +107,20 @@ def _check_equipment(equipment_type: str) -> None:
         raise ExerciseError(422, f"equipment_type must be one of {', '.join(EQUIPMENT)}")
 
 
+def resolve_progression(timed: bool | None, progression: str | None) -> str:
+    """The mode of a new exercise from the request's `timed` and `progression` (both optional;
+    `timed: true` alone means time, nothing means load). A contradiction is a 422."""
+    if progression is not None and progression not in PROGRESSIONS:
+        raise ExerciseError(422, f"progression must be one of {', '.join(PROGRESSIONS)}")
+    if progression is None:
+        return Progression.TIME.value if timed else Progression.LOAD.value
+    if timed is not None and timed != (progression == Progression.TIME):
+        raise ExerciseError(
+            422, f"timed={str(timed).lower()} contradicts progression={progression}"
+        )
+    return progression
+
+
 def _gym_for(db: Session, gym_id: int | None, settings: Settings) -> Gym:
     if gym_id is not None:
         return gs.find_gym(db, gym_id)
@@ -142,7 +158,7 @@ def create_exercise(
     name: str,
     muscle_group: str,
     equipment_type: str,
-    timed: bool,
+    progression: str,
     gym_id: int | None,
     increment_kg: float | None,
     settings: Settings,
@@ -165,7 +181,7 @@ def create_exercise(
             where = f" at {gym.name}" if gym is not None else ""
             raise ExerciseError(409, f"{e.name!r} ({equipment_type}) already exists{where}")
     # The same name with other equipment is the same movement: it gets a variant (history stays
-    # grouped). Its muscle and timed flag win over the request's.
+    # grouped). Its muscle and progression mode win over the request's.
     ex = next((e for e, slot in slots if slot == "free"), None)
     if ex is None:  # no same-named exercise, or each already has another machine at this gym
         ex = Exercise(
@@ -175,8 +191,9 @@ def create_exercise(
             secondary_muscles=[],
             movement_pattern=_PATTERN.get(muscle_group, "other"),
             default_equipment_type=EquipmentType(equipment_type),
-            e1rm_meaningful=not timed,
-            is_timed=timed,
+            e1rm_meaningful=progression == Progression.LOAD,
+            is_timed=progression == Progression.TIME,
+            progression=progression,
             bodyweight_loaded=equipment_type == "bodyweight",
             edited_by_user=True,
         )
@@ -278,9 +295,20 @@ def update_exercise(
     db: Session, ex: Exercise, fields: dict[str, Any], settings: Settings
 ) -> tuple[Exercise, list[ExerciseVariant], bool]:
     """Apply PATCH fields. Returns (exercise, renamed variants, plan changed): the plan changed
-    when a program variant got a new name, so the caller re-runs the engine."""
+    when a program variant got a new name or the progression mode changed, so the caller
+    re-runs the engine."""
     if fields.get("muscle_group") is not None:
         _check_muscle(fields["muscle_group"])
+    mode = fields.get("progression")
+    if mode is not None:
+        if mode not in PROGRESSIONS:
+            raise ExerciseError(422, f"progression must be one of {', '.join(PROGRESSIONS)}")
+        current = Progression.TIME.value if ex.is_timed else (ex.progression or "load")
+        if mode != current and Progression.TIME.value in (mode, current):
+            raise ExerciseError(
+                422, "progression time can only be set when the exercise is created: "
+                "timed exercises log durations"
+            )  # fmt: skip
     renamed: list[ExerciseVariant] = []
     plan_changed = False
     if fields.get("name") is not None:
@@ -292,6 +320,10 @@ def update_exercise(
     if fields.get("muscle_group") is not None:
         ex.primary_muscle = fields["muscle_group"]
         ex.edited_by_user = True
+    if mode is not None and mode != current:
+        ex.progression = mode
+        ex.edited_by_user = True  # the catalog sync keeps the user's choice
+        plan_changed = True
     db.flush()
     return ex, renamed, plan_changed
 
@@ -418,15 +450,17 @@ def new_exercise(
     name: str,
     muscle_group: str,
     equipment_type: str,
-    timed: bool = False,
+    timed: bool | None = None,
+    progression: str | None = None,
     gym_id: int | None = None,
     increment_kg: float | None = None,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
     """`POST /exercises`: the exercise and its first variant."""
     s = settings or get_settings()
+    mode = resolve_progression(timed, progression)
     ex, v = create_exercise(
-        db, name=name, muscle_group=muscle_group, equipment_type=equipment_type, timed=timed,
+        db, name=name, muscle_group=muscle_group, equipment_type=equipment_type, progression=mode,
         gym_id=gym_id, increment_kg=check_increment(increment_kg), settings=s,
     )  # fmt: skip
     db.commit()
@@ -460,14 +494,14 @@ def edit_exercise(
     *,
     replan: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
-    """`PATCH /exercises/{id}`: name and / or muscle group; a rename re-plans when the plan
-    names the exercise, and answers with the renamed variants too."""
+    """`PATCH /exercises/{id}`: name, muscle group and / or progression mode; a rename or a mode
+    change re-plans, and a rename answers with the renamed variants too."""
     s = settings or get_settings()
     ex = _exercise(db, exercise_id)
     _, renamed, plan_changed = update_exercise(db, ex, fields, s)
     db.commit()
     if plan_changed and replan is not None:
-        replan("exercise renamed")  # the plan line points at the new variant name
+        replan("exercise edited")  # a new variant name in the plan line, or a new progression mode
     out = exercise_out(ex)
     if renamed:  # additive: the variants that got the new name (pull shape)
         rep_ranges = program_rep_ranges(s, db)

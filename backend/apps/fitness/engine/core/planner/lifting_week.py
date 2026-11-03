@@ -39,11 +39,12 @@ class LiftingMixin(PlannerState):
         per_week = sum(tmpl.count(k) for k in kinds) or 1
         return L.LiftSpec(
             variant=v,
-            rep_range=pe.rep_range or self.st.rep_range,
+            rep_range=pe.rep_range
+            or (self.st.reps_rep_range if v.progression == "reps" else self.st.rep_range),
             n_sets=pe.sets,
             # the user's step for this machine wins over program.yaml's
             increment_kg=v.increment_kg or pe.increment_kg,
-            timed=v.is_timed,
+            progression=v.progression,
             per_week=per_week,
             lower_body=kind == "lower",
             bodyweight_kg=self.inp.bodyweight_kg or self.cfg.user.bodyweight_kg,
@@ -132,7 +133,7 @@ class LiftingMixin(PlannerState):
                 if ctx is None or ctx.variant is None or ctx.variant.id in analyses:
                     continue
                 spec = self._spec(pe, kind, ctx.variant)
-                if spec.timed or not kd:
+                if spec.progression != "load" or not kd:  # timed / reps-only never stall
                     continue
                 day = kd[0]
                 self._first_day[ctx.variant.id] = day

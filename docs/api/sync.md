@@ -166,7 +166,9 @@ Response (`examples/sync_pull.json`, `examples/sync_pull_incremental.json`):
   can come back (`deleted_at: null` again, same `id`) if it is needed later. Pushing a set for a
   tombstoned variant is still accepted.
 - `Exercise`: `{"id": 1, "name": "Bench Press", "muscle_group": "chest", "movement_pattern":
-  "horizontal_push", "body_region": "Chest", "default_equipment": "barbell", "is_timed": false}`.
+  "horizontal_push", "body_region": "Chest", "default_equipment": "barbell", "is_timed": false,
+  "progression": "load"}`. `progression` is `load | reps | time` (`reps`: the plan never adds weight,
+  see `docs/api/exercises.md`); `is_timed` is kept and always equals `progression == "time"`.
   Exercises the user made in the app (`docs/api/exercises.md`) come the same way.
   `increment_kg` on a variant is the user's load step (null = ladder / equipment default).
 - `Gym`: `{"id": 4, "name": "Gym 3", "deleted_at": null}`. `deleted_at` is an addition to the base
@@ -384,6 +386,9 @@ All additive unless noted:
     removed or renamed; old plans simply lack them.
 11. User-managed exercises (additive): `body_region`, `default_equipment`, `is_timed` on
     `Exercise`, `increment_kg` on `Variant`; endpoints in `docs/api/exercises.md`.
+
+12. Progression mode (additive): `progression` on `Exercise` (`load | reps | time`), optional
+    `progression` on `POST /exercises` and `PATCH /exercises/{id}`. `is_timed` is unchanged.
 
 ## Example fixtures
 

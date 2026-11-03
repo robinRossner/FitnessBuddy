@@ -204,6 +204,7 @@ struct AdjustmentNote: View {
 
 /// The exercises of a planned lifting session and the button that starts it (or goes back to the running workout).
 struct PlannedLiftView: View {
+    @AppStorage(LastSession.defaultsKey) private var showLastSession = true
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @Query(filter: #Predicate<LocalSession> { $0.endedAt == nil && $0.deletedAt == nil && $0.startedHere })
@@ -244,7 +245,7 @@ struct PlannedLiftView: View {
                             Text(ex.name.withoutGymSuffix).font(.headline)
                             let sets = PlanFormat.setsSummary(ex.sets)
                             if !sets.isEmpty { Text(sets).font(.subheadline.monospacedDigit()).foregroundStyle(.secondary) }
-                            if let last = PlanFormat.lastSummary(ex.last) {
+                            if showLastSession, let last = PlanFormat.lastSummary(ex.last) {
                                 Text("Last: \(last)").font(.caption).foregroundStyle(.tertiary)
                             }
                         }

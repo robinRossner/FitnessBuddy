@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Query private var states: [SyncState]
 
     // Backend fields are edited as a draft and applied explicitly ("Save & sync" / Done).
+    @AppStorage(LastSession.defaultsKey) private var showLastSession = true
     @State private var draftURL = ""
     @State private var draftToken = ""
     @State private var loadedDraft = false
@@ -56,9 +57,12 @@ struct SettingsView: View {
                 backendSection
                 GymSettingsSection()
                 Section {
+                    Toggle("Show last session", isOn: $showLastSession)
                     Label("Rest times are set per exercise: tap the timer next to an exercise during a workout.", systemImage: "timer")
                         .font(.footnote).foregroundStyle(.secondary)
-                } header: { Text("Training") }
+                } header: { Text("Training") } footer: {
+                    Text("Off: weight and reps start at today's target and last session's numbers are hidden, so you just go for it.")
+                }
                 syncSection
                 coachSection
 

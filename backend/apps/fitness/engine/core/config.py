@@ -64,6 +64,9 @@ class BreakTier(_Model):
 
 class StrengthConfig(_Model):
     rep_range: tuple[int, int] = (7, 12)
+    # default range of a `reps`-progression exercise (bodyweight work, e.g. knee raises); the
+    # program's / exercise_overrides' rep_range wins
+    reps_rep_range: tuple[int, int] = (10, 20)
     rir_target: tuple[int, int] = (0, 1)
     # Stall = no progress event (load PR, rep PR at the same load, best-set e1RM +1 %) in N clean
     # exposures and at least `stall_min_days` days. `stall_exposures` is N for lifts trained once

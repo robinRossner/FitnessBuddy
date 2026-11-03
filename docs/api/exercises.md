@@ -102,7 +102,10 @@ right away and the next pull confirms it.
 - `muscle_group`: `chest | lats | back | traps | shoulders | rear_delts | biceps | triceps | forearms |
   quads | hamstrings | glutes | adductors | calves | abs` (sets `body_region`).
 - `equipment_type`: `barbell | dumbbell | machine_stack | plate_loaded | cable | bodyweight | smith | other`.
-- `timed` (default false): logged in seconds. `increment_kg` (optional, `0 < x <= 50`, rounded to
+- `progression` (optional, `load | reps | time`, default `load`): how the exercise progresses, see
+  "Progression mode" below. `timed` (optional, default false): logged in seconds; `timed: true`
+  alone means `progression: "time"`. Both given and contradicting (`timed: true` with `load` /
+  `reps`, `timed: false` with `time`) is `422`. `increment_kg` (optional, `0 < x <= 50`, rounded to
   0.25): the variant's load step. `gym_id` (optional): the gym of a machine, default the current gym.
 - Creates an `Exercise` with slug `user_<name>` (outside the catalog: the catalog sync never touches
   it) and its first variant: machines (`machine_stack | plate_loaded | cable | smith`) at the gym as
@@ -112,8 +115,8 @@ right away and the next pull confirms it.
   `422` for an invalid body, `404` for an unknown gym.
 - **Names may repeat when the equipment differs.** If an exercise with that name
   (case-insensitive) exists and has no variant with this equipment yet (at this gym for machines),
-  the variant is added to that exercise and the existing exercise is returned (its muscle and
-  `timed` win over the request's): the same movement keeps its history together. Only the same
+  the variant is added to that exercise and the existing exercise is returned (its muscle,
+  `timed` and `progression` win over the request's): the same movement keeps its history together. Only the same
   name **and** equipment (at the same gym for machines) is a duplicate: `409`. One edge: a gym has
   one machine per exercise, so a machine of another type at a gym where the same-named exercise
   already has one becomes its own `Exercise` row with the same name (slug `user_<name>_2`).
@@ -135,12 +138,16 @@ them) and re-run the engine. Generic variants get a deterministic key too
 ### PATCH /api/v1/exercises/{exercise_id}
 
 ```json
-{"name": "Pec Fly", "muscle_group": "shoulders"}
+{"name": "Pec Fly", "muscle_group": "shoulders", "progression": "reps"}
 ```
 
-Both keys are optional (at least one is useful), `name` is 1..100 characters (whitespace is
-collapsed). -> `200` Exercise. Marks the exercise `edited_by_user`, so a later catalog sync keeps
-the user's name and muscle. `404` / `422` as above.
+All keys are optional (at least one is useful), `name` is 1..100 characters (whitespace is
+collapsed), `progression` is `load | reps`. -> `200` Exercise. Marks the exercise `edited_by_user`
+for a changed muscle or progression, so a later catalog sync keeps the user's name, muscle and
+progression. `progression: "time"` and any change of a timed exercise's progression is `422`
+(timed exercises log durations: switching would break their history; `time` is set at creation
+only). Sending the current value again changes nothing. A changed progression re-runs the engine.
+`404` / `422` as above.
 
 **Rename.** The exercise and all its live variants get the new name, so it shows everywhere:
 each variant becomes `"<name> (<Machine|Plate Loaded|Cable|Smith Machine|Barbell|Dumbbell|Bodyweight>)"`
@@ -173,7 +180,8 @@ progression use it instead of the weight ladder and the equipment default (a pro
 ### In the pull
 
 - `Exercise` gains `body_region` (`Chest | Back | Shoulders | Arms | Legs | Core | Other`),
-  `default_equipment` and `is_timed`.
+  `default_equipment`, `is_timed` and `progression` (`load | reps | time`; `is_timed` stays and is
+  always `progression == "time"`).
 - `Variant` gains `increment_kg` (null = default steps).
 
 ### iOS behaviour (for reference)
@@ -187,3 +195,19 @@ progression use it instead of the weight ladder and the equipment default (a pro
   right away.
 - "New exercise" has no client-side duplicate check: the server decides (a same name with other
   equipment is added as a variant of the existing exercise, see above) and its `409` text is shown.
+
+## Progression mode
+
+`Exercise.progression` decides how the engine moves an exercise (decisions.md "Per-exercise
+progression mode"):
+
+- `load` (default): double progression, reps first, then the next load rung.
+- `reps`: reps only. The plan never prescribes added weight (`target_weight` stays at the logged
+  load, 0 for bodyweight); each set's target is that set's reps last time + 1, up to the top of the
+  rep range (`strength.reps_rep_range` 10-20 unless the program line or `exercise_overrides` sets
+  `rep_range`). At the top it holds (`rule: "reps_progression:at_cap"`, flag `rep_cap`) and the
+  `progression_note` suggests a harder variation. It is never counted as a stalled lift.
+- `time`: timed holds (`timed_step_s` more than the best hold); set at creation only.
+
+The catalog sets it per exercise (`progression: reps` on `knee_raise`); a user's PATCH wins over
+later catalog syncs for `load` / `reps`.

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import Exercise
-from apps.fitness.db.types import EquipmentType
+from apps.fitness.db.types import EquipmentType, Progression
 from apps.fitness.engine.core.config_files import cached_yaml
 
 BODY_REGIONS = ("Chest", "Back", "Shoulders", "Arms", "Legs", "Core", "Other")
@@ -46,6 +46,7 @@ class CatalogExercise:
     default_equipment: EquipmentType
     e1rm: bool = True
     timed: bool = False
+    progression: str = "load"  # load | reps | time (timed: true means time)
     bodyweight_loaded: bool = False
     body_region: str = "Other"
     secondary_muscles: tuple[str, ...] = ()
@@ -59,6 +60,11 @@ def load_catalog(path: Path) -> dict[str, CatalogExercise]:
         region = item.get("body_region") or region_of_muscle(item["primary_muscle"])
         if region not in BODY_REGIONS:
             raise ValueError(f"catalog {item['slug']}: unknown body_region {region!r}")
+        progression = str(item.get("progression") or ("time" if item.get("timed") else "load"))
+        if progression not in {p.value for p in Progression}:
+            raise ValueError(f"catalog {item['slug']}: unknown progression {progression!r}")
+        if "timed" in item and bool(item["timed"]) != (progression == "time"):
+            raise ValueError(f"catalog {item['slug']}: timed and progression contradict")
         ex = CatalogExercise(
             slug=item["slug"],
             name=item["name"],
@@ -66,7 +72,8 @@ def load_catalog(path: Path) -> dict[str, CatalogExercise]:
             movement_pattern=item["movement_pattern"],
             default_equipment=EquipmentType(item["default_equipment"]),
             e1rm=bool(item.get("e1rm", True)),
-            timed=bool(item.get("timed", False)),
+            timed=progression == "time",
+            progression=progression,
             bodyweight_loaded=bool(item.get("bodyweight_loaded", False)),
             body_region=region,
             secondary_muscles=tuple(item.get("secondary_muscles", ())),
@@ -95,6 +102,11 @@ def sync_catalog(db: Session, catalog: dict[str, CatalogExercise]) -> dict[str, 
         ex.default_equipment_type = c.default_equipment
         ex.e1rm_meaningful = c.e1rm
         ex.is_timed = c.timed
+        # a user's choice (PATCH progression) wins for load / reps; time always follows the catalog
+        if not (
+            ex.edited_by_user and ex.progression in ("load", "reps") and c.progression != "time"
+        ):
+            ex.progression = c.progression
         ex.bodyweight_loaded = c.bodyweight_loaded
     db.flush()
     return existing
