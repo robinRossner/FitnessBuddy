@@ -12,13 +12,31 @@ public enum CoachChangeFormat: Sendable {
         return (String(old.dropLast(suffix.count)), new)
     }
 
+    /// Readable names for config keys whose generic wording reads badly.
+    static let configLabels: [String: String] = [
+        "running.weekly_volume_floor_km": "Weekly running volume floor",
+        "running.weekly_volume_cap_pct": "Weekly running volume cap",
+        "running.intervals.pace_tolerance_pct": "Interval pace tolerance",
+        "running.long_run.cap_km": "Long run maximum",
+        "running.long_run.min_km": "Long run minimum",
+        "running.long_run.step_km": "Long run weekly step",
+    ]
+
+    /// Unit suffixes of config keys; the unit is shown with the value, so the name leaves it out.
+    private static let unitSuffixes = ["_pct", "_km", "_kg", "_bpm", "_sec", "_s", "_m"]
+
     /// The server's label, or a readable name made from the parameter path when it only echoed the path
-    /// ("exercise_overrides.triceps_extension.target_weight" -> "Triceps extension target weight").
+    /// ("exercise_overrides.triceps_extension.target_weight" -> "Triceps extension target weight",
+    /// "running.intervals.pace_tolerance_pct" -> "Interval pace tolerance").
     public static func title(label: String, param: String) -> String {
         let trimmed = label.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty, trimmed != param { return trimmed }
+        if let known = configLabels[param] { return known }
         var segments = param.split(separator: ".").map(String.init)
         if segments.count > 2 { segments.removeFirst() }
+        if let last = segments.last, let suffix = unitSuffixes.first(where: { last.hasSuffix($0) && last.count > $0.count }) {
+            segments[segments.count - 1] = String(last.dropLast(suffix.count))
+        }
         let words = segments.joined(separator: " ").replacingOccurrences(of: "_", with: " ")
         guard let first = words.first else { return param }
         return first.uppercased() + words.dropFirst()

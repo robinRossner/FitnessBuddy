@@ -346,6 +346,15 @@ struct RunningRouteView: View {
     }
 }
 
+/// Date x axis of the running detail charts: a grid line per tick and the label centred under it, so the label
+/// never sits on a line (the plot gets padding so the last one stays inside the card).
+@AxisContentBuilder private func runDateAxis() -> some AxisContent {
+    AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+        AxisGridLine().foregroundStyle(.quaternary)
+        AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: false, anchor: .top, collisionResolution: .disabled)
+    }
+}
+
 private struct VdotDetailView: View {
     let points: [VdotPointDTO]
     let fit: [VdotPointDTO]
@@ -402,6 +411,8 @@ private struct VdotDetailView: View {
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .chartYAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel() } }
+                        .chartXAxis { runDateAxis() }
+                        .chartXScale(range: .plotDimension(padding: 12))
                         .frame(height: 200)
                         .accessibilityLabel("Plan VDOT, \(items.count) values")
                         .accessibilityValue("Latest \(Fmt.number(items.last?.1 ?? 0, maxFraction: 2))")
@@ -503,6 +514,8 @@ private struct EfficiencyDetailView: View {
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .chartYAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(.quaternary); AxisValueLabel() } }
+                        .chartXAxis { runDateAxis() }
+                        .chartXScale(range: .plotDimension(padding: 12))
                         .frame(height: 200)
                         .accessibilityLabel("Aerobic efficiency over \(items.count) runs")
                         .accessibilityValue("Latest \(Fmt.number(items.last?.1 ?? 0, maxFraction: 2)), first \(Fmt.number(items.first?.1 ?? 0, maxFraction: 2))")
