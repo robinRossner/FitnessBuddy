@@ -67,6 +67,7 @@ struct WorkoutDetailView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(AXID.Workout.detail)
         .navigationTitle(session.name.isEmpty ? "Workout" : session.name)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: sets.count) { priorBest = Self.priorBestE1RM(before: session, in: context) }
