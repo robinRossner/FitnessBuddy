@@ -33,6 +33,7 @@ struct RunAnalysisView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(analysis.value != nil ? AXID.Progress.runAnalysis : AXID.Progress.loading)
         .navigationTitle("Run Analysis")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await refreshStats(env, [analysis]) }

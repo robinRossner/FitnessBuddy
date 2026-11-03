@@ -72,6 +72,7 @@ struct ProposalDetailView: View {
         }
         .refreshable { await refreshOnce() }
         .safeAreaInset(edge: .bottom) { if p.isPending { actionBar(p) } else if p.canDismiss { dismissBar } }
+        .screenIdentifier(AXID.Coach.proposalDetail)
     }
 
     private func headerCard(_ p: CoachProposalDTO) -> some View {

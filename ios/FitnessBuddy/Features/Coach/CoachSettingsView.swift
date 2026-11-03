@@ -37,6 +37,7 @@ struct CoachSettingsView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(coach.settings == nil || coach.history.isEmpty ? AXID.Coach.loading : AXID.Coach.settings)
         .navigationTitle("Coach Settings")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
