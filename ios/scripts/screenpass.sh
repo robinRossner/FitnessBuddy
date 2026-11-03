@@ -6,15 +6,16 @@
 #   ONLY=coach,health ios/scripts/screenpass.sh             (only those tabs; default: all)
 #
 # ONLY is a comma-separated list of tab names (summary, workout, progress, health, coach); each maps to
-# -only-testing:FitnessBuddyUITests/TabScreens/test<Name>. Later phases add classes: extend the case below.
-# The dedicated simulator "FitnessBuddy Screenpass" (iPhone 17 Pro, newest iOS runtime) is created on demand,
-# so the user's own simulators are never touched. Build products go to ios/.screenpass/DerivedData.
+# -only-testing:FitnessBuddyUITests/TabScreens/test<Name> plus that tab's own class <Name>Screens.
+# The dedicated simulator (default "FitnessBuddy Screenpass", iPhone 17 Pro, newest iOS runtime; SCREENPASS_SIM
+# picks another name, so parallel runs don't share one) is created on demand, so the user's own simulators are
+# never touched. Build products go to ios/.screenpass/DerivedData.
 set -euo pipefail
 
 IOS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE_DIR="$IOS_DIR/.screenpass"
 LOG="$STATE_DIR/last.log"
-SIM_NAME="FitnessBuddy Screenpass"
+SIM_NAME="${SCREENPASS_SIM:-FitnessBuddy Screenpass}"
 export SCREENPASS_DIR="${SCREENPASS_DIR:-$STATE_DIR/shots}"
 mkdir -p "$STATE_DIR" "$SCREENPASS_DIR"
 find "$SCREENPASS_DIR" -maxdepth 1 -name '*.png' -delete
@@ -51,7 +52,8 @@ if [ -n "${ONLY:-}" ]; then
     tab="$(echo "$tab" | tr -d ' ')"
     [ -n "$tab" ] || continue
     first="$(echo "${tab:0:1}" | tr '[:lower:]' '[:upper:]')"
-    ONLY_ARGS+=("-only-testing:FitnessBuddyUITests/TabScreens/test${first}${tab:1}")
+    ONLY_ARGS+=("-only-testing:FitnessBuddyUITests/TabScreens/test${first}${tab:1}"
+                "-only-testing:FitnessBuddyUITests/${first}${tab:1}Screens")
   done
 fi
 

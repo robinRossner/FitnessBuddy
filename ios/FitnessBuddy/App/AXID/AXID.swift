@@ -1,5 +1,6 @@
 // Accessibility identifiers the UI tests (screenpass) look for. Plain strings with no imports,
-// because FitnessBuddyUITests compiles this file too.
+// because FitnessBuddyUITests compiles this folder too. Each tab adds its own identifiers in
+// `AXID+<Tab>.swift` (`extension AXID { enum Coach { ... } }`).
 enum AXID {
     /// Root of each tab, set on the tab's top-level view.
     enum Screen {

@@ -56,13 +56,13 @@ targets:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FitnessBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FitnessBuddy"
         BUNDLE_LOADER: "$(TEST_HOST)"
   # XCUITest target behind the screenpass screenshot walk (TestPlans/Screenpass.xctestplan only;
-  # Full and Fast do not include it). AXID.swift is shared with the app so both use the same identifiers.
+  # Full and Fast do not include it). FitnessBuddy/App/AXID/ (one file per tab) is shared with the app so both use the same identifiers.
   FitnessBuddyUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
       - path: FitnessBuddyUITests
-      - path: FitnessBuddy/App/AXID.swift
+      - path: FitnessBuddy/App/AXID
     dependencies:
       - target: FitnessBuddy
     settings:
