@@ -48,11 +48,20 @@ struct GymMachinesView: View {
         }
         .navigationTitle(gymName)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await env.gyms.loadMachines(gymId: gymId) }
+        .task {
+            await env.gyms.loadMachines(gymId: gymId)
+            #if DEBUG
+            // `-uiRoute settings/machines/editor` (SummaryDebugRoute): open the editor on the first machine that is set up.
+            if SummaryDebugRoute.has("settings/machines/editor"), editing == nil {
+                editing = items.first(where: MachineLogic.isSetUp) ?? items.first
+            }
+            #endif
+        }
         .refreshable { await env.gyms.fetchMachines(gymId: gymId) }
         .sheet(item: $editing) { item in
             MachineEditorSheet(gymId: gymId, gymName: gymName, item: item)
         }
+        .screenIdentifier(AXID.Summary.gymMachines)
     }
 
     // MARK: Pieces

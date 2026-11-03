@@ -25,7 +25,7 @@ struct SignalCard: View {
         let average = HealthSignals.average(window)
         let latest = MetricSeries.latest(points)
         NavigationLink {
-            LiveMetricDetailView(metric: metric)
+            LiveMetricDetailView(metric: metric).screenIdentifier(AXID.Health.metricDetail)
         } label: {
             Card {
                 CardHeader(title: metric.short, symbol: metric.symbol, color: metric.domain.color,
@@ -56,6 +56,7 @@ struct SignalCard: View {
         .accessibilityValue(accessibilityValue(latest: latest, average: average))
         .accessibilityHint("Shows the chart")
         .accessibilityAddTraits(.isLink)
+        .accessibilityIdentifier(AXID.Health.signalCard(metric.id))
     }
 
     private func accessibilityValue(latest: MetricPoint?, average: Double?) -> String {

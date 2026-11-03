@@ -102,6 +102,7 @@ struct NextLiftCard: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(AXID.Summary.nextLiftCard)
         .accessibilityHint("Shows the exercises")
     }
 }
@@ -268,5 +269,6 @@ struct PlannedLiftView: View {
         }
         .navigationTitle(PlanFormat.cardTitle(type: "lifting", kind: row.kind, title: item?.title ?? row.title))
         .navigationBarTitleDisplayMode(.inline)
+        .screenIdentifier(AXID.Summary.plannedLift)
     }
 }

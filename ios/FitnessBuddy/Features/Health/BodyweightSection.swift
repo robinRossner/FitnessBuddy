@@ -118,9 +118,14 @@ struct LogWeightSheet: View {
             }
             .onAppear {
                 if text.isEmpty, let lastWeight { text = Fmt.number(lastWeight, maxFraction: 1) }
+                #if DEBUG
+                // The UI test pass (-uiReset) keeps the keyboard down so it never covers the screenshot.
+                if UserDefaults.standard.bool(forKey: "uiReset") { return }
+                #endif
                 focused = true
             }
         }
+        .screenIdentifier(AXID.Health.logWeight)
         .tint(Domain.body.color)
         .presentationDetents([.medium])
     }
