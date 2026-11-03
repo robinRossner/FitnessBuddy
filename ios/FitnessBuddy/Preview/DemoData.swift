@@ -56,7 +56,7 @@ enum DemoData {
         today.sessions = []  // already stored via the week
         PlanCache.store(today: today, in: ctx)
         let state = SyncState.current(in: ctx)
-        state.coachPendingCount = 1
+        state.coachPendingCount = 2  // DemoCoach seeds two pending proposals (demo-p1, demo-p4)
         state.coachLatestPendingId = DemoCoach.pendingId
 
         UserDefaults.standard.set(days[offset], forKey: AppClock.overrideKey)
