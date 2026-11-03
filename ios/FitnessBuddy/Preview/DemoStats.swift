@@ -169,7 +169,7 @@ enum DemoStats {
         let latest = eff.last?.efficiency, before = eff.dropLast(4).last?.efficiency
         let change = (latest != nil && before != nil) ? ((latest! - before!) / before! * 1000).rounded() / 10 : nil
         let thisWeek = weekly.last
-        let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: latest, efficiency4wAgo: before,
+        let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.6, vdotChange: 1.0, efficiencyCurrent: latest, efficiency4wAgo: before,
                               efficiencyChangePct: change, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: thisWeek?.runs ?? 0,
                               runsPlannedThisWeek: 3, kmThisWeek: thisWeek?.km, vdotSource: "interval_reps", vdotFitCurrent: 49.7)
         return RunningStatsDTO(generatedAt: AppClock.instant, weekly: weekly, efficiency: eff, vdot: vdot, intervals: Array(intervals), kpis: kpis, vdotFit: vdotFit)
