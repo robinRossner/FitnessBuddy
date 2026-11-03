@@ -15,6 +15,9 @@ struct RunningProgressView: View {
     @Query private var planned: [CachedPlannedSession]
     @State private var openPlanned: PlannedRunSheet?
     @State private var dashboardMemo = Memo<DashboardInputs, Dashboard>()
+    #if DEBUG
+    @State private var openedDebugSheet = false
+    #endif
 
     private var running: StatsResource<RunningStatsDTO> { env.stats.resource(StatsEndpoints.running()) }
     private var recent: StatsResource<[RunSummaryDTO]> { env.stats.resource(StatsEndpoints.recentRuns()) }
@@ -77,7 +80,20 @@ struct RunningProgressView: View {
             FreshnessLabel(resource: running)
         }
         .loadsStats([running, recent])
+        .screenIdentifier(running.value != nil && recent.value != nil ? AXID.Progress.running : AXID.Progress.loading)
         .sheet(item: $openPlanned) { RunDetailSheet(item: $0.item) }
+        #if DEBUG
+        // `-uiSheet rundetail` (with `-uiTab progress`): the first planned interval run of the week, else the first planned run.
+        .onChange(of: weekRuns, initial: true) { _, rows in
+            guard !openedDebugSheet, ProgressLaunch.sheet == "rundetail" else { return }
+            let planned = rows.compactMap { row -> PlanItemDTO? in
+                if case .planned(let item) = row.target { item } else { nil }
+            }
+            guard let item = planned.first(where: { $0.session?.type == "intervals" }) ?? planned.first else { return }
+            openedDebugSheet = true
+            openPlanned = PlannedRunSheet(item: item)
+        }
+        #endif
     }
 }
 
@@ -321,6 +337,8 @@ struct RunningRouteView: View {
                         .screenStyle()
                 }
             }
+            .screenIdentifier(running.value == nil ? AXID.Progress.loading
+                              : (route == .vdot ? AXID.Progress.vdot : AXID.Progress.efficiency))
             .navigationTitle(route == .vdot ? "VDOT" : "Aerobic Efficiency")
             .refreshable { await refreshStats(env, [running]) }
             .loadsStats([running])
@@ -598,6 +616,7 @@ private struct AllRunsView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(recent.value == nil ? AXID.Progress.loading : AXID.Progress.allRuns)
         .navigationTitle("Runs")
         .refreshable { await refreshStats(env, [recent]) }
         .loadsStats([recent])

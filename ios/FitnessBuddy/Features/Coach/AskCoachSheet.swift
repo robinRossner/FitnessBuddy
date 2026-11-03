@@ -53,7 +53,9 @@ struct AskCoachSheet: View {
             .navigationTitle("Ask coach")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.accessibilityIdentifier(AXID.Coach.askCancel)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { send() } label: {
                         if sending { ProgressView() } else { Text("Send").bold() }
@@ -63,6 +65,7 @@ struct AskCoachSheet: View {
             }
             .task { await env.coach.load() }
         }
+        .screenIdentifier(AXID.Coach.askSheet)
         .presentationDetents([.large])
     }
 

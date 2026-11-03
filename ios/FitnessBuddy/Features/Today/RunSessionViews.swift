@@ -149,6 +149,7 @@ struct RunDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+        .screenIdentifier(AXID.Progress.runDetail)
         .presentationDetents([.medium, .large])
     }
 

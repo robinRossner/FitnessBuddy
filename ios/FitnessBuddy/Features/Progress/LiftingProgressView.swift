@@ -12,6 +12,11 @@ struct LiftingProgressView: View {
     @State private var showAllLifts = false
     @State private var dashboardMemo = Memo<DashboardInputs, Dashboard>()
 
+    #if DEBUG
+    /// `-uiSheet alllifts` (with `-uiTab progress`) opens the All Lifts sheet at launch.
+    init() { _showAllLifts = State(initialValue: ProgressLaunch.sheet == "alllifts") }
+    #endif
+
     private var lifts: StatsResource<LiftsStatsDTO> { env.stats.resource(StatsEndpoints.lifts) }
     private var volume: StatsResource<WeeklyVolumeDTO> { env.stats.resource(StatsEndpoints.weeklyVolume()) }
 
@@ -269,6 +274,7 @@ private struct ProgramLiftsSection: View {
         } trailing: {
             if !lifts.isEmpty {
                 Button("All Lifts", action: showAll).font(.body)
+                    .accessibilityIdentifier(AXID.Progress.allLiftsButton)
             }
         }
     }
@@ -318,6 +324,7 @@ private struct LiftProgressCard: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibility)
+        .accessibilityIdentifier(AXID.Progress.liftCard(lift.variantId))
         // A list decoration: the cached history is enough, refetch at most every few hours and not after each sync.
         .task(id: lift.variantId) {
             await detail.load(generation: env.sync.generation, maxAge: 6 * 3600, followsSync: false)
@@ -433,9 +440,14 @@ private struct AllLiftsSheet: View {
             .navigationTitle("All lifts")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search lifts")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }.accessibilityIdentifier(AXID.Progress.allLiftsDone)
+                }
+            }
             .navigationDestination(for: LiftSummaryDTO.self) { LiftDetailView(lift: $0) }
         }
+        .screenIdentifier(lifts.isEmpty ? AXID.Progress.loading : AXID.Progress.allLifts)
     }
 }
 

@@ -15,7 +15,7 @@ struct CoachView: View {
 
     init() {
         #if DEBUG
-        _showAsk = State(initialValue: UserDefaults.standard.string(forKey: "uiSheet") == "ask")
+        _showAsk = State(initialValue: CoachLaunch.value("uiSheet") == "ask")
         #else
         _showAsk = State(initialValue: false)
         #endif
@@ -42,6 +42,7 @@ struct CoachView: View {
                     NavigationLink(value: CoachScreen.settings) { Image(systemName: "gearshape") }
                         .tint(accent)
                         .accessibilityLabel("Coach Settings")
+                        .accessibilityIdentifier(AXID.Coach.settingsButton)
                 }
             }
             .navigationDestination(for: CoachScreen.self) { screen in
@@ -62,6 +63,17 @@ struct CoachView: View {
             .onAppear { debugRoute() }
         }
         .screenIdentifier(AXID.Screen.coach)
+        .persistentSystemOverlays(Self.systemOverlays)
+    }
+
+    /// The home indicator fades out after a few idle seconds, which made screenshots differ by a few pixels; the screenshot
+    /// pass (`-uiNoAnimations`) hides it from the start.
+    private static var systemOverlays: Visibility {
+        #if DEBUG
+        UITestSupport.animationsDisabled ? .hidden : .automatic
+        #else
+        .automatic
+        #endif
     }
 
     private func consume(_ route: CoachRoute?) {
@@ -71,10 +83,11 @@ struct CoachView: View {
         if path.last != screen { path.append(screen) }
     }
 
-    /// `-uiRoute history|settings|proposals|proposal:<id>` open a screen at launch (screenshots).
+    /// `-uiRoute history|settings|proposals|proposal:<id>` pushes a screen and `-uiSheet ask` opens the Ask sheet at
+    /// launch (screenshots); both count only with `-uiTab coach`.
     private func debugRoute() {
         #if DEBUG
-        guard path.isEmpty, let raw = UserDefaults.standard.string(forKey: "uiRoute") else { return }
+        guard path.isEmpty, let raw = CoachLaunch.value("uiRoute") else { return }
         switch raw {
         case "history": path = [.configHistory]
         case "settings": path = [.settings]
@@ -158,6 +171,7 @@ struct CoachView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(accent)
                 .accessibilityHint("Opens a sheet to ask the coach a question")
+                .accessibilityIdentifier(AXID.Coach.askButton)
             }
         }
     }
@@ -185,6 +199,16 @@ struct CoachView: View {
         }
     }
 }
+
+#if DEBUG
+/// The launch arguments of this tab count only when `-uiTab` names it, so tabs never react to each other's values.
+enum CoachLaunch {
+    static func value(_ key: String) -> String? {
+        let d = UserDefaults.standard
+        return d.string(forKey: "uiTab") == "coach" ? d.string(forKey: key) : nil
+    }
+}
+#endif
 
 // MARK: - Status notice
 
@@ -434,6 +458,7 @@ struct CoachProposalListView: View {
             .pagePadding()
         }
         .screenStyle()
+        .screenIdentifier(recent.isEmpty ? AXID.Coach.loading : AXID.Coach.proposalList)
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await env.coach.refreshProposals() }
