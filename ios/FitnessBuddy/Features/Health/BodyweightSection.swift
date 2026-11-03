@@ -45,7 +45,7 @@ private struct MyEntriesCard: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             MetricText(value: Fmt.number(m.weightKg, maxFraction: 1), unit: "kg", size: .headline)
-                            Text(m.measuredAt.formatted(.dateTime.month(.abbreviated).day().year())).font(.caption).foregroundStyle(.secondary)
+                            Text(m.measuredAt.formatted(AppLocale.dateTime.month(.abbreviated).day().year())).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
                         if m.dirty && m.rejectedReason == nil {

@@ -33,7 +33,7 @@ private struct DayCell: View {
 
     private var weekday: String {
         guard let d = AppClock.date(fromDay: cell.day) else { return "" }
-        return d.formatted(.dateTime.weekday(.narrow))
+        return d.formatted(AppLocale.dateTime.weekday(.narrow))
     }
     private var color: Color { cell.state == .rest ? .gray : Domain.forKind(cell.kind).color }
     private var faint: Bool { cell.state == .expected }

@@ -44,7 +44,7 @@ public enum SummaryLogic: Sendable {
     public static func bars(current: Double, currentLabel: String, reference: Double, referenceLabel: String,
                      unit: String, decimals: Int) -> [HighlightBar] {
         let top = max(current, reference, 0.0001)
-        func text(_ v: Double) -> String { v.formatted(.number.precision(.fractionLength(decimals))) }
+        func text(_ v: Double) -> String { v.formatted(.number.precision(.fractionLength(decimals)).locale(AppLocale.current)) }
         return [
             HighlightBar(value: text(current), unit: unit, label: currentLabel, fraction: current / top, highlighted: true),
             HighlightBar(value: text(reference), unit: unit, label: referenceLabel, fraction: reference / top, highlighted: false),
@@ -105,7 +105,7 @@ public enum SummaryLogic: Sendable {
 
     /// The planned lifting session the Workout chooser would preselect (soonest open one from today, else the latest
     /// missed one this week), with "Today" / "Thu" / "Missed Mon" for the card header.
-    public static func nextLift(planned: [PlannedLiftRef], today: String, locale: Locale = .current,
+    public static func nextLift(planned: [PlannedLiftRef], today: String, locale: Locale = AppLocale.current,
                          calendar: Calendar = AppClock.calendar) -> (id: String, when: String, subtitle: String)? {
         let choices = WorkoutChooserLogic.choices(planned: planned, finished: [], today: today, locale: locale, calendar: calendar)
         guard let first = choices.first, case .planned(let id) = first.source,

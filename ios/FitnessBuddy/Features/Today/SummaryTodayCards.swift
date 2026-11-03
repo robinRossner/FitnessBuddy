@@ -131,7 +131,7 @@ struct ResumeWorkoutCard: View {
     var body: some View {
         Card {
             CardHeader(title: "Workout", symbol: Domain.lifting.symbol, color: Domain.lifting.color,
-                       time: "Since " + session.startedAt.formatted(date: .omitted, time: .shortened))
+                       time: "Since " + AppLocale.time(session.startedAt))
             Text(session.name.isEmpty ? "Your workout is still running." : session.name).font(.headline)
             Button { env.selectedTab = .workout } label: {
                 Label("Resume Workout", systemImage: "play.fill").frame(maxWidth: .infinity, minHeight: 34)
@@ -151,6 +151,7 @@ struct CoachSummaryCard: View {
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.dateTimeStyle = .named
+        f.locale = AppLocale.current
         return f
     }()
 
@@ -225,7 +226,7 @@ struct PlannedLiftView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(AppClock.date(fromDay: row.date)?.formatted(.dateTime.weekday(.wide).day().month(.wide)) ?? row.date)
+                    Text(AppClock.date(fromDay: row.date).map { AppLocale.weekdayDate($0, month: .wide) } ?? row.date)
                         .font(.subheadline).foregroundStyle(.secondary)
                     HStack(spacing: 6) {
                         if let gym = item?.session?.gym { Chip(text: gym, color: Domain.lifting.color) }

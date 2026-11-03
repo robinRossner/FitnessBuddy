@@ -84,7 +84,7 @@ public enum GarminSyncLogic: Sendable {
         else if let todayDate, AppClock.calendar.date(byAdding: .day, value: -1, to: todayDate).map(AppClock.dayString) == day {
             label = "yesterday"
         } else {
-            label = date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+            label = date.formatted(AppLocale.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         }
         return "\(label) at \(time)"
     }

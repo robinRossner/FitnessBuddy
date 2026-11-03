@@ -43,7 +43,7 @@ public struct MetricInfo: Identifiable, Hashable, Sendable {
 
     public func format(_ value: Double?) -> String {
         guard let value else { return "–" }
-        return value.formatted(.number.precision(.fractionLength(decimals)))
+        return value.formatted(.number.precision(.fractionLength(decimals)).locale(AppLocale.current))
     }
 }
 
@@ -78,7 +78,7 @@ public enum MetricSeries: Sendable {
         var byDay: [String: [Double]] = [:]
         for p in points { byDay[String(p.day.prefix(10)), default: []].append(p.value) }
         let agg = metric.aggregation
-        let dayMonth = Date.FormatStyle.dateTime.day().month(.abbreviated)
+        let dayMonth = AppLocale.dateTime.day().month(.abbreviated)
 
         func day(_ n: Int) -> Date { DayKey.daysAgo(n, from: now, calendar: calendar) }
         func dayBucket(_ n: Int, label: String?) -> MetricBucket {
@@ -112,7 +112,7 @@ public enum MetricSeries: Sendable {
 
         switch (range, metric.granularity) {
         case (.week, .daily):
-            return (0..<7).reversed().map { dayBucket($0, label: day($0).formatted(.dateTime.weekday(.abbreviated))) }
+            return (0..<7).reversed().map { dayBucket($0, label: day($0).formatted(AppLocale.dateTime.weekday(.abbreviated))) }
         case (.month, .daily):
             return (0..<30).reversed().map { n in dayBucket(n, label: (29 - n) % 7 == 0 ? day(n).formatted(dayMonth) : nil) }
         case (.week, .weekly), (.month, .weekly):
@@ -125,7 +125,7 @@ public enum MetricSeries: Sendable {
                 guard month != lastMonth, i - lastLabel >= 3 else { return nil }
                 lastMonth = month
                 lastLabel = i
-                return start.formatted(.dateTime.month(.abbreviated))
+                return start.formatted(AppLocale.dateTime.month(.abbreviated))
             }
         case (.year, _):
             let thisMonth = calendar.dateInterval(of: .month, for: now)?.start ?? day(0)
@@ -141,7 +141,7 @@ public enum MetricSeries: Sendable {
                     values = byDay.filter { $0.key.hasPrefix(prefix) }.compactMap { combine($0.value, agg) }
                 }
                 return MetricBucket(key: "m\(m)", start: start, value: combine(values, agg),
-                                    label: start.formatted(.dateTime.month(.narrow)))
+                                    label: start.formatted(AppLocale.dateTime.month(.narrow)))
             }
         }
     }
@@ -200,11 +200,11 @@ public enum MetricSeries: Sendable {
             if point.day == thisWeek { return "This Week" }
             let lastWeek = DayKey.weekStart(DayKey.daysAgo(7, from: now, calendar: calendar), calendar: calendar)
             if point.day == lastWeek { return "Last Week" }
-            return "Week of " + date.formatted(.dateTime.day().month(.abbreviated))
+            return "Week of " + date.formatted(AppLocale.dateTime.day().month(.abbreviated))
         case .daily:
             if calendar.isDate(date, inSameDayAs: now) { return "Today" }
             if let y = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: y) { return "Yesterday" }
-            return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+            return date.formatted(AppLocale.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         }
     }
 }

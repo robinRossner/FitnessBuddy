@@ -192,17 +192,17 @@ struct SettingsView: View {
             if let error = state.lastError {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Failed", systemImage: "xmark.octagon.fill").foregroundStyle(.red).font(.subheadline.weight(.semibold))
-                    Text(attempt, format: .dateTime.day().month().hour().minute().second()).font(.footnote).foregroundStyle(.secondary)
+                    Text(AppLocale.dayTime(attempt, seconds: true)).font(.footnote).foregroundStyle(.secondary)
                     Text(error).font(.footnote)
                     if let ok = state.lastSyncAt {
-                        Text("Last success: \(ok.formatted(.dateTime.day().month().hour().minute()))")
+                        Text("Last success: \(AppLocale.dayTime(ok))")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Success", systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.subheadline.weight(.semibold))
-                    Text(attempt, format: .dateTime.day().month().hour().minute().second()).font(.footnote).foregroundStyle(.secondary)
+                    Text(AppLocale.dayTime(attempt, seconds: true)).font(.footnote).foregroundStyle(.secondary)
                     if let summary = state.lastSummary { Text(summary).font(.footnote) }
                 }
             }

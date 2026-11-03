@@ -3,7 +3,7 @@ import Foundation
 public enum Fmt: Sendable {
     /// "80", "77.5", "2.25" (no trailing zeros).
     public static func number(_ v: Double, maxFraction: Int = 2) -> String {
-        v.formatted(.number.precision(.fractionLength(0...maxFraction)).grouping(.never))
+        v.formatted(.number.precision(.fractionLength(0...maxFraction)).grouping(.never).locale(AppLocale.current))
     }
 
     public static func weight(_ kg: Double?) -> String { kg.map { number($0) } ?? "–" }
