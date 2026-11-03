@@ -47,7 +47,7 @@ public enum TemplateChange: Sendable {
 /// Template updates that have not reached the server yet, kept in UserDefaults so they survive offline/relaunch.
 /// Sent by the sync engine before the plan refresh, so the new structure shows up right after.
 public enum TemplateSync: Sendable {
-    private static let key = "pendingTemplateUpdates"
+    public static let key = "pendingTemplateUpdates"
 
     public static func pending(_ defaults: UserDefaults = .standard) -> [PendingTemplateUpdate] {
         defaults.data(forKey: key).flatMap { try? JSONDecoder().decode([PendingTemplateUpdate].self, from: $0) } ?? []

@@ -99,7 +99,7 @@ public struct LiftRegionGroup: Identifiable, Equatable, Sendable {
 
 public enum LiftProgram: Sendable {
     /// Lifts in the current program. Older backends send no `in_program`: then active lifts trained in the last 8 weeks.
-    public static func inProgram(_ lifts: [LiftSummaryDTO], now: Date = .now, calendar: Calendar = .current) -> [LiftSummaryDTO] {
+    public static func inProgram(_ lifts: [LiftSummaryDTO], now: Date = AppClock.instant, calendar: Calendar = .current) -> [LiftSummaryDTO] {
         if lifts.contains(where: { $0.inProgram != nil }) { return lifts.filter { $0.inProgram == true } }
         let key = DayKey.string(DayKey.daysAgo(56, from: now, calendar: calendar), calendar: calendar)
         return lifts.filter { $0.isActive && ($0.lastDate ?? "") >= key }
@@ -127,7 +127,7 @@ public enum SessionRange: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
 
     /// Monday (`YYYY-MM-DD`) of the first week shown.
-    public func firstWeek(now: Date = .now, calendar: Calendar = .current) -> String {
+    public func firstWeek(now: Date = AppClock.instant, calendar: Calendar = .current) -> String {
         switch self {
         case .eightWeeks:
             // 8 weeks = this week + the 7 before it.
@@ -165,7 +165,7 @@ public enum LiftingDashboard: Sendable {
     /// One entry per calendar week of the range (gaps become zero weeks), oldest first, ending with the current week.
     /// `prs` comes from the backend; when no week has it, it is estimated from the lifts' latest PR dates.
     public static func series(_ weeks: [WeekVolumeDTO], lifts: [LiftSummaryDTO] = [], range: SessionRange,
-                       now: Date = .now, calendar: Calendar = .current) -> [SessionsWeek] {
+                       now: Date = AppClock.instant, calendar: Calendar = .current) -> [SessionsWeek] {
         let byWeek = Dictionary(weeks.map { ($0.weekStart, $0) }, uniquingKeysWith: { _, b in b })
         let backendHasPRs = weeks.contains { $0.prs != nil }
         var estimated: [String: Int] = [:]
@@ -190,7 +190,7 @@ public enum LiftingDashboard: Sendable {
     }
 
     public static func kpis(weeks: [WeekVolumeDTO], lifts: [LiftSummaryDTO], plannedThisWeekFallback: Int? = nil,
-                     now: Date = .now, calendar: Calendar = .current) -> LiftingKpis {
+                     now: Date = AppClock.instant, calendar: Calendar = .current) -> LiftingKpis {
         let current = DayKey.weekStart(now, calendar: calendar)
         let thisWeek = weeks.first { $0.weekStart == current }
         let program = LiftProgram.inProgram(lifts, now: now, calendar: calendar)
@@ -303,7 +303,7 @@ public enum RunStackTransforms: Sendable {
     }
 
     /// The tiles on top of the running page. Backend `kpis` win; gaps are computed from the series.
-    public static func kpis(_ stats: RunningStatsDTO, plannedRunsThisWeek: Int? = nil, now: Date = .now,
+    public static func kpis(_ stats: RunningStatsDTO, plannedRunsThisWeek: Int? = nil, now: Date = AppClock.instant,
                      calendar: Calendar = .current) -> RunKpiValues {
         let k = stats.kpis
         let cutoff = DayKey.string(DayKey.daysAgo(28, from: now, calendar: calendar), calendar: calendar)
@@ -333,7 +333,7 @@ public enum RunStackTransforms: Sendable {
     }
 
     /// Easy / long runs of the last 28 days whose pace-vs-heart-rate decoupling is above 5 %.
-    public static func driftRuns(_ points: [EfficiencyPointDTO], now: Date = .now, calendar: Calendar = .current) -> [EfficiencyPointDTO] {
+    public static func driftRuns(_ points: [EfficiencyPointDTO], now: Date = AppClock.instant, calendar: Calendar = .current) -> [EfficiencyPointDTO] {
         let cutoff = DayKey.string(DayKey.daysAgo(28, from: now, calendar: calendar), calendar: calendar)
         return points.filter { $0.date >= cutoff && ($0.decouplingPct ?? 0) > 5 }.sorted { $0.date > $1.date }
     }
@@ -366,7 +366,7 @@ extension HealthTransforms {
     }
 
     /// Days with at least `goal` steps among the 7 days ending today (backend `days_10k_last_7` wins).
-    public static func daysAtGoal(_ days: [HealthDayDTO], summary: HealthSummaryDTO?, goal: Double = 10_000, now: Date = .now,
+    public static func daysAtGoal(_ days: [HealthDayDTO], summary: HealthSummaryDTO?, goal: Double = 10_000, now: Date = AppClock.instant,
                            calendar: Calendar = .current) -> Int {
         if let n = summary?.days10kLast7 { return n }
         let first = DayKey.string(DayKey.daysAgo(6, from: now, calendar: calendar), calendar: calendar)

@@ -13,6 +13,9 @@ struct FitnessBuddyApp: App {
             RootView()
                 .environment(env)
                 .modelContainer(env.container)
+                #if DEBUG
+                .uiTestHooks()
+                #endif
                 .task { env.start() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {

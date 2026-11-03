@@ -115,7 +115,7 @@ struct LiftDoneCard: View {
         Card {
             CardHeader(title: PlanFormat.cardTitle(type: "lifting", kind: row.kind, title: row.item?.title ?? row.title),
                        symbol: PlanFormat.symbol(forKind: row.kind), color: Domain.lifting.color, time: "Today")
-            Label("Done · \(Fmt.longDuration((completed.endedAt ?? .now).timeIntervalSince(completed.startedAt)))",
+            Label("Done · \(Fmt.longDuration((completed.endedAt ?? AppClock.instant).timeIntervalSince(completed.startedAt)))",
                   systemImage: "checkmark.circle.fill")
                 .font(.headline).foregroundStyle(.green)
         }
@@ -146,11 +146,18 @@ struct CoachSummaryCard: View {
     let pendingCount: Int
     let latestId: String?
 
+    /// "2 hours ago" / "yesterday", measured from `AppClock.instant` so a frozen clock gives the same text every run.
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.dateTimeStyle = .named
+        return f
+    }()
+
     var body: some View {
         let proposal = pendingCount == 1 ? latestId.flatMap { env.coach.detail($0) } : nil
         Card {
             CardHeader(title: "Coach", symbol: Domain.coach.symbol, color: Domain.coach.color,
-                       time: proposal?.createdAt?.formatted(.relative(presentation: .named)))
+                       time: proposal?.createdAt.map { Self.relativeFormatter.localizedString(for: $0, relativeTo: AppClock.instant) })
             Text(CoachLogic.bannerTitle(pendingCount: pendingCount)).font(.headline)
             if let text = proposal?.diagnosis ?? proposal?.notesForUser, !text.isEmpty {
                 Text(text).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)

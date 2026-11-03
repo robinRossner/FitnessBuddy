@@ -17,6 +17,7 @@ struct WorkoutTabView: View {
                 WorkoutStartView()
             }
         }
+        .screenIdentifier(AXID.Screen.workout)
         .sheet(item: $flow.finishedSummary) { summary in
             WorkoutSummarySheet(summary: summary)
         }

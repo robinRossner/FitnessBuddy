@@ -131,11 +131,11 @@ struct FreshnessLabel<R: Decodable & Sendable>: View {
     let resource: StatsResource<R>
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
+        TimelineView(.periodic(from: AppClock.instant, by: 60)) { _ in
             HStack(spacing: 6) {
                 if resource.isRefreshing { ProgressView().controlSize(.mini) }
                 else if resource.isOffline { Image(systemName: "icloud.slash") }
-                if let text = text(now: context.date) { Text(text) }
+                if let text = text(now: AppClock.instant) { Text(text) }
             }
             .font(.caption)
             .foregroundStyle(resource.failure != nil && !resource.isOffline ? Color.orange : Color.secondary)

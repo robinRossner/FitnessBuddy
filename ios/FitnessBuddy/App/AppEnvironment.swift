@@ -58,6 +58,9 @@ final class AppEnvironment {
 
     init(container: ModelContainer? = nil, settings: SettingsStore? = nil, testing: Bool = false) {
         isTesting = testing
+        #if DEBUG
+        if !testing { UITestSupport.configureLaunch() }
+        #endif
         let container = container ?? ((try? Persistence.makeContainer(inMemory: testing)) ?? {
             fatalError("Could not create the local database")
         }())
@@ -105,6 +108,9 @@ final class AppEnvironment {
         network.onBecameConnected = { [weak self] in self?.sync.request(.network) }
         workoutFlow.showWorkoutTab = { [weak self] in self?.selectedTab = .workout }
         backend.didWipe = { [weak self] in self?.coachRoute = nil }
+        #if DEBUG
+        if !testing { UITestSupport.resetIfRequested(self) }
+        #endif
         // The cache must belong to the configured backend before anything syncs (also covers launch-argument
         // overrides, URL/token changed outside the Settings screen, and caches from older app versions).
         backend.reconcileBackend()

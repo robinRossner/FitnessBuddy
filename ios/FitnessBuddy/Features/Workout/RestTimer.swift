@@ -157,6 +157,9 @@ final class RestTimer {
     /// scheduled before permission exists.
     func requestAuthorizationIfNeeded() async {
         guard let center = notificationCenter else { return }
+        #if DEBUG
+        if UITestSupport.skipsNotificationPrompt { return }  // the system alert would cover the UI-test screenshots
+        #endif
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .notDetermined else { return }
         let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false

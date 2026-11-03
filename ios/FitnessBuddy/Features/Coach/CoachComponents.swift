@@ -276,8 +276,9 @@ extension Date {
     var coachLabel: String {
         let cal = Calendar.current
         let time = formatted(.dateTime.hour().minute())
-        if cal.isDateInToday(self) { return "Today " + time }
-        if cal.isDateInYesterday(self) { return "Yesterday " + time }
+        let now = AppClock.instant
+        if cal.isDate(self, inSameDayAs: now) { return "Today " + time }
+        if let yesterday = cal.date(byAdding: .day, value: -1, to: now), cal.isDate(self, inSameDayAs: yesterday) { return "Yesterday " + time }
         return formatted(.dateTime.month(.abbreviated).day()) + ", " + time
     }
 }
@@ -287,11 +288,11 @@ struct CoachFreshnessLabel: View {
     let repository: CoachRepository
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
+        TimelineView(.periodic(from: AppClock.instant, by: 60)) { _ in
             HStack(spacing: 6) {
                 if repository.isRefreshing { ProgressView().controlSize(.mini) }
                 else if repository.isOffline { Image(systemName: "icloud.slash") }
-                if let text = text(now: context.date) { Text(text) }
+                if let text = text(now: AppClock.instant) { Text(text) }
             }
             .font(.caption)
             .foregroundStyle(repository.failure != nil && !repository.isOffline ? Color.orange : Color.secondary)

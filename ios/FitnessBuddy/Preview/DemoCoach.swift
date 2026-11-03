@@ -118,7 +118,7 @@ final class DemoCoach: @unchecked Sendable {
     }
 
     private func iso(_ minutesAgo: Int) -> String {
-        ISO8601.string(Date().addingTimeInterval(-Double(minutesAgo) * 60))
+        ISO8601.string(AppClock.instant.addingTimeInterval(-Double(minutesAgo) * 60))
     }
 
     private func change(_ id: String, _ param: String, _ label: String, _ from: Any, _ to: Any, _ reason: String,

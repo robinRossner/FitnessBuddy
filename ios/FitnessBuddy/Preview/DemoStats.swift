@@ -18,7 +18,7 @@ enum DemoStats {
     }
 
     private static func day(_ offset: Int) -> String {
-        DayKey.string(DayKey.daysAgo(offset, from: .now))
+        DayKey.string(DayKey.daysAgo(offset, from: AppClock.instant))
     }
 
     /// Keys whose snake_case spelling the generic converter gets wrong (it does not undo the capital after a digit).
@@ -103,7 +103,7 @@ enum DemoStats {
                               bodyRegion: idx % 2 == 0 ? BodyRegion(muscleGroup: c.group).rawValue : nil, inProgram: idx != 7)
     }
 
-    static func lifts() -> LiftsStatsDTO { LiftsStatsDTO(generatedAt: .now, lifts: catalog.indices.map(summary)) }
+    static func lifts() -> LiftsStatsDTO { LiftsStatsDTO(generatedAt: AppClock.instant, lifts: catalog.indices.map(summary)) }
 
     static func liftDetail(_ id: Int) -> LiftDetailDTO {
         let idx = catalog.firstIndex { $0.id == id } ?? 0
@@ -116,12 +116,12 @@ enum DemoStats {
                 prs.append(LiftPRDTO(date: p.date, type: .e1rm, value: e, weightKg: p.topSet?.weightKg, reps: p.topSet?.reps))
             }
         }
-        return LiftDetailDTO(generatedAt: .now, lift: summary(idx), points: pts, prs: Array(prs.suffix(8)))
+        return LiftDetailDTO(generatedAt: AppClock.instant, lift: summary(idx), points: pts, prs: Array(prs.suffix(8)))
     }
 
     static func volume() -> WeeklyVolumeDTO {
         let weeks = (0..<53).reversed().map { w -> WeekVolumeDTO in
-            let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: .now))
+            let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: AppClock.instant))
             let sets = 30 + Int(noise(3, w) * 8) + (w == 0 ? -14 : 0)
             let sessions = w == 0 ? 2 : (noise(5, w) < -0.7 ? 2 : 3)
             let prs = noise(6, w) > 0.55 ? 1 + (noise(7, w) > 0.8 ? 1 : 0) : 0
@@ -129,7 +129,7 @@ enum DemoStats {
                                  liftingSessions: sessions, setsByMuscleGroup: ["chest": sets / 4, "back": sets / 4, "legs": sets / 3, "shoulders": sets / 8, "arms": sets / 8],
                                  runningKm: nil, runningTimeS: nil, runs: nil, prs: prs, prLifts: FlexCount(prs), plannedLiftingSessions: 3)
         }
-        return WeeklyVolumeDTO(generatedAt: .now, weeks: weeks)
+        return WeeklyVolumeDTO(generatedAt: AppClock.instant, weeks: weeks)
     }
 
     // MARK: Running
@@ -139,8 +139,8 @@ enum DemoStats {
             let km = 18 + Double(8 - w) * 2.2 + noise(8, w) * 3
             let t = km * 340
             let zones = ["z1": t * 0.08, "z2": t * 0.55, "z3": t * 0.2, "z4": t * 0.13, "z5": t * 0.04]
-            let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: .now))
-            let startDate = DayKey.date(start) ?? .now
+            let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: AppClock.instant))
+            let startDate = DayKey.date(start) ?? AppClock.instant
             let easy1 = (km * 0.28 * 10).rounded() / 10, interval = (km * 0.24 * 10).rounded() / 10
             let long = ((km - easy1 - interval) * 10).rounded() / 10
             let when = { (offset: Int) in DayKey.string(Calendar.current.date(byAdding: .day, value: offset, to: startDate) ?? startDate) }
@@ -180,12 +180,12 @@ enum DemoStats {
         let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: eff.last?.efficiency, efficiency4wAgo: 1.24,
                               efficiencyChangePct: 4.6, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: 2, runsPlannedThisWeek: 3,
                               kmThisWeek: weekly.last?.km, vdotSource: "interval_reps", vdotFitCurrent: 49.7)
-        return RunningStatsDTO(generatedAt: .now, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals, kpis: kpis, vdotFit: vdotFit)
+        return RunningStatsDTO(generatedAt: AppClock.instant, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals, kpis: kpis, vdotFit: vdotFit)
     }
 
     static func recentRuns() -> [RunSummaryDTO] {
         // The sample week's Wednesday easy run, so Today's "This week's running" shows a matched run.
-        let wed = RunSummaryDTO(id: "run-demo-wed", activityType: "running", title: "Easy run", startedAtLocal: "\(AppClock.weekDays(containing: Date())[2])T07:05:00",
+        let wed = RunSummaryDTO(id: "run-demo-wed", activityType: "running", title: "Easy run", startedAtLocal: "\(AppClock.weekDays(containing: AppClock.instant)[2])T07:05:00",
                                 startedAtUtc: nil, durationS: 2900, distanceM: 8400, avgHr: 142, maxHr: 158, avgPaceSPerKm: 345, trainingEffectAerobic: 2.8)
         return [wed] + (0..<10).map { i in
             let isInterval = i % 3 == 1
@@ -213,7 +213,7 @@ enum DemoStats {
         laps.append(LapDTO(index: idx, kind: .cooldown, distanceM: 1500, durationS: 520, avgPaceSPerKm: 347, avgHr: 140, maxHr: 150))
         let verdict = VerdictDTO(passed: false, summary: "4 of 5 work reps on pace, but the last rep slowed down and heart rate rose above the range.",
                                  reasons: ["Rep 4 was 9 s/km slower than the 4:22 target.", "Heart rate of rep 5 (171 bpm) was above the 160 to 170 range."])
-        return RunAnalysisDTO(generatedAt: .now, run: run, planned: nil, laps: laps, verdict: verdict)
+        return RunAnalysisDTO(generatedAt: AppClock.instant, run: run, planned: nil, laps: laps, verdict: verdict)
     }
 
     // MARK: Health
@@ -240,7 +240,7 @@ enum DemoStats {
                       ReadinessMetricDTO(key: "rhr", label: "Resting HR", value: 54, unit: "bpm", baseline: 51, deltaPct: 5.9, status: .warn),
                       ReadinessMetricDTO(key: "sleep", label: "Sleep", value: 6.8, unit: "h", baseline: 7.2, deltaPct: -5.6, status: .ok)],
             details: ["HRV is 10 % below your baseline.", "Resting heart rate is 3 bpm above baseline.", "Sleep was slightly short."])
-        return HealthStatsDTO(generatedAt: .now, days: days, bodyweight: weights.reversed(), summary: summary, readinessToday: readiness)
+        return HealthStatsDTO(generatedAt: AppClock.instant, days: days, bodyweight: weights.reversed(), summary: summary, readinessToday: readiness)
     }
 
     static func correlations() -> CorrelationsDTO {
@@ -249,7 +249,7 @@ enum DemoStats {
             return CorrelationPointDTO(date: day(i * 2), x: (sleep * 10).rounded() / 10, y: (48 + sleep * 2.4 + noise(22, i) * 5).rounded())
         }
         let few = (0..<2).map { CorrelationPointDTO(date: day($0), x: 1, y: 2) }
-        return CorrelationsDTO(generatedAt: .now, items: [
+        return CorrelationsDTO(generatedAt: AppClock.instant, items: [
             CorrelationDTO(id: "sleep_hrv", title: "Sleep vs next-morning HRV", xLabel: "Sleep (h)", yLabel: "HRV (ms)", points: pts, r: 0.52, n: 40,
                            note: "On nights with more sleep your HRV tends to be higher the next morning.", category: .recovery,
                            insight: "More sleep tends to go with a higher HRV the next morning (r=0.52, n=40)"),

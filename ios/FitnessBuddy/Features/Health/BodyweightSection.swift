@@ -85,7 +85,7 @@ struct LogWeightSheet: View {
     let lastWeight: Double?
 
     @State private var text = ""
-    @State private var day = Date()
+    @State private var day = AppClock.instant
     @FocusState private var focused: Bool
 
     private var value: Double? { BodyweightLog.parse(text) }
@@ -103,7 +103,7 @@ struct LogWeightSheet: View {
                             .accessibilityLabel("Weight in kilograms")
                         Text("kg").font(.title3).foregroundStyle(.secondary)
                     }
-                    DatePicker("Date", selection: $day, in: ...Date(), displayedComponents: .date)
+                    DatePicker("Date", selection: $day, in: ...AppClock.instant, displayedComponents: .date)
                 } footer: {
                     Text(text.isEmpty || isValid ? "Saved on this device first and synced when a connection is available."
                                                    : "Enter a weight between \(Int(BodyweightLog.validRange.lowerBound)) and \(Int(BodyweightLog.validRange.upperBound)) kg.")

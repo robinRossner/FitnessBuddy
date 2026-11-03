@@ -326,7 +326,7 @@ struct MetricCard<Destination: View>: View {
 
 extension MetricCard {
     /// Card for a catalog metric: latest value, when it is from, and the recent trend. "–" / "No data" when empty.
-    init(metric: MetricInfo, points: [MetricPoint], now: Date = .now, @ViewBuilder destination: () -> Destination) {
+    init(metric: MetricInfo, points: [MetricPoint], now: Date = AppClock.instant, @ViewBuilder destination: () -> Destination) {
         let latest = MetricSeries.latest(points)
         self.init(title: metric.short, symbol: metric.symbol, color: metric.domain.color,
                   value: metric.format(latest?.value), unit: metric.unit,

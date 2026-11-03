@@ -65,6 +65,7 @@ struct ProgressTabView: View {
             .navigationDestination(for: RunRoute.self) { RunAnalysisView(runId: $0.id) }
             .navigationDestination(for: RunningRoute.self) { RunningRouteView(route: $0) }
         }
+        .screenIdentifier(AXID.Screen.progress)
     }
 }
 

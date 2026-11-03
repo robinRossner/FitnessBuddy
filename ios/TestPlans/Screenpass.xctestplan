@@ -1,0 +1,22 @@
+{
+  "configurations" : [
+    {
+      "id" : "6F2B3C1E-4D5A-4E7B-9C8D-0A1B2C3D4E03",
+      "name" : "Default",
+      "options" : {}
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:FitnessBuddy.xcodeproj",
+        "identifier" : "B68743A7A4697D0E9FB38CEC",
+        "name" : "FitnessBuddyUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

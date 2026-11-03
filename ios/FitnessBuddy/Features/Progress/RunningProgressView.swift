@@ -344,7 +344,7 @@ private struct VdotDetailView: View {
         let c = Domain.running.color
         let items = Self.series(points)
         // The plan's VDOT holds until the next change: draw it on to today.
-        let plan = items.last.map { last in last.0 < .now ? items + [(Date.now, last.1)] : items } ?? []
+        let plan = items.last.map { last in last.0 < AppClock.instant ? items + [(AppClock.instant, last.1)] : items } ?? []
         // Older backends send a per-run fit as `vdot` and no `vdot_fit`: nothing to compare then.
         let fitItems = Self.series(fit)
         let lows = (plan + fitItems).map(\.1)
@@ -539,7 +539,7 @@ private struct ZonesCard: View {
                 ChartEmpty(symbol: "heart.text.square", message: "Zone data shows up after the first run with heart rate.", height: 110)
             } else {
                 Chart(segments) { seg in
-                    BarMark(x: .value("Week", DayKey.date(seg.weekStart) ?? .now, unit: .weekOfYear),
+                    BarMark(x: .value("Week", DayKey.date(seg.weekStart) ?? AppClock.instant, unit: .weekOfYear),
                             y: .value("Minutes", seg.minutes))
                         .foregroundStyle(by: .value("Zone", seg.name))
                 }

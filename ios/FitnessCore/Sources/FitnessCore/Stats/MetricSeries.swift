@@ -74,7 +74,7 @@ public enum MetricSeries: Sendable {
     /// Daily data: W = 7 days, M = 30 days, 6M = 26 weeks, Y = 12 months. Weekly data: M = 4 weeks, 6M = 26 weeks,
     /// Y = 12 months. Weeks start on Monday (like the backend), months are calendar months.
     public static func buckets(_ points: [MetricPoint], metric: MetricInfo, range: MetricRange,
-                        now: Date = .now, calendar: Calendar = .current) -> [MetricBucket] {
+                        now: Date = AppClock.instant, calendar: Calendar = .current) -> [MetricBucket] {
         var byDay: [String: [Double]] = [:]
         for p in points { byDay[String(p.day.prefix(10)), default: []].append(p.value) }
         let agg = metric.aggregation
@@ -168,7 +168,7 @@ public enum MetricSeries: Sendable {
 
     /// Values for a card sparkline, oldest first: the last 14 days with data (daily) or the last 8 weeks (weekly,
     /// missing weeks of a total count as 0). Empty when there is not enough to draw a line.
-    public static func sparkline(_ points: [MetricPoint], metric: MetricInfo, now: Date = .now, calendar: Calendar = .current) -> [Double] {
+    public static func sparkline(_ points: [MetricPoint], metric: MetricInfo, now: Date = AppClock.instant, calendar: Calendar = .current) -> [Double] {
         switch metric.granularity {
         case .daily:
             let from = DayKey.string(DayKey.daysAgo(13, from: now, calendar: calendar), calendar: calendar)
@@ -192,7 +192,7 @@ public enum MetricSeries: Sendable {
     }
 
     /// When the card's value is from: "Today", "Yesterday", "Mon 26 Oct"; weekly: "This Week", "Last Week", "Week of 12 Oct".
-    public static func timeLabel(_ point: MetricPoint?, metric: MetricInfo, now: Date = .now, calendar: Calendar = .current) -> String? {
+    public static func timeLabel(_ point: MetricPoint?, metric: MetricInfo, now: Date = AppClock.instant, calendar: Calendar = .current) -> String? {
         guard let point, let date = DayKey.date(point.day, calendar: calendar) else { return nil }
         switch metric.granularity {
         case .weekly:

@@ -61,6 +61,7 @@ struct CoachView: View {
             .onChange(of: env.coachRoute, initial: true) { _, route in consume(route) }
             .onAppear { debugRoute() }
         }
+        .screenIdentifier(AXID.Screen.coach)
     }
 
     private func consume(_ route: CoachRoute?) {

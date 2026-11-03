@@ -1,5 +1,13 @@
 import SwiftUI
 
+extension View {
+    /// Marks a tab's top-level view for the UI tests (`AXID.Screen`). A container element of its own, so the identifier is
+    /// found once and is not copied onto every child.
+    func screenIdentifier(_ id: String) -> some View {
+        accessibilityElement(children: .contain).accessibilityIdentifier(id)
+    }
+}
+
 /// The one card of the app (Apple Health style): rounded, on the grouped background. See DesignKit.swift.
 /// `tint` draws a thin coloured bar on the leading edge (older screens); new screens use a `CardHeader` instead.
 struct Card<Content: View>: View {

@@ -35,7 +35,7 @@ public enum SummaryLogic: Sendable {
     }
 
     public static func highlights(volume: [WeekVolumeDTO], health: HealthSummaryDTO?, lifts: [LiftSummaryDTO],
-                           now: Date = .now, calendar: Calendar = .current) -> [Highlight] {
+                           now: Date = AppClock.instant, calendar: Calendar = .current) -> [Highlight] {
         [lifting(lifts, now: now, calendar: calendar), running(volume, now: now, calendar: calendar), sleep(health)]
             .compactMap { $0 }
     }
@@ -52,7 +52,7 @@ public enum SummaryLogic: Sendable {
     }
 
     /// Last full week's km vs the average of the 8 weeks before it (needs at least 4 of those weeks).
-    public static func running(_ weeks: [WeekVolumeDTO], now: Date = .now, calendar: Calendar = .current) -> Highlight? {
+    public static func running(_ weeks: [WeekVolumeDTO], now: Date = AppClock.instant, calendar: Calendar = .current) -> Highlight? {
         var km: [String: Double] = [:]
         for w in weeks { km[String(w.weekStart.prefix(10))] = w.runningKm ?? 0 }
         func week(_ ago: Int) -> String { DayKey.weekStart(DayKey.daysAgo(7 * ago, from: now, calendar: calendar), calendar: calendar) }
@@ -85,7 +85,7 @@ public enum SummaryLogic: Sendable {
     }
 
     /// The program lift with the biggest 4-week e1RM gain (not stalled, at least +0.5 %).
-    public static func lifting(_ lifts: [LiftSummaryDTO], now: Date = .now, calendar: Calendar = .current) -> Highlight? {
+    public static func lifting(_ lifts: [LiftSummaryDTO], now: Date = AppClock.instant, calendar: Calendar = .current) -> Highlight? {
         let candidates = LiftProgram.inProgram(lifts, now: now, calendar: calendar).filter {
             !$0.isStalled && ($0.trend4wPct ?? 0) >= 0.5 && ($0.latestE1rm ?? 0) > 0
         }

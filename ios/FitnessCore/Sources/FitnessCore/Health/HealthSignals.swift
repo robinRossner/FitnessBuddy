@@ -12,7 +12,7 @@ public enum HealthSignals: Sendable {
     }
 
     /// Points of the last `days` days (today and the days before), oldest first.
-    public static func window(_ points: [MetricPoint], days: Int, now: Date = .now, calendar: Calendar = .current) -> [MetricPoint] {
+    public static func window(_ points: [MetricPoint], days: Int, now: Date = AppClock.instant, calendar: Calendar = .current) -> [MetricPoint] {
         let from = DayKey.string(DayKey.daysAgo(days - 1, from: now, calendar: calendar), calendar: calendar)
         return points.filter { String($0.day.prefix(10)) >= from }.sorted { $0.day < $1.day }
     }
@@ -29,7 +29,7 @@ public enum HealthSignals: Sendable {
     }
 
     /// First and last instant a chart of `days` days covers: the start of the first day to the end of today.
-    public static func chartDomain(days: Int, now: Date = .now, calendar: Calendar = .current) -> ClosedRange<Date> {
+    public static func chartDomain(days: Int, now: Date = AppClock.instant, calendar: Calendar = .current) -> ClosedRange<Date> {
         let start = calendar.startOfDay(for: DayKey.daysAgo(days - 1, from: now, calendar: calendar))
         let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now
         return start...end

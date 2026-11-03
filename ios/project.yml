@@ -55,12 +55,28 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FitnessBuddy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FitnessBuddy"
         BUNDLE_LOADER: "$(TEST_HOST)"
+  # XCUITest target behind the screenpass screenshot walk (TestPlans/Screenpass.xctestplan only;
+  # Full and Fast do not include it). AXID.swift is shared with the app so both use the same identifiers.
+  FitnessBuddyUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: FitnessBuddyUITests
+      - path: FitnessBuddy/App/AXID.swift
+    dependencies:
+      - target: FitnessBuddy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robinrossner.FitnessBuddyUITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: FitnessBuddy
 schemes:
   FitnessBuddy:
     build:
       targets:
         FitnessBuddy: all
         FitnessBuddyTests: [test]
+        FitnessBuddyUITests: [test]
     run:
       config: Debug
     test:
@@ -69,6 +85,7 @@ schemes:
         - path: TestPlans/Full.xctestplan
           defaultPlan: true
         - path: TestPlans/Fast.xctestplan
+        - path: TestPlans/Screenpass.xctestplan
     profile:
       config: Release
     analyze:

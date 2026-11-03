@@ -140,6 +140,7 @@ struct TodayView: View {
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $editingPins) { PinEditorSheet(pinnedRaw: $pinnedRaw) }
         }
+        .screenIdentifier(AXID.Screen.summary)
     }
 
     // MARK: Today

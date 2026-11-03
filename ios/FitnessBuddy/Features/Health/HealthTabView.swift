@@ -57,6 +57,7 @@ struct HealthTabView: View {
                 LogWeightSheet(lastWeight: lastWeight)
             }
         }
+        .screenIdentifier(AXID.Screen.health)
     }
 
     // MARK: Readiness

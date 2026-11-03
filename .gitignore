@@ -43,3 +43,8 @@ ios/build/
 ios/FitnessBuddy.xcodeproj/
 ios/UILab/build/
 ios/UILab/FitnessBuddyUILab.xcodeproj/
+
+# UI screen-walk scratch output
+ios/.screenpass/shots/
+ios/.screenpass/DerivedData/
+ios/.screenpass/last.log
