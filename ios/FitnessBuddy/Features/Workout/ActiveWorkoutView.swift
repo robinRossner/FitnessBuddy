@@ -360,7 +360,12 @@ struct ExerciseReorderSheet: View {
         }
         .screenIdentifier(AXID.Workout.reorder)
         .stableForScreenshots()
+        #if DEBUG
+        // the translucent half sheet shows a blur that differs by a level or two between runs; screenshots use the full sheet
+        .presentationDetents(UITestSupport.animationsDisabled ? [.large] : [.medium, .large])
+        #else
         .presentationDetents([.medium, .large])
+        #endif
     }
 }
 

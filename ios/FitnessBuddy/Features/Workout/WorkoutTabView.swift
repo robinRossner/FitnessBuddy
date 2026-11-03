@@ -371,6 +371,7 @@ struct WorkoutSummarySheet: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .screenIdentifier(AXID.Workout.summary)
+        .stableForScreenshots()
         .presentationDetents([.large])
     }
 }

@@ -65,6 +65,7 @@ struct ExercisePickerView: View {
             }
         }
         .screenIdentifier(AXID.Workout.exercisePicker)
+        .stableForScreenshots()
         #if DEBUG
         .task { await openRequestedSheet() }
         #endif
@@ -163,6 +164,7 @@ struct ExerciseSetupSheet: View {
             .interactiveDismissDisabled(saving)
         }
         .screenIdentifier(AXID.Workout.exerciseSetup)
+        .stableForScreenshots()
         .presentationDetents([.large])
     }
 
@@ -232,6 +234,7 @@ struct NewExerciseSheet: View {
             .interactiveDismissDisabled(saving)
         }
         .screenIdentifier(AXID.Workout.newExercise)
+        .stableForScreenshots()
     }
 
     private func save() async {
@@ -345,6 +348,7 @@ struct ExerciseEditSheet: View {
             .interactiveDismissDisabled(saving)
         }
         .screenIdentifier(AXID.Workout.exerciseEdit)
+        .stableForScreenshots()
     }
 
     private func save() async {
