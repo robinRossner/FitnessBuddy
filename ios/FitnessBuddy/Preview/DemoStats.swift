@@ -135,105 +135,96 @@ enum DemoStats {
     // MARK: Running
 
     static func running() -> RunningStatsDTO {
-        let weekly = (0..<9).reversed().map { w -> RunWeekDTO in
-            let km = 18 + Double(8 - w) * 2.2 + noise(8, w) * 3
-            let t = km * 340
+        let log = DemoRuns.log()
+        let weekly = (0...DemoRuns.weeksBack).reversed().map { w -> RunWeekDTO in
+            let runs = log.filter { $0.week == w }.sorted { $0.date < $1.date }
+            let t = runs.map(\.durationS).reduce(0, +)
             let zones = ["z1": t * 0.08, "z2": t * 0.55, "z3": t * 0.2, "z4": t * 0.13, "z5": t * 0.04]
-            let start = DayKey.weekStart(DayKey.daysAgo(w * 7, from: AppClock.instant))
-            let startDate = DayKey.date(start) ?? AppClock.instant
-            let easy1 = (km * 0.28 * 10).rounded() / 10, interval = (km * 0.24 * 10).rounded() / 10
-            let long = ((km - easy1 - interval) * 10).rounded() / 10
-            let when = { (offset: Int) in DayKey.string(Calendar.current.date(byAdding: .day, value: offset, to: startDate) ?? startDate) }
-            var detail = [RunDetailDTO(runId: "run-e\(w)", date: when(1), type: .easy, km: easy1),
-                          RunDetailDTO(runId: "run-i\(w)", date: when(3), type: .intervals, km: interval),
-                          RunDetailDTO(runId: "run-l\(w)", date: when(6), type: .long, km: long)]
-            if w == 0 { detail = Array(detail.prefix(2)) }
-            return RunWeekDTO(weekStart: start, km: (km * 10).rounded() / 10, timeS: t,
-                              runs: detail.count, timeInZonesS: zones, runsDetail: detail,
-                              runsByType: RunTypeCountsDTO(easy: 1, intervals: 1, long: w == 0 ? 0 : 1, other: 0))
+            let detail = runs.map { RunDetailDTO(runId: $0.id, date: $0.date, type: $0.type, km: ($0.km * 10).rounded() / 10) }
+            let km = runs.map(\.km).reduce(0, +)
+            let counts = RunTypeCountsDTO(easy: Double(runs.filter { $0.type == .easy }.count),
+                                          intervals: Double(runs.filter { $0.type == .intervals }.count),
+                                          long: Double(runs.filter { $0.type == .long }.count), other: 0)
+            return RunWeekDTO(weekStart: DemoRuns.weekStart(w), km: (km * 10).rounded() / 10, timeS: t, runs: runs.count,
+                              timeInZonesS: zones, runsDetail: detail, runsByType: counts)
         }
+        // Easy runs, oldest first (the backend names the type "easy"; the Easy Pace tile and the efficiency chart read it).
         var eff: [EfficiencyPointDTO] = []
-        for i in 0..<14 {
-            let fi = Double(i)
-            let efficiency: Double = 1.18 + fi * 0.011 + noise(9, i) * 0.012
-            let hr: Double = 146 - fi * 0.4
-            let pace: Double = 345 - fi * 1.2
-            eff.append(EfficiencyPointDTO(date: day(60 - i * 4), runId: "run-e\(i)", type: "easy_run", distanceM: 7000 + fi * 150,
-                                          avgHr: hr, avgPaceSPerKm: pace, efficiency: efficiency, decouplingPct: 3.1 - fi * 0.1))
+        for (i, r) in log.filter({ $0.type == .easy }).reversed().enumerated() {
+            let speed = 60_000 / r.paceSPerKm  // m/min
+            eff.append(EfficiencyPointDTO(date: r.date, runId: r.id, type: "easy", distanceM: r.distanceM, avgHr: r.avgHr,
+                                          avgPaceSPerKm: (r.paceSPerKm * 10).rounded() / 10, efficiency: (speed / r.avgHr * 1000).rounded() / 1000,
+                                          decouplingPct: ((3.1 - Double(i) * 0.1 + noise(9, i) * 0.3) * 10).rounded() / 10))
         }
         let vdot = [VdotPointDTO(date: day(62), value: 49.0, source: "initial", delta: 0, reason: "initial VDOT 49.0 from the pace model's fit"),
                     VdotPointDTO(date: day(41), value: 49.6, source: "green_sessions", delta: 0.6, reason: "VDOT 49.0 -> 49.6: 2 quality sessions passed easily"),
                     VdotPointDTO(date: day(20), value: 50.6, source: "interval_reps", delta: 1.0, reason: "VDOT 49.6 -> 50.6 measured from interval reps")]
         let vdotFit = [VdotPointDTO(date: day(62), value: 48.6), VdotPointDTO(date: day(41), value: 49.2), VdotPointDTO(date: day(20), value: 49.5), VdotPointDTO(date: day(6), value: 49.7)]
-        var intervals: [IntervalSessionDTO] = []
-        for i in 0..<5 {
-            // Typed step by step: one long literal expression here times out the type checker on older Xcodes.
-            let slow: Bool = i % 3 == 1
-            let paceDelta: Double = slow ? 8 : -2
-            let workPace: Double = 262 + paceDelta
-            let workHr: Double = 168 + Double(i)
-            let passed: Bool = i != 3 && !slow
-            intervals.append(IntervalSessionDTO(date: day(5 + i * 14), runId: "run-i\(i)", reps: 5 + i % 2, targetPaceSPerKm: 262,
-                                                avgWorkPaceSPerKm: workPace, avgWorkHr: workHr, targetHrLow: 164, targetHrHigh: 174,
-                                                hrInRange: i != 3, recoveryOk: i != 2, passed: passed))
+        let intervals = log.filter { $0.type == .intervals }.reversed().map { r in
+            IntervalSessionDTO(date: r.date, runId: r.id, reps: r.reps, targetPaceSPerKm: r.targetPace,
+                               avgWorkPaceSPerKm: (r.avgWorkPace * 10).rounded() / 10, avgWorkHr: r.avgWorkHr.rounded(),
+                               targetHrLow: DemoRuns.targetHrLow, targetHrHigh: DemoRuns.targetHrHigh,
+                               hrInRange: !r.hrOk.contains(false), recoveryOk: r.recoveryOk, passed: r.passed)
         }
-        let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: eff.last?.efficiency, efficiency4wAgo: 1.24,
-                              efficiencyChangePct: 4.6, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: 2, runsPlannedThisWeek: 3,
-                              kmThisWeek: weekly.last?.km, vdotSource: "interval_reps", vdotFitCurrent: 49.7)
-        return RunningStatsDTO(generatedAt: AppClock.instant, weekly: weekly, efficiency: eff, vdot: vdot, intervals: intervals, kpis: kpis, vdotFit: vdotFit)
+        let latest = eff.last?.efficiency, before = eff.dropLast(4).last?.efficiency
+        let change = (latest != nil && before != nil) ? ((latest! - before!) / before! * 1000).rounded() / 10 : nil
+        let thisWeek = weekly.last
+        let kpis = RunKpisDTO(vdotCurrent: 50.6, vdot4wAgo: 49.8, vdotChange: 0.8, efficiencyCurrent: latest, efficiency4wAgo: before,
+                              efficiencyChangePct: change, easyHrDriftFlags4w: FlexCount(1), runsThisWeek: thisWeek?.runs ?? 0,
+                              runsPlannedThisWeek: 3, kmThisWeek: thisWeek?.km, vdotSource: "interval_reps", vdotFitCurrent: 49.7)
+        return RunningStatsDTO(generatedAt: AppClock.instant, weekly: weekly, efficiency: eff, vdot: vdot, intervals: Array(intervals), kpis: kpis, vdotFit: vdotFit)
     }
 
     static func recentRuns() -> [RunSummaryDTO] {
-        // The sample week's Wednesday easy run, so Today's "This week's running" shows a matched run.
-        let wed = RunSummaryDTO(id: "run-demo-wed", activityType: "running", title: "Easy run", startedAtLocal: "\(AppClock.weekDays(containing: AppClock.instant)[2])T07:05:00",
-                                startedAtUtc: nil, durationS: 2900, distanceM: 8400, avgHr: 142, maxHr: 158, avgPaceSPerKm: 345, trainingEffectAerobic: 2.8)
-        return [wed] + (0..<10).map { i in
-            let isInterval = i % 3 == 1
-            return RunSummaryDTO(id: isInterval ? "run-i\(i / 3)" : "run-e\(i)", activityType: "running", title: isInterval ? "Intervals 5×1000" : (i % 3 == 2 ? "Long run" : "Easy run"),
-                                 startedAtLocal: "\(day(2 + i * 3))T07:15:00", startedAtUtc: nil, durationS: 2700 + Double(i) * 120, distanceM: 8000 + Double(i % 4) * 1500,
-                                 avgHr: 148, maxHr: 171, avgPaceSPerKm: 335 - Double(i), trainingEffectAerobic: 3.2)
+        DemoRuns.log().prefix(18).map { r in
+            RunSummaryDTO(id: r.id, activityType: "running", title: r.title, startedAtLocal: "\(r.date)T\(r.startTime)", startedAtUtc: nil,
+                          durationS: r.durationS, distanceM: r.distanceM, avgHr: r.avgHr, maxHr: r.maxHr, avgPaceSPerKm: r.paceSPerKm,
+                          trainingEffectAerobic: r.aerobicEffect)
         }
     }
 
-    static func analysis(_ id: String) -> RunAnalysisDTO {
-        let run = RunInfoDTO(id: id, date: day(5), type: "intervals", name: "Intervals 5×1000", distanceM: 10_400, durationS: 3_150, avgHr: 158, maxHr: 178,
-                             avgPaceSPerKm: 303, trainingEffectAerobic: 4.1, trainingEffectAnaerobic: 2.3)
-        var laps: [LapDTO] = [LapDTO(index: 1, kind: .warmup, distanceM: 2000, durationS: 700, avgPaceSPerKm: 350, avgHr: 136, maxHr: 148)]
-        var idx = 2
-        for r in 0..<5 {
-            let pace = 262.0 + [-2, 1, 4, 9, 3][r]
-            laps.append(LapDTO(index: idx, kind: .work, distanceM: 1000, durationS: pace, avgPaceSPerKm: pace, avgHr: 165 + Double(r) * 2, maxHr: 172 + Double(r) * 2,
-                               targetPaceSPerKm: 262, targetHrLow: 164, targetHrHigh: 174, paceOk: abs(pace - 262) <= 5, hrOk: r < 4))
-            idx += 1
-            if r < 4 {
-                laps.append(LapDTO(index: idx, kind: .recovery, distanceM: 400, durationS: 150, avgPaceSPerKm: 375, avgHr: 148 - Double(r), maxHr: 168))
-                idx += 1
-            }
-        }
-        laps.append(LapDTO(index: idx, kind: .cooldown, distanceM: 1500, durationS: 520, avgPaceSPerKm: 347, avgHr: 140, maxHr: 150))
-        let verdict = VerdictDTO(passed: false, summary: "4 of 5 work reps on pace, but the last rep slowed down and heart rate rose above the range.",
-                                 reasons: ["Rep 4 was 9 s/km slower than the 4:22 target.", "Heart rate of rep 5 (171 bpm) was above the 160 to 170 range."])
-        return RunAnalysisDTO(generatedAt: AppClock.instant, run: run, planned: nil, laps: laps, verdict: verdict)
-    }
+    static func analysis(_ id: String) -> RunAnalysisDTO { DemoRuns.analysis(id) }
 
     // MARK: Health
 
     static func health() -> HealthStatsDTO {
+        // Today's values are the readiness card's (HRV 57 ms, resting HR 54, sleep 6.8 h, yellow): every chart ends on them.
+        let todayHrv = 57.0, todayRhr = 54.0, todaySleepH = 6.8
         let days = (0..<90).reversed().map { off -> HealthDayDTO in
             let i = 90 - off
-            let hrv = 62 + noise(11, i) * 9 + (off < 5 ? -8 : 0)
-            let sleep = 7.1 + noise(12, i) * 1.0
-            let level = off < 3 && off > 0 ? "yellow" : (noise(13, i) < -0.85 ? "red" : (noise(13, i) < -0.45 ? "yellow" : "green"))
+            let isToday = off == 0
+            let hrv = isToday ? todayHrv : 62 + noise(11, i) * 9 + (off < 5 ? -8 : 0)
+            let rhr = isToday ? todayRhr : (51 + noise(15, i) * 3 + (off < 5 ? 3 : 0)).rounded()
+            let sleep = isToday ? todaySleepH : 7.1 + noise(12, i) * 1.0
+            let level = off < 3 ? "yellow" : (noise(13, i) < -0.85 ? "red" : (noise(13, i) < -0.45 ? "yellow" : "green"))
             let high = 82 + noise(14, i) * 14
-            return HealthDayDTO(date: day(off), hrvMs: (hrv * 10).rounded() / 10, hrvBaselineMs: 63, rhr: (51 + noise(15, i) * 3 + (off < 5 ? 3 : 0)).rounded(),
+            return HealthDayDTO(date: day(off), hrvMs: (hrv * 10).rounded() / 10, hrvBaselineMs: 63, rhr: rhr,
                                 rhrBaseline: 51, sleepS: sleep * 3600, sleepScore: (78 + noise(16, i) * 14).rounded(), bodyBatteryHigh: high.rounded(),
                                 bodyBatteryLow: (high - 55 + noise(17, i) * 12).rounded(), stressAvg: 28, steps: (8500 + noise(18, i) * 3500).rounded(),
                                 readiness: DayReadinessDTO(level: level, reason: level == "green" ? "HRV, resting heart rate and sleep are all normal." : "HRV is 12 % below baseline."),
                                 steps7dAvg: nil)
         }
-        let weights = (0..<8).map { i in BodyweightPointDTO(date: day(84 - i * 11), weightKg: ((80.6 - Double(i) * 0.12 + noise(19, i) * 0.3) * 10).rounded() / 10, source: "garmin") }
-        let summary = HealthSummaryDTO(hrv7d: 57, hrv28d: 62, rhr7d: 53, rhr28d: 51.5, sleep7dS: 6.8 * 3600, sleep28dS: 7.2 * 3600,
-                                       bodyweightLatest: weights.last?.weightKg, bodyweightChange4wPct: -0.6)
+        func mean(_ values: [Double?], last n: Int) -> Double? {
+            let v = values.suffix(n).compactMap { $0 }
+            return v.isEmpty ? nil : v.reduce(0, +) / Double(v.count)
+        }
+        func tenth(_ v: Double?) -> Double? { v.map { ($0 * 10).rounded() / 10 } }
+        // Roughly weekly weigh-ins (a day early or late), slowly down to the 78.4 kg of yesterday's weigh-in.
+        let offsets: [Int] = [85, 78, 71, 64, 57, 50, 43, 36, 29, 22, 15, 8, 1]
+        var weights: [BodyweightPointDTO] = []
+        for (i, off) in offsets.enumerated() {
+            let last = i == offsets.count - 1
+            let shift: Int = last ? 0 : Int((noise(19, i) * 1.4).rounded())
+            let kg: Double = last ? 78.4 : 78.4 + Double(off) * 0.026 + noise(20, i) * 0.25
+            weights.append(BodyweightPointDTO(date: day(off + shift), weightKg: (kg * 10).rounded() / 10, source: "garmin"))
+        }
+        let latestKg = weights.last?.weightKg
+        let monthAgoKg = weights[weights.count - 5].weightKg
+        let change4w: Double? = latestKg.map { ((($0 - monthAgoKg) / monthAgoKg) * 1000).rounded() / 10 }
+        let summary = HealthSummaryDTO(hrv7d: tenth(mean(days.map(\.hrvMs), last: 7)), hrv28d: tenth(mean(days.map(\.hrvMs), last: 28)),
+                                       rhr7d: tenth(mean(days.map(\.rhr), last: 7)), rhr28d: tenth(mean(days.map(\.rhr), last: 28)),
+                                       sleep7dS: mean(days.map(\.sleepS), last: 7), sleep28dS: mean(days.map(\.sleepS), last: 28),
+                                       bodyweightLatest: latestKg, bodyweightChange4wPct: change4w)
         let readiness = ReadinessTodayDTO(
             level: "yellow", headline: "Take it easier",
             metrics: [ReadinessMetricDTO(key: "hrv", label: "HRV", value: 57, unit: "ms", baseline: 63, deltaPct: -9.5, status: .warn),
