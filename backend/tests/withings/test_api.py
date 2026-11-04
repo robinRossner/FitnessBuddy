@@ -177,7 +177,7 @@ def test_callback_bad_state_is_a_page_and_never_exchanges(api, fake, store):
         )
         assert r.status_code == 400 and "text/html" in r.headers["content-type"]
         assert "Withings connection failed" in r.text
-    assert api.get("/api/v1/withings/callback", follow_redirects=False).status_code == 400
+    assert api.get("/api/v1/withings/callback?code=x", follow_redirects=False).status_code == 400
     assert fake.token_requests == [] and store.load() is None
 
 
@@ -228,6 +228,16 @@ def test_callback_unconfigured(api_unconfigured):
         "/api/v1/withings/callback", params={"code": "c", "state": "s"}, follow_redirects=False
     )
     assert r.status_code == 503 and "not configured" in r.text
+
+
+@pytest.mark.parametrize("prefix", PREFIXES)
+def test_callback_answers_the_dashboard_url_check(api_unconfigured, fake, prefix):
+    """The developer dashboard's "Test" probes the bare URL: 200, configured or not."""
+    anon = TestClient(app)
+    assert anon.head(f"{prefix}/withings/callback").status_code == 200
+    r = anon.get(f"{prefix}/withings/callback", follow_redirects=False)
+    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+    assert fake.token_requests == []
 
 
 def test_callback_honours_the_configured_app_url(make_client, settings, fake):

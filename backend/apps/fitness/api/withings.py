@@ -105,6 +105,12 @@ def _html(result: service.CallbackResult) -> HTMLResponse:
     )
 
 
+@public_router.head("/callback")
+def callback_probe() -> Response:
+    """The developer dashboard checks a registered URL answers 200 before accepting it."""
+    return Response(status_code=status.HTTP_200_OK)
+
+
 @public_router.get("/callback")
 def callback(
     code: Annotated[str | None, Query(max_length=2000)] = None,
@@ -112,6 +118,12 @@ def callback(
     error: Annotated[str | None, Query(max_length=200)] = None,
     settings: Settings = Depends(get_settings_dep),
 ) -> Response:
+    if code is None and state is None and error is None:
+        # A bare GET is the dashboard's URL check (or someone opening the link), not a redirect.
+        return HTMLResponse(
+            _PAGE.format(title="Withings callback", text="Nothing to do here."),
+            headers={"Cache-Control": "no-store"},
+        )
     result = service.handle_callback(code, state, error, settings)
     if result.client != "app" or result.reason in ("invalid_state", "not_configured"):
         return _html(result)
