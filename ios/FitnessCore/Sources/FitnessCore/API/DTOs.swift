@@ -162,11 +162,25 @@ public struct IntervalLegDTO: Codable, Sendable, Equatable {
     public var hr: HRRangeDTO?
 }
 
+/// `structure.strides` of an easy or long run: `reps` x `duration_s` fast strides, `recovery_s` easy jog between.
+public struct StridesDTO: Codable, Sendable, Equatable {
+    public var reps: Int?
+    public var durationS: Double?
+    public var recoveryS: Double?
+    public var note: String?
+
+    public init(reps: Int? = nil, durationS: Double? = nil, recoveryS: Double? = nil, note: String? = nil) {
+        self.reps = reps; self.durationS = durationS; self.recoveryS = recoveryS; self.note = note
+    }
+}
+
+/// `structure` of a run: the interval parts, or only `strides` on an easy / long run.
 public struct IntervalStructureDTO: Codable, Sendable, Equatable {
     public var warmup: IntervalLegDTO?
     public var work: IntervalWorkDTO?
     public var recovery: IntervalRecoveryDTO?
     public var cooldown: IntervalLegDTO?
+    public var strides: StridesDTO? = nil
 }
 
 public struct DeloadDTO: Codable, Sendable, Equatable {

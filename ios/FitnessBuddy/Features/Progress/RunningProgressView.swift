@@ -83,13 +83,16 @@ struct RunningProgressView: View {
         .screenIdentifier(running.value != nil && recent.value != nil ? AXID.Progress.running : AXID.Progress.loading)
         .sheet(item: $openPlanned) { RunDetailSheet(item: $0.item) }
         #if DEBUG
-        // `-uiSheet rundetail` (with `-uiTab progress`): the first planned interval run of the week, else the first planned run.
+        // `-uiSheet rundetail` (with `-uiTab progress`): the first planned interval run of the week, else the first planned run;
+        // `rundetail-easy`: the first planned easy run (strides).
         .onChange(of: weekRuns, initial: true) { _, rows in
-            guard !openedDebugSheet, ProgressLaunch.sheet == "rundetail" else { return }
+            let sheet = ProgressLaunch.sheet
+            guard !openedDebugSheet, sheet == "rundetail" || sheet == "rundetail-easy" else { return }
+            let kind = sheet == "rundetail-easy" ? "easy_run" : "intervals"
             let planned = rows.compactMap { row -> PlanItemDTO? in
                 if case .planned(let item) = row.target { item } else { nil }
             }
-            guard let item = planned.first(where: { $0.session?.type == "intervals" }) ?? planned.first else { return }
+            guard let item = planned.first(where: { $0.session?.type == kind }) ?? planned.first else { return }
             openedDebugSheet = true
             openPlanned = PlannedRunSheet(item: item)
         }

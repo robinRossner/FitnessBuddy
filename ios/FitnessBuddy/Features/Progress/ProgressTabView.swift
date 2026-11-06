@@ -16,7 +16,7 @@ struct ProgressTabView: View {
     #if DEBUG
     /// Launch arguments for screenshots / UI runs, honoured only with `-uiTab progress`: `-uiSegment running|insights`,
     /// `-uiLift <variant id>`, `-uiRun <run id>`, `-uiRoute insights|vdot|efficiency|allruns|insight` pushes a screen
-    /// (the first three also as `-uiSheet`, their old spelling), `-uiSheet alllifts|rundetail` opens a sheet.
+    /// (the first three also as `-uiSheet`, their old spelling), `-uiSheet alllifts|rundetail|rundetail-easy` opens a sheet.
     init() {
         let d = UserDefaults.standard
         guard ProgressLaunch.active else { return }

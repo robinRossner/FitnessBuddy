@@ -181,9 +181,20 @@ P3 = "33333333-3333-5333-8333-333333333333"
 P4 = "44444444-4444-5444-8444-444444444444"
 
 
-def push(db, **kw):
+def push(db, s: Settings | None = None, **kw):
     return gw.push_workouts(
-        db, settings(), today=kw.pop("today", TODAY), sleep=lambda s: None, **kw
+        db, s or settings(), today=kw.pop("today", TODAY), sleep=lambda s: None, **kw
+    )
+
+
+def default_window() -> Settings:
+    """The shipped push window (no GARMIN_PUSH_DAYS override)."""
+    base = settings()
+    return Settings(
+        _env_file=None,
+        garmin_email=base.garmin_email,
+        garmin_password=base.garmin_password,
+        garmin_request_interval_s=0.0,
     )
 
 
@@ -222,6 +233,42 @@ def test_long_run_without_strides_is_one_step():
     assert spec.name == "Sun 01.11 Long 11 km"
 
 
+def test_easy_run_names_strides_and_puts_them_after_the_distance():
+    run = gw.PlannedRun(P1, date(2026, 11, 4), "easy_run", None, easy(8.0))
+    spec = gw.build_workout(run)
+    main, strides = steps_of(spec)
+    assert main["endConditionValue"] == 8000.0 and main["description"] == "easy, HR below 156"
+    assert [main["stepOrder"], strides["stepOrder"]] == [1, 2]
+    stride, rec = strides["workoutSteps"]
+    assert stride["stepType"]["stepTypeKey"] == "interval" and stride["endConditionValue"] == 20.0
+    assert rec["endConditionValue"] == 60.0
+    assert spec.name == "Wed 04.11 Easy 8 km + 6x20s strides"
+    desc = spec.payload()["description"]
+    assert desc.startswith("Easy 8 km, HR 127-156; then 6x20s strides, 60s jog between")
+
+
+def test_long_run_with_strides():
+    run = gw.PlannedRun(P1, date(2026, 11, 1), "long_run", None, easy(11.0, typ="long_run"))
+    main, strides = steps_of(gw.build_workout(run))
+    assert main["endConditionValue"] == 11000.0 and strides["numberOfIterations"] == 6
+
+
+def test_marker_parses_old_and_requested_form():
+    h = "0123456789ab"
+    assert gw.parse_marker(f"x [FitnessBuddy ps={P1} d=2026-11-08 h={h}]") == (
+        P1,
+        date(2026, 11, 8),
+        h,
+        False,
+    )
+    assert gw.parse_marker(gw.marker(P1, date(2026, 11, 8), h, requested=True)) == (
+        P1,
+        date(2026, 11, 8),
+        h,
+        True,
+    )
+
+
 def test_intervals_json_warmup_repeats_recovery_cooldown_with_pace_and_hr():
     run = gw.PlannedRun(P2, date(2026, 10, 30), "intervals", None, intervals())
     spec = gw.build_workout(run)
@@ -256,7 +303,9 @@ def test_time_trial_has_no_repeat_group():
 @pytest.mark.parametrize(
     ("session", "kind", "name"),
     [
-        (easy(4.0), "easy_run", "Thu 29.10 Easy 4 km"),
+        (easy(4.0), "easy_run", "Thu 29.10 Easy 4 km + 6x20s strides"),
+        (easy(4.0, False), "easy_run", "Thu 29.10 Easy 4 km"),
+        (easy(12.5, typ="long_run"), "long_run", "Thu 29.10 Long 12.5 km + 6x20s strides"),
         (intervals(5, 800, "vo2max"), "intervals", "Thu 29.10 VO2 5x800m"),
         (intervals(4, 1000, "race_5k"), "intervals", "Thu 29.10 5K 4x1k"),
         (intervals(6, 400, "unknown"), "intervals", "Thu 29.10 Int 6x400m"),
@@ -286,7 +335,7 @@ def test_uploads_and_schedules_window_then_second_run_is_unchanged(db, fake):
     add_planned(db, P3, TODAY + timedelta(days=4), "long_run", easy(10.0, False, "long_run"))
     rep = push(db)
     assert rep.counts["uploaded"] == 2 and rep.counts["failed"] == 0
-    assert set(fake.ours()) == {"Wed 28.10 Easy 5 km", "Fri 30.10 Thr 3x1k"}
+    assert set(fake.ours()) == {"Wed 28.10 Easy 5 km + 6x20s strides", "Fri 30.10 Thr 3x1k"}
     assert sorted(d for _, d in fake.schedules.values()) == ["2026-10-28", "2026-10-30"]
     fake.calls.clear()
     again = push(db)
@@ -306,7 +355,7 @@ def test_changed_prescription_replaces_the_workout(db, fake):
     db.commit()
     rep = push(db)
     assert rep.counts["updated"] == 1
-    assert list(fake.ours()) == ["Thu 29.10 Easy 4 km"]
+    assert list(fake.ours()) == ["Thu 29.10 Easy 4 km + 6x20s strides"]
     assert old_id not in fake.workouts
     assert [d for _, d in fake.schedules.values()] == ["2026-10-29"]
     # upload first, then delete the old one (never an empty day on failure)
@@ -322,7 +371,7 @@ def test_moved_session_is_rescheduled_under_a_new_name(db, fake):
     db.commit()
     rep = push(db)
     assert rep.counts["updated"] == 1
-    assert list(fake.ours()) == ["Fri 30.10 Easy 5 km"]
+    assert list(fake.ours()) == ["Fri 30.10 Easy 5 km + 6x20s strides"]
     assert [d for _, d in fake.schedules.values()] == ["2026-10-30"]
 
 
@@ -405,6 +454,62 @@ def test_extra_day_is_pushed_and_kept_up_to_date(db, fake):
     assert push(db).counts["unchanged"] == 1  # outside the window but still open: kept
 
 
+FRI = date(2026, 11, 6)
+
+
+def test_default_window_is_today_and_tomorrow(db, fake):
+    """The bug: on Friday 05:00 the 2-day window already pushed Sunday's long run."""
+    assert default_window().garmin_push_days == 1
+    add_planned(db, P1, FRI, "intervals", intervals())
+    add_planned(db, P3, FRI + timedelta(days=2), "long_run", easy(11.0, False, "long_run"))
+    rep = push(db, default_window(), today=FRI)
+    assert rep.as_dict()["window"] == {"from": "2026-11-06", "to": "2026-11-07"}
+    assert list(fake.ours()) == ["Fri 06.11 Thr 3x1k"]
+    # Thursday evening already brings Friday's run; Saturday brings Sunday's
+    assert push(db, default_window(), today=FRI + timedelta(days=1)).counts["uploaded"] == 1
+    assert set(fake.ours()) == {"Sun 08.11 Long 11 km"}  # Friday's is past now
+
+
+def test_workout_pushed_too_early_is_removed_then_pushed_again_in_time(db, fake):
+    add_planned(db, P1, FRI, "intervals", intervals())
+    add_planned(db, P3, FRI + timedelta(days=2), "long_run", easy(11.0, False, "long_run"))
+    add_run(db, FRI - timedelta(days=2))  # an earlier activity: nothing to do with the push
+    push(db, settings(garmin_push_days=2), today=FRI)  # the old window
+    assert len(fake.ours()) == 2
+    fake.calls.clear()
+    rep = push(db, default_window(), today=FRI)
+    deleted = [(i.date, i.reason) for i in rep.items if i.action == "deleted"]
+    assert deleted == [("2026-11-08", "not due yet: beyond the push window")]
+    assert rep.counts["unchanged"] == 1 and list(fake.ours()) == ["Fri 06.11 Thr 3x1k"]
+    assert not [d for _, d in fake.schedules.values() if d == "2026-11-08"]
+    assert push(db, default_window(), today=FRI).counts["deleted"] == 0  # not re-pushed
+    rep = push(db, default_window(), today=FRI + timedelta(days=1))
+    assert rep.counts["uploaded"] == 1 and "Sun 08.11 Long 11 km" in fake.ours()
+
+
+def test_sent_on_request_stays_beyond_the_window_and_into_it(db, fake):
+    add_planned(db, P3, FRI + timedelta(days=2), "long_run", easy(11.0, False, "long_run"))
+    rep = push(db, default_window(), today=FRI, extra_day=FRI + timedelta(days=2))
+    assert rep.counts["uploaded"] == 1
+    [(_, desc)] = fake.ours().values()
+    assert desc.endswith(" sent=app]")
+    assert push(db, default_window(), today=FRI).counts["unchanged"] == 1
+    fake.calls.clear()
+    rep = push(db, default_window(), today=FRI + timedelta(days=1))  # now inside the window
+    assert rep.counts["unchanged"] == 1 and fake.writes() == []
+
+
+def test_request_for_an_early_pushed_workout_flags_it(db, fake):
+    add_planned(db, P3, FRI + timedelta(days=2), "long_run", easy(11.0, False, "long_run"))
+    push(db, settings(garmin_push_days=2), today=FRI)  # old window, no flag
+    [(old, _)] = fake.ours().values()
+    rep = push(db, default_window(), today=FRI, extra_day=FRI + timedelta(days=2))
+    [item] = rep.items
+    assert (item.action, item.reason) == ("updated", "sent on request")
+    assert old not in fake.workouts
+    assert push(db, default_window(), today=FRI).counts["unchanged"] == 1
+
+
 def test_dry_run_never_contacts_garmin(db, monkeypatch):
     def boom(s):
         raise AssertionError("dry run must not log in")
@@ -413,7 +518,7 @@ def test_dry_run_never_contacts_garmin(db, monkeypatch):
     add_planned(db, P1, TODAY + timedelta(days=1), "easy_run", easy(5.0))
     rep = push(db, dry_run=True)
     assert rep.dry_run and not rep.remote_checked
-    assert [w.name for w in rep.workouts] == ["Thu 29.10 Easy 5 km"]
+    assert [w.name for w in rep.workouts] == ["Thu 29.10 Easy 5 km + 6x20s strides"]
 
 
 def test_failed_upload_is_reported_and_old_workout_kept(db, fake):
@@ -428,7 +533,7 @@ def test_failed_upload_is_reported_and_old_workout_kept(db, fake):
     fake.upload_running_workout = broken
     rep = push(db)
     assert rep.counts["failed"] == 1
-    assert list(fake.ours()) == ["Thu 29.10 Easy 5 km"]  # nothing deleted
+    assert list(fake.ours()) == ["Thu 29.10 Easy 5 km + 6x20s strides"]  # nothing deleted
 
 
 # ---------------------------------------------------------------------------- hooks and login
@@ -550,7 +655,7 @@ def test_endpoint_pushes_and_summarises(client, db, fake):
     assert body["counts"]["uploaded"] == 1 and body["dry_run"] is False
     [day] = body["days"]
     assert day["date"] == "2026-10-29"
-    assert day["items"][0]["name"] == "Thu 29.10 Easy 5 km"
+    assert day["items"][0]["name"] == "Thu 29.10 Easy 5 km + 6x20s strides"
     r = client.post("/api/v1/garmin/workouts/push", headers=AUTH, json={"dry_run": True})
     assert r.json()["remote_checked"] is False
 

@@ -6,20 +6,25 @@ login blocks new attempts for hours, Garmin SSO 429s repeated logins). Contract 
 docs/api/garmin.md.
 
 Stateless ownership: every workout we create carries a marker in its description,
-`[FitnessBuddy ps=<planned session id> d=<YYYY-MM-DD> h=<content hash>]`. A push lists the Garmin
+`[FitnessBuddy ps=<planned session id> d=<YYYY-MM-DD> h=<content hash>]` (plus ` sent=app` when it
+was sent on request for a day beyond the window). A push lists the Garmin
 workout library, keeps only workouts with that marker (anything else is never touched) and
 reconciles them with the open planned runs:
 
 - an open run (status proposed/approved, no run activity that day) in the window (today +
-  `garmin_push_days`) without a workout -> upload + schedule on its date;
+  `garmin_push_days`, default 1: today and tomorrow) without a workout -> upload + schedule on
+  its date;
 - a workout whose session, date or content changed (readiness made it easier, coach moved it,
   builder changed) -> upload the new one, schedule it, delete the old one;
 - a workout whose day is before today, whose run was done (activity that day / session closed)
-  or whose planned session no longer exists or is no longer a run -> unschedule + delete.
+  or whose planned session no longer exists or is no longer a run -> unschedule + delete;
+- a workout of an open run beyond the window that was not sent on request (pushed by an older,
+  wider window) -> unschedule + delete; it comes back once its day is in the window.
 
-Open future runs we already pushed outside the window (the app's "Send to watch" on a later day)
-stay and are kept up to date. Nothing is stored in the database; the push is idempotent (a second
-run reports `unchanged`).
+Only deletes our own workout definitions and their calendar entries, never activities. Open future
+runs sent on request (the app's "Send to watch" on a later day, marker ` sent=app`) stay and are
+kept up to date. Nothing is stored in the database; the push is idempotent (a second run reports
+`unchanged`).
 """
 
 from __future__ import annotations
@@ -59,16 +64,16 @@ from apps.fitness.settings import Settings, get_settings
 
 log = logging.getLogger(__name__)
 
-BUILDER_VERSION = 1  # bump when the workout JSON changes: every pushed workout gets replaced
+BUILDER_VERSION = 2  # bump when the workout JSON changes: every pushed workout gets replaced
 RUN_KINDS = ("easy_run", "intervals", "long_run")
 OPEN_STATUSES = ("proposed", "approved")
 HORIZON_DAYS = 21  # how far ahead pushed-on-request workouts are kept up to date
-NAME_MAX = 32  # Garmin accepts longer names; the watch list shows ~15-20 characters
+NAME_MAX = 40  # Garmin accepts longer names; the watch list shows ~15-20 characters
 DESCRIPTION_MAX = 480
 PAST_LOOKBACK_DAYS = 60  # schedule entries of our old workouts are looked up this far back
 MARKER_RE = re.compile(
     r"\[FitnessBuddy ps=(?P<pid>[0-9a-fA-F-]{36}) d=(?P<day>\d{4}-\d{2}-\d{2}) "
-    r"h=(?P<hash>[0-9a-f]{12})\]"
+    r"h=(?P<hash>[0-9a-f]{12})(?P<sent> sent=app)?\]"
 )
 NAME_RE = re.compile(r"^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{2}\.\d{2} ")
 WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
@@ -93,6 +98,7 @@ class WorkoutSpec:
     name: str
     content_hash: str
     workout: RunningWorkout
+    requested: bool = False  # sent on request for a day beyond the window (marker ` sent=app`)
 
     def payload(self) -> dict[str, Any]:
         return self.workout.to_dict()
@@ -105,6 +111,7 @@ class RemoteWorkout:
     planned_session_id: str
     day: date
     content_hash: str
+    requested: bool = False
     schedules: list[tuple[int, str]] = field(default_factory=list)  # (schedule id, date)
 
 
@@ -222,6 +229,23 @@ def _rep_label(meters: float) -> str:
     return f"{meters / 1000:g}k" if meters >= 1000 and meters % 500 == 0 else f"{meters:g}m"
 
 
+def _strides(session: dict[str, Any]) -> tuple[int, float, float] | None:
+    """(reps, stride seconds, recovery seconds) of an easy / long run, None without strides."""
+    st = (session.get("structure") or {}).get("strides")
+    if not st or int(st.get("reps") or 0) <= 0:
+        return None
+    return (
+        int(st["reps"]),
+        float(st.get("duration_s") or 20),
+        float(st.get("recovery_s") or 60),
+    )
+
+
+def _strides_label(session: dict[str, Any]) -> str:
+    st = _strides(session)
+    return f" + {st[0]}x{_num(st[1])}s strides" if st else ""
+
+
 def short_label(run: PlannedRun) -> str:
     s = run.session
     t = s.get("type")
@@ -234,11 +258,11 @@ def short_label(run: PlannedRun) -> str:
             return f"TT {_km_label(rep_m * reps / 1000)}"
         return f"{INTERVAL_LABELS.get(stype, 'Int')} {reps}x{_rep_label(rep_m)}"
     km = float(s.get("distance_km") or 0)
-    return f"{'Long' if t == 'long_run' else 'Easy'} {_km_label(km)}"
+    return f"{'Long' if t == 'long_run' else 'Easy'} {_km_label(km)}{_strides_label(s)}"
 
 
 def workout_name(run: PlannedRun) -> str:
-    """Short, dated and ASCII so it reads on the watch: `Thu 29.10 Easy 3 km`,
+    """Short, dated and ASCII so it reads on the watch: `Wed 04.11 Easy 8 km + 6x20s strides`,
     `Fri 30.10 Thr 3x1k`, `Sun 01.11 Long 11 km`."""
     d = run.day
     name = f"{WEEKDAYS[d.weekday()]} {d.day:02d}.{d.month:02d} {short_label(run)}"
@@ -364,17 +388,18 @@ def _easy_pace_s(session: dict[str, Any]) -> float:
 
 
 def _easy_steps(run: PlannedRun, steps: _Steps) -> tuple[list, int, str]:
+    """Easy / long run: one distance step with the HR range, then the strides near the end (on
+    top of the distance, as the planner prescribes them)."""
     s = run.session
     km = float(s.get("distance_km") or 0)
     hr = s.get("hr") or {}
-    target = _hr_target(hr)
     pace_s = _easy_pace_s(s)
     out: list = [
         steps.step(
             "interval",
             "distance",
             km * 1000,
-            target,
+            _hr_target(hr),
             description=f"easy, HR below {hr.get('high')}" if hr.get("high") else "easy",
         )
     ]
@@ -382,23 +407,19 @@ def _easy_steps(run: PlannedRun, steps: _Steps) -> tuple[list, int, str]:
     summary = f"{'Long' if s.get('type') == 'long_run' else 'Easy'} {_km_label(km)}"
     if hr.get("high"):
         summary += f", HR {_num(hr.get('low') or 0)}-{_num(hr['high'])}"
-    strides = (s.get("structure") or {}).get("strides")
-    if strides and int(strides.get("reps") or 0) > 0:
-        reps, dur, rec = (
-            int(strides["reps"]),
-            float(strides.get("duration_s") or 20),
-            float(strides.get("recovery_s") or 60),
-        )
+    strides = _strides(s)
+    if strides:
+        reps, dur, rec = strides
 
         def body() -> list[ExecutableStep]:
             return [
-                steps.step("interval", "time", dur, description="relaxed fast stride"),
+                steps.step("interval", "time", dur, description="Stride: relaxed fast"),
                 steps.step("recovery", "time", rec, description="easy jog / walk"),
             ]
 
         out.append(steps.repeat(reps, body))
         seconds += reps * (dur + rec)
-        summary += f" + {reps}x{_num(dur)}s strides"
+        summary += f"; then {reps}x{_num(dur)}s strides, {_num(rec)}s jog between"
     return out, round(seconds), summary
 
 
@@ -495,12 +516,13 @@ def content_hash(name: str, day: date, workout: RunningWorkout) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()[:12]
 
 
-def marker(pid: str, day: date, h: str) -> str:
-    return f"[FitnessBuddy ps={pid} d={day.isoformat()} h={h}]"
+def marker(pid: str, day: date, h: str, requested: bool = False) -> str:
+    return f"[FitnessBuddy ps={pid} d={day.isoformat()} h={h}{' sent=app' if requested else ''}]"
 
 
-def build_workout(run: PlannedRun) -> WorkoutSpec:
-    """The Garmin running workout of one planned run (pure)."""
+def build_workout(run: PlannedRun, requested: bool = False) -> WorkoutSpec:
+    """The Garmin running workout of one planned run (pure). `requested`: sent on request for a
+    day beyond the window (kept there; the flag lives in the marker, not in the hash)."""
     steps = _Steps()
     if run.session.get("type") == "intervals":
         body, seconds, summary = _interval_steps(run, steps)
@@ -520,9 +542,9 @@ def build_workout(run: PlannedRun) -> WorkoutSpec:
     )
     h = content_hash(name, run.day, workout)
     note = f"{summary}. FitnessBuddy plan, synced automatically (edits are overwritten). "
-    room = DESCRIPTION_MAX - len(marker(run.planned_session_id, run.day, h))
-    workout.description = note[:room] + marker(run.planned_session_id, run.day, h)
-    return WorkoutSpec(run, name, h, workout)
+    tag = marker(run.planned_session_id, run.day, h, requested)
+    workout.description = note[: DESCRIPTION_MAX - len(tag)] + tag
+    return WorkoutSpec(run, name, h, workout, requested)
 
 
 def fingerprint(specs: list[WorkoutSpec]) -> str:
@@ -547,12 +569,13 @@ class _Remote:
             raise translate_error(exc) from None
 
 
-def parse_marker(description: str | None) -> tuple[str, date, str] | None:
+def parse_marker(description: str | None) -> tuple[str, date, str, bool] | None:
+    """(planned session id, day, content hash, sent on request) of our marker, else None."""
     m = MARKER_RE.search(description or "")
     if not m:
         return None
     try:
-        return m["pid"].lower(), date.fromisoformat(m["day"]), m["hash"]
+        return m["pid"].lower(), date.fromisoformat(m["day"]), m["hash"], bool(m["sent"])
     except ValueError:
         return None
 
@@ -575,10 +598,9 @@ def list_ours(remote: _Remote, *, page: int = 100, max_pages: int = 10) -> list[
             parsed = parse_marker(desc)
             if parsed is None:
                 continue  # not ours: never touched
-            pid, day, h = parsed
-            out.append(
-                RemoteWorkout(int(it["workoutId"]), str(it.get("workoutName") or ""), pid, day, h)
-            )
+            pid, day, h, requested = parsed
+            name = str(it.get("workoutName") or "")
+            out.append(RemoteWorkout(int(it["workoutId"]), name, pid, day, h, requested))
         if len(items) < page:
             break
     return out
@@ -660,15 +682,25 @@ def desired_workouts(
     keep: set[str] = frozenset(),  # type: ignore[assignment]
     extra_day: date | None = None,
 ) -> list[WorkoutSpec]:
+    """What we want on the watch: the open runs in the window, plus runs beyond it that were sent
+    on request (`extra_day` now, `keep` = sent earlier); only those carry the `requested` flag."""
     out = []
     for pid, run in candidates.items():
-        if window_from <= run.day <= window_to or pid in keep or run.day == extra_day:
+        if window_from <= run.day <= window_to:
             out.append(build_workout(run))
+        elif pid in keep or run.day == extra_day:
+            out.append(build_workout(run, requested=True))
     return sorted(out, key=lambda w: (w.run.day, w.name))
 
 
-def _deletion_reason(w: RemoteWorkout, today: date) -> str:
-    return "past" if w.day < today else "run done or session no longer planned"
+def _deletion_reason(
+    w: RemoteWorkout, today: date, window_to: date | None, open_pids: set[str]
+) -> str:
+    if w.day < today:
+        return "past"
+    if w.planned_session_id in open_pids and window_to is not None and w.day > window_to:
+        return "not due yet: beyond the push window"
+    return "run done or session no longer planned"
 
 
 def reconcile_remote(
@@ -679,6 +711,8 @@ def reconcile_remote(
     today: date,
     schedules_known: bool,
     report: PushReport,
+    window_to: date | None = None,
+    open_pids: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> None:
     by_pid: dict[str, list[RemoteWorkout]] = {}
     for w in ours:
@@ -687,7 +721,13 @@ def reconcile_remote(
     for spec in desired:
         pid, day = spec.run.planned_session_id, spec.run.day.isoformat()
         have = by_pid.pop(pid, [])
-        same = [w for w in have if w.content_hash == spec.content_hash and w.day == spec.run.day]
+        same = [
+            w
+            for w in have
+            if w.content_hash == spec.content_hash
+            and w.day == spec.run.day
+            and (w.requested or not spec.requested)  # beyond the window it needs the flag
+        ]
         keep, stale = (same[0], [w for w in have if w is not same[0]]) if same else (None, have)
         try:
             if keep is not None:
@@ -709,7 +749,10 @@ def reconcile_remote(
             else:
                 wid = _upload(remote, spec)
                 action = "updated" if stale else "uploaded"
-                reason = "plan changed" if stale else None
+                changed = any(
+                    w.content_hash != spec.content_hash or w.day != spec.run.day for w in stale
+                )
+                reason = ("plan changed" if changed else "sent on request") if stale else None
                 report.items.append(PushItem(day, action, spec.name, pid, wid, reason))
         except GarminError as exc:
             log.warning("Garmin workout push failed for %s: %s", day, exc)
@@ -723,7 +766,7 @@ def reconcile_remote(
     # 2. delete ours that are past, done or no longer planned
     for pid, rest in by_pid.items():
         for w in rest:
-            reason = _deletion_reason(w, today)
+            reason = _deletion_reason(w, today, window_to, open_pids)
             try:
                 _delete(remote, w)
                 report.items.append(
@@ -794,7 +837,11 @@ def push_workouts(
     try:
         remote = _Remote(client_provider(s), FixedPause(s.garmin_request_interval_s, sleep))
         ours = list_ours(remote)
-        keep = {w.planned_session_id for w in ours if w.planned_session_id in candidates}
+        # beyond the window only what was sent on request stays; the rest (pushed by an older,
+        # wider window) is removed and comes back once its day is in the window
+        keep = {
+            w.planned_session_id for w in ours if w.requested and w.planned_session_id in candidates
+        }
         report.workouts = desired_workouts(candidates, today, window_to, keep, extra_day)
         last_day = max([window_to, *(w.day for w in ours), *(w.run.day for w in report.workouts)])
         schedules_known = attach_schedules(
@@ -810,6 +857,8 @@ def push_workouts(
             today=today,
             schedules_known=schedules_known,
             report=report,
+            window_to=window_to,
+            open_pids=set(candidates),
         )
         if not report.counts["failed"]:  # what push_if_changed compares against
             _last_fingerprint = fingerprint(desired_workouts(candidates, today, window_to))
