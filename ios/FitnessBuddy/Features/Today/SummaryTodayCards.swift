@@ -35,6 +35,10 @@ struct TodayRunCard: View {
                         }
                         if let pace = PlanFormat.pace(session?.pace) { secondary("\(pace) /km") }
                     }
+                    if let strides = PlanFormat.strides(session?.structure?.strides) {
+                        Label("+ \(strides)", systemImage: "bolt.fill")
+                            .font(.subheadline.weight(.medium)).foregroundStyle(Domain.running.color)
+                    }
                 }
                 let hr = session?.hr ?? session?.structure?.work?.hr
                 if HRZoneChip.label(for: hr) != nil { HRZoneChipView(hr: hr, compact: true) }

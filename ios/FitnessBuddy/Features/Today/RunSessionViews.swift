@@ -243,6 +243,14 @@ struct RunDetailSheet: View {
                 }
                 if session?.hr != nil { hrRow("Heart rate", session?.hr) }
                 if let pace = PlanFormat.pace(session?.pace) { row("Pace", "\(pace) /km") }
+                if type != "intervals", let strides = PlanFormat.strides(session?.structure?.strides) {
+                    MetricBlock(title: "Strides") {
+                        Text("+ \(strides)").metricStyle(.title3, weight: .semibold)
+                        if let detail = PlanFormat.stridesDetail(session?.structure?.strides) {
+                            Text(detail).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
             }
         }
     }

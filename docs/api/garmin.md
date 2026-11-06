@@ -7,24 +7,25 @@ fallback). Code: `backend/apps/fitness/garmin_workouts.py`.
 ## What lands on the watch
 
 Every open planned run (`easy_run`, `intervals`, `long_run`; status `proposed|approved`; no running
-activity on that day yet) from **today to today + `GARMIN_PUSH_DAYS`** becomes a Garmin running
+activity on that day yet) from **today to today + `GARMIN_PUSH_DAYS`** (default 1: today and tomorrow) becomes a Garmin running
 workout, **scheduled on its date** in the Garmin calendar. The watch gets it on its next sync with
 the phone (Garmin Connect app), so the evening push lands before bed.
 
 | Run | Steps |
 |---|---|
-| Easy / long run | one distance step with a custom HR range target (`hr.low`–`hr.high` bpm, the easy ceiling); easy runs with strides add a repeat group `reps x (stride for duration_s, recovery for recovery_s)` |
+| Easy / long run | one distance step with a custom HR range target (`hr.low`–`hr.high` bpm, the easy ceiling); with strides, then a repeat group `reps x (stride for duration_s, recovery for recovery_s)` on top of the distance |
 | Intervals | warm-up (distance, easy HR range) -> repeat `reps x (work: rep distance, pace range target from pace_range_s_per_km, secondary HR target from work.hr; recovery: duration_s or distance_m jog)`, last recovery skipped -> cool-down (distance) |
 | Time trial | warm-up -> one work step (distance, pace target) -> cool-down |
 
 Names are short, dated and ASCII so the watch list shows the day first: `Thu 29.10 Easy 5 km`,
-`Fri 30.10 Thr 3x1k`, `Sun 01.11 Long 11 km`, `VO2 5x800m`, `5K 4x1k`, `TT 3 km` (max 32
-characters).
+`Wed 04.11 Easy 8 km + 6x20s strides`, `Fri 30.10 Thr 3x1k`, `Sun 01.11 Long 11 km`, `VO2 5x800m`,
+`5K 4x1k`, `TT 3 km` (max 40 characters).
 
 ## Ownership and cleanup (stateless)
 
 Nothing is stored in the database. Each workout's description ends with a marker:
-`[FitnessBuddy ps=<planned session id> d=<YYYY-MM-DD> h=<content hash>]`. Only workouts carrying
+`[FitnessBuddy ps=<planned session id> d=<YYYY-MM-DD> h=<content hash>]`, with ` sent=app` before
+the `]` when it was sent on request for a day beyond the window. Only workouts carrying
 this marker are ever changed or deleted; any other workout in the Garmin library is left alone (a
 list item without a description whose name looks like ours is fetched in full and checked first).
 
@@ -36,8 +37,12 @@ A push:
 - re-schedules our workout if it is no longer on the calendar;
 - unschedules + deletes our workouts whose date is before today, whose run was done (activity on
   that day or the session closed) or whose planned session no longer exists / is no longer a run;
-- keeps workouts that were pushed on request for a later day (outside the window) while their
-  session stays open, and updates them when they change.
+- keeps workouts that were sent on request for a later day (outside the window, marker
+  ` sent=app`) while their session stays open, and updates them when they change;
+- unschedules + deletes our other workouts of open runs beyond the window (pushed by the older
+  2-day window); they are pushed again once their day is in the window.
+
+Only our workout definitions and their calendar entries are deleted, never activities.
 
 A second push with no plan change reports everything `unchanged` and writes nothing to Garmin.
 
@@ -139,7 +144,7 @@ them but never does a fresh SSO login.
 | Variable | Default | Meaning |
 |---|---|---|
 | `GARMIN_PUSH_WORKOUTS` | `true` | master switch (scheduled jobs, hook, endpoint) |
-| `GARMIN_PUSH_DAYS` | `2` | window = today + this many days ahead |
+| `GARMIN_PUSH_DAYS` | `1` | window = today + this many days ahead (1 = today and tomorrow) |
 | `GARMIN_PUSH_TIMES` | `19:45,05:00` | scheduled pushes (comma list, `SCHEDULER_TZ`) |
 | `GARMIN_PUSH_AFTER_ENGINE` | `true` | push after an engine re-run changed a run (server only) |
 | `GARMIN_EMAIL` / `GARMIN_PASSWORD` | – | python-garminconnect login (tokens in `GARMIN_CONNECT_TOKEN_DIR`) |

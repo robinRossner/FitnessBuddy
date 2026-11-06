@@ -46,6 +46,18 @@ public enum PlanFormat: Sendable {
         return pace?.label
     }
 
+    /// "6 × 20 s strides"; nil without strides (or 0 reps).
+    public static func strides(_ s: StridesDTO?) -> String? {
+        guard let reps = s?.reps, reps > 0 else { return nil }
+        return "\(reps) × \(Fmt.number(s?.durationS ?? 20, maxFraction: 0)) s strides"
+    }
+
+    /// "after the easy part, 60 s easy jog between" for the run sheet.
+    public static func stridesDetail(_ s: StridesDTO?) -> String? {
+        guard strides(s) != nil else { return nil }
+        return "Near the end, after the easy part · \(Fmt.number(s?.recoveryS ?? 60, maxFraction: 0)) s easy jog between"
+    }
+
     public static func runTitle(_ type: String) -> String {
         switch type {
         case "easy_run": "Easy run"

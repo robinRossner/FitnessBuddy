@@ -72,7 +72,7 @@ enum SnapshotRegistry {
     ]
 
     /// `uiSegment running|insights`, `uiLift <variant>`, `uiRun <id>`, `uiRoute vdot|efficiency|allruns|insights|insight`,
-    /// `uiSheet alllifts|rundetail`.
+    /// `uiSheet alllifts|rundetail|rundetail-easy`.
     static let progress: [SnapshotScreen] = [
         .init("progress-running", tab: "progress", ["uiSegment": "running"], ready: AXID.Progress.running),
         .init("progress-insights", tab: "progress", ["uiSegment": "insights"], ready: AXID.Progress.insights),
@@ -85,6 +85,7 @@ enum SnapshotRegistry {
         .init("progress-insight-detail", tab: "progress", ["uiRoute": "insight"], ready: AXID.Progress.insightDetail),
         .init("progress-all-lifts", tab: "progress", ["uiSheet": "alllifts"], ready: AXID.Progress.allLifts),
         .init("progress-run-detail", tab: "progress", ["uiSegment": "running", "uiSheet": "rundetail"], ready: AXID.Progress.runDetail),
+        .init("progress-run-detail-easy", tab: "progress", ["uiSegment": "running", "uiSheet": "rundetail-easy"], ready: AXID.Progress.runDetail),
     ]
 
     /// `uiRoute proposal:<id>|history|settings|proposals`, `uiSheet ask` (no keyboard: nothing takes focus).

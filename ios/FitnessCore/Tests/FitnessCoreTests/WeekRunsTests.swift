@@ -13,9 +13,13 @@ private func plan(_ date: String, _ kind: String, status: String? = "proposed", 
 
                   movedFrom: String? = nil, hr: HRRangeDTO? = HRRangeDTO(zone: "Z1-Z2", low: nil, high: nil, basis: nil),
 
-                  reps: Int? = nil) -> PlanItemDTO {
+                  reps: Int? = nil, strides: Int? = nil) -> PlanItemDTO {
     var structure: IntervalStructureDTO?
     if let reps { structure = IntervalStructureDTO(warmup: nil, work: IntervalWorkDTO(reps: reps, distanceM: 1000), recovery: nil, cooldown: nil) }
+    if let strides {
+        structure = IntervalStructureDTO(warmup: nil, work: nil, recovery: nil, cooldown: nil,
+                                         strides: StridesDTO(reps: strides, durationS: 20, recoveryS: 60))
+    }
     let session = PrescriptionDTO(type: kind, distanceKm: km, hr: hr, structure: structure, totalKm: nil)
     return PlanItemDTO(id: "id-\(date)-\(kind)", date: date, kind: kind, status: status, title: PlanFormat.runTitle(kind),
                        session: session, adaptive: adaptive, movedFrom: movedFrom)
@@ -194,6 +198,23 @@ struct PlanFieldsDecodingTests {
     @Test func existingFixturesStillDecode() throws {
         let week = try Fixture.decode(PlanWeekDTO.self, "plan_week")
         #expect(!week.days.isEmpty && week.days.flatMap(\.sessions).allSatisfy { $0.movedFrom == nil || !$0.movedFrom!.isEmpty })
+    }
+
+    @Test func easyRunStridesFollowTheDistance() {
+        let m = model([
+            plan("2026-10-28", "easy_run", km: 8, adaptive: true, strides: 6),
+            plan("2026-11-01", "long_run", km: 11, adaptive: true, strides: 0),
+        ], today: "2026-10-27")
+        #expect(m.rows[0].distanceText == "\(Fmt.km(8)) km*" && m.rows[0].structureText == "6 × 20 s strides")
+        #expect(m.rows[1].structureText == nil)  // 0 reps = no strides
+        #expect(PlanFormat.strides(StridesDTO(reps: 6, durationS: 20)) == "6 × 20 s strides")
+        #expect(PlanFormat.stridesDetail(StridesDTO(reps: 6, durationS: 20, recoveryS: 60))?.hasSuffix("60 s easy jog between") == true)
+    }
+
+    @Test func fixtureEasyRunDecodesStrides() throws {
+        let week = try Fixture.decode(PlanWeekDTO.self, "plan_week")
+        let strides = week.days.flatMap(\.sessions).compactMap { $0.session?.structure?.strides }
+        #expect(strides.contains { ($0.reps ?? 0) > 0 && $0.durationS != nil })
     }
 
     @Test func adaptsOnLabels() {

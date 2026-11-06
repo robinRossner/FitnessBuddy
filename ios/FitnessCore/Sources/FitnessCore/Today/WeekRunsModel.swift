@@ -146,6 +146,10 @@ public struct WeekRunsModel: Equatable, Sendable {
         if asterisk {
             if let s = structure { structure = s + "*" } else if let d = distance { distance = d + "*" }
         }
+        // easy / long run strides follow the distance: "8 km* · 6 × 20 s strides"
+        if item.kind != "intervals", let strides = PlanFormat.strides(session?.structure?.strides) {
+            structure = strides
+        }
 
         let hr = session?.hr ?? session?.structure?.work?.hr
         let pace = PlanFormat.pace(session?.pace) ?? session?.structure?.work?.paceLabel

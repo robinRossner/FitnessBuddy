@@ -70,7 +70,7 @@ class Settings(CoreSettings):
     # Planned runs -> Garmin Connect workouts on the watch (apps/fitness/garmin/workouts.py, needs
     # GARMIN_EMAIL/GARMIN_PASSWORD; docs/api/garmin.md). Window = today + this many days ahead.
     garmin_push_workouts: bool = True
-    garmin_push_days: int = 2
+    garmin_push_days: int = 1  # window: today + this many days (1 = today and tomorrow)
     # scheduler_tz; after the 19:30 / 03:30 syncs (later changes go via garmin_push_after_engine)
     garmin_push_times: str = "19:45,05:00"
     # Manual sync (POST /garmin/sync, in-memory guard, restart resets it): minimum gap between two
