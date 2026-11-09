@@ -27,7 +27,7 @@ import SwiftUI
 //   ChevronRowLink(destination:label:)       a row inside a card that navigates (content + chevron)
 //   ShowAllLink(title:destination:)          "Show All Data" footer row with divider, for chart cards
 //   Chip(text:color:symbol:)                 small coloured capsule ("PR", "+2.5 kg", "Deload") (Components.swift)
-//   GarminSyncButton(resources:)             toolbar "Sync" (Garmin pull + app sync); add .garminSyncBanner() to the screen
+//   GarminSyncButton(resources:)             toolbar "Sync" (Garmin + Withings pull, app sync); add .garminSyncBanner() to the screen
 // Values
 //   MetricText(value:unit:size:color:)       "78.2 kg" the Apple way; use for every big number
 //   Sparkline(values:color:lineWidth:showsEndDot:)

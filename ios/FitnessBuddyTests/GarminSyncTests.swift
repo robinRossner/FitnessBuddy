@@ -13,6 +13,8 @@ private final class Fake {
     var blockSleep = false
     var connectOpens = true
     var demo = false
+    var weighInNote: String?
+    var withingsCalls = 0
 
     func controller() -> GarminSyncController {
         GarminSyncController(hooks: .init(
@@ -20,6 +22,7 @@ private final class Fake {
                 calls.append("request")
                 return try responses.isEmpty ? syncedEmpty() : responses.removeFirst().get()
             },
+            pullWeighIns: { [self] in withingsCalls += 1; return weighInNote },
             isDemo: { [self] in demo },
             syncApp: { [self] in calls.append("syncApp") },
             refresh: { [self] _ in calls.append("refresh") },
@@ -49,6 +52,17 @@ struct GarminSyncControllerTests {
         #expect(fake.calls == ["request", "syncApp", "refresh"])
         #expect(c.feedback?.title == "No new activity at Garmin yet")
         #expect(!c.isRunning)
+    }
+
+    @Test func alsoPullsWithingsAndAddsItsNoteToTheBanner() async {
+        let fake = Fake()
+        fake.weighInNote = "1 new weigh-in."
+        let c = fake.controller()
+        await c.sync()
+        #expect(fake.withingsCalls == 1)
+        #expect(fake.calls == ["request", "syncApp", "refresh"])
+        #expect(c.feedback?.title == "No new activity at Garmin yet")
+        #expect(c.feedback?.detail?.hasSuffix("1 new weigh-in.") == true)
     }
 
     @Test func appSyncStillRunsOnCooldownBusyLimitAndFailure() async {

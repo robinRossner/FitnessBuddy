@@ -303,7 +303,9 @@ The Friday quality session of the same week, abridged:
     (engine make-up), a recovery swap ("intervals on ... too soon after the lower-body day ...") or
     the reason of an approved coach change. Who changed it is not exposed.
 - `kind`: `upper|lower|easy_run|intervals|long_run|rest`. `session.type` is `lifting`, `easy_run`,
-  `long_run`, `intervals` or `rest` (see `examples/plan_week.json` for run / rest shapes).
+  `long_run`, `intervals` or `rest` (see `examples/plan_week.json` for run / rest shapes). A rest
+  session may carry `optional` (bool: easy movement is fine), `suggestion` (str, e.g. "mobility 10-15
+  min") and `original` (`{kind, prescription}` when readiness replaced a session by rest).
 - Lifting exercises: `rest_s` (int seconds, 30..600) is the resolved rest timer of the exercise:
   `exercise_overrides.<slug>.rest_s` if set, else `lifting.rest_default_s` (120). It is on every
   lifting exercise of every plan item (also `unresolved` ones) and resolved when the plan is read, so

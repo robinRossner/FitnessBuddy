@@ -125,6 +125,16 @@ struct WithingsLogicTests {
         #expect(fb(.init(status: .unknown("x"))).tone == .warning)
     }
 
+    @Test func syncButtonNoteOnlyForNewsAndTransientTrouble() {
+        #expect(WithingsLogic.syncButtonNote(for: .init(status: .synced, newMeasurements: 3), now: now) == "3 new weigh-ins.")
+        #expect(WithingsLogic.syncButtonNote(for: .init(status: .synced, newMeasurements: 0), now: now) == nil)
+        #expect(WithingsLogic.syncButtonNote(for: .init(status: .notConnected), now: now) == nil)
+        #expect(WithingsLogic.syncButtonNote(for: .init(status: .busy), now: now) == nil)
+        #expect(WithingsLogic.syncButtonNote(for: APIError.http(429, nil))?.contains("limiting") == true)
+        #expect(WithingsLogic.syncButtonNote(for: APIError.http(503, nil)) == nil)
+        #expect(WithingsLogic.syncButtonNote(for: APIError.http(409, nil)) == nil)
+    }
+
     @Test func errorMessages() {
         #expect(WithingsLogic.message(for: APIError.http(429, nil)).contains("limiting"))
         #expect(WithingsLogic.message(for: APIError.http(503, nil)) == "Withings isn't set up on the server.")

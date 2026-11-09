@@ -35,6 +35,17 @@ struct DecodingTests {
         #expect(PlanFormat.pace(easy.pace) != nil)
     }
 
+    @Test func restOptionalAcceptsBoolOrLegacyString() throws {
+        let d = APICoding.makeDecoder()
+        let legacy = try d.decode(PrescriptionDTO.self, from: Data(#"{"type":"rest","optional":"mobility 10-15 min"}"#.utf8))
+        #expect(legacy.optional == true && legacy.suggestion == "mobility 10-15 min")
+        let current = try d.decode(PrescriptionDTO.self,
+                                   from: Data(#"{"type":"rest","optional":true,"suggestion":"mobility 10-15 min"}"#.utf8))
+        #expect(current.optional == true && current.suggestion == "mobility 10-15 min")
+        let plain = try d.decode(PrescriptionDTO.self, from: Data(#"{"type":"rest"}"#.utf8))
+        #expect(plain.optional == nil && plain.suggestion == nil)
+    }
+
     @Test func syncPullSnapshot() throws {
         let pull = try Fixture.decode(PullResponse.self, "sync_pull")
         #expect(pull.cursor == "c9483")

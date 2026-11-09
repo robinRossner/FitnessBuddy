@@ -1,7 +1,7 @@
 import FitnessCore
 import SwiftUI
 
-/// Toolbar "Sync" button (next to `SyncStatusBadge`): the backend pulls Garmin now, then the app syncs and reloads
+/// Toolbar "Sync" button (next to `SyncStatusBadge`): the backend pulls Garmin and Withings now, then the app syncs and reloads
 /// `resources` (the stats the screen shows, as for pull-to-refresh). Logic lives in `GarminSyncController`.
 struct GarminSyncButton: View {
     @Environment(AppEnvironment.self) private var env
@@ -19,8 +19,8 @@ struct GarminSyncButton: View {
             }
         }
         .disabled(garmin.isRunning)
-        .accessibilityLabel(garmin.isRunning ? "Syncing with Garmin" : "Sync with Garmin")
-        .accessibilityHint("Fetches your latest activities from Garmin Connect")
+        .accessibilityLabel(garmin.isRunning ? "Syncing Garmin and Withings" : "Sync Garmin and Withings")
+        .accessibilityHint("Fetches your latest activities from Garmin Connect and weigh-ins from Withings")
     }
 }
 

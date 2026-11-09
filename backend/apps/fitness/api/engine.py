@@ -9,7 +9,7 @@ Plan JSON (one entry per planned session; ids are stable per (week, template slo
                    "last": {"date","sets":[{"weight","reps"}]}, "rule","reason","flags"}]}
                | {"type": "easy_run"|"long_run", "distance_km","hr":{"low","high"},"pace":{..}}
                | {"type": "intervals", "structure": {"warmup","work","recovery","cooldown"}, ..}
-               | {"type": "rest", "optional", "original"?}}
+               | {"type": "rest", "optional"?: bool, "suggestion"?: str, "original"?}}
 
 GET /plan/today also carries `readiness_today` (same object as /stats/health: level, headline,
 metrics, details; contract in docs/api/stats.md) next to the engine's `readiness`, and
