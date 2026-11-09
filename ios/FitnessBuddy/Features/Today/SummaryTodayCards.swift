@@ -65,7 +65,9 @@ struct RestDayCard: View {
         Card {
             CardHeader(title: item.session?.optional == true ? "Optional Rest" : "Rest Day", symbol: "moon.zzz.fill",
                        color: Domain.recovery.color)
-            Text(item.session?.optional == true ? "Easy movement is fine." : "Recover, eat, sleep.")
+            Text(item.session?.optional == true
+                 ? (item.session?.suggestion.map { "Easy movement is fine: \($0)." } ?? "Easy movement is fine.")
+                 : "Recover, eat, sleep.")
                 .font(.subheadline).foregroundStyle(.secondary)
             ForEach(item.notes, id: \.self) { Text($0).font(.footnote).foregroundStyle(.secondary) }
         }

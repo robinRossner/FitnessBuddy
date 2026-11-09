@@ -2,7 +2,8 @@ import FitnessCore
 import Foundation
 import Observation
 
-/// "Sync" button logic: ask the backend to pull Garmin now, then sync the app with the backend and reload the shown data.
+/// "Sync" button logic: ask the backend to pull Garmin (and Withings weigh-ins) now, then sync the app with the backend
+/// and reload the shown data.
 /// If nothing new came, the banner offers "Open Garmin Connect"; when the app is next active after that, the whole flow
 /// runs once more by itself (one-shot, never a loop).
 @MainActor
@@ -11,6 +12,9 @@ final class GarminSyncController {
     struct Hooks {
         /// `POST /garmin/sync`. Throws `APIError.notConfigured` without a backend.
         var request: @MainActor () async throws -> GarminSyncResultDTO
+        /// `POST /withings/sync`, run alongside the Garmin request; returns a line for the banner or nil (nothing new,
+        /// not connected, failed quietly).
+        var pullWeighIns: @MainActor () async -> String? = { nil }
         var isDemo: @MainActor () -> Bool = { false }
         /// The app-side sync (`SyncCoordinator.sync(.manual)`).
         var syncApp: @MainActor () async -> Void
@@ -99,7 +103,8 @@ final class GarminSyncController {
             show(GarminSyncFeedback(tone: .neutral, title: "Not available with demo data."))
             return
         }
-        let result: GarminSyncFeedback
+        let weighIns = Task { await self.hooks.pullWeighIns() }
+        var result: GarminSyncFeedback
         do {
             let response = try await hooks.request()
             lastRetryAfter = response.retryAfterS.map(TimeInterval.init)
@@ -111,9 +116,13 @@ final class GarminSyncController {
             if (error as? APIError)?.isCancellation == true || error is CancellationError { return }
             result = GarminSyncLogic.feedback(for: error)
             if case APIError.notConfigured = error {
+                weighIns.cancel()
                 show(result)
                 return
             }
+        }
+        if let note = await weighIns.value {
+            result.detail = [result.detail, note].compactMap { $0 }.joined(separator: "\n")
         }
         // The backend may hold newer data than the app even when Garmin said no, so the app syncs in every case.
         await hooks.syncApp()

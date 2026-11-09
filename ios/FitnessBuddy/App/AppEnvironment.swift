@@ -25,7 +25,7 @@ final class AppEnvironment {
     let settings: SettingsStore
     let network: NetworkMonitor
     let sync: SyncCoordinator
-    /// The toolbar "Sync" button: backend pulls Garmin now, then the app syncs with the backend.
+    /// The toolbar "Sync" button: backend pulls Garmin and Withings now, then the app syncs with the backend.
     let garmin: GarminSyncController
     /// Settings > Withings: connect the smart scale; the server imports the weigh-ins.
     let withings: WithingsController
@@ -86,6 +86,11 @@ final class AppEnvironment {
             request: {
                 guard let client = settings.makeClient(), settings.isConfigured else { throw APIError.notConfigured }
                 return try await client.garminSync()
+            },
+            pullWeighIns: {
+                guard let client = settings.makeClient(), settings.isConfigured else { return nil }
+                do { return WithingsLogic.syncButtonNote(for: try await client.withingsSync(), now: AppClock.instant) }
+                catch { return WithingsLogic.syncButtonNote(for: error) }
             },
             isDemo: isDemo,
             syncApp: { await sync.sync(.manual) },

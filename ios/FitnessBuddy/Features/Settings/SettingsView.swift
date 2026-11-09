@@ -260,7 +260,7 @@ struct SettingsView: View {
     }
 
     private var syncSection: some View {
-        Section("Sync") {
+        Section {
             LabeledContent("Status", value: statusText)
             lastSyncRow
             Button("Sync now") { env.sync.request(.manual) }
@@ -270,6 +270,9 @@ struct SettingsView: View {
                 confirmReset = true
             }
             .disabled(env.sync.status == .syncing || !env.settings.isConfigured || (state?.demoActive ?? false))
+        } header: { Text("Backend Sync") } footer: {
+            Text("Workouts, plans and weigh-ins between this iPhone and your server. The server fetches Garmin and "
+                 + "Withings itself; the Sync button on Summary fetches both right away.")
         }
     }
 

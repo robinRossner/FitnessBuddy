@@ -102,7 +102,8 @@ class ReadinessMixin(PlannerState):
                 original = {"kind": kind, "prescription": pres}
                 plan.prescription = {
                     "type": "rest",
-                    "optional": "mobility 10-15 min",
+                    "optional": True,
+                    "suggestion": "mobility 10-15 min",
                     "original": original,
                 }
                 plan.kind, plan.title = "rest", f"Rest (was {kind.title()})"

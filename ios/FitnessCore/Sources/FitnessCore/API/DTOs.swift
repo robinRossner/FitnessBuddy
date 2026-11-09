@@ -208,6 +208,8 @@ public struct PrescriptionDTO: Codable, Sendable, Equatable {
     public var totalKm: Double?
     // rest
     public var optional: Bool?
+    /// What easy movement is fine on an optional rest day ("mobility 10-15 min").
+    public var suggestion: String?
 
     public init(type: String, kind: String? = nil, gym: String? = nil, exercises: [PlannedExerciseDTO]? = nil,
          distanceKm: Double? = nil, hr: HRRangeDTO? = nil, pace: PaceRangeDTO? = nil,
@@ -215,6 +217,32 @@ public struct PrescriptionDTO: Codable, Sendable, Equatable {
         self.type = type; self.kind = kind; self.gym = gym; self.exercises = exercises
         self.distanceKm = distanceKm; self.hr = hr; self.pace = pace
         self.structure = structure; self.totalKm = totalKm
+    }
+
+    /// Tolerant on `optional`: older servers sent the suggestion as a string there ("mobility 10-15 min"),
+    /// which failed the whole sync pull.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = try c.decode(String.self, forKey: .type)
+        kind = try c.decodeIfPresent(String.self, forKey: .kind)
+        gym = try c.decodeIfPresent(String.self, forKey: .gym)
+        exercises = try c.decodeIfPresent([PlannedExerciseDTO].self, forKey: .exercises)
+        deload = try c.decodeIfPresent(DeloadDTO.self, forKey: .deload)
+        distanceKm = try c.decodeIfPresent(Double.self, forKey: .distanceKm)
+        hr = try c.decodeIfPresent(HRRangeDTO.self, forKey: .hr)
+        pace = try c.decodeIfPresent(PaceRangeDTO.self, forKey: .pace)
+        reason = try c.decodeIfPresent(String.self, forKey: .reason)
+        structure = try c.decodeIfPresent(IntervalStructureDTO.self, forKey: .structure)
+        totalKm = try c.decodeIfPresent(Double.self, forKey: .totalKm)
+        suggestion = try c.decodeIfPresent(String.self, forKey: .suggestion)
+        if let flag = try? c.decodeIfPresent(Bool.self, forKey: .optional) {
+            optional = flag
+        } else if let text = try? c.decodeIfPresent(String.self, forKey: .optional) {
+            optional = true
+            if suggestion == nil, !text.isEmpty { suggestion = text }
+        } else {
+            optional = nil
+        }
     }
 }
 

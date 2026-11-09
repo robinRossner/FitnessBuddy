@@ -181,6 +181,20 @@ public enum WithingsLogic: Sendable {
         }
     }
 
+    /// The line the toolbar Sync button adds to its banner after it also pulled Withings: only news (new weigh-ins) and
+    /// transient Withings trouble. nil when there is nothing worth saying, also when Withings isn't connected or set up.
+    public static func syncButtonNote(for result: WithingsSyncResultDTO, now: Date) -> String? {
+        guard result.status == .synced, (result.newMeasurements ?? 0) > 0 else { return nil }
+        return feedback(for: result, now: now).text
+    }
+
+    public static func syncButtonNote(for error: Error) -> String? {
+        if let api = error as? APIError, case .http(let code, _) = api, code == 429 || code == 502 {
+            return message(for: error)
+        }
+        return nil
+    }
+
     public static func message(for error: Error) -> String {
         if let api = error as? APIError, case .http(let code, _) = api {
             switch code {

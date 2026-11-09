@@ -366,6 +366,9 @@ def test_red_today_replaces_lifting_by_rest_and_flags_conflict_when_progression_
     mon = day_of(plan, "mon_upper")
     assert plan.readiness.color == "red" and mon.kind == "rest"
     assert mon.prescription["type"] == "rest" and mon.prescription["original"]["kind"] == "upper"
+    # The app decodes `optional` as a bool (a string here broke the sync pull).
+    assert mon.prescription["optional"] is True
+    assert mon.prescription["suggestion"] == "mobility 10-15 min"
     conflicts = [t for t in plan.triggers if t.type == "rule_conflict"]
     assert conflicts and "Lat Pulldown (Cable) @ Gym 3" in conflicts[0].payload["items"]
 
