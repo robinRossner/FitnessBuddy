@@ -72,6 +72,12 @@ struct ProgressTabTests {
         #expect(o.averageKm == 5)  // (15 + 20) / 7 full weeks
         #expect(o.kmLastWeek == 20)
         #expect(o.kmPlannedThisWeek == 20)  // skipped and next week's runs left out
+
+        var withStrides = plan
+        withStrides[0].session?.structure = IntervalStructureDTO(strides: StridesDTO(reps: 6, durationS: 20, recoveryS: 60))
+        let s = ProgressModel.runningOverview(stats, kpis: kpis, plan: withStrides, now: now)
+        #expect(abs((s.kmPlannedThisWeek ?? 0) - (20 + PlanFormat.stridesKm(StridesDTO(reps: 6, durationS: 20, recoveryS: 60),
+                                                                              easyPace: nil))) < 0.001)
         #expect(o.easyRuns == 2)
         #expect(o.easyPaceSPerKm == 320)  // distance-weighted
         #expect(o.kmThisWeek == 5)
