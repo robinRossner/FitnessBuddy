@@ -24,14 +24,18 @@ class RunDaysMixin(PlannerState):
     def _phase_fields(self) -> dict[str, Any]:
         return {"phase": self.phase.phase, "phase_week": self.phase.phase_week}
 
-    def _strides(self) -> dict[str, Any] | None:
+    def _strides(self, easy_pace: dict[str, Any]) -> dict[str, Any] | None:
+        """The strides of an easy run. They are part of its distance: `est_km` (reps x stride + jog,
+        estimated at the easy pace) comes off the easy part, so the weekly km include them."""
         s = self.rc.easy.strides
         if s.reps <= 0:
             return None
+        pace_s = (easy_pace["min_s_per_km"] + easy_pace["max_s_per_km"]) / 2
         return {
             "reps": s.reps,
             "duration_s": s.duration_s,
             "recovery_s": s.recovery_s,
+            "est_km": round(R.strides_km(s.reps, s.duration_s, s.recovery_s, pace_s), 1),
             "note": f"{s.reps} x {s.duration_s:g} s relaxed fast strides near the end, "
             f"{s.recovery_s:g} s easy jog / walk between",
         }
@@ -48,13 +52,14 @@ class RunDaysMixin(PlannerState):
             if last
             else None
         )
-        st = self._strides() if strides else None
+        paces = self._easy_paces()
+        st = self._strides(paces) if strides else None
         out: dict[str, Any] = {
             "type": "easy_run",
             "distance_km": round(km, 1),
             "hr": _hr(self.zones, "easy"),
             "pace": {
-                **self._easy_paces(),
+                **paces,
                 "note": "HR leads: slow down if HR passes the ceiling",
             },
             "reason": reason,
@@ -65,7 +70,7 @@ class RunDaysMixin(PlannerState):
             ),
             **self._phase_fields(),
             "progression_note": f"easy {round(km, 1):g} km"
-            + (f" + {st['reps']} x {st['duration_s']:g} s strides" if st else ""),
+            + (f" incl. {st['reps']} x {st['duration_s']:g} s strides" if st else ""),
         }
         if st:
             out["structure"] = {"strides": st}

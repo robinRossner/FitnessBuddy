@@ -36,7 +36,7 @@ struct TodayRunCard: View {
                         if let pace = PlanFormat.pace(session?.pace) { secondary("\(pace) /km") }
                     }
                     if let strides = PlanFormat.strides(session?.structure?.strides) {
-                        Label("+ \(strides)", systemImage: "bolt.fill")
+                        Label("incl. \(strides)", systemImage: "bolt.fill")
                             .font(.subheadline.weight(.medium)).foregroundStyle(Domain.running.color)
                     }
                 }

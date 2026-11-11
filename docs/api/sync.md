@@ -339,8 +339,11 @@ The Friday quality session of the same week, abridged:
     recovery | pace | null`) and `vdot`; `progression.last_session` carries the pace-based
     evaluation (`verdict`: `green | pass | pass_hard | fail | no_target`, `reps_on_pace`,
     `pace_ok_share`, `last_rep_peak_hr`, `hr_safety_exceeded`, ...).
-  - Easy runs: `structure` = `{"strides": {"reps", "duration_s", "recovery_s", "note"}}` (the
-    `structure` key was intervals-only before; its `work` / `recovery` are absent here).
+  - Easy runs: `structure` = `{"strides": {"reps", "duration_s", "recovery_s", "est_km", "note"}}`
+    (the `structure` key was intervals-only before; its `work` / `recovery` are absent here). The
+    strides are part of `distance_km` (and so of the weekly km and cap): `est_km` is their estimated
+    share, `reps x (stride + jog)` with strides at 0.65 x and the jog at the easy pace (midpoint of
+    `pace`); the easy part is `distance_km - est_km` (at least 1 km). Older rows lack `est_km`.
     `last_easy_run` also carries `hr_ceiling`, the ceiling that run was judged by (the zones in
     force when it was run). `hr.zone` / `low` / `high` are the engine's current zones: with Garmin's
     floors easy is `Z2-Z3` (121-150 at the %HRR floors, `basis: "garmin"`), without them `Z1-Z2`;

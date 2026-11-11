@@ -277,6 +277,10 @@ def test_easy_run_has_strides_and_phase_fields():
         and easy["structure"]["strides"]["duration_s"] == 20
     )
     assert easy["phase"] == "threshold" and "strides" in easy["progression_note"]
+    # the strides are inside the 7 km (weekly km and cap include them): 6 x (20 s + 60 s jog)
+    pace = (easy["pace"]["min_s_per_km"] + easy["pace"]["max_s_per_km"]) / 2
+    est = 6 * (20 / (pace * 0.65) + 60 / pace)
+    assert easy["structure"]["strides"]["est_km"] == round(est, 1) and 1.0 < est < 2.0
     assert easy["last_easy_run"]["passed"] is True
     long = day_of(plan, "sun_long_run").prescription
     assert long["distance_km"] >= 10 and long["hr"]["high"] == 156

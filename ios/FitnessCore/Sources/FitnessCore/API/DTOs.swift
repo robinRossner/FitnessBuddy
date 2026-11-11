@@ -163,14 +163,17 @@ public struct IntervalLegDTO: Codable, Sendable, Equatable {
 }
 
 /// `structure.strides` of an easy or long run: `reps` x `duration_s` fast strides, `recovery_s` easy jog between.
+/// They are part of the run's `distance_km`; `est_km` is the server's estimate of their share (newer servers).
 public struct StridesDTO: Codable, Sendable, Equatable {
     public var reps: Int?
     public var durationS: Double?
     public var recoveryS: Double?
+    public var estKm: Double?
     public var note: String?
 
-    public init(reps: Int? = nil, durationS: Double? = nil, recoveryS: Double? = nil, note: String? = nil) {
-        self.reps = reps; self.durationS = durationS; self.recoveryS = recoveryS; self.note = note
+    public init(reps: Int? = nil, durationS: Double? = nil, recoveryS: Double? = nil, estKm: Double? = nil,
+                note: String? = nil) {
+        self.reps = reps; self.durationS = durationS; self.recoveryS = recoveryS; self.estKm = estKm; self.note = note
     }
 }
 

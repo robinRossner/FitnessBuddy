@@ -13,12 +13,12 @@ the phone (Garmin Connect app), so the evening push lands before bed.
 
 | Run | Steps |
 |---|---|
-| Easy / long run | one distance step with a custom HR range target (`hr.low`–`hr.high` bpm, the easy ceiling); with strides, then a repeat group `reps x (stride for duration_s, recovery for recovery_s)` on top of the distance |
+| Easy / long run | one distance step with a custom HR range target (`hr.low`–`hr.high` bpm, the easy ceiling); with strides the distance step is the easy part only (`distance_km - strides.est_km`, at least 1 km), then a repeat group `reps x (stride for duration_s, recovery for recovery_s)`, so the whole workout is about `distance_km` |
 | Intervals | warm-up (distance, easy HR range) -> repeat `reps x (work: rep distance, pace range target from pace_range_s_per_km, secondary HR target from work.hr; recovery: duration_s or distance_m jog)`, last recovery skipped -> cool-down (distance) |
 | Time trial | warm-up -> one work step (distance, pace target) -> cool-down |
 
 Names are short, dated and ASCII so the watch list shows the day first: `Thu 29.10 Easy 5 km`,
-`Wed 04.11 Easy 8 km + 6x20s strides`, `Fri 30.10 Thr 3x1k`, `Sun 01.11 Long 11 km`, `VO2 5x800m`,
+`Wed 04.11 Easy 8 km w/ 6x20s strides` (8 km in all), `Fri 30.10 Thr 3x1k`, `Sun 01.11 Long 11 km`, `VO2 5x800m`,
 `5K 4x1k`, `TT 3 km` (max 40 characters).
 
 ## Ownership and cleanup (stateless)

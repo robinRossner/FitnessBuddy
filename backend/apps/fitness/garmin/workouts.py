@@ -56,6 +56,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from apps.fitness.db.models import PlannedSession, Run
 from apps.fitness.db.session import session_scope
+from apps.fitness.engine.core.running import strides_km
 from apps.fitness.garmin.errors import GarminError, NotFoundError, SourceUnavailable
 from apps.fitness.garmin.mapping import RUN_TYPES
 from apps.fitness.garmin.pacing import FixedPause, Pacer, Sleeper
@@ -64,7 +65,7 @@ from apps.fitness.settings import Settings, get_settings
 
 log = logging.getLogger(__name__)
 
-BUILDER_VERSION = 2  # bump when the workout JSON changes: every pushed workout gets replaced
+BUILDER_VERSION = 3  # bump when the workout JSON changes: every pushed workout gets replaced
 RUN_KINDS = ("easy_run", "intervals", "long_run")
 OPEN_STATUSES = ("proposed", "approved")
 HORIZON_DAYS = 21  # how far ahead pushed-on-request workouts are kept up to date
@@ -243,7 +244,22 @@ def _strides(session: dict[str, Any]) -> tuple[int, float, float] | None:
 
 def _strides_label(session: dict[str, Any]) -> str:
     st = _strides(session)
-    return f" + {st[0]}x{_num(st[1])}s strides" if st else ""
+    return f" w/ {st[0]}x{_num(st[1])}s strides" if st else ""
+
+
+MIN_EASY_PART_KM = 1.0
+
+
+def _easy_part_km(session: dict[str, Any]) -> float:
+    """The easy distance before the strides: the run's distance minus the strides (`est_km`, or
+    estimated here for sessions planned before it existed), at least MIN_EASY_PART_KM."""
+    km = float(session.get("distance_km") or 0)
+    st = _strides(session)
+    if not st:
+        return km
+    raw = ((session.get("structure") or {}).get("strides") or {}).get("est_km")
+    est = float(raw) if raw is not None else round(strides_km(*st, _easy_pace_s(session)), 1)
+    return round(max(min(km, MIN_EASY_PART_KM), km - est), 1)
 
 
 def short_label(run: PlannedRun) -> str:
@@ -388,10 +404,11 @@ def _easy_pace_s(session: dict[str, Any]) -> float:
 
 
 def _easy_steps(run: PlannedRun, steps: _Steps) -> tuple[list, int, str]:
-    """Easy / long run: one distance step with the HR range, then the strides near the end (on
-    top of the distance, as the planner prescribes them)."""
+    """Easy / long run: one distance step with the HR range, then the strides near the end. The
+    strides are part of the planned distance, so the distance step is the easy part only."""
     s = run.session
-    km = float(s.get("distance_km") or 0)
+    total_km = float(s.get("distance_km") or 0)
+    km = _easy_part_km(s)
     hr = s.get("hr") or {}
     pace_s = _easy_pace_s(s)
     out: list = [
@@ -419,7 +436,10 @@ def _easy_steps(run: PlannedRun, steps: _Steps) -> tuple[list, int, str]:
 
         out.append(steps.repeat(reps, body))
         seconds += reps * (dur + rec)
-        summary += f"; then {reps}x{_num(dur)}s strides, {_num(rec)}s jog between"
+        summary += (
+            f"; then {reps}x{_num(dur)}s strides, {_num(rec)}s jog between"
+            f" ({_km_label(total_km)} in all)"
+        )
     return out, round(seconds), summary
 
 
