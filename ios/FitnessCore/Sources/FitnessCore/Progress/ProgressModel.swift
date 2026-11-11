@@ -107,7 +107,7 @@ public enum ProgressModel: Sendable {
             .map { DayKey.string($0, calendar: calendar) })
         let plannedKm = plan
             .filter { weekDays.contains($0.date) && $0.deletedAt == nil && WeekRunsModel.runKinds.contains($0.kind) && $0.planStatus != .skipped }
-            .compactMap { PlanFormat.plannedKm($0.session) }  // strides included (estimate)
+            .compactMap { $0.session?.distanceKm ?? $0.session?.totalKm }  // strides are inside the distance
             .reduce(0, +)
 
         let cutoff = DayKey.string(DayKey.daysAgo(28, from: now, calendar: calendar), calendar: calendar)

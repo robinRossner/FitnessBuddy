@@ -52,12 +52,19 @@ public enum PlanFormat: Sendable {
         return "\(reps) × \(Fmt.number(s?.durationS ?? 20, maxFraction: 0)) s strides"
     }
 
-    /// "after the easy part, 60 s easy jog between · ≈ 1.5 km extra" for the run sheet.
-    public static func stridesDetail(_ s: StridesDTO?, easyPace: PaceRangeDTO? = nil) -> String? {
+    /// "After 6.5 km easy · 60 s easy jog between · ≈ 1.5 km of the 8 km" for the run sheet. The strides are part of
+    /// the run's distance, so the easy part is the distance minus their estimate (as on the watch).
+    public static func stridesDetail(_ s: StridesDTO?, session: PrescriptionDTO? = nil) -> String? {
         guard strides(s) != nil else { return nil }
-        let extra = stridesKm(s, easyPace: easyPace)
-        return "Near the end, after the easy part · \(Fmt.number(s?.recoveryS ?? 60, maxFraction: 0)) s easy jog between"
-            + (extra > 0 ? " · ≈ \(Fmt.km(extra)) km extra" : "")
+        let jog = "\(Fmt.number(s?.recoveryS ?? 60, maxFraction: 0)) s easy jog between"
+        guard let total = session?.distanceKm, total > 0 else { return "Near the end, after the easy part · \(jog)" }
+        let est = stridesKm(s, easyPace: session?.pace)
+        return "After \(Fmt.km(easyPartKm(total: total, stridesKm: est))) km easy · \(jog) · ≈ \(Fmt.km(est)) km of the \(Fmt.km(total)) km"
+    }
+
+    /// The easy distance before the strides, as the watch workout runs it: never below 1 km (unless the run is shorter).
+    public static func easyPartKm(total: Double, stridesKm: Double) -> Double {
+        max(min(total, 1), total - stridesKm)
     }
 
     /// Easy pace when a session carries none (6:00 /km).
@@ -65,10 +72,11 @@ public enum PlanFormat: Sendable {
     /// A stride runs at about this share of the easy pace's seconds per km (6:00 easy → ~3:54 strides).
     static let stridePaceFactor: Double = 0.65
 
-    /// Estimated km the strides add on top of an easy / long run's distance: the watch workout runs
-    /// `reps` × (stride + jog) after the distance step. Strides at ~0.65 × easy pace, the jog at easy pace.
+    /// Estimated km of the strides inside an easy / long run's distance: the server's `est_km`, else
+    /// `reps` × (stride + jog) with strides at ~0.65 × easy pace and the jog at easy pace (sessions planned before it).
     public static func stridesKm(_ s: StridesDTO?, easyPace: PaceRangeDTO?) -> Double {
         guard let reps = s?.reps, reps > 0 else { return 0 }
+        if let est = s?.estKm { return est }
         let easy: Double
         if let lo = easyPace?.minSPerKm, let hi = easyPace?.maxSPerKm, lo > 0, hi > 0 {
             easy = (lo + hi) / 2
@@ -78,13 +86,6 @@ public enum PlanFormat: Sendable {
         let stride = (s?.durationS ?? 20) / (easy * stridePaceFactor)
         let jog = (s?.recoveryS ?? 60) / easy
         return Double(reps) * (stride + jog)
-    }
-
-    /// The km a planned run covers in total: its distance (or interval total) plus the strides estimate.
-    public static func plannedKm(_ session: PrescriptionDTO?) -> Double? {
-        guard let base = session?.distanceKm ?? session?.totalKm else { return nil }
-        guard session?.type != "intervals" else { return base }
-        return base + stridesKm(session?.structure?.strides, easyPace: session?.pace)
     }
 
     public static func runTitle(_ type: String) -> String {

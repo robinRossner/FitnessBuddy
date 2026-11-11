@@ -59,7 +59,7 @@ def summarize_day(d: DayPlan, *, detail: bool = False) -> list[str]:
         extra = ""
         strides = (pres.get("structure") or {}).get("strides")
         if strides:
-            extra = f" + {strides['reps']}x{strides['duration_s']:g} s strides"
+            extra = f" incl. {strides['reps']}x{strides['duration_s']:g} s strides"
         lines.append(
             f"    {pres['distance_km']:g} km{extra}, HR {pres['hr']['low']}-{pres['hr']['high']}, "
             f"pace {p['label']}"

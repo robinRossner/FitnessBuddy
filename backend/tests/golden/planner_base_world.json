@@ -903,11 +903,12 @@
               },
               "phase": "threshold",
               "phase_week": 2,
-              "progression_note": "easy 3 km + 6 x 20 s strides",
+              "progression_note": "easy 3 km incl. 6 x 20 s strides",
               "reason": "easy run below 156 bpm (lthr-based ceiling)",
               "structure": {
                 "strides": {
                   "duration_s": 20,
+                  "est_km": 1.6,
                   "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between",
                   "recovery_s": 60,
                   "reps": 6
@@ -953,11 +954,12 @@
               },
               "phase": "threshold",
               "phase_week": 2,
-              "progression_note": "easy 3 km + 6 x 20 s strides",
+              "progression_note": "easy 3 km incl. 6 x 20 s strides",
               "reason": "easy run below 156 bpm (lthr-based ceiling)",
               "structure": {
                 "strides": {
                   "duration_s": 20,
+                  "est_km": 1.6,
                   "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between",
                   "recovery_s": 60,
                   "reps": 6
@@ -2309,11 +2311,12 @@
               },
               "phase": "threshold",
               "phase_week": 2,
-              "progression_note": "easy 3 km + 6 x 20 s strides",
+              "progression_note": "easy 3 km incl. 6 x 20 s strides",
               "reason": "easy run below 156 bpm (lthr-based ceiling)",
               "structure": {
                 "strides": {
                   "duration_s": 20,
+                  "est_km": 1.6,
                   "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between",
                   "recovery_s": 60,
                   "reps": 6

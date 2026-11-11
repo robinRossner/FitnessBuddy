@@ -451,6 +451,17 @@ def iso_week_start(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
 
+STRIDE_PACE_FACTOR = 0.65  # a stride's s/km as a share of the easy pace (6:00 easy -> ~3:54)
+
+
+def strides_km(reps: int, duration_s: float, recovery_s: float, easy_pace_s: float) -> float:
+    """Estimated km of `reps` x (stride + jog): strides at STRIDE_PACE_FACTOR x easy pace, the jog
+    between at easy pace. Easy / long runs carry this inside their distance."""
+    if reps <= 0 or easy_pace_s <= 0:
+        return 0.0
+    return reps * (duration_s / (easy_pace_s * STRIDE_PACE_FACTOR) + recovery_s / easy_pace_s)
+
+
 def weekly_km(runs: Sequence[RunData]) -> dict[date, float]:
     out: dict[date, float] = {}
     for r in runs:
