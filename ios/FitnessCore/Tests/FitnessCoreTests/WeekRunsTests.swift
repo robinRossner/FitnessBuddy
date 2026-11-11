@@ -208,7 +208,25 @@ struct PlanFieldsDecodingTests {
         #expect(m.rows[0].distanceText == "\(Fmt.km(8)) km*" && m.rows[0].structureText == "6 × 20 s strides")
         #expect(m.rows[1].structureText == nil)  // 0 reps = no strides
         #expect(PlanFormat.strides(StridesDTO(reps: 6, durationS: 20)) == "6 × 20 s strides")
-        #expect(PlanFormat.stridesDetail(StridesDTO(reps: 6, durationS: 20, recoveryS: 60))?.hasSuffix("60 s easy jog between") == true)
+        #expect(PlanFormat.stridesDetail(StridesDTO(reps: 6, durationS: 20, recoveryS: 60))?
+            .hasSuffix("60 s easy jog between · ≈ \(Fmt.km(1.51)) km extra") == true)
+    }
+
+    @Test func stridesAddAnEstimateToThePlannedKm() {
+        let strides = StridesDTO(reps: 6, durationS: 20, recoveryS: 60)
+        // 6 × (20 s at 0.65 × 6:00 + 60 s at 6:00) ≈ 6 × (0.085 + 0.167) km
+        #expect(abs(PlanFormat.stridesKm(strides, easyPace: nil) - 1.513) < 0.01)
+        // pace range midpoint 5:00 → faster, so more km
+        let pace = PaceRangeDTO(minSPerKm: 280, maxSPerKm: 320)
+        #expect(abs(PlanFormat.stridesKm(strides, easyPace: pace) - 6 * (20 / 195.0 + 60 / 300.0)) < 0.001)
+        #expect(PlanFormat.stridesKm(StridesDTO(reps: 0), easyPace: nil) == 0)
+        #expect(PlanFormat.stridesKm(nil, easyPace: nil) == 0)
+        var easy = PrescriptionDTO(type: "easy_run", distanceKm: 8, structure: IntervalStructureDTO(strides: strides))
+        #expect(abs((PlanFormat.plannedKm(easy) ?? 0) - 9.513) < 0.01)
+        easy.structure = nil
+        #expect(PlanFormat.plannedKm(easy) == 8)
+        #expect(PlanFormat.plannedKm(PrescriptionDTO(type: "intervals", totalKm: 7)) == 7)
+        #expect(PlanFormat.plannedKm(nil) == nil)
     }
 
     @Test func fixtureEasyRunDecodesStrides() throws {

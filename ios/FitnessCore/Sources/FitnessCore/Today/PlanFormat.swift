@@ -52,10 +52,39 @@ public enum PlanFormat: Sendable {
         return "\(reps) × \(Fmt.number(s?.durationS ?? 20, maxFraction: 0)) s strides"
     }
 
-    /// "after the easy part, 60 s easy jog between" for the run sheet.
-    public static func stridesDetail(_ s: StridesDTO?) -> String? {
+    /// "after the easy part, 60 s easy jog between · ≈ 1.5 km extra" for the run sheet.
+    public static func stridesDetail(_ s: StridesDTO?, easyPace: PaceRangeDTO? = nil) -> String? {
         guard strides(s) != nil else { return nil }
+        let extra = stridesKm(s, easyPace: easyPace)
         return "Near the end, after the easy part · \(Fmt.number(s?.recoveryS ?? 60, maxFraction: 0)) s easy jog between"
+            + (extra > 0 ? " · ≈ \(Fmt.km(extra)) km extra" : "")
+    }
+
+    /// Easy pace when a session carries none (6:00 /km).
+    static let fallbackEasyPaceSPerKm: Double = 360
+    /// A stride runs at about this share of the easy pace's seconds per km (6:00 easy → ~3:54 strides).
+    static let stridePaceFactor: Double = 0.65
+
+    /// Estimated km the strides add on top of an easy / long run's distance: the watch workout runs
+    /// `reps` × (stride + jog) after the distance step. Strides at ~0.65 × easy pace, the jog at easy pace.
+    public static func stridesKm(_ s: StridesDTO?, easyPace: PaceRangeDTO?) -> Double {
+        guard let reps = s?.reps, reps > 0 else { return 0 }
+        let easy: Double
+        if let lo = easyPace?.minSPerKm, let hi = easyPace?.maxSPerKm, lo > 0, hi > 0 {
+            easy = (lo + hi) / 2
+        } else {
+            easy = fallbackEasyPaceSPerKm
+        }
+        let stride = (s?.durationS ?? 20) / (easy * stridePaceFactor)
+        let jog = (s?.recoveryS ?? 60) / easy
+        return Double(reps) * (stride + jog)
+    }
+
+    /// The km a planned run covers in total: its distance (or interval total) plus the strides estimate.
+    public static func plannedKm(_ session: PrescriptionDTO?) -> Double? {
+        guard let base = session?.distanceKm ?? session?.totalKm else { return nil }
+        guard session?.type != "intervals" else { return base }
+        return base + stridesKm(session?.structure?.strides, easyPace: session?.pace)
     }
 
     public static func runTitle(_ type: String) -> String {

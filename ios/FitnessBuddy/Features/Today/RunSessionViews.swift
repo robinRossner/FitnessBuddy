@@ -246,7 +246,7 @@ struct RunDetailSheet: View {
                 if type != "intervals", let strides = PlanFormat.strides(session?.structure?.strides) {
                     MetricBlock(title: "Strides") {
                         Text("+ \(strides)").metricStyle(.title3, weight: .semibold)
-                        if let detail = PlanFormat.stridesDetail(session?.structure?.strides) {
+                        if let detail = PlanFormat.stridesDetail(session?.structure?.strides, easyPace: session?.pace) {
                             Text(detail).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         }
                     }
