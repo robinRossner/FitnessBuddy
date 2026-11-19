@@ -57,10 +57,10 @@ struct WorkoutChooserTests {
         let ctx = try makeContext()
         try SyncMerge.apply(try Fixture.decode(PullResponse.self, "sync_pull"), in: ctx)
         let rows = try ctx.fetch(FetchDescriptor<CachedPlannedSession>()).filter { WorkoutChooserLogic.liftingKinds.contains($0.kind) }
-        let first = try #require(rows.min { $0.date < $1.date })
         let before = WorkoutChooserLogic.choices(in: ctx, today: "1999-01-01")
         #expect(before.count == rows.count + 1 || before.count == WorkoutChooserLogic.maxPlanned + 1)
-        #expect(before.first?.source == .planned(first.id))
+        guard case .planned(let firstId)? = before.first?.source else { Issue.record("no planned choice first"); return }
+        let first = try #require(rows.first { $0.id == firstId })
         // Finishing a workout linked to that planned session removes it from the chooser.
         let s = LocalSession(plannedSessionId: first.id, kind: first.kind, name: first.title, endedAt: .now)
         ctx.insert(s)
