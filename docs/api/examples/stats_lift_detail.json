@@ -1,0 +1,652 @@
+{
+  "generated_at": "2026-11-19T13:38:28.011Z",
+  "lift": {
+    "variant_id": 3,
+    "name": "Seated Overhead Press (Dumbbell)",
+    "exercise_id": 6,
+    "muscle_group": "shoulders",
+    "body_region": "Shoulders",
+    "gym_id": null,
+    "gym_name": null,
+    "active": true,
+    "in_program": true,
+    "sessions": 48,
+    "first_date": "2026-04-27",
+    "last_date": "2026-10-22",
+    "best_e1rm": 31.53,
+    "latest_e1rm": 28.6,
+    "trend_4w_pct": -2.32,
+    "last_pr_date": "2026-09-24",
+    "stalled": true
+  },
+  "points": [
+    {
+      "date": "2026-04-27",
+      "session_id": "e535104b-cd61-5386-a530-985d862bc7be",
+      "best_e1rm": 22.8,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 8
+      },
+      "volume_kg": 396.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-04-30",
+      "session_id": "e676afaf-a07b-5d48-8e78-3151d3458991",
+      "best_e1rm": 24.6,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 11
+      },
+      "volume_kg": 558.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-04",
+      "session_id": "6b67eb71-7c8c-50d4-bd34-bb425a762791",
+      "best_e1rm": 24.0,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 10
+      },
+      "volume_kg": 504.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-07",
+      "session_id": "bead4ac7-ca85-5597-9edd-9529c0329633",
+      "best_e1rm": 24.0,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 10
+      },
+      "volume_kg": 468.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-11",
+      "session_id": "c613f4d4-f08f-5394-befb-40aa025aba6f",
+      "best_e1rm": 23.4,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 9
+      },
+      "volume_kg": 432.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-14",
+      "session_id": "ed94f82a-19d6-5e64-b883-ebf28144b045",
+      "best_e1rm": 23.4,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 9
+      },
+      "volume_kg": 450.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-18",
+      "session_id": "bee4bff4-aa22-555d-a9a7-434d1c7897df",
+      "best_e1rm": 25.2,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 12
+      },
+      "volume_kg": 576.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-21",
+      "session_id": "00ec52ec-512d-5478-938a-e0b5b2f071a7",
+      "best_e1rm": 22.8,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 8
+      },
+      "volume_kg": 396.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-25",
+      "session_id": "73845bc9-89cb-51fe-9c8f-888a3a3a9731",
+      "best_e1rm": 23.4,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 9
+      },
+      "volume_kg": 432.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-05-28",
+      "session_id": "849899c3-61fc-554b-8566-f2906b69017b",
+      "best_e1rm": 22.8,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 8
+      },
+      "volume_kg": 396.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-01",
+      "session_id": "c2feb715-a5fc-54d5-8d8e-19a70f8735d8",
+      "best_e1rm": 23.4,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 9
+      },
+      "volume_kg": 450.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-04",
+      "session_id": "5eb7bb9e-b32d-597b-aa1e-c42a5a41f91a",
+      "best_e1rm": 25.2,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 12
+      },
+      "volume_kg": 612.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-08",
+      "session_id": "0dd412b8-d531-5f93-bd3a-b373fa7aad4b",
+      "best_e1rm": 24.6,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 11
+      },
+      "volume_kg": 576.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-11",
+      "session_id": "1b9ace6a-4044-564c-8b37-eecd0ca6a5e7",
+      "best_e1rm": 24.0,
+      "top_set": {
+        "weight_kg": 18.0,
+        "reps": 10
+      },
+      "volume_kg": 504.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-15",
+      "session_id": "5baaea02-341c-5bac-abf8-7cccefafaf3e",
+      "best_e1rm": 26.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 9
+      },
+      "volume_kg": 480.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-18",
+      "session_id": "e0ff94ef-96f2-538c-bdcf-afe3e2431acd",
+      "best_e1rm": 28.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 12
+      },
+      "volume_kg": 660.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-22",
+      "session_id": "dd05667e-24df-5dcb-909f-56c2d2b22d42",
+      "best_e1rm": 26.67,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 10
+      },
+      "volume_kg": 540.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-25",
+      "session_id": "a38f13bd-459e-58fc-a9ac-82a327db2db3",
+      "best_e1rm": 28.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 12
+      },
+      "volume_kg": 620.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-06-29",
+      "session_id": "65dcea88-eb97-5850-ae4b-f9bc9358796f",
+      "best_e1rm": 28.67,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 13
+      },
+      "volume_kg": 680.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-06",
+      "session_id": "13852151-79e6-5c6c-a34c-8183d48a6be5",
+      "best_e1rm": 26.67,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 10
+      },
+      "volume_kg": 540.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-09",
+      "session_id": "692deb13-9d24-589b-89c7-345970f0fff3",
+      "best_e1rm": 28.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 12
+      },
+      "volume_kg": 660.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-13",
+      "session_id": "86fd9869-9886-553f-b0f8-d1e4c833bf5d",
+      "best_e1rm": 27.33,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 11
+      },
+      "volume_kg": 560.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-20",
+      "session_id": "3c5ef9c5-ab7e-5b29-a7ae-b6161a3babd7",
+      "best_e1rm": 26.67,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 10
+      },
+      "volume_kg": 540.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-23",
+      "session_id": "5205237c-9101-5965-9e27-33bafbc6dd1d",
+      "best_e1rm": 25.33,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 8
+      },
+      "volume_kg": 440.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-27",
+      "session_id": "895fe21b-ff7f-5b55-b0df-af7bd758f9af",
+      "best_e1rm": 26.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 9
+      },
+      "volume_kg": 520.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-07-30",
+      "session_id": "bd660e9f-bdf7-5a3b-9f12-6411261d7147",
+      "best_e1rm": 26.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 9
+      },
+      "volume_kg": 480.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-03",
+      "session_id": "45f25289-44d5-5970-9a9e-5565320596b5",
+      "best_e1rm": 26.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 9
+      },
+      "volume_kg": 480.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-06",
+      "session_id": "96f0c4ae-52bb-5acc-8e24-9b94acba3627",
+      "best_e1rm": 28.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 12
+      },
+      "volume_kg": 680.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-10",
+      "session_id": "4a2c5c21-d37d-5666-bd02-130cfe5483a3",
+      "best_e1rm": 26.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 9
+      },
+      "volume_kg": 460.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-13",
+      "session_id": "d74d9127-8eaf-5fc6-bb23-84285f75ec3d",
+      "best_e1rm": 27.33,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 11
+      },
+      "volume_kg": 560.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-17",
+      "session_id": "e973a0ff-564e-5d53-88f9-72fe73b6b09c",
+      "best_e1rm": 28.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 12
+      },
+      "volume_kg": 680.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-24",
+      "session_id": "f79d0e6d-b89b-5b70-a164-bec91633b05e",
+      "best_e1rm": 28.67,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 13
+      },
+      "volume_kg": 720.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-27",
+      "session_id": "5e3ca3ef-db41-56eb-a87f-8de7bf6ec8c4",
+      "best_e1rm": 27.33,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 11
+      },
+      "volume_kg": 560.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-08-31",
+      "session_id": "fa3cdfed-d0ab-59d8-8a15-d0bbbb968ccf",
+      "best_e1rm": 26.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 9
+      },
+      "volume_kg": 460.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-03",
+      "session_id": "1defce25-e8af-520f-920e-b503f7a98c22",
+      "best_e1rm": 28.0,
+      "top_set": {
+        "weight_kg": 20.0,
+        "reps": 12
+      },
+      "volume_kg": 640.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-07",
+      "session_id": "ff0cbc17-6f6c-5328-bc2c-3eec377343e6",
+      "best_e1rm": 30.07,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 11
+      },
+      "volume_kg": 682.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-14",
+      "session_id": "d8a9162f-8397-51b8-8a5d-db796e3f681d",
+      "best_e1rm": 29.33,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 10
+      },
+      "volume_kg": 594.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-17",
+      "session_id": "c7a868a6-c654-57d5-810d-1126b5638e13",
+      "best_e1rm": 29.33,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 10
+      },
+      "volume_kg": 594.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-21",
+      "session_id": "a6e4934c-afe8-506e-8303-4e36ef577193",
+      "best_e1rm": 29.33,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 10
+      },
+      "volume_kg": 594.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-24",
+      "session_id": "aef909a8-56a8-5a4f-bc5f-81bf080930b8",
+      "best_e1rm": 31.53,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 13
+      },
+      "volume_kg": 770.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-09-28",
+      "session_id": "ef5b2026-e4db-50f4-9782-7b3fcfd1675c",
+      "best_e1rm": 30.8,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 12
+      },
+      "volume_kg": 726.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-01",
+      "session_id": "e0b9f025-f41a-5b48-9edb-6a3e3cc14947",
+      "best_e1rm": 30.07,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 11
+      },
+      "volume_kg": 682.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-05",
+      "session_id": "fb4f86f2-6589-5767-9bae-cd7303876dcd",
+      "best_e1rm": 30.07,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 11
+      },
+      "volume_kg": 704.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-08",
+      "session_id": "8e62227e-2a40-5607-b628-25edd81ec8d9",
+      "best_e1rm": 29.33,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 10
+      },
+      "volume_kg": 572.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-12",
+      "session_id": "c9e0132b-9bab-534d-850e-21c24e90104b",
+      "best_e1rm": 30.8,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 12
+      },
+      "volume_kg": 770.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-15",
+      "session_id": "f2284864-f2c7-57a7-bdac-492b4fecb3fe",
+      "best_e1rm": 30.8,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 12
+      },
+      "volume_kg": 704.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-19",
+      "session_id": "9e0d2709-1762-5726-9cd3-129c099675d3",
+      "best_e1rm": 30.07,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 11
+      },
+      "volume_kg": 616.0,
+      "sets": 3
+    },
+    {
+      "date": "2026-10-22",
+      "session_id": "ecb09200-4f47-54b5-b1fb-4b8663310fd8",
+      "best_e1rm": 28.6,
+      "top_set": {
+        "weight_kg": 22.0,
+        "reps": 9
+      },
+      "volume_kg": 528.0,
+      "sets": 3
+    }
+  ],
+  "prs": [
+    {
+      "date": "2026-04-30",
+      "type": "e1rm",
+      "value": 24.6,
+      "weight_kg": 18.0,
+      "reps": 11
+    },
+    {
+      "date": "2026-04-30",
+      "type": "reps",
+      "value": 11,
+      "weight_kg": 18.0,
+      "reps": 11
+    },
+    {
+      "date": "2026-05-18",
+      "type": "e1rm",
+      "value": 25.2,
+      "weight_kg": 18.0,
+      "reps": 12
+    },
+    {
+      "date": "2026-05-18",
+      "type": "reps",
+      "value": 12,
+      "weight_kg": 18.0,
+      "reps": 12
+    },
+    {
+      "date": "2026-06-15",
+      "type": "e1rm",
+      "value": 26.0,
+      "weight_kg": 20.0,
+      "reps": 9
+    },
+    {
+      "date": "2026-06-15",
+      "type": "weight",
+      "value": 20.0,
+      "weight_kg": 20.0,
+      "reps": 9
+    },
+    {
+      "date": "2026-06-18",
+      "type": "e1rm",
+      "value": 28.0,
+      "weight_kg": 20.0,
+      "reps": 12
+    },
+    {
+      "date": "2026-06-18",
+      "type": "reps",
+      "value": 12,
+      "weight_kg": 20.0,
+      "reps": 12
+    },
+    {
+      "date": "2026-06-29",
+      "type": "e1rm",
+      "value": 28.67,
+      "weight_kg": 20.0,
+      "reps": 13
+    },
+    {
+      "date": "2026-06-29",
+      "type": "reps",
+      "value": 13,
+      "weight_kg": 20.0,
+      "reps": 13
+    },
+    {
+      "date": "2026-09-07",
+      "type": "e1rm",
+      "value": 30.07,
+      "weight_kg": 22.0,
+      "reps": 11
+    },
+    {
+      "date": "2026-09-07",
+      "type": "weight",
+      "value": 22.0,
+      "weight_kg": 22.0,
+      "reps": 11
+    },
+    {
+      "date": "2026-09-24",
+      "type": "e1rm",
+      "value": 31.53,
+      "weight_kg": 22.0,
+      "reps": 13
+    },
+    {
+      "date": "2026-09-24",
+      "type": "reps",
+      "value": 13,
+      "weight_kg": 22.0,
+      "reps": 13
+    }
+  ]
+}

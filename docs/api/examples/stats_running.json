@@ -1,0 +1,2087 @@
+{
+  "generated_at": "2026-11-19T13:38:28.091Z",
+  "kpis": {
+    "vdot_current": 44.25,
+    "vdot_4w_ago": 43.55,
+    "vdot_change": 0.7,
+    "vdot_source": "interval_reps",
+    "vdot_fit_current": 41.0,
+    "efficiency_current": 1.1694,
+    "efficiency_4w_ago": 1.1657,
+    "efficiency_change_pct": 0.32,
+    "easy_hr_drift_flags_4w": 0,
+    "runs_this_week": 2,
+    "runs_planned_this_week": 3,
+    "km_this_week": 16.4
+  },
+  "weekly": [
+    {
+      "week_start": "2026-04-27",
+      "km": 24.6,
+      "time_s": 8761,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 6955,
+        "z2": 696,
+        "z3": 0,
+        "z4": 1110,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "742d31cb-65f5-42a0-945e-f37c72e42406",
+          "date": "2026-04-29",
+          "type": "long",
+          "km": 8.0
+        },
+        {
+          "run_id": "e7da46a5-80b0-4bad-814e-cd7da45a5f11",
+          "date": "2026-05-01",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "bdf3bdad-d0bf-4cef-bf49-2eab1912c2ed",
+          "date": "2026-05-03",
+          "type": "long",
+          "km": 9.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 2,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-05-04",
+      "km": 22.6,
+      "time_s": 8019,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 6223,
+        "z2": 697,
+        "z3": 0,
+        "z4": 1099,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "35ff4c61-11c8-4d7b-83f8-527875ee1787",
+          "date": "2026-05-06",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "2b42a3e7-2c29-402c-952f-6b37bb87f991",
+          "date": "2026-05-08",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "f7eb8c96-0141-4ab4-87f3-b48da5c4fd80",
+          "date": "2026-05-10",
+          "type": "long",
+          "km": 9.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-05-11",
+      "km": 15.6,
+      "time_s": 5361,
+      "runs": 2,
+      "time_in_zones_s": {
+        "z1": 3574,
+        "z2": 682,
+        "z3": 0,
+        "z4": 1105,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "d0d0e1f8-5ee8-4f28-aad0-69c38a9fd40c",
+          "date": "2026-05-13",
+          "type": "long",
+          "km": 8.0
+        },
+        {
+          "run_id": "3fb58450-6078-46bf-9178-5398f508d20e",
+          "date": "2026-05-15",
+          "type": "intervals",
+          "km": 7.6
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-05-18",
+      "km": 21.6,
+      "time_s": 7625,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 5828,
+        "z2": 695,
+        "z3": 0,
+        "z4": 1103,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "7df90c0d-6c40-45fa-b6f7-566d0882e39c",
+          "date": "2026-05-20",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "ce2b52e2-b214-496e-bc90-084ef2e0d341",
+          "date": "2026-05-22",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "2d063c2c-555a-44e5-ae97-8ae355e7e230",
+          "date": "2026-05-24",
+          "type": "long",
+          "km": 8.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-05-25",
+      "km": 25.6,
+      "time_s": 9074,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7297,
+        "z2": 682,
+        "z3": 0,
+        "z4": 1096,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "1632846e-6469-436c-a646-daddaa79c046",
+          "date": "2026-05-27",
+          "type": "long",
+          "km": 8.0
+        },
+        {
+          "run_id": "9f384d47-44c3-4b65-8793-3fc36ae695db",
+          "date": "2026-05-29",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "25e4df86-e183-4b25-bbc9-dc04010d0a63",
+          "date": "2026-05-31",
+          "type": "long",
+          "km": 10.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 2,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-06-01",
+      "km": 23.6,
+      "time_s": 8357,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 6560,
+        "z2": 704,
+        "z3": 0,
+        "z4": 1092,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "d58a7122-8805-45b2-a686-be8d1db33070",
+          "date": "2026-06-03",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "ddf62639-4c79-4c14-90ec-981392e644d9",
+          "date": "2026-06-05",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "1c70e99c-02ee-4870-b8c7-b5aafb041d18",
+          "date": "2026-06-07",
+          "type": "long",
+          "km": 10.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-06-08",
+      "km": 24.6,
+      "time_s": 8731,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 6962,
+        "z2": 687,
+        "z3": 0,
+        "z4": 1083,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "4b2a5a19-00ee-4d4e-af02-e8c1d03a84ff",
+          "date": "2026-06-10",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "c4483ad5-520d-45ee-9a97-f4f0a72d0e3c",
+          "date": "2026-06-12",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "e84013ff-dfe9-4154-846f-cd353a32f34a",
+          "date": "2026-06-14",
+          "type": "long",
+          "km": 11.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-06-15",
+      "km": 23.6,
+      "time_s": 8324,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 6531,
+        "z2": 713,
+        "z3": 0,
+        "z4": 1080,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "788b826c-e4b0-4f94-baf2-f533f88105da",
+          "date": "2026-06-17",
+          "type": "easy",
+          "km": 7.0
+        },
+        {
+          "run_id": "6ad89ed0-d9dc-47aa-a6b8-324dcab225d1",
+          "date": "2026-06-19",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "6b78ee39-f9f0-468d-ac24-191ddecb6933",
+          "date": "2026-06-21",
+          "type": "long",
+          "km": 9.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-06-22",
+      "km": 26.6,
+      "time_s": 9395,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7612,
+        "z2": 696,
+        "z3": 0,
+        "z4": 1087,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "6642735f-4e2d-45f7-b962-e147a9af7971",
+          "date": "2026-06-24",
+          "type": "long",
+          "km": 8.0
+        },
+        {
+          "run_id": "9715eb1b-81d7-4066-a334-f1a56ab4bf3a",
+          "date": "2026-06-26",
+          "type": "intervals",
+          "km": 7.6
+        },
+        {
+          "run_id": "e38753c7-f3e9-4ffc-9482-ddd7b6e646d4",
+          "date": "2026-06-28",
+          "type": "long",
+          "km": 11.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 2,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-06-29",
+      "km": 15.0,
+      "time_s": 5030,
+      "runs": 2,
+      "time_in_zones_s": {
+        "z1": 2814,
+        "z2": 870,
+        "z3": 0,
+        "z4": 1346,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "b37c2645-6540-44d4-bc57-357dff9a9b2f",
+          "date": "2026-07-01",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "a96bd6da-9d70-4d46-af95-9b6a23b39843",
+          "date": "2026-07-03",
+          "type": "intervals",
+          "km": 9.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 0,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-07-06",
+      "km": 29.0,
+      "time_s": 10238,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 8004,
+        "z2": 891,
+        "z3": 0,
+        "z4": 1342,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "040c988f-5116-4655-a680-5d0893a9b6fa",
+          "date": "2026-07-08",
+          "type": "long",
+          "km": 8.0
+        },
+        {
+          "run_id": "972e5d0c-069c-4109-bbdb-8c9ece308ad6",
+          "date": "2026-07-10",
+          "type": "intervals",
+          "km": 9.0
+        },
+        {
+          "run_id": "51f5ff08-5df5-4481-a955-79be9331547f",
+          "date": "2026-07-12",
+          "type": "long",
+          "km": 12.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 2,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-07-13",
+      "km": 16.0,
+      "time_s": 5835,
+      "runs": 2,
+      "time_in_zones_s": {
+        "z1": 5836,
+        "z2": 0,
+        "z3": 0,
+        "z4": 0,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "a0c1f0f0-4b70-4f5d-a680-1ec8c5d8129b",
+          "date": "2026-07-15",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "e2fd6d42-1eae-4bdf-935f-ae71fa62f28c",
+          "date": "2026-07-19",
+          "type": "long",
+          "km": 10.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 0,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-07-20",
+      "km": 7.0,
+      "time_s": 2483,
+      "runs": 1,
+      "time_in_zones_s": {
+        "z1": 2483,
+        "z2": 0,
+        "z3": 0,
+        "z4": 0,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "41185472-e7d6-497a-a885-7ceb02a0d5e4",
+          "date": "2026-07-22",
+          "type": "easy",
+          "km": 7.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 0,
+        "long": 0,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-07-27",
+      "km": 28.0,
+      "time_s": 9820,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7626,
+        "z2": 858,
+        "z3": 0,
+        "z4": 1337,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "e585dea5-21a9-4254-b9e3-ea335e8b04f3",
+          "date": "2026-07-29",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "8ad172b0-8d2e-4cca-9a85-187cb67b2be9",
+          "date": "2026-07-31",
+          "type": "intervals",
+          "km": 9.0
+        },
+        {
+          "run_id": "8d5d409a-dd38-4d33-8dc1-c9c9e4bc97db",
+          "date": "2026-08-02",
+          "type": "long",
+          "km": 13.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-08-03",
+      "km": 28.0,
+      "time_s": 9815,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7610,
+        "z2": 879,
+        "z3": 0,
+        "z4": 1326,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "9fec437e-2b7d-4682-b2cd-31cacf453bd4",
+          "date": "2026-08-05",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "a76e8a60-609e-4ee7-a56b-de893c410a24",
+          "date": "2026-08-07",
+          "type": "intervals",
+          "km": 9.0
+        },
+        {
+          "run_id": "5bfd9e3e-e649-4af4-9bab-ee0156833599",
+          "date": "2026-08-09",
+          "type": "long",
+          "km": 13.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-08-10",
+      "km": 28.0,
+      "time_s": 9771,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7195,
+        "z2": 1245,
+        "z3": 0,
+        "z4": 1331,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "df5999bd-40e8-4253-809d-adf4225b86a0",
+          "date": "2026-08-12",
+          "type": "easy",
+          "km": 7.0
+        },
+        {
+          "run_id": "f6044ee3-fe6b-47ba-ad68-a35ad7193c16",
+          "date": "2026-08-14",
+          "type": "intervals",
+          "km": 9.0
+        },
+        {
+          "run_id": "9c0578a1-acb7-498b-a740-28759ea2eb6a",
+          "date": "2026-08-16",
+          "type": "long",
+          "km": 12.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-08-17",
+      "km": 29.0,
+      "time_s": 10127,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7932,
+        "z2": 865,
+        "z3": 0,
+        "z4": 1330,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "013439e3-001a-4f7d-afe5-8043b7cc6892",
+          "date": "2026-08-19",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "bdb187ce-7f07-4174-bcdc-345cccc0bb54",
+          "date": "2026-08-21",
+          "type": "intervals",
+          "km": 9.0
+        },
+        {
+          "run_id": "62276390-10a9-46c0-b8c5-8d947d508432",
+          "date": "2026-08-23",
+          "type": "long",
+          "km": 14.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-08-24",
+      "km": 29.0,
+      "time_s": 10162,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7586,
+        "z2": 1251,
+        "z3": 0,
+        "z4": 1326,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "45626b18-e04a-4e8c-b44b-efe51f344822",
+          "date": "2026-08-26",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "5524d977-34b2-42a6-b36e-6926539b053e",
+          "date": "2026-08-28",
+          "type": "intervals",
+          "km": 9.0
+        },
+        {
+          "run_id": "b4d19612-35ea-413b-b8cb-e3f51bca3e0e",
+          "date": "2026-08-30",
+          "type": "long",
+          "km": 14.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-08-31",
+      "km": 25.4,
+      "time_s": 8807,
+      "runs": 2,
+      "time_in_zones_s": {
+        "z1": 5445,
+        "z2": 1781,
+        "z3": 0,
+        "z4": 1581,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "60943f8b-f4f3-4dde-8bdc-65cd03abbe1f",
+          "date": "2026-09-04",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "f4b937d9-551e-4309-b275-46fc1d84bc62",
+          "date": "2026-09-06",
+          "type": "long",
+          "km": 15.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-09-07",
+      "km": 30.4,
+      "time_s": 10524,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7909,
+        "z2": 1040,
+        "z3": 0,
+        "z4": 1576,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "86e58a3b-cd95-4586-bc63-fe128dcfa95e",
+          "date": "2026-09-09",
+          "type": "easy",
+          "km": 7.0
+        },
+        {
+          "run_id": "bb02b1de-7378-42c7-a553-123046e2ecb6",
+          "date": "2026-09-11",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "a28999f2-4bd0-4860-8313-ec43db0e56f3",
+          "date": "2026-09-13",
+          "type": "long",
+          "km": 13.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-09-14",
+      "km": 33.4,
+      "time_s": 11597,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7876,
+        "z2": 2150,
+        "z3": 0,
+        "z4": 1570,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "5806a34b-2567-4854-8f33-2e9d4b5fa085",
+          "date": "2026-09-16",
+          "type": "easy",
+          "km": 8.0
+        },
+        {
+          "run_id": "6cb3dfce-d677-419b-89e2-5ec9fbd75594",
+          "date": "2026-09-18",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "19131ddf-5f33-4a07-b963-1ad1cd25ee5b",
+          "date": "2026-09-20",
+          "type": "long",
+          "km": 15.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-09-21",
+      "km": 33.4,
+      "time_s": 11571,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7490,
+        "z2": 2509,
+        "z3": 0,
+        "z4": 1572,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "753ef53f-585c-4aa9-b536-896ff89974bd",
+          "date": "2026-09-23",
+          "type": "easy",
+          "km": 7.0
+        },
+        {
+          "run_id": "10d6a881-0945-49c0-bc9e-fbf8c04846c2",
+          "date": "2026-09-25",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "71d97e7c-b7a5-4275-bac6-fbb11b85af79",
+          "date": "2026-09-27",
+          "type": "long",
+          "km": 16.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-09-28",
+      "km": 32.4,
+      "time_s": 11235,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 8257,
+        "z2": 1411,
+        "z3": 0,
+        "z4": 1567,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "5c228885-6ee1-4dee-a1c9-3fb96ebe8b23",
+          "date": "2026-09-30",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "1ef33818-33b2-4d3a-9e59-28855b3f6ecb",
+          "date": "2026-10-02",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "e6029a28-e972-44b2-85b0-8e18e35552ed",
+          "date": "2026-10-04",
+          "type": "long",
+          "km": 16.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-10-05",
+      "km": 24.4,
+      "time_s": 8397,
+      "runs": 2,
+      "time_in_zones_s": {
+        "z1": 5780,
+        "z2": 1057,
+        "z3": 0,
+        "z4": 1560,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "a8b029f2-9f0a-43c9-8a27-482f3f5dfa97",
+          "date": "2026-10-09",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "b2786284-16e4-46e2-9bf9-1f3dd95ed27e",
+          "date": "2026-10-11",
+          "type": "long",
+          "km": 14.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 0,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-10-12",
+      "km": 32.4,
+      "time_s": 11244,
+      "runs": 3,
+      "time_in_zones_s": {
+        "z1": 7887,
+        "z2": 1804,
+        "z3": 0,
+        "z4": 1552,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "b8a6b1f8-91f3-4d0e-9e85-1eb4281947cc",
+          "date": "2026-10-14",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "8729b7a5-9133-4896-b37e-3467383b95e3",
+          "date": "2026-10-16",
+          "type": "intervals",
+          "km": 10.4
+        },
+        {
+          "run_id": "a66611c9-4c75-4179-9ffe-98cd5000ccf1",
+          "date": "2026-10-18",
+          "type": "long",
+          "km": 16.0
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 1,
+        "other": 0
+      }
+    },
+    {
+      "week_start": "2026-10-19",
+      "km": 16.4,
+      "time_s": 5361,
+      "runs": 2,
+      "time_in_zones_s": {
+        "z1": 2763,
+        "z2": 1047,
+        "z3": 0,
+        "z4": 1552,
+        "z5": 0
+      },
+      "runs_detail": [
+        {
+          "run_id": "a83acbea-3ba5-4010-a3e0-137df269d4ea",
+          "date": "2026-10-21",
+          "type": "easy",
+          "km": 6.0
+        },
+        {
+          "run_id": "83429cc4-68e4-4d14-a1e1-a5f17802d53d",
+          "date": "2026-10-23",
+          "type": "intervals",
+          "km": 10.4
+        }
+      ],
+      "runs_by_type": {
+        "easy": 1,
+        "intervals": 1,
+        "long": 0,
+        "other": 0
+      }
+    }
+  ],
+  "efficiency": [
+    {
+      "date": "2026-04-29",
+      "run_id": "742d31cb-65f5-42a0-945e-f37c72e42406",
+      "type": "long",
+      "distance_m": 8000.0,
+      "avg_hr": 144.3,
+      "avg_pace_s_per_km": 360.7,
+      "efficiency": 1.1528,
+      "decoupling_pct": 1.18
+    },
+    {
+      "date": "2026-05-03",
+      "run_id": "bdf3bdad-d0bf-4cef-bf49-2eab1912c2ed",
+      "type": "long",
+      "distance_m": 9000.0,
+      "avg_hr": 143.7,
+      "avg_pace_s_per_km": 376.0,
+      "efficiency": 1.1104,
+      "decoupling_pct": 2.9
+    },
+    {
+      "date": "2026-05-06",
+      "run_id": "35ff4c61-11c8-4d7b-83f8-527875ee1787",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 144.3,
+      "avg_pace_s_per_km": 362.5,
+      "efficiency": 1.147,
+      "decoupling_pct": 0.62
+    },
+    {
+      "date": "2026-05-10",
+      "run_id": "f7eb8c96-0141-4ab4-87f3-b48da5c4fd80",
+      "type": "long",
+      "distance_m": 9000.0,
+      "avg_hr": 142.8,
+      "avg_pace_s_per_km": 373.6,
+      "efficiency": 1.1245,
+      "decoupling_pct": 3.6
+    },
+    {
+      "date": "2026-05-13",
+      "run_id": "d0d0e1f8-5ee8-4f28-aad0-69c38a9fd40c",
+      "type": "long",
+      "distance_m": 8000.0,
+      "avg_hr": 144.2,
+      "avg_pace_s_per_km": 361.1,
+      "efficiency": 1.1522,
+      "decoupling_pct": -0.26
+    },
+    {
+      "date": "2026-05-20",
+      "run_id": "7df90c0d-6c40-45fa-b6f7-566d0882e39c",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 143.6,
+      "avg_pace_s_per_km": 359.8,
+      "efficiency": 1.1613,
+      "decoupling_pct": -1.5
+    },
+    {
+      "date": "2026-05-24",
+      "run_id": "2d063c2c-555a-44e5-ae97-8ae355e7e230",
+      "type": "long",
+      "distance_m": 8000.0,
+      "avg_hr": 143.0,
+      "avg_pace_s_per_km": 373.0,
+      "efficiency": 1.1249,
+      "decoupling_pct": 1.55
+    },
+    {
+      "date": "2026-05-27",
+      "run_id": "1632846e-6469-436c-a646-daddaa79c046",
+      "type": "long",
+      "distance_m": 8000.0,
+      "avg_hr": 144.0,
+      "avg_pace_s_per_km": 359.3,
+      "efficiency": 1.1596,
+      "decoupling_pct": 0.92
+    },
+    {
+      "date": "2026-05-31",
+      "run_id": "25e4df86-e183-4b25-bbc9-dc04010d0a63",
+      "type": "long",
+      "distance_m": 10000.0,
+      "avg_hr": 143.2,
+      "avg_pace_s_per_km": 373.7,
+      "efficiency": 1.1213,
+      "decoupling_pct": 4.32
+    },
+    {
+      "date": "2026-06-03",
+      "run_id": "d58a7122-8805-45b2-a686-be8d1db33070",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 144.1,
+      "avg_pace_s_per_km": 358.4,
+      "efficiency": 1.1617,
+      "decoupling_pct": -0.52
+    },
+    {
+      "date": "2026-06-07",
+      "run_id": "1c70e99c-02ee-4870-b8c7-b5aafb041d18",
+      "type": "long",
+      "distance_m": 10000.0,
+      "avg_hr": 143.7,
+      "avg_pace_s_per_km": 372.5,
+      "efficiency": 1.1208,
+      "decoupling_pct": 2.94
+    },
+    {
+      "date": "2026-06-10",
+      "run_id": "4b2a5a19-00ee-4d4e-af02-e8c1d03a84ff",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 145.1,
+      "avg_pace_s_per_km": 358.5,
+      "efficiency": 1.1536,
+      "decoupling_pct": -2.0
+    },
+    {
+      "date": "2026-06-14",
+      "run_id": "e84013ff-dfe9-4154-846f-cd353a32f34a",
+      "type": "long",
+      "distance_m": 11000.0,
+      "avg_hr": 144.1,
+      "avg_pace_s_per_km": 375.1,
+      "efficiency": 1.1102,
+      "decoupling_pct": 3.0
+    },
+    {
+      "date": "2026-06-17",
+      "run_id": "788b826c-e4b0-4f94-baf2-f533f88105da",
+      "type": "easy",
+      "distance_m": 7000.0,
+      "avg_hr": 143.3,
+      "avg_pace_s_per_km": 356.1,
+      "efficiency": 1.1759,
+      "decoupling_pct": 0.24
+    },
+    {
+      "date": "2026-06-21",
+      "run_id": "6b78ee39-f9f0-468d-ac24-191ddecb6933",
+      "type": "long",
+      "distance_m": 9000.0,
+      "avg_hr": 144.5,
+      "avg_pace_s_per_km": 372.6,
+      "efficiency": 1.1145,
+      "decoupling_pct": 3.96
+    },
+    {
+      "date": "2026-06-24",
+      "run_id": "6642735f-4e2d-45f7-b962-e147a9af7971",
+      "type": "long",
+      "distance_m": 8000.0,
+      "avg_hr": 144.3,
+      "avg_pace_s_per_km": 356.2,
+      "efficiency": 1.1675,
+      "decoupling_pct": 0.66
+    },
+    {
+      "date": "2026-06-28",
+      "run_id": "e38753c7-f3e9-4ffc-9482-ddd7b6e646d4",
+      "type": "long",
+      "distance_m": 11000.0,
+      "avg_hr": 143.5,
+      "avg_pace_s_per_km": 370.7,
+      "efficiency": 1.1278,
+      "decoupling_pct": 4.09
+    },
+    {
+      "date": "2026-07-01",
+      "run_id": "b37c2645-6540-44d4-bc57-357dff9a9b2f",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 143.3,
+      "avg_pace_s_per_km": 354.8,
+      "efficiency": 1.1802,
+      "decoupling_pct": -0.82
+    },
+    {
+      "date": "2026-07-08",
+      "run_id": "040c988f-5116-4655-a680-5d0893a9b6fa",
+      "type": "long",
+      "distance_m": 8000.0,
+      "avg_hr": 143.9,
+      "avg_pace_s_per_km": 356.9,
+      "efficiency": 1.1682,
+      "decoupling_pct": 2.47
+    },
+    {
+      "date": "2026-07-12",
+      "run_id": "51f5ff08-5df5-4481-a955-79be9331547f",
+      "type": "long",
+      "distance_m": 12000.0,
+      "avg_hr": 144.1,
+      "avg_pace_s_per_km": 372.0,
+      "efficiency": 1.1193,
+      "decoupling_pct": 3.83
+    },
+    {
+      "date": "2026-07-15",
+      "run_id": "a0c1f0f0-4b70-4f5d-a680-1ec8c5d8129b",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 146.2,
+      "avg_pace_s_per_km": 354.4,
+      "efficiency": 1.1579,
+      "decoupling_pct": 1.24
+    },
+    {
+      "date": "2026-07-19",
+      "run_id": "e2fd6d42-1eae-4bdf-935f-ae71fa62f28c",
+      "type": "long",
+      "distance_m": 10000.0,
+      "avg_hr": 143.4,
+      "avg_pace_s_per_km": 370.9,
+      "efficiency": 1.1281,
+      "decoupling_pct": 3.31
+    },
+    {
+      "date": "2026-07-22",
+      "run_id": "41185472-e7d6-497a-a885-7ceb02a0d5e4",
+      "type": "easy",
+      "distance_m": 7000.0,
+      "avg_hr": 143.9,
+      "avg_pace_s_per_km": 354.8,
+      "efficiency": 1.1753,
+      "decoupling_pct": -2.14
+    },
+    {
+      "date": "2026-07-29",
+      "run_id": "e585dea5-21a9-4254-b9e3-ea335e8b04f3",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 145.1,
+      "avg_pace_s_per_km": 355.8,
+      "efficiency": 1.1622,
+      "decoupling_pct": 0.39
+    },
+    {
+      "date": "2026-08-02",
+      "run_id": "8d5d409a-dd38-4d33-8dc1-c9c9e4bc97db",
+      "type": "long",
+      "distance_m": 13000.0,
+      "avg_hr": 144.6,
+      "avg_pace_s_per_km": 369.7,
+      "efficiency": 1.1225,
+      "decoupling_pct": 3.16
+    },
+    {
+      "date": "2026-08-05",
+      "run_id": "9fec437e-2b7d-4682-b2cd-31cacf453bd4",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 143.4,
+      "avg_pace_s_per_km": 356.7,
+      "efficiency": 1.1731,
+      "decoupling_pct": -2.97
+    },
+    {
+      "date": "2026-08-09",
+      "run_id": "5bfd9e3e-e649-4af4-9bab-ee0156833599",
+      "type": "long",
+      "distance_m": 13000.0,
+      "avg_hr": 145.3,
+      "avg_pace_s_per_km": 368.1,
+      "efficiency": 1.1219,
+      "decoupling_pct": 3.55
+    },
+    {
+      "date": "2026-08-12",
+      "run_id": "df5999bd-40e8-4253-809d-adf4225b86a0",
+      "type": "easy",
+      "distance_m": 7000.0,
+      "avg_hr": 146.2,
+      "avg_pace_s_per_km": 353.4,
+      "efficiency": 1.1614,
+      "decoupling_pct": -1.72
+    },
+    {
+      "date": "2026-08-16",
+      "run_id": "9c0578a1-acb7-498b-a740-28759ea2eb6a",
+      "type": "long",
+      "distance_m": 12000.0,
+      "avg_hr": 144.0,
+      "avg_pace_s_per_km": 367.3,
+      "efficiency": 1.1343,
+      "decoupling_pct": 3.37
+    },
+    {
+      "date": "2026-08-19",
+      "run_id": "013439e3-001a-4f7d-afe5-8043b7cc6892",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 145.6,
+      "avg_pace_s_per_km": 351.0,
+      "efficiency": 1.1739,
+      "decoupling_pct": 0.7
+    },
+    {
+      "date": "2026-08-23",
+      "run_id": "62276390-10a9-46c0-b8c5-8d947d508432",
+      "type": "long",
+      "distance_m": 14000.0,
+      "avg_hr": 144.8,
+      "avg_pace_s_per_km": 367.2,
+      "efficiency": 1.1283,
+      "decoupling_pct": 3.61
+    },
+    {
+      "date": "2026-08-26",
+      "run_id": "45626b18-e04a-4e8c-b44b-efe51f344822",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 143.7,
+      "avg_pace_s_per_km": 352.4,
+      "efficiency": 1.1847,
+      "decoupling_pct": 1.82
+    },
+    {
+      "date": "2026-08-30",
+      "run_id": "b4d19612-35ea-413b-b8cb-e3f51bca3e0e",
+      "type": "long",
+      "distance_m": 14000.0,
+      "avg_hr": 144.6,
+      "avg_pace_s_per_km": 368.7,
+      "efficiency": 1.1254,
+      "decoupling_pct": 4.55
+    },
+    {
+      "date": "2026-09-06",
+      "run_id": "f4b937d9-551e-4309-b275-46fc1d84bc62",
+      "type": "long",
+      "distance_m": 15000.0,
+      "avg_hr": 145.7,
+      "avg_pace_s_per_km": 366.4,
+      "efficiency": 1.1239,
+      "decoupling_pct": 4.9
+    },
+    {
+      "date": "2026-09-09",
+      "run_id": "86e58a3b-cd95-4586-bc63-fe128dcfa95e",
+      "type": "easy",
+      "distance_m": 7000.0,
+      "avg_hr": 142.9,
+      "avg_pace_s_per_km": 351.4,
+      "efficiency": 1.195,
+      "decoupling_pct": -2.45
+    },
+    {
+      "date": "2026-09-13",
+      "run_id": "a28999f2-4bd0-4860-8313-ec43db0e56f3",
+      "type": "long",
+      "distance_m": 13000.0,
+      "avg_hr": 144.5,
+      "avg_pace_s_per_km": 366.5,
+      "efficiency": 1.133,
+      "decoupling_pct": 3.81
+    },
+    {
+      "date": "2026-09-16",
+      "run_id": "5806a34b-2567-4854-8f33-2e9d4b5fa085",
+      "type": "easy",
+      "distance_m": 8000.0,
+      "avg_hr": 142.7,
+      "avg_pace_s_per_km": 351.5,
+      "efficiency": 1.1962,
+      "decoupling_pct": 1.17
+    },
+    {
+      "date": "2026-09-20",
+      "run_id": "19131ddf-5f33-4a07-b963-1ad1cd25ee5b",
+      "type": "long",
+      "distance_m": 15000.0,
+      "avg_hr": 145.5,
+      "avg_pace_s_per_km": 366.0,
+      "efficiency": 1.1267,
+      "decoupling_pct": 4.76
+    },
+    {
+      "date": "2026-09-23",
+      "run_id": "753ef53f-585c-4aa9-b536-896ff89974bd",
+      "type": "easy",
+      "distance_m": 7000.0,
+      "avg_hr": 144.4,
+      "avg_pace_s_per_km": 350.9,
+      "efficiency": 1.1842,
+      "decoupling_pct": 1.3
+    },
+    {
+      "date": "2026-09-27",
+      "run_id": "71d97e7c-b7a5-4275-bac6-fbb11b85af79",
+      "type": "long",
+      "distance_m": 16000.0,
+      "avg_hr": 146.0,
+      "avg_pace_s_per_km": 364.2,
+      "efficiency": 1.1283,
+      "decoupling_pct": 5.48
+    },
+    {
+      "date": "2026-09-30",
+      "run_id": "5c228885-6ee1-4dee-a1c9-3fb96ebe8b23",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 145.2,
+      "avg_pace_s_per_km": 348.8,
+      "efficiency": 1.1845,
+      "decoupling_pct": 1.94
+    },
+    {
+      "date": "2026-10-04",
+      "run_id": "e6029a28-e972-44b2-85b0-8e18e35552ed",
+      "type": "long",
+      "distance_m": 16000.0,
+      "avg_hr": 145.7,
+      "avg_pace_s_per_km": 365.2,
+      "efficiency": 1.1277,
+      "decoupling_pct": 4.4
+    },
+    {
+      "date": "2026-10-11",
+      "run_id": "b2786284-16e4-46e2-9bf9-1f3dd95ed27e",
+      "type": "long",
+      "distance_m": 14000.0,
+      "avg_hr": 145.2,
+      "avg_pace_s_per_km": 364.0,
+      "efficiency": 1.1354,
+      "decoupling_pct": 5.0
+    },
+    {
+      "date": "2026-10-14",
+      "run_id": "b8a6b1f8-91f3-4d0e-9e85-1eb4281947cc",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 144.0,
+      "avg_pace_s_per_km": 350.6,
+      "efficiency": 1.1885,
+      "decoupling_pct": 0.74
+    },
+    {
+      "date": "2026-10-18",
+      "run_id": "a66611c9-4c75-4179-9ffe-98cd5000ccf1",
+      "type": "long",
+      "distance_m": 16000.0,
+      "avg_hr": 145.6,
+      "avg_pace_s_per_km": 364.8,
+      "efficiency": 1.1297,
+      "decoupling_pct": 3.96
+    },
+    {
+      "date": "2026-10-21",
+      "run_id": "a83acbea-3ba5-4010-a3e0-137df269d4ea",
+      "type": "easy",
+      "distance_m": 6000.0,
+      "avg_hr": 145.6,
+      "avg_pace_s_per_km": 346.3,
+      "efficiency": 1.1899,
+      "decoupling_pct": -1.88
+    }
+  ],
+  "vdot": [
+    {
+      "date": "2026-08-31",
+      "value": 37.79,
+      "source": "initial",
+      "delta": 0.0,
+      "reason": "initial VDOT 41.0 from the pace model's fit"
+    },
+    {
+      "date": "2026-09-07",
+      "value": 43.1,
+      "source": "interval_reps",
+      "delta": 2.13,
+      "reason": "VDOT 41.0 -> 43.1 measured from interval reps: 6 x 1000 m on 2026-09-04 at 4:24/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 43.1: VDOT 43.1"
+    },
+    {
+      "date": "2026-09-14",
+      "value": 43.33,
+      "source": "interval_reps",
+      "delta": 0.23,
+      "reason": "VDOT 43.1 -> 43.3 measured from interval reps: 6 x 1000 m on 2026-09-11 at 4:23/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 43.3: VDOT 43.3"
+    },
+    {
+      "date": "2026-09-21",
+      "value": 43.55,
+      "source": "interval_reps",
+      "delta": 0.22,
+      "reason": "VDOT 43.3 -> 43.5 measured from interval reps: 6 x 1000 m on 2026-09-18 at 4:22/km (avg rep HR 171 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 43.5: VDOT 43.5"
+    },
+    {
+      "date": "2026-10-12",
+      "value": 43.96,
+      "source": "interval_reps",
+      "delta": 0.41,
+      "reason": "VDOT 43.5 -> 44.0 measured from interval reps: 6 x 1000 m on 2026-10-09 at 4:20/km (avg rep HR 170 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 44.0: VDOT 44.0"
+    },
+    {
+      "date": "2026-10-19",
+      "value": 44.25,
+      "source": "interval_reps",
+      "delta": 0.29,
+      "reason": "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 44.3: VDOT 44.3"
+    }
+  ],
+  "vdot_fit": [
+    {
+      "date": "2026-04-29",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-01",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-03",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-06",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-08",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-10",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-13",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-15",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-20",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-22",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-24",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-27",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-29",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-31",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-03",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-05",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-07",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-10",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-12",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-14",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-17",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-19",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-21",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-24",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-26",
+      "value": 41.0
+    },
+    {
+      "date": "2026-06-28",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-01",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-03",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-08",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-10",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-12",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-15",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-19",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-22",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-29",
+      "value": 41.0
+    },
+    {
+      "date": "2026-07-31",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-02",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-05",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-07",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-09",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-12",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-14",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-16",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-19",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-21",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-23",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-26",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-28",
+      "value": 41.0
+    },
+    {
+      "date": "2026-08-30",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-04",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-06",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-09",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-11",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-13",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-16",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-18",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-20",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-23",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-25",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-27",
+      "value": 41.0
+    },
+    {
+      "date": "2026-09-30",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-02",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-04",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-09",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-11",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-14",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-16",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-18",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-21",
+      "value": 41.0
+    },
+    {
+      "date": "2026-10-23",
+      "value": 41.0
+    }
+  ],
+  "intervals": [
+    {
+      "date": "2026-05-01",
+      "run_id": "e7da46a5-80b0-4bad-814e-cd7da45a5f11",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 277.5,
+      "avg_work_hr": 169.6,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-05-08",
+      "run_id": "2b42a3e7-2c29-402c-952f-6b37bb87f991",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 274.8,
+      "avg_work_hr": 169.9,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-05-15",
+      "run_id": "3fb58450-6078-46bf-9178-5398f508d20e",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 276.3,
+      "avg_work_hr": 169.6,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-05-22",
+      "run_id": "ce2b52e2-b214-496e-bc90-084ef2e0d341",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 275.7,
+      "avg_work_hr": 170.0,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-05-29",
+      "run_id": "9f384d47-44c3-4b65-8793-3fc36ae695db",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 273.9,
+      "avg_work_hr": 168.1,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-06-05",
+      "run_id": "ddf62639-4c79-4c14-90ec-981392e644d9",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 273.1,
+      "avg_work_hr": 170.2,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-06-12",
+      "run_id": "c4483ad5-520d-45ee-9a97-f4f0a72d0e3c",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 270.6,
+      "avg_work_hr": 169.5,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-06-19",
+      "run_id": "6ad89ed0-d9dc-47aa-a6b8-324dcab225d1",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 270.1,
+      "avg_work_hr": 171.3,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-06-26",
+      "run_id": "9715eb1b-81d7-4066-a334-f1a56ab4bf3a",
+      "reps": 4,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 271.7,
+      "avg_work_hr": 170.1,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-07-03",
+      "run_id": "a96bd6da-9d70-4d46-af95-9b6a23b39843",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 269.3,
+      "avg_work_hr": 170.1,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-07-10",
+      "run_id": "972e5d0c-069c-4109-bbdb-8c9ece308ad6",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 268.4,
+      "avg_work_hr": 169.8,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-07-31",
+      "run_id": "8ad172b0-8d2e-4cca-9a85-187cb67b2be9",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 267.3,
+      "avg_work_hr": 169.2,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-08-07",
+      "run_id": "a76e8a60-609e-4ee7-a56b-de893c410a24",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 265.2,
+      "avg_work_hr": 170.1,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-08-14",
+      "run_id": "f6044ee3-fe6b-47ba-ad68-a35ad7193c16",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 266.1,
+      "avg_work_hr": 170.9,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-08-21",
+      "run_id": "bdb187ce-7f07-4174-bcdc-345cccc0bb54",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 265.9,
+      "avg_work_hr": 169.7,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-08-28",
+      "run_id": "5524d977-34b2-42a6-b36e-6926539b053e",
+      "reps": 5,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 265.2,
+      "avg_work_hr": 169.5,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-09-04",
+      "run_id": "60943f8b-f4f3-4dde-8bdc-65cd03abbe1f",
+      "reps": 6,
+      "target_pace_s_per_km": 300.0,
+      "avg_work_pace_s_per_km": 263.5,
+      "avg_work_hr": 169.2,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-09-11",
+      "run_id": "bb02b1de-7378-42c7-a553-123046e2ecb6",
+      "reps": 6,
+      "target_pace_s_per_km": 288.0,
+      "avg_work_pace_s_per_km": 262.6,
+      "avg_work_hr": 169.3,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-09-18",
+      "run_id": "6cb3dfce-d677-419b-89e2-5ec9fbd75594",
+      "reps": 6,
+      "target_pace_s_per_km": 287.0,
+      "avg_work_pace_s_per_km": 261.7,
+      "avg_work_hr": 170.8,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-09-25",
+      "run_id": "10d6a881-0945-49c0-bc9e-fbf8c04846c2",
+      "reps": 6,
+      "target_pace_s_per_km": 285.0,
+      "avg_work_pace_s_per_km": 262.0,
+      "avg_work_hr": 169.7,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-10-02",
+      "run_id": "1ef33818-33b2-4d3a-9e59-28855b3f6ecb",
+      "reps": 6,
+      "target_pace_s_per_km": 285.0,
+      "avg_work_pace_s_per_km": 261.1,
+      "avg_work_hr": 170.5,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-10-09",
+      "run_id": "a8b029f2-9f0a-43c9-8a27-482f3f5dfa97",
+      "reps": 6,
+      "target_pace_s_per_km": 285.0,
+      "avg_work_pace_s_per_km": 260.1,
+      "avg_work_hr": 170.1,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-10-16",
+      "run_id": "8729b7a5-9133-4896-b37e-3467383b95e3",
+      "reps": 6,
+      "target_pace_s_per_km": 283.0,
+      "avg_work_pace_s_per_km": 258.7,
+      "avg_work_hr": 169.5,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    },
+    {
+      "date": "2026-10-23",
+      "run_id": "83429cc4-68e4-4d14-a1e1-a5f17802d53d",
+      "reps": 6,
+      "target_pace_s_per_km": 274.8,
+      "avg_work_pace_s_per_km": 258.6,
+      "avg_work_hr": 169.6,
+      "target_hr_low": 166,
+      "target_hr_high": 179,
+      "hr_in_range": true,
+      "recovery_ok": true,
+      "passed": true
+    }
+  ]
+}

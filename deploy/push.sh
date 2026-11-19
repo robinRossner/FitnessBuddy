@@ -273,8 +273,7 @@ rssh "sudo -n chown -R \$(id -u):\$(id -g) $REMOTE_DIR/deploy/data $REMOTE_DIR/d
   || warn "could not chown deploy/data (sudo -n failed); permissions may be wrong"
 
 # ---------- Caddyfile check ----------
-# Caddy must not be left running a config that fails to load. `validate` does no DNS lookups, so it
-# passes even while the receipts-backend upstream is down.
+# Caddy must not be left running a config that fails to load.
 info "validating deploy/Caddyfile with the caddy image"
 rssh "cd $REMOTE_DIR/deploy && docker run --rm -e DOMAIN=$(printf '%q' "$DOMAIN") -v \"\$PWD/Caddyfile\":/etc/caddy/Caddyfile:ro caddy:2.10 caddy validate --config /etc/caddy/Caddyfile" >/dev/null \
   || die "deploy/Caddyfile does not validate; nothing was restarted"

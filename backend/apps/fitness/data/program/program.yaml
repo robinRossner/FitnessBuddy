@@ -1,0 +1,24 @@
+# FitnessBuddy lifting program: the engine reads this file, you own it.
+# Generated from recent Upper / Lower sessions (exercises in at least 40 % of them,
+# ordered by where you usually do them, median number of working sets).
+# Both upper days (Mon, Thu) use the `upper` list.
+# Optional per exercise: rep_range: [8, 15] | sets: 4 | increment_kg: 2.5 | active: false | note: ...
+# `variant` = variant name without the gym suffix; the engine uses the generic variant or
+# the one at your current gym.
+version: 1
+days:
+  upper:
+    - {exercise: bench_press, variant: Bench Press (Barbell), sets: 3}
+    - {exercise: pull_up, variant: Pull Up, sets: 3}
+    - {exercise: overhead_press, variant: Seated Overhead Press (Dumbbell), sets: 3}
+    - {exercise: seated_row, variant: Seated Row (Cable), sets: 3}
+    - {exercise: lateral_raise, variant: Lateral Raise (Cable), sets: 3}
+    - {exercise: triceps_extension, variant: Triceps Extension (Cable), sets: 3}
+    - {exercise: biceps_curl, variant: Bicep Curl (Dumbbell), sets: 2}
+  lower:
+    - {exercise: squat, variant: Squat (Smith Machine), sets: 3}
+    - {exercise: romanian_deadlift, variant: Romanian Deadlift (Barbell), sets: 3}
+    - {exercise: leg_curl, variant: Lying Leg Curl (Machine), sets: 3}
+    - {exercise: leg_extension, variant: Leg Extension (Machine), sets: 2}
+    - {exercise: calf_raise, variant: Standing Calf Raise (Machine), sets: 3}
+    - {exercise: crunch, variant: Cable Crunch, sets: 2}

@@ -1,0 +1,37 @@
+{
+  "id": "2",
+  "created_at": "2026-11-19T13:38:26.106Z",
+  "status": "applied",
+  "trigger": {
+    "type": "ask",
+    "title": "Question to the coach",
+    "detail": "Are my intervals going well?",
+    "ref": {
+      "kind": null,
+      "id": null
+    }
+  },
+  "question": "Are my intervals going well?",
+  "diagnosis": "Your last interval session passed with room to spare, and recovery is stable.",
+  "notes_for_user": "One more rep at the top of the progression; the pace is unchanged.",
+  "confidence": "high",
+  "changes": [
+    {
+      "id": "p4",
+      "param": "running.intervals.reps_max",
+      "label": "Interval reps (maximum)",
+      "from": 6,
+      "to": 7,
+      "reason": "The last two interval sessions passed at six reps.",
+      "risk": "low",
+      "valid": true,
+      "validation_error": null,
+      "status": "applied"
+    }
+  ],
+  "schedule_changes": [],
+  "session_overrides": [],
+  "applied_config_version": "v3.7",
+  "error": null,
+  "cost_usd": 0.0971
+}

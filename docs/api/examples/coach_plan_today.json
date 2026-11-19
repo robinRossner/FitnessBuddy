@@ -1,0 +1,145 @@
+{
+  "date": "2026-10-25",
+  "readiness": {
+    "date": "2026-10-25",
+    "color": "green",
+    "known": true,
+    "reason": "1 minor flag only: HRV 57 ms (-6% vs 61 baseline); Garmin HRV status unbalanced",
+    "signals": [
+      {
+        "name": "hrv",
+        "level": "yellow",
+        "detail": "HRV 57 ms (-6% vs 61 baseline); Garmin HRV status unbalanced",
+        "value": 56.7,
+        "baseline": 60.528571428571425
+      },
+      {
+        "name": "rhr",
+        "level": "green",
+        "detail": "resting HR 55 (+2 vs 53)",
+        "value": 55.0,
+        "baseline": 53.142857142857146
+      },
+      {
+        "name": "sleep",
+        "level": "green",
+        "detail": "sleep 6.9 h, score 69",
+        "value": 6.9222222222222225,
+        "baseline": null
+      }
+    ]
+  },
+  "readiness_today": {
+    "level": "green",
+    "headline": "Ready",
+    "metrics": [
+      {
+        "key": "hrv",
+        "label": "HRV",
+        "value": 56.7,
+        "unit": "ms",
+        "baseline": 60.5,
+        "delta_pct": -6.3,
+        "status": "warn"
+      },
+      {
+        "key": "rhr",
+        "label": "Resting HR",
+        "value": 55.0,
+        "unit": "bpm",
+        "baseline": 53.1,
+        "delta_pct": 3.5,
+        "status": "ok"
+      },
+      {
+        "key": "sleep",
+        "label": "Sleep",
+        "value": 6.9,
+        "unit": "h",
+        "baseline": 7.0,
+        "delta_pct": -0.4,
+        "status": "ok"
+      }
+    ],
+    "details": [
+      "HRV 57 ms (-6% vs 61 baseline); Garmin HRV status unbalanced - pulls it down a bit",
+      "Resting HR 55 (+2 vs 53) - neutral",
+      "Sleep 6.9 h, score 69 (usual 7.0 h) - neutral",
+      "Only a minor flag, so no change"
+    ]
+  },
+  "sessions": [
+    {
+      "id": "cbf59bd5-36c5-5be3-85b0-5c0cbef4224a",
+      "date": "2026-10-25",
+      "kind": "long_run",
+      "status": "proposed",
+      "adaptive": true,
+      "adapts_on": [
+        "your longest recent long run",
+        "HR drift of the last long run",
+        "step-back weeks",
+        "your recent easy-run paces",
+        "today's readiness",
+        "weekly and single-run volume caps"
+      ],
+      "moved_from": null,
+      "change_reason": null,
+      "title": "Long run 12 km",
+      "slot_id": "sun_long_run",
+      "template_kind": "long_run",
+      "readiness": {
+        "color": "green",
+        "known": true,
+        "reason": "1 minor flag only: HRV 57 ms (-6% vs 61 baseline); Garmin HRV status unbalanced"
+      },
+      "adjustments": [],
+      "notes": [],
+      "session": {
+        "type": "long_run",
+        "distance_km": 12.0,
+        "hr": {
+          "zone": "Z1-Z2",
+          "low": 127,
+          "high": 156,
+          "basis": "lthr"
+        },
+        "pace": {
+          "min_s_per_km": 324,
+          "max_s_per_km": 388,
+          "label": "5:24-6:28",
+          "basis": "daniels",
+          "reason": "Daniels easy pace for VDOT 44.2: your 6 easy runs of 28 days at HR <= 154 (5:46-6:05/km, median 5:57) fit it",
+          "note": "HR leads"
+        },
+        "phase": "threshold",
+        "phase_week": 8,
+        "progression_note": "step-back week (4 weeks since the last step-back): step-back week: -25% of 16.0 km",
+        "step_back": true,
+        "progression": {
+          "reason": "step-back week (4 weeks since the last step-back): step-back week: -25% of 16.0 km",
+          "drift": null,
+          "last_long_run": {
+            "passed": true,
+            "avg_hr": 145.6,
+            "pct_at_or_below_cap": 100.0,
+            "pct_source": "garmin_zones",
+            "efficiency": 1.13,
+            "decoupling_pct": 3.96,
+            "decoupling_flag": false,
+            "reasons": [],
+            "exempt": false,
+            "notes": [],
+            "hr_ceiling": 156
+          }
+        }
+      },
+      "config_version_id": 7,
+      "updated_at": "2026-11-19T13:38:25.881Z"
+    }
+  ],
+  "coach": {
+    "pending_count": 2,
+    "latest_pending_id": "3"
+  }
+}

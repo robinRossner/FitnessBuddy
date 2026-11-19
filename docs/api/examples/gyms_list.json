@@ -1,0 +1,21 @@
+{
+  "current_gym_id": 2,
+  "gyms": [
+    {
+      "id": 1,
+      "name": "Gym 1",
+      "created_at": "2026-11-19T13:38:23.599Z",
+      "machine_count": 8,
+      "is_current": false,
+      "source": "import"
+    },
+    {
+      "id": 2,
+      "name": "Gym 2",
+      "created_at": "2026-11-19T13:38:23.599Z",
+      "machine_count": 8,
+      "is_current": true,
+      "source": "import"
+    }
+  ]
+}

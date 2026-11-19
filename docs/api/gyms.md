@@ -1,7 +1,7 @@
 # Gyms API: gyms, machines and weight ladders
 
 Machine / cable / smith / plate-loaded exercises are **gym-bound**: each gym has its own variant
-(`"Lat Pulldown (Cable) @ Gym 3"`) with its own progression history and its own `weight_ladder`
+(`"Lat Pulldown (Cable) @ Gym 2"`) with its own progression history and its own `weight_ladder`
 (sorted kg of the stack). Barbell, dumbbell and bodyweight variants are generic and never appear
 here. This API lets the user choose the current gym, add a gym, map each exercise to the machine
 of that gym and enter the weight steps of each stack. Sessions and plans then use that gym's
@@ -13,7 +13,7 @@ Real examples (from a copy of the live database): `docs/api/examples/gyms_list.j
 ## Where the current gym lives
 
 In the versioned engine config as `gym.current_id` (a config version authored by `user`, reason
-"Current gym set to Gym 3"). Unset means the old default: the latest entry of `gyms.yaml`, else
+"Current gym set to Gym 2"). Unset means the old default: the latest entry of `gyms.yaml`, else
 the gym of the newest session. Rolling the config back to an older version therefore also rolls
 the current gym back. The pull `config` block carries `current_gym_id` and `gyms` (same objects as
 `GET /gyms`) so the app always knows them.
@@ -23,7 +23,7 @@ the current gym back. The pull `config` block carries `current_gym_id` and `gyms
 **Gym**
 
 ```json
-{"id": 4, "name": "Gym 3", "created_at": "2026-10-24T20:13:13.487Z",
+{"id": 4, "name": "Gym 2", "created_at": "2026-10-24T20:13:13.487Z",
  "machine_count": 15, "is_current": true, "source": "import"}
 ```
 
@@ -35,7 +35,7 @@ the current gym back. The pull `config` block carries `current_gym_id` and `gyms
 ```json
 {"exercise_id": 7, "exercise_name": "Lateral Raise", "body_region": "shoulders",
  "in_program": true, "equipment_type": "cable",
- "variant": {"id": 123, "name": "Lateral Raise (Cable) @ Gym 3", "equipment_type": "cable",
+ "variant": {"id": 123, "name": "Lateral Raise (Cable) @ Gym 2", "equipment_type": "cable",
              "weight_ladder": [5.0], "notes": null, "active": true,
              "sessions": 9, "last_used": "2026-10-23"},
  "previous": {"gym_name": "Gym 2", "variant_id": 106,
@@ -101,7 +101,7 @@ other gym-bound exercises the user has history with (alphabetical).
 "equipment_type", "increment_kg"}` (the last two: `docs/api/exercises.md`) -> the variant:
 
 ```json
-{"id": 123, "exercise_id": 7, "gym_id": 4, "name": "Lateral Raise (Cable) @ Gym 3",
+{"id": 123, "exercise_id": 7, "gym_id": 4, "name": "Lateral Raise (Cable) @ Gym 2",
  "equipment_type": "cable", "weight_ladder": [5.0, 7.5, 10.0], "increment_kg": null, "notes": null,
  "active": true, "sessions": 9, "last_used": "2026-10-23"}
 ```

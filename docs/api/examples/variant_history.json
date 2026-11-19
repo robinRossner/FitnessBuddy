@@ -1,0 +1,157 @@
+[
+  {
+    "session_id": "ecb09200-4f47-54b5-b1fb-4b8663310fd8",
+    "date": "2026-10-22",
+    "sets": [
+      {
+        "weight_kg": 47.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "warmup"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 7,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 6,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 6,
+        "duration_s": null,
+        "set_type": "working"
+      }
+    ],
+    "best_e1rm": 95.58
+  },
+  {
+    "session_id": "9e0d2709-1762-5726-9cd3-129c099675d3",
+    "date": "2026-10-19",
+    "sets": [
+      {
+        "weight_kg": 47.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "warmup"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 9,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 7,
+        "duration_s": null,
+        "set_type": "working"
+      }
+    ],
+    "best_e1rm": 100.75
+  },
+  {
+    "session_id": "f2284864-f2c7-57a7-bdac-492b4fecb3fe",
+    "date": "2026-10-15",
+    "sets": [
+      {
+        "weight_kg": 47.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "warmup"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 10,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 9,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 7,
+        "duration_s": null,
+        "set_type": "working"
+      }
+    ],
+    "best_e1rm": 103.33
+  },
+  {
+    "session_id": "c9e0132b-9bab-534d-850e-21c24e90104b",
+    "date": "2026-10-12",
+    "sets": [
+      {
+        "weight_kg": 47.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "warmup"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 7,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 6,
+        "duration_s": null,
+        "set_type": "working"
+      }
+    ],
+    "best_e1rm": 98.17
+  },
+  {
+    "session_id": "8e62227e-2a40-5607-b628-25edd81ec8d9",
+    "date": "2026-10-08",
+    "sets": [
+      {
+        "weight_kg": 47.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "warmup"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 9,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 8,
+        "duration_s": null,
+        "set_type": "working"
+      },
+      {
+        "weight_kg": 77.5,
+        "reps": 6,
+        "duration_s": null,
+        "set_type": "working"
+      }
+    ],
+    "best_e1rm": 100.75
+  }
+]

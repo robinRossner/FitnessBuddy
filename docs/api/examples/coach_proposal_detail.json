@@ -1,0 +1,2343 @@
+{
+  "id": "1",
+  "created_at": "2026-11-19T13:38:26.001Z",
+  "status": "pending",
+  "trigger": {
+    "type": "ask",
+    "title": "Question about Triceps Extension (Cable) @ Gym 2",
+    "detail": "My triceps extension has been stuck for weeks. What should I change?",
+    "ref": {
+      "kind": "lift",
+      "id": "16"
+    }
+  },
+  "question": "My triceps extension has been stuck for weeks. What should I change?",
+  "diagnosis": "Triceps extension has not improved its best e1RM for several sessions while your HRV, resting heart rate and sleep are in their normal range, so this looks like a plateau at the current rep range rather than a recovery problem. Weekly running volume is well below the 10 % cap, so there is room to build it a little.",
+  "notes_for_user": "Nothing changes until you approve it. If triceps still stalls in 3-4 weeks, ask me again.",
+  "confidence": "medium",
+  "changes": [
+    {
+      "id": "p1",
+      "param": "exercise_overrides.triceps_extension.rep_range",
+      "label": "Triceps Extension (Cable) rep range",
+      "from": [
+        7,
+        12
+      ],
+      "to": [
+        8,
+        12
+      ],
+      "reason": "A slightly higher floor keeps the load heavier for longer before the next load step; check the best e1RM again in 3-4 weeks.",
+      "risk": "low",
+      "valid": true,
+      "validation_error": null,
+      "status": "proposed"
+    },
+    {
+      "id": "p2",
+      "param": "running.weekly_volume_cap_pct",
+      "label": "Weekly run volume cap (%)",
+      "from": 10,
+      "to": 12,
+      "reason": "Weekly km have stayed well under the cap for the last 4 weeks.",
+      "risk": "high",
+      "valid": true,
+      "validation_error": null,
+      "status": "proposed"
+    },
+    {
+      "id": "p3",
+      "param": "exercise_overrides.triceps_extension.target_weight",
+      "label": "exercise_overrides.triceps_extension.target_weight",
+      "from": 30,
+      "to": 35,
+      "reason": "Jump to 35 kg now.",
+      "risk": "low",
+      "valid": false,
+      "validation_error": "param is not on the allowlist (only engine parameters can be changed, never weights, paces or heart-rate numbers)",
+      "status": "invalid"
+    }
+  ],
+  "schedule_changes": [],
+  "session_overrides": [
+    {
+      "date": "2026-10-26",
+      "session": "Upper",
+      "change": "Keep the first triceps set easy to test the new floor.",
+      "reason": "The first set sets the tone for the other sets."
+    }
+  ],
+  "applied_config_version": null,
+  "error": null,
+  "cost_usd": 0.0971,
+  "input_summary": {
+    "baselines": {
+      "bodyweight_change_4w_pct": -0.36,
+      "bodyweight_kg": 82.0,
+      "hrv_28d": 65.1,
+      "hrv_7d": 59.3,
+      "rhr_28d": 52.4,
+      "rhr_7d": 53.9,
+      "sleep_28d_h": 7.4,
+      "sleep_7d_h": 7.0
+    },
+    "config": {
+      "approval_mode": "manual",
+      "exercise_overrides": {},
+      "params": {
+        "increments.barbell_kg": 5.0,
+        "increments.bodyweight_added_kg": 2.5,
+        "increments.default_stack_step_kg": 5.0,
+        "increments.dumbbell_increment_kg": 2.0,
+        "increments.other_kg": 2.5,
+        "increments.plate_loaded_kg": 5.0,
+        "increments.smith_kg": 5.0,
+        "lifting.rest_default_s": 120,
+        "recovery.deload_red_days": 4,
+        "running.easy.strides.reps": 6,
+        "running.easy_calibration.enabled": true,
+        "running.easy_calibration.hr_margin_bpm": 2.0,
+        "running.easy_calibration.max_vdot_gain": 4.0,
+        "running.easy_calibration.min_runs": 3,
+        "running.easy_calibration.window_days": 28,
+        "running.interval_pace_tolerance_pct": 3.0,
+        "running.intervals.max_work_min": 20.0,
+        "running.intervals.recovery_distance_m": 400.0,
+        "running.intervals.rep_distance_m": 1000.0,
+        "running.intervals.reps_max": 6,
+        "running.intervals.reps_min": 4,
+        "running.intervals.reps_start": 5,
+        "running.long_run.cap_km": 20.0,
+        "running.long_run.drift_hold_pct": 5.0,
+        "running.long_run.step_back_every": 4,
+        "running.long_run.step_back_pct": 25.0,
+        "running.long_run.step_km": 1.0,
+        "running.quality.phase_weeks.5k_specific": null,
+        "running.quality.phase_weeks.threshold": null,
+        "running.quality.phase_weeks.threshold_vo2max": null,
+        "running.threshold.max_work_min": 30.0,
+        "running.threshold.reps_max": 5,
+        "running.vdot.from_intervals.age_discount_per_week": 0.25,
+        "running.vdot.from_intervals.age_free_days": 28,
+        "running.vdot.from_intervals.enabled": true,
+        "running.vdot.from_intervals.max_step": 3.0,
+        "running.vdot.from_intervals.min_reps": 4,
+        "running.vdot.from_intervals.window_days": 70,
+        "running.vdot.max_per_4w": 1.0,
+        "running.vdot.max_step": 0.5,
+        "running.volume.cap_abs_km": 2.0,
+        "running.volume.hold_last_week": true,
+        "running.volume.hold_limit_factor": 1.1,
+        "running.volume.single_run_factor": 1.1,
+        "running.weekly_volume_cap_pct": 10.0,
+        "running.weekly_volume_floor_km": 18.0,
+        "strength.big_miss_reps": 3,
+        "strength.deload.fatigue_index_pct": 40.0,
+        "strength.deload.sets_pct": 50.0,
+        "strength.multi_stall_lifts": 3,
+        "strength.rep_ceiling_cap": 15,
+        "strength.rep_range": [
+          7,
+          12
+        ],
+        "strength.rung_min_reps": 8,
+        "strength.stall_exposures": 3,
+        "strength.stall_exposures_2x": 4,
+        "strength.stall_min_days": 12,
+        "strength.stall_reset_pct": 10.0,
+        "strength.stall_reset_small_pct": 5.0
+      },
+      "version": "v3.6"
+    },
+    "lifts": {
+      "bench_press": {
+        "best": 105.92,
+        "e1rm_12w": [
+          [
+            "2026-08-03",
+            96.7
+          ],
+          [
+            "2026-08-10",
+            101.5
+          ],
+          [
+            "2026-08-17",
+            97.5
+          ],
+          [
+            "2026-08-24",
+            102.5
+          ],
+          [
+            "2026-08-31",
+            102.5
+          ],
+          [
+            "2026-09-07",
+            102.5
+          ],
+          [
+            "2026-09-14",
+            100.0
+          ],
+          [
+            "2026-09-21",
+            102.5
+          ],
+          [
+            "2026-09-28",
+            105.9
+          ],
+          [
+            "2026-10-05",
+            103.3
+          ],
+          [
+            "2026-10-12",
+            103.3
+          ],
+          [
+            "2026-10-19",
+            100.8
+          ]
+        ],
+        "latest": 95.58,
+        "name": "Bench Press (Barbell)",
+        "sessions": 48,
+        "stalled": true,
+        "trend_4w_pct": 3.34
+      },
+      "biceps_curl": {
+        "best": 22.4,
+        "e1rm_12w": [
+          [
+            "2026-08-03",
+            20.1
+          ],
+          [
+            "2026-08-10",
+            19.6
+          ],
+          [
+            "2026-08-17",
+            19.1
+          ],
+          [
+            "2026-08-24",
+            18.7
+          ],
+          [
+            "2026-08-31",
+            18.2
+          ],
+          [
+            "2026-09-07",
+            22.4
+          ],
+          [
+            "2026-09-14",
+            21.9
+          ],
+          [
+            "2026-09-21",
+            21.3
+          ],
+          [
+            "2026-09-28",
+            20.8
+          ],
+          [
+            "2026-10-05",
+            22.4
+          ],
+          [
+            "2026-10-12",
+            22.4
+          ],
+          [
+            "2026-10-19",
+            21.9
+          ]
+        ],
+        "latest": 21.33,
+        "name": "Bicep Curl (Dumbbell)",
+        "sessions": 48,
+        "stalled": true,
+        "trend_4w_pct": 0.0
+      },
+      "calf_raise": {
+        "best": 120.0,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            102.5
+          ],
+          [
+            "2026-08-24",
+            107.5
+          ],
+          [
+            "2026-08-31",
+            112.5
+          ],
+          [
+            "2026-09-07",
+            109.3
+          ],
+          [
+            "2026-09-14",
+            109.3
+          ],
+          [
+            "2026-09-21",
+            109.3
+          ],
+          [
+            "2026-09-28",
+            120.0
+          ],
+          [
+            "2026-10-05",
+            109.3
+          ],
+          [
+            "2026-10-19",
+            109.3
+          ]
+        ],
+        "latest": 109.33,
+        "name": "Standing Calf Raise (Machine)",
+        "sessions": 9,
+        "stalled": false,
+        "trend_4w_pct": 6.67
+      },
+      "crunch": {
+        "best": 67.5,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            62.3
+          ],
+          [
+            "2026-08-24",
+            58.1
+          ],
+          [
+            "2026-08-31",
+            59.5
+          ],
+          [
+            "2026-09-07",
+            56.7
+          ],
+          [
+            "2026-09-14",
+            60.9
+          ],
+          [
+            "2026-09-21",
+            62.3
+          ],
+          [
+            "2026-09-28",
+            67.5
+          ],
+          [
+            "2026-10-05",
+            60.0
+          ],
+          [
+            "2026-10-19",
+            67.5
+          ]
+        ],
+        "latest": 67.5,
+        "name": "Cable Crunch",
+        "sessions": 9,
+        "stalled": false,
+        "trend_4w_pct": 8.29
+      },
+      "lateral_raise": {
+        "best": 11.25,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            10.5
+          ],
+          [
+            "2026-08-24",
+            10.5
+          ],
+          [
+            "2026-08-31",
+            10.5
+          ],
+          [
+            "2026-09-07",
+            10.8
+          ],
+          [
+            "2026-09-14",
+            11.0
+          ],
+          [
+            "2026-09-21",
+            10.8
+          ],
+          [
+            "2026-09-28",
+            11.0
+          ],
+          [
+            "2026-10-05",
+            11.0
+          ],
+          [
+            "2026-10-12",
+            11.2
+          ],
+          [
+            "2026-10-19",
+            10.5
+          ]
+        ],
+        "latest": 10.5,
+        "name": "Lateral Raise (Cable)",
+        "sessions": 18,
+        "stalled": false,
+        "trend_4w_pct": 2.27
+      },
+      "leg_curl": {
+        "best": 78.83,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            70.0
+          ],
+          [
+            "2026-08-24",
+            68.2
+          ],
+          [
+            "2026-08-31",
+            68.2
+          ],
+          [
+            "2026-09-07",
+            68.2
+          ],
+          [
+            "2026-09-14",
+            73.5
+          ],
+          [
+            "2026-09-21",
+            77.0
+          ],
+          [
+            "2026-09-28",
+            70.0
+          ],
+          [
+            "2026-10-05",
+            75.2
+          ],
+          [
+            "2026-10-19",
+            78.8
+          ]
+        ],
+        "latest": 78.83,
+        "name": "Lying Leg Curl (Machine)",
+        "sessions": 9,
+        "stalled": false,
+        "trend_4w_pct": 2.38
+      },
+      "leg_extension": {
+        "best": 88.0,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            86.2
+          ],
+          [
+            "2026-08-24",
+            86.2
+          ],
+          [
+            "2026-08-31",
+            78.6
+          ],
+          [
+            "2026-09-07",
+            84.3
+          ],
+          [
+            "2026-09-14",
+            76.7
+          ],
+          [
+            "2026-09-21",
+            84.3
+          ],
+          [
+            "2026-09-28",
+            88.0
+          ],
+          [
+            "2026-10-05",
+            86.0
+          ],
+          [
+            "2026-10-19",
+            84.0
+          ]
+        ],
+        "latest": 84.0,
+        "name": "Leg Extension (Machine)",
+        "sessions": 9,
+        "stalled": false,
+        "trend_4w_pct": 4.35
+      },
+      "overhead_press": {
+        "best": 31.53,
+        "e1rm_12w": [
+          [
+            "2026-08-03",
+            28.0
+          ],
+          [
+            "2026-08-10",
+            27.3
+          ],
+          [
+            "2026-08-17",
+            28.0
+          ],
+          [
+            "2026-08-24",
+            28.7
+          ],
+          [
+            "2026-08-31",
+            28.0
+          ],
+          [
+            "2026-09-07",
+            30.1
+          ],
+          [
+            "2026-09-14",
+            29.3
+          ],
+          [
+            "2026-09-21",
+            31.5
+          ],
+          [
+            "2026-09-28",
+            30.8
+          ],
+          [
+            "2026-10-05",
+            30.1
+          ],
+          [
+            "2026-10-12",
+            30.8
+          ],
+          [
+            "2026-10-19",
+            30.1
+          ]
+        ],
+        "latest": 28.6,
+        "name": "Seated Overhead Press (Dumbbell)",
+        "sessions": 48,
+        "stalled": true,
+        "trend_4w_pct": -2.32
+      },
+      "pull_up": {
+        "best": 121.63,
+        "e1rm_12w": [
+          [
+            "2026-08-03",
+            116.1
+          ],
+          [
+            "2026-08-10",
+            116.1
+          ],
+          [
+            "2026-08-17",
+            116.4
+          ],
+          [
+            "2026-08-24",
+            110.7
+          ],
+          [
+            "2026-08-31",
+            118.3
+          ],
+          [
+            "2026-09-07",
+            107.9
+          ],
+          [
+            "2026-09-14",
+            118.8
+          ],
+          [
+            "2026-09-21",
+            112.7
+          ],
+          [
+            "2026-09-28",
+            112.7
+          ],
+          [
+            "2026-10-05",
+            121.6
+          ],
+          [
+            "2026-10-12",
+            116.5
+          ],
+          [
+            "2026-10-19",
+            118.7
+          ]
+        ],
+        "latest": 118.67,
+        "name": "Pull Up",
+        "sessions": 48,
+        "stalled": true,
+        "trend_4w_pct": 2.42
+      },
+      "romanian_deadlift": {
+        "best": 136.67,
+        "e1rm_12w": [
+          [
+            "2026-08-03",
+            120.3
+          ],
+          [
+            "2026-08-10",
+            117.2
+          ],
+          [
+            "2026-08-17",
+            117.2
+          ],
+          [
+            "2026-08-24",
+            133.0
+          ],
+          [
+            "2026-08-31",
+            120.3
+          ],
+          [
+            "2026-09-07",
+            129.8
+          ],
+          [
+            "2026-09-14",
+            120.3
+          ],
+          [
+            "2026-09-21",
+            130.0
+          ],
+          [
+            "2026-09-28",
+            136.7
+          ],
+          [
+            "2026-10-05",
+            136.7
+          ],
+          [
+            "2026-10-19",
+            133.3
+          ]
+        ],
+        "latest": 133.33,
+        "name": "Romanian Deadlift (Barbell)",
+        "sessions": 24,
+        "stalled": false,
+        "trend_4w_pct": 5.13
+      },
+      "seated_row": {
+        "best": 75.25,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            71.7
+          ],
+          [
+            "2026-08-24",
+            70.0
+          ],
+          [
+            "2026-08-31",
+            75.2
+          ],
+          [
+            "2026-09-07",
+            68.2
+          ],
+          [
+            "2026-09-14",
+            70.0
+          ],
+          [
+            "2026-09-21",
+            73.5
+          ],
+          [
+            "2026-09-28",
+            71.8
+          ],
+          [
+            "2026-10-05",
+            73.5
+          ],
+          [
+            "2026-10-12",
+            70.0
+          ],
+          [
+            "2026-10-19",
+            75.2
+          ]
+        ],
+        "latest": 75.17,
+        "name": "Seated Row (Cable)",
+        "sessions": 18,
+        "stalled": true,
+        "trend_4w_pct": -0.11
+      },
+      "squat": {
+        "best": 126.67,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            111.0
+          ],
+          [
+            "2026-08-24",
+            108.0
+          ],
+          [
+            "2026-08-31",
+            117.0
+          ],
+          [
+            "2026-09-07",
+            117.0
+          ],
+          [
+            "2026-09-14",
+            117.0
+          ],
+          [
+            "2026-09-21",
+            117.2
+          ],
+          [
+            "2026-09-28",
+            120.3
+          ],
+          [
+            "2026-10-05",
+            126.7
+          ],
+          [
+            "2026-10-19",
+            126.7
+          ]
+        ],
+        "latest": 126.67,
+        "name": "Squat (Smith Machine)",
+        "sessions": 9,
+        "stalled": false,
+        "trend_4w_pct": 8.11
+      },
+      "triceps_extension": {
+        "best": 38.5,
+        "e1rm_12w": [
+          [
+            "2026-08-17",
+            34.2
+          ],
+          [
+            "2026-08-24",
+            35.8
+          ],
+          [
+            "2026-08-31",
+            32.5
+          ],
+          [
+            "2026-09-07",
+            34.8
+          ],
+          [
+            "2026-09-14",
+            37.6
+          ],
+          [
+            "2026-09-21",
+            37.6
+          ],
+          [
+            "2026-09-28",
+            38.5
+          ],
+          [
+            "2026-10-05",
+            38.5
+          ],
+          [
+            "2026-10-12",
+            38.5
+          ],
+          [
+            "2026-10-19",
+            36.7
+          ]
+        ],
+        "latest": 34.83,
+        "name": "Triceps Extension (Cable)",
+        "sessions": 18,
+        "stalled": true,
+        "trend_4w_pct": 2.45
+      }
+    },
+    "past_advisor_changes": [],
+    "program": {
+      "lower": [
+        [
+          "squat",
+          "Squat (Smith Machine)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "romanian_deadlift",
+          "Romanian Deadlift (Barbell)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "leg_curl",
+          "Lying Leg Curl (Machine)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "leg_extension",
+          "Leg Extension (Machine)",
+          2,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "calf_raise",
+          "Standing Calf Raise (Machine)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "crunch",
+          "Cable Crunch",
+          2,
+          [
+            7,
+            12
+          ]
+        ]
+      ],
+      "upper": [
+        [
+          "bench_press",
+          "Bench Press (Barbell)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "pull_up",
+          "Pull Up",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "overhead_press",
+          "Seated Overhead Press (Dumbbell)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "seated_row",
+          "Seated Row (Cable)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "lateral_raise",
+          "Lateral Raise (Cable)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "triceps_extension",
+          "Triceps Extension (Cable)",
+          3,
+          [
+            7,
+            12
+          ]
+        ],
+        [
+          "biceps_curl",
+          "Bicep Curl (Dumbbell)",
+          2,
+          [
+            7,
+            12
+          ]
+        ]
+      ]
+    },
+    "progression": {
+      "censored_misses_14d": [
+        [
+          "2026-09-21",
+          "Bicep Curl (Dumbbell)",
+          "deload week"
+        ],
+        [
+          "2026-09-24",
+          "Bicep Curl (Dumbbell)",
+          "deload week"
+        ],
+        [
+          "2026-09-24",
+          "Lateral Raise (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-09-24",
+          "Pull Up",
+          "deload week"
+        ],
+        [
+          "2026-09-24",
+          "Seated Row (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-09-24",
+          "Triceps Extension (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-10-19",
+          "Bench Press (Barbell)",
+          "deload week"
+        ],
+        [
+          "2026-10-19",
+          "Lateral Raise (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-10-19",
+          "Seated Overhead Press (Dumbbell)",
+          "deload week"
+        ],
+        [
+          "2026-10-19",
+          "Triceps Extension (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-10-20",
+          "Leg Extension (Machine)",
+          "deload week"
+        ],
+        [
+          "2026-10-20",
+          "Romanian Deadlift (Barbell)",
+          "deload week"
+        ],
+        [
+          "2026-10-20",
+          "Squat (Smith Machine)",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Bench Press (Barbell)",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Bicep Curl (Dumbbell)",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Lateral Raise (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Pull Up",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Seated Overhead Press (Dumbbell)",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Seated Row (Cable)",
+          "deload week"
+        ],
+        [
+          "2026-10-22",
+          "Triceps Extension (Cable)",
+          "deload week"
+        ]
+      ],
+      "deload": null,
+      "lift_columns": [
+        "state",
+        "effective rep range",
+        "note"
+      ],
+      "lifts": {
+        "bench_press": [
+          "retest",
+          "7-12",
+          "retest 77.5 kg after the deload: beat 11/9/8"
+        ],
+        "biceps_curl": [
+          "stalled",
+          "7-13",
+          "stalled again after a -5% reset: the coach proposes a rep range change or a variation; same load until then"
+        ],
+        "calf_raise": [
+          "grinding",
+          "7-12",
+          "+1 rep per set: beat 11/11/10 @ 80 kg"
+        ],
+        "crunch": [
+          "progressing",
+          "7-12",
+          "every set at the top at 45 kg -> 50 kg (Epley predicts ~10 reps)"
+        ],
+        "lateral_raise": [
+          "grinding",
+          "7-15",
+          "+1 rep per set: beat 15/13/13 @ 7.5 kg; ceiling 15 for now: 12.5 kg from 12 reps would predict fewer than 8"
+        ],
+        "leg_curl": [
+          "progressing",
+          "7-12",
+          "every set at the top at 55 kg -> 60 kg (Epley predicts ~9 reps)"
+        ],
+        "leg_extension": [
+          "progressing",
+          "7-12",
+          "every set >= 11 twice at 60 kg -> 65 kg (Epley predicts ~10 reps)"
+        ],
+        "overhead_press": [
+          "grinding",
+          "7-12",
+          "+1 rep per set: beat 12/12/11 @ 22 kg"
+        ],
+        "pull_up": [
+          "grinding",
+          "7-12",
+          "+1 rep per set: beat 10/9/9 @ 7.5 kg"
+        ],
+        "romanian_deadlift": [
+          "grinding",
+          "7-12",
+          "+1 rep per set: beat 11/10/9 @ 100 kg"
+        ],
+        "seated_row": [
+          "grinding",
+          "7-12",
+          "+1 rep per set: beat 11/10/10 @ 55 kg"
+        ],
+        "squat": [
+          "grinding",
+          "7-12",
+          "+1 rep per set: beat 10/10/8 @ 95 kg"
+        ],
+        "triceps_extension": [
+          "grinding",
+          "7-15",
+          "+1 rep per set: beat 12/11/10 @ 27.5 kg; ceiling 15 for now: 32.5 kg from 12 reps would predict fewer than 8"
+        ]
+      },
+      "running": {
+        "easy_pace": {
+          "basis": "daniels",
+          "capped": false,
+          "quality_vdot": 44.25,
+          "range": "5:24-6:28",
+          "reason": "Daniels easy pace for VDOT 44.2: your 6 easy runs of 28 days at HR <= 154 (5:46-6:05/km, median 5:57) fit it",
+          "vdot": 44.25
+        },
+        "long_run": {
+          "date": "2026-10-25",
+          "km": 12.0,
+          "note": "step-back week (4 weeks since the last step-back): step-back week: -25% of 16.0 km",
+          "step_back": true
+        },
+        "phase": [
+          "threshold",
+          9
+        ],
+        "quality": {
+          "date": "2026-10-30",
+          "note": "last session on pace but the HR peaked above the ceiling: same session",
+          "phase": "threshold",
+          "phase_week": 9,
+          "session_type": "threshold"
+        },
+        "vdot": {
+          "day": "2026-10-19",
+          "delta": 0.29,
+          "reason": "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 44.3: VDOT 44.3",
+          "source": "interval_reps",
+          "vdot": 44.25
+        },
+        "volume": {
+          "cap_km": 29.04,
+          "mean_km_4w": 26.4,
+          "reasoning": "4-week mean 26.4 km -> cap max(26.4 x 1.1, 26.4 + 2, hold 16.4) = 29.04 km; hold: last week ran 16.4 km, held up to 16.4 km (limit 1.1 x the highest of the 4 weeks before it = 36.74 km); target 18 km/week is within the cap; single run <= 17.6 km (1.1 x the longest of 30 days)",
+          "single_run_cap_km": 17.6,
+          "target_km": 18.0
+        }
+      },
+      "stall_ladder": {
+        "Bench Press (Barbell)": [
+          0,
+          4,
+          4
+        ],
+        "Bicep Curl (Dumbbell)": [
+          1,
+          4,
+          4
+        ],
+        "Cable Crunch": [
+          0,
+          1,
+          3
+        ],
+        "Lateral Raise (Cable)": [
+          0,
+          0,
+          4
+        ],
+        "Leg Extension (Machine)": [
+          0,
+          1,
+          3
+        ],
+        "Lying Leg Curl (Machine)": [
+          0,
+          0,
+          3
+        ],
+        "Pull Up": [
+          0,
+          3,
+          4
+        ],
+        "Romanian Deadlift (Barbell)": [
+          0,
+          1,
+          3
+        ],
+        "Seated Overhead Press (Dumbbell)": [
+          1,
+          2,
+          4
+        ],
+        "Seated Row (Cable)": [
+          2,
+          0,
+          4
+        ],
+        "Squat (Smith Machine)": [
+          0,
+          0,
+          3
+        ],
+        "Standing Calf Raise (Machine)": [
+          0,
+          1,
+          3
+        ],
+        "Triceps Extension (Cable)": [
+          0,
+          3,
+          4
+        ]
+      },
+      "stall_ladder_columns": [
+        "ladder step taken",
+        "clean sessions w/o progress",
+        "N"
+      ]
+    },
+    "readiness_14d": [
+      [
+        "2026-10-12",
+        "green",
+        69.1,
+        50.0,
+        6.8
+      ],
+      [
+        "2026-10-13",
+        "green",
+        72.0,
+        51.0,
+        6.0
+      ],
+      [
+        "2026-10-14",
+        "green",
+        65.8,
+        51.0,
+        7.7
+      ],
+      [
+        "2026-10-15",
+        "green",
+        67.8,
+        52.0,
+        6.9
+      ],
+      [
+        "2026-10-16",
+        "green",
+        69.2,
+        53.0,
+        7.0
+      ],
+      [
+        "2026-10-17",
+        "green",
+        65.7,
+        53.0,
+        8.1
+      ],
+      [
+        "2026-10-18",
+        "green",
+        65.5,
+        50.0,
+        6.5
+      ],
+      [
+        "2026-10-19",
+        "green",
+        60.4,
+        51.0,
+        7.1
+      ],
+      [
+        "2026-10-20",
+        "green",
+        68.6,
+        52.0,
+        6.6
+      ],
+      [
+        "2026-10-21",
+        "green",
+        66.0,
+        53.0,
+        8.2
+      ],
+      [
+        "2026-10-22",
+        "green",
+        55.7,
+        54.0,
+        7.3
+      ],
+      [
+        "2026-10-23",
+        "red",
+        50.3,
+        56.0,
+        6.1
+      ],
+      [
+        "2026-10-24",
+        "green",
+        57.2,
+        56.0,
+        6.9
+      ],
+      [
+        "2026-10-25",
+        "green",
+        56.7,
+        55.0,
+        6.9
+      ]
+    ],
+    "recent_sessions": [
+      {
+        "date": "2026-10-12",
+        "ex": [
+          [
+            "Bench Press (Barbell)",
+            "77.5x8,77.5x7,77.5x6"
+          ],
+          [
+            "Pull Up",
+            "7.5x9,7.5x8,7.5x7"
+          ],
+          [
+            "Seated Overhead Press (Dumbbell)",
+            "22x12,22x12,22x11"
+          ],
+          [
+            "Seated Row (Cable) @ Gym 2",
+            "52.5x9,52.5x8,52.5x8"
+          ],
+          [
+            "Lateral Raise (Cable) @ Gym 2",
+            "7.5x14,7.5x13,7.5x12"
+          ],
+          [
+            "Triceps Extension (Cable) @ Gym 2",
+            "27.5x8,27.5x7,27.5x7"
+          ],
+          [
+            "Bicep Curl (Dumbbell)",
+            "16x12,16x10"
+          ]
+        ],
+        "kind": "upper"
+      },
+      {
+        "date": "2026-10-14",
+        "hr": 144.0,
+        "kind": "easy",
+        "km": 6.0,
+        "pace_s_km": 351.0
+      },
+      {
+        "date": "2026-10-15",
+        "ex": [
+          [
+            "Bench Press (Barbell)",
+            "77.5x10,77.5x9,77.5x7"
+          ],
+          [
+            "Pull Up",
+            "7.5x7,7.5x6,7.5x6"
+          ],
+          [
+            "Seated Overhead Press (Dumbbell)",
+            "22x12,22x10,22x10"
+          ],
+          [
+            "Seated Row (Cable) @ Gym 2",
+            "52.5x10,52.5x10,52.5x8"
+          ],
+          [
+            "Lateral Raise (Cable) @ Gym 2",
+            "7.5x15,7.5x13,7.5x13"
+          ],
+          [
+            "Triceps Extension (Cable) @ Gym 2",
+            "27.5x12,27.5x11,27.5x10"
+          ],
+          [
+            "Bicep Curl (Dumbbell)",
+            "16x11,16x10"
+          ]
+        ],
+        "kind": "upper"
+      },
+      {
+        "date": "2026-10-16",
+        "hr": 158.0,
+        "kind": "intervals",
+        "km": 10.4,
+        "pace_s_km": 318.0
+      },
+      {
+        "date": "2026-10-18",
+        "hr": 146.0,
+        "kind": "long",
+        "km": 16.0,
+        "pace_s_km": 365.0
+      },
+      {
+        "date": "2026-10-19",
+        "ex": [
+          [
+            "Bench Press (Barbell)",
+            "77.5x9,77.5x8,77.5x7"
+          ],
+          [
+            "Pull Up",
+            "7.5x10,7.5x9,7.5x9"
+          ],
+          [
+            "Seated Overhead Press (Dumbbell)",
+            "22x11,22x9,22x8"
+          ],
+          [
+            "Seated Row (Cable) @ Gym 2",
+            "55x11,55x10,55x10"
+          ],
+          [
+            "Lateral Raise (Cable) @ Gym 2",
+            "7.5x12,7.5x11,7.5x10"
+          ],
+          [
+            "Triceps Extension (Cable) @ Gym 2",
+            "27.5x10,27.5x8,27.5x7"
+          ],
+          [
+            "Bicep Curl (Dumbbell)",
+            "16x11,16x10"
+          ]
+        ],
+        "kind": "upper"
+      },
+      {
+        "date": "2026-10-20",
+        "ex": [
+          [
+            "Squat (Smith Machine) @ Gym 2",
+            "95x10,95x9,95x8"
+          ],
+          [
+            "Romanian Deadlift (Barbell)",
+            "100x10,100x10,100x8"
+          ],
+          [
+            "Lying Leg Curl (Machine) @ Gym 2",
+            "55x13,55x13,55x12"
+          ],
+          [
+            "Leg Extension (Machine) @ Gym 2",
+            "60x12,60x11"
+          ],
+          [
+            "Standing Calf Raise (Machine) @ Gym 2",
+            "80x11,80x11,80x10"
+          ],
+          [
+            "Cable Crunch @ Gym 2",
+            "45x15,45x13"
+          ]
+        ],
+        "kind": "lower"
+      },
+      {
+        "date": "2026-10-21",
+        "hr": 146.0,
+        "kind": "easy",
+        "km": 6.0,
+        "pace_s_km": 346.0
+      },
+      {
+        "date": "2026-10-22",
+        "ex": [
+          [
+            "Bench Press (Barbell)",
+            "77.5x7,77.5x6,77.5x6"
+          ],
+          [
+            "Pull Up",
+            "7.5x10,7.5x9,7.5x8"
+          ],
+          [
+            "Seated Overhead Press (Dumbbell)",
+            "22x9,22x8,22x7"
+          ],
+          [
+            "Seated Row (Cable) @ Gym 2",
+            "55x11,55x10,55x9"
+          ],
+          [
+            "Lateral Raise (Cable) @ Gym 2",
+            "7.5x12,7.5x10,7.5x9"
+          ],
+          [
+            "Triceps Extension (Cable) @ Gym 2",
+            "27.5x8,27.5x7,27.5x7"
+          ],
+          [
+            "Bicep Curl (Dumbbell)",
+            "16x10,16x10"
+          ]
+        ],
+        "kind": "upper"
+      },
+      {
+        "date": "2026-10-23",
+        "hr": 158.0,
+        "kind": "intervals",
+        "km": 10.4,
+        "pace_s_km": 316.0
+      }
+    ],
+    "rules": [
+      [
+        "2026-11-19",
+        "running",
+        "running:stagnation",
+        "2026-10-26",
+        "aerobic efficiency +0.3% vs the previous 4 weeks"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "quality:hold",
+        "fri_intervals",
+        "last session on pace but the HR peaked above the ceiling: same session"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "stall:advisor",
+        "Bicep Curl (Dumbbell)",
+        "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stalled again after a -5% reset: the coach proposes a rep range change or a variation; same lo"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "retest",
+        "Bench Press (Barbell)",
+        "retest 77.5 kg after the deload: beat 11/9/8"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:weekly_volume_cap",
+        "2026-10-26",
+        "4-week mean 26.4 km -> cap max(26.4 x 1.1, 26.4 + 2, hold 16.4) = 29.04 km; hold: last week ran 16.4 km, held up to 16.4 km (limit 1.1 x the highest of the 4 we"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:quality_phase",
+        "2026-10-26",
+        "threshold week 9/12 (cycle 1): threshold session"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:stagnation",
+        "2026-10-19",
+        "aerobic efficiency +0.3% vs the previous 4 weeks"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:weekly_volume_cap",
+        "2026-10-19",
+        "4-week mean 30.65 km -> cap max(30.65 x 1.1, 30.65 + 2, hold 32.4) = 33.72 km; hold: last week ran 32.4 km, held up to 32.4 km (limit 1.1 x the highest of the 4"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:quality_phase",
+        "2026-10-19",
+        "threshold week 8/12 (cycle 1): threshold session"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Bicep Curl (Dumbbell)",
+        "deload week (several lifts stalled together): 1 of 2 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Triceps Extension (Cable)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Lateral Raise (Cable)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Seated Row (Cable)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Seated Overhead Press (Dumbbell)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Pull Up",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Bench Press (Barbell)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 77.5 kg after the deload (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Cable Crunch",
+        "deload week (several lifts stalled together): 1 of 2 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Standing Calf Raise (Machine)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Leg Extension (Machine)",
+        "deload week (several lifts stalled together): 1 of 2 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Lying Leg Curl (Machine)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Romanian Deadlift (Barbell)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "deload:multi_lift_stall",
+        "Squat (Smith Machine)",
+        "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
+      ],
+      [
+        "2026-11-19",
+        "deload",
+        "deload:multi_lift_stall",
+        "2026-10-19",
+        "4 lifts stalled within 14 days (Bench Press (Barbell)): no per-lift resets; soft deload 2026-10-19 .. 2026-10-25 (sets halved, loads kept), then a retest of the"
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:vdot",
+        "2026-10-19",
+        "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) ="
+      ],
+      [
+        "2026-11-19",
+        "running",
+        "running:stagnation",
+        "2026-10-12",
+        "aerobic efficiency +0.2% vs the previous 4 weeks"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "double_progression:hold_noise",
+        "Bicep Curl (Dumbbell)",
+        "1 rep fewer than last time: noise, same target"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "double_progression:decrease_load",
+        "Triceps Extension (Cable)",
+        "8 reps fewer than last time at 27.5 kg -> 25 kg and rebuild"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "stall:advisor",
+        "Seated Row (Cable)",
+        "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stalled again after a -5% reset: the coach proposes a rep range change or a variation; same lo"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "stall:reset_small",
+        "Seated Overhead Press (Dumbbell)",
+        "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stall ladder step 1: -5% to 20 kg, rebuild"
+      ],
+      [
+        "2026-11-19",
+        "progression",
+        "double_progression:decrease_load",
+        "Bench Press (Barbell)",
+        "two clean drops in a row at 77.5 kg -> 72.5 kg and rebuild"
+      ]
+    ],
+    "running": {
+      "easy_runs": [
+        [
+          "2026-09-23",
+          "easy",
+          7.0,
+          1.1842,
+          1.3
+        ],
+        [
+          "2026-09-27",
+          "long",
+          16.0,
+          1.1283,
+          5.48
+        ],
+        [
+          "2026-09-30",
+          "easy",
+          6.0,
+          1.1845,
+          1.94
+        ],
+        [
+          "2026-10-04",
+          "long",
+          16.0,
+          1.1277,
+          4.4
+        ],
+        [
+          "2026-10-11",
+          "long",
+          14.0,
+          1.1354,
+          5.0
+        ],
+        [
+          "2026-10-14",
+          "easy",
+          6.0,
+          1.1885,
+          0.74
+        ],
+        [
+          "2026-10-18",
+          "long",
+          16.0,
+          1.1297,
+          3.96
+        ],
+        [
+          "2026-10-21",
+          "easy",
+          6.0,
+          1.1899,
+          -1.88
+        ]
+      ],
+      "intervals": [
+        [
+          "2026-09-18",
+          6,
+          true,
+          -8.8,
+          true,
+          true
+        ],
+        [
+          "2026-09-25",
+          6,
+          true,
+          -8.1,
+          true,
+          true
+        ],
+        [
+          "2026-10-02",
+          6,
+          true,
+          -8.4,
+          true,
+          true
+        ],
+        [
+          "2026-10-09",
+          6,
+          true,
+          -8.7,
+          true,
+          true
+        ],
+        [
+          "2026-10-16",
+          6,
+          true,
+          -8.6,
+          true,
+          true
+        ],
+        [
+          "2026-10-23",
+          6,
+          true,
+          -8.3,
+          true,
+          true
+        ]
+      ],
+      "kpis": {
+        "easy_hr_drift_flags_4w": 0,
+        "efficiency": 1.1694,
+        "efficiency_4w_ago": 1.1657,
+        "efficiency_change_pct": 0.32,
+        "km_this_week": 16.4,
+        "runs_planned_this_week": 3,
+        "runs_this_week": 2,
+        "vdot": 44.25,
+        "vdot_4w_ago": 43.55
+      },
+      "weekly_km_12w": [
+        [
+          "2026-08-03",
+          28.0
+        ],
+        [
+          "2026-08-10",
+          28.0
+        ],
+        [
+          "2026-08-17",
+          29.0
+        ],
+        [
+          "2026-08-24",
+          29.0
+        ],
+        [
+          "2026-08-31",
+          25.4
+        ],
+        [
+          "2026-09-07",
+          30.4
+        ],
+        [
+          "2026-09-14",
+          33.4
+        ],
+        [
+          "2026-09-21",
+          33.4
+        ],
+        [
+          "2026-09-28",
+          32.4
+        ],
+        [
+          "2026-10-05",
+          24.4
+        ],
+        [
+          "2026-10-12",
+          32.4
+        ],
+        [
+          "2026-10-19",
+          16.4
+        ]
+      ]
+    },
+    "schedule": {
+      "columns": [
+        "date",
+        "kind",
+        "status",
+        "km",
+        "moved_from"
+      ],
+      "missed_this_week": [],
+      "rules": {
+        "hard_kinds": [
+          "lower",
+          "intervals"
+        ],
+        "kind_load": {
+          "easy": 1,
+          "intervals": 4,
+          "long": 3,
+          "lower": 4,
+          "rest": 0,
+          "upper": 2
+        },
+        "makeup_priority": [
+          "lower",
+          "intervals",
+          "upper",
+          "long",
+          "easy"
+        ],
+        "max_hard_per_day": 1,
+        "max_sessions_per_day": 2,
+        "min_days_lower_to_intervals": 2,
+        "no_consecutive_hard_days": true,
+        "shorten_max_pct": 50.0
+      },
+      "run_km_left_under_cap": 17.32,
+      "weeks": [
+        {
+          "sessions": [
+            [
+              "2026-10-19",
+              "upper",
+              "done",
+              null,
+              null
+            ],
+            [
+              "2026-10-20",
+              "lower",
+              "done",
+              null,
+              null
+            ],
+            [
+              "2026-10-21",
+              "easy_run",
+              "done",
+              7.0,
+              null
+            ],
+            [
+              "2026-10-22",
+              "upper",
+              "done",
+              null,
+              null
+            ],
+            [
+              "2026-10-23",
+              "intervals",
+              "done",
+              8.3,
+              null
+            ],
+            [
+              "2026-10-24",
+              "rest",
+              "done",
+              null,
+              null
+            ],
+            [
+              "2026-10-25",
+              "long_run",
+              "proposed",
+              12.0,
+              null
+            ]
+          ],
+          "week_start": "2026-10-19"
+        },
+        {
+          "sessions": [
+            [
+              "2026-10-26",
+              "upper",
+              "proposed",
+              null,
+              null
+            ],
+            [
+              "2026-10-27",
+              "lower",
+              "proposed",
+              null,
+              null
+            ],
+            [
+              "2026-10-28",
+              "easy_run",
+              "proposed",
+              3.5,
+              null
+            ],
+            [
+              "2026-10-29",
+              "upper",
+              "proposed",
+              null,
+              null
+            ],
+            [
+              "2026-10-30",
+              "intervals",
+              "proposed",
+              8.3,
+              null
+            ],
+            [
+              "2026-10-31",
+              "rest",
+              "proposed",
+              null,
+              null
+            ],
+            [
+              "2026-11-01",
+              "long_run",
+              "proposed",
+              17.0,
+              null
+            ]
+          ],
+          "week_start": "2026-10-26"
+        }
+      ]
+    },
+    "schema": 1,
+    "swap_candidates": {},
+    "today": "2026-10-25",
+    "upcoming_plan": [
+      {
+        "date": "2026-10-25",
+        "kind": "long_run",
+        "km": 12.0,
+        "readiness": "green",
+        "title": "Long run 12 km"
+      },
+      {
+        "date": "2026-10-26",
+        "ex": [
+          "Bench Press (Barbell)",
+          "Pull Up",
+          "Seated Overhead Press (Dumbbell)",
+          "Seated Row (Cable) @ Gym 2",
+          "Lateral Raise (Cable) @ Gym 2",
+          "Triceps Extension (Cable) @ Gym 2",
+          "Bicep Curl (Dumbbell)"
+        ],
+        "kind": "upper",
+        "title": "Upper"
+      },
+      {
+        "date": "2026-10-27",
+        "ex": [
+          "Squat (Smith Machine) @ Gym 2",
+          "Romanian Deadlift (Barbell)",
+          "Lying Leg Curl (Machine) @ Gym 2",
+          "Leg Extension (Machine) @ Gym 2",
+          "Standing Calf Raise (Machine) @ Gym 2",
+          "Cable Crunch @ Gym 2"
+        ],
+        "kind": "lower",
+        "title": "Lower"
+      },
+      {
+        "date": "2026-10-28",
+        "kind": "easy_run",
+        "km": 3.5,
+        "title": "Easy run 3.5 km"
+      },
+      {
+        "date": "2026-10-29",
+        "ex": [
+          "Bench Press (Barbell)",
+          "Pull Up",
+          "Seated Overhead Press (Dumbbell)",
+          "Seated Row (Cable) @ Gym 2",
+          "Lateral Raise (Cable) @ Gym 2",
+          "Triceps Extension (Cable) @ Gym 2",
+          "Bicep Curl (Dumbbell)"
+        ],
+        "kind": "upper",
+        "title": "Upper"
+      },
+      {
+        "date": "2026-10-30",
+        "kind": "intervals",
+        "structure": {
+          "cooldown": {
+            "distance_km": 1.5
+          },
+          "recovery": {
+            "distance_m": 250,
+            "duration_s": 90.0,
+            "hr_drop_min_bpm": 12.0,
+            "type": "jog"
+          },
+          "session_type": "threshold",
+          "warmup": {
+            "distance_km": 2.0,
+            "hr": {
+              "basis": "lthr",
+              "high": 156,
+              "low": 127,
+              "zone": "Z1-Z2"
+            }
+          },
+          "work": {
+            "distance_m": 1000.0,
+            "duration_s": 282,
+            "hr": {
+              "high": 173,
+              "low": 166,
+              "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
+              "zone": "Z4"
+            },
+            "pace_label": "4:42",
+            "pace_range_s_per_km": [
+              278.0,
+              286.0
+            ],
+            "pace_s_per_km": 282,
+            "pace_tolerance_pct": 3.0,
+            "reps": 4
+          }
+        },
+        "title": "Threshold 4x1000 m @ 4:42"
+      },
+      {
+        "date": "2026-10-31",
+        "kind": "rest",
+        "title": "Rest"
+      }
+    ],
+    "week_start": "2026-10-19",
+    "why": {
+      "detail": "My triceps extension has been stuck for weeks. What should I change?",
+      "focus": {
+        "kind": "lift",
+        "name": "Triceps Extension (Cable)",
+        "prs": [
+          [
+            "2026-09-14",
+            "reps",
+            10
+          ],
+          [
+            "2026-09-17",
+            "e1rm",
+            37.58
+          ],
+          [
+            "2026-09-17",
+            "reps",
+            11
+          ],
+          [
+            "2026-09-28",
+            "e1rm",
+            38.5
+          ],
+          [
+            "2026-09-28",
+            "reps",
+            12
+          ]
+        ],
+        "sessions": [
+          [
+            "2026-09-03",
+            31.67,
+            {
+              "reps": 8,
+              "weight_kg": 25.0
+            },
+            3
+          ],
+          [
+            "2026-09-07",
+            34.83,
+            {
+              "reps": 8,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-09-14",
+            36.67,
+            {
+              "reps": 10,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-09-17",
+            37.58,
+            {
+              "reps": 11,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-09-21",
+            37.58,
+            {
+              "reps": 11,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-09-24",
+            36.67,
+            {
+              "reps": 10,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-09-28",
+            38.5,
+            {
+              "reps": 12,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-01",
+            36.67,
+            {
+              "reps": 10,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-05",
+            38.5,
+            {
+              "reps": 12,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-08",
+            37.58,
+            {
+              "reps": 11,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-12",
+            34.83,
+            {
+              "reps": 8,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-15",
+            38.5,
+            {
+              "reps": 12,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-19",
+            36.67,
+            {
+              "reps": 10,
+              "weight_kg": 27.5
+            },
+            3
+          ],
+          [
+            "2026-10-22",
+            34.83,
+            {
+              "reps": 8,
+              "weight_kg": 27.5
+            },
+            3
+          ]
+        ]
+      },
+      "question": "My triceps extension has been stuck for weeks. What should I change?",
+      "title": "Question about Triceps Extension (Cable) @ Gym 2",
+      "type": "ask"
+    }
+  }
+}

@@ -1,0 +1,1753 @@
+{
+  "generated_at": "2026-11-19T13:38:28.126Z",
+  "days": [
+    {
+      "date": "2026-07-28",
+      "hrv_ms": 70.6,
+      "hrv_baseline_ms": 68.4,
+      "rhr": 50.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 25592,
+      "sleep_score": 72.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 29.0,
+      "stress_avg": 36.0,
+      "steps": 12534,
+      "steps_7d_avg": 10537.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 71 ms (+3% vs 68 baseline), resting HR 50 (-2 vs 52), sleep 7.1 h, score 72"
+      }
+    },
+    {
+      "date": "2026-07-29",
+      "hrv_ms": 71.1,
+      "hrv_baseline_ms": 68.7,
+      "rhr": 53.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 24027,
+      "sleep_score": 69.0,
+      "body_battery_high": 90.0,
+      "body_battery_low": 25.0,
+      "stress_avg": 28.0,
+      "steps": 12471,
+      "steps_7d_avg": 11324.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 71 ms (+3% vs 69 baseline), resting HR 53 (+2 vs 51), sleep 6.7 h, score 69"
+      }
+    },
+    {
+      "date": "2026-07-30",
+      "hrv_ms": 60.5,
+      "hrv_baseline_ms": 68.7,
+      "rhr": 51.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 26670,
+      "sleep_score": 76.0,
+      "body_battery_high": 89.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 26.0,
+      "steps": 5873,
+      "steps_7d_avg": 10904.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 60 ms (-12% vs 69 baseline)"
+      }
+    },
+    {
+      "date": "2026-07-31",
+      "hrv_ms": 59.5,
+      "hrv_baseline_ms": 68.4,
+      "rhr": 51.0,
+      "rhr_baseline": 51.3,
+      "sleep_s": 30240,
+      "sleep_score": 90.0,
+      "body_battery_high": 79.0,
+      "body_battery_low": 16.0,
+      "stress_avg": 26.0,
+      "steps": 7146,
+      "steps_7d_avg": 10616.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 60 ms (-13% vs 68 baseline)"
+      }
+    },
+    {
+      "date": "2026-08-01",
+      "hrv_ms": 71.6,
+      "hrv_baseline_ms": 66.8,
+      "rhr": 53.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 27315,
+      "sleep_score": 81.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 25.0,
+      "stress_avg": 25.0,
+      "steps": 8573,
+      "steps_7d_avg": 10294.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 72 ms (+7% vs 67 baseline), resting HR 53 (+2 vs 51), sleep 7.6 h, score 81"
+      }
+    },
+    {
+      "date": "2026-08-02",
+      "hrv_ms": 65.2,
+      "hrv_baseline_ms": 66.6,
+      "rhr": 51.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 28379,
+      "sleep_score": 85.0,
+      "body_battery_high": 87.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 22.0,
+      "steps": 9475,
+      "steps_7d_avg": 9399.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 65 ms (-2% vs 67 baseline), resting HR 51 (±0 vs 51), sleep 7.9 h, score 85"
+      }
+    },
+    {
+      "date": "2026-08-03",
+      "hrv_ms": 59.0,
+      "hrv_baseline_ms": 65.7,
+      "rhr": 52.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 30240,
+      "sleep_score": 92.0,
+      "body_battery_high": 88.0,
+      "body_battery_low": 14.0,
+      "stress_avg": 36.0,
+      "steps": 7011,
+      "steps_7d_avg": 9012.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 59 ms (-10% vs 66 baseline)"
+      }
+    },
+    {
+      "date": "2026-08-04",
+      "hrv_ms": 63.3,
+      "hrv_baseline_ms": 65.4,
+      "rhr": 51.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 26559,
+      "sleep_score": 80.0,
+      "body_battery_high": 91.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 32.0,
+      "steps": 12735,
+      "steps_7d_avg": 9041.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 63 ms (-3% vs 65 baseline), resting HR 51 (-1 vs 52), sleep 7.4 h, score 80"
+      }
+    },
+    {
+      "date": "2026-08-05",
+      "hrv_ms": 64.3,
+      "hrv_baseline_ms": 64.3,
+      "rhr": 53.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 28798,
+      "sleep_score": 87.0,
+      "body_battery_high": 82.0,
+      "body_battery_low": 17.0,
+      "stress_avg": 30.0,
+      "steps": 7388,
+      "steps_7d_avg": 8314.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 64 ms (±0% vs 64 baseline), resting HR 53 (+1 vs 52), sleep 8.0 h, score 87"
+      }
+    },
+    {
+      "date": "2026-08-06",
+      "hrv_ms": 69.8,
+      "hrv_baseline_ms": 63.3,
+      "rhr": 53.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 27612,
+      "sleep_score": 77.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 25.0,
+      "stress_avg": 31.0,
+      "steps": 9888,
+      "steps_7d_avg": 8888.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 70 ms (+10% vs 63 baseline), resting HR 53 (+1 vs 52), sleep 7.7 h, score 77"
+      }
+    },
+    {
+      "date": "2026-08-07",
+      "hrv_ms": 62.6,
+      "hrv_baseline_ms": 64.7,
+      "rhr": 53.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 27430,
+      "sleep_score": 77.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 19.0,
+      "stress_avg": 32.0,
+      "steps": 7276,
+      "steps_7d_avg": 8907.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 63 ms (-3% vs 65 baseline), resting HR 53 (+1 vs 52), sleep 7.6 h, score 77"
+      }
+    },
+    {
+      "date": "2026-08-08",
+      "hrv_ms": 64.3,
+      "hrv_baseline_ms": 65.1,
+      "rhr": 51.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 25858,
+      "sleep_score": 71.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 12.0,
+      "stress_avg": 27.0,
+      "steps": 9439,
+      "steps_7d_avg": 9030.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 64 ms (-1% vs 65 baseline), resting HR 51 (-1 vs 52), sleep 7.2 h, score 71"
+      }
+    },
+    {
+      "date": "2026-08-09",
+      "hrv_ms": 73.9,
+      "hrv_baseline_ms": 64.1,
+      "rhr": 53.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 26040,
+      "sleep_score": 74.0,
+      "body_battery_high": 88.0,
+      "body_battery_low": 16.0,
+      "stress_avg": 37.0,
+      "steps": 13043,
+      "steps_7d_avg": 9540.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 74 ms (+15% vs 64 baseline), resting HR 53 (+1 vs 52), sleep 7.2 h, score 74"
+      }
+    },
+    {
+      "date": "2026-08-10",
+      "hrv_ms": 58.3,
+      "hrv_baseline_ms": 65.3,
+      "rhr": 52.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 25399,
+      "sleep_score": 71.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 17.0,
+      "stress_avg": 30.0,
+      "steps": 9342,
+      "steps_7d_avg": 9873.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 58 ms (-11% vs 65 baseline)"
+      }
+    },
+    {
+      "date": "2026-08-11",
+      "hrv_ms": 63.6,
+      "hrv_baseline_ms": 65.2,
+      "rhr": 53.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 28921,
+      "sleep_score": 81.0,
+      "body_battery_high": 86.0,
+      "body_battery_low": 23.0,
+      "stress_avg": 33.0,
+      "steps": 8906,
+      "steps_7d_avg": 9326.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 64 ms (-2% vs 65 baseline), resting HR 53 (+1 vs 52), sleep 8.0 h, score 81"
+      }
+    },
+    {
+      "date": "2026-08-12",
+      "hrv_ms": 64.6,
+      "hrv_baseline_ms": 65.3,
+      "rhr": 53.0,
+      "rhr_baseline": 52.6,
+      "sleep_s": 25367,
+      "sleep_score": 76.0,
+      "body_battery_high": 78.0,
+      "body_battery_low": 17.0,
+      "stress_avg": 30.0,
+      "steps": 9852,
+      "steps_7d_avg": 9678.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 65 ms (-1% vs 65 baseline), resting HR 53 (±0 vs 53), sleep 7.0 h, score 76"
+      }
+    },
+    {
+      "date": "2026-08-13",
+      "hrv_ms": 68.2,
+      "hrv_baseline_ms": 65.3,
+      "rhr": 51.0,
+      "rhr_baseline": 52.6,
+      "sleep_s": 26011,
+      "sleep_score": 73.0,
+      "body_battery_high": 91.0,
+      "body_battery_low": 28.0,
+      "stress_avg": 36.0,
+      "steps": 5154,
+      "steps_7d_avg": 9002.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 68 ms (+4% vs 65 baseline), resting HR 51 (-2 vs 53), sleep 7.2 h, score 73"
+      }
+    },
+    {
+      "date": "2026-08-14",
+      "hrv_ms": 68.9,
+      "hrv_baseline_ms": 65.1,
+      "rhr": 51.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 23861,
+      "sleep_score": 66.0,
+      "body_battery_high": 91.0,
+      "body_battery_low": 23.0,
+      "stress_avg": 33.0,
+      "steps": 11986,
+      "steps_7d_avg": 9675.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+6% vs 65 baseline), resting HR 51 (-1 vs 52), sleep 6.6 h, score 66"
+      }
+    },
+    {
+      "date": "2026-08-15",
+      "hrv_ms": 62.3,
+      "hrv_baseline_ms": 66.0,
+      "rhr": 52.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 27699,
+      "sleep_score": 79.0,
+      "body_battery_high": 79.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 25.0,
+      "steps": 11896,
+      "steps_7d_avg": 10026.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 62 ms (-6% vs 66 baseline), resting HR 52 (±0 vs 52), sleep 7.7 h, score 79"
+      }
+    },
+    {
+      "date": "2026-08-16",
+      "hrv_ms": 59.3,
+      "hrv_baseline_ms": 65.7,
+      "rhr": 51.0,
+      "rhr_baseline": 52.1,
+      "sleep_s": 27434,
+      "sleep_score": 83.0,
+      "body_battery_high": 84.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 34.0,
+      "steps": 9033,
+      "steps_7d_avg": 9453.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 59 ms (-10% vs 66 baseline), resting HR 51 (-1 vs 52), sleep 7.6 h, score 83"
+      }
+    },
+    {
+      "date": "2026-08-17",
+      "hrv_ms": 62.5,
+      "hrv_baseline_ms": 63.6,
+      "rhr": 53.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 24352,
+      "sleep_score": 66.0,
+      "body_battery_high": 87.0,
+      "body_battery_low": 20.0,
+      "stress_avg": 32.0,
+      "steps": 13711,
+      "steps_7d_avg": 10077.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 62 ms (-2% vs 64 baseline), resting HR 53 (+1 vs 52), sleep 6.8 h, score 66"
+      }
+    },
+    {
+      "date": "2026-08-18",
+      "hrv_ms": 64.4,
+      "hrv_baseline_ms": 64.2,
+      "rhr": 52.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 25948,
+      "sleep_score": 74.0,
+      "body_battery_high": 82.0,
+      "body_battery_low": 28.0,
+      "stress_avg": 23.0,
+      "steps": 9626,
+      "steps_7d_avg": 10180.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 64 ms (±0% vs 64 baseline), resting HR 52 (±0 vs 52), sleep 7.2 h, score 74"
+      }
+    },
+    {
+      "date": "2026-08-19",
+      "hrv_ms": 73.2,
+      "hrv_baseline_ms": 64.3,
+      "rhr": 52.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 25601,
+      "sleep_score": 71.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 29.0,
+      "stress_avg": 24.0,
+      "steps": 9302,
+      "steps_7d_avg": 10101.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 73 ms (+14% vs 64 baseline), resting HR 52 (±0 vs 52), sleep 7.1 h, score 71"
+      }
+    },
+    {
+      "date": "2026-08-20",
+      "hrv_ms": 69.9,
+      "hrv_baseline_ms": 65.5,
+      "rhr": 54.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 25440,
+      "sleep_score": 69.0,
+      "body_battery_high": 87.0,
+      "body_battery_low": 18.0,
+      "stress_avg": 36.0,
+      "steps": 7005,
+      "steps_7d_avg": 10366.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 70 ms (+7% vs 66 baseline), resting HR 54 (+2 vs 52), sleep 7.1 h, score 69"
+      }
+    },
+    {
+      "date": "2026-08-21",
+      "hrv_ms": 59.3,
+      "hrv_baseline_ms": 65.8,
+      "rhr": 53.0,
+      "rhr_baseline": 52.1,
+      "sleep_s": 25632,
+      "sleep_score": 74.0,
+      "body_battery_high": 92.0,
+      "body_battery_low": 25.0,
+      "stress_avg": 27.0,
+      "steps": 9800,
+      "steps_7d_avg": 10053.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 59 ms (-10% vs 66 baseline), resting HR 53 (+1 vs 52), sleep 7.1 h, score 74"
+      }
+    },
+    {
+      "date": "2026-08-22",
+      "hrv_ms": 73.9,
+      "hrv_baseline_ms": 64.4,
+      "rhr": 53.0,
+      "rhr_baseline": 52.4,
+      "sleep_s": 22023,
+      "sleep_score": 65.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 17.0,
+      "stress_avg": 24.0,
+      "steps": 14258,
+      "steps_7d_avg": 10391.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 74 ms (+15% vs 64 baseline), resting HR 53 (+1 vs 52), sleep 6.1 h, score 65"
+      }
+    },
+    {
+      "date": "2026-08-23",
+      "hrv_ms": 71.2,
+      "hrv_baseline_ms": 66.1,
+      "rhr": 50.0,
+      "rhr_baseline": 52.6,
+      "sleep_s": 28209,
+      "sleep_score": 83.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 16.0,
+      "stress_avg": 35.0,
+      "steps": 12418,
+      "steps_7d_avg": 10874.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 71 ms (+8% vs 66 baseline), resting HR 50 (-3 vs 53), sleep 7.8 h, score 83"
+      }
+    },
+    {
+      "date": "2026-08-24",
+      "hrv_ms": 72.4,
+      "hrv_baseline_ms": 67.8,
+      "rhr": 52.0,
+      "rhr_baseline": 52.4,
+      "sleep_s": 26795,
+      "sleep_score": 78.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 26.0,
+      "stress_avg": 29.0,
+      "steps": 12444,
+      "steps_7d_avg": 10693.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 72 ms (+7% vs 68 baseline), resting HR 52 (±0 vs 52), sleep 7.4 h, score 78"
+      }
+    },
+    {
+      "date": "2026-08-25",
+      "hrv_ms": 59.9,
+      "hrv_baseline_ms": 69.2,
+      "rhr": 52.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 28435,
+      "sleep_score": 82.0,
+      "body_battery_high": 83.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 34.0,
+      "steps": 12920,
+      "steps_7d_avg": 11164.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 60 ms (-13% vs 69 baseline)"
+      }
+    },
+    {
+      "date": "2026-08-26",
+      "hrv_ms": 69.3,
+      "hrv_baseline_ms": 68.5,
+      "rhr": 50.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 27295,
+      "sleep_score": 78.0,
+      "body_battery_high": 80.0,
+      "body_battery_low": 25.0,
+      "stress_avg": 26.0,
+      "steps": 8094,
+      "steps_7d_avg": 10991.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+1% vs 69 baseline), resting HR 50 (-2 vs 52), sleep 7.6 h, score 78"
+      }
+    },
+    {
+      "date": "2026-08-27",
+      "hrv_ms": 65.8,
+      "hrv_baseline_ms": 68.0,
+      "rhr": 51.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 26613,
+      "sleep_score": 78.0,
+      "body_battery_high": 80.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 36.0,
+      "steps": 4971,
+      "steps_7d_avg": 10701.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 66 ms (-3% vs 68 baseline), resting HR 51 (-1 vs 52), sleep 7.4 h, score 78"
+      }
+    },
+    {
+      "date": "2026-08-28",
+      "hrv_ms": 72.3,
+      "hrv_baseline_ms": 67.4,
+      "rhr": 52.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 27482,
+      "sleep_score": 83.0,
+      "body_battery_high": 78.0,
+      "body_battery_low": 17.0,
+      "stress_avg": 33.0,
+      "steps": 8454,
+      "steps_7d_avg": 10508.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 72 ms (+7% vs 67 baseline), resting HR 52 (±0 vs 52), sleep 7.6 h, score 83"
+      }
+    },
+    {
+      "date": "2026-08-29",
+      "hrv_ms": 70.8,
+      "hrv_baseline_ms": 69.3,
+      "rhr": 52.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 26510,
+      "sleep_score": 73.0,
+      "body_battery_high": 82.0,
+      "body_battery_low": 26.0,
+      "stress_avg": 35.0,
+      "steps": 8292,
+      "steps_7d_avg": 9656.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 71 ms (+2% vs 69 baseline), resting HR 52 (+1 vs 51), sleep 7.4 h, score 73"
+      }
+    },
+    {
+      "date": "2026-08-30",
+      "hrv_ms": 69.5,
+      "hrv_baseline_ms": 68.8,
+      "rhr": 52.0,
+      "rhr_baseline": 51.3,
+      "sleep_s": 25711,
+      "sleep_score": 76.0,
+      "body_battery_high": 92.0,
+      "body_battery_low": 19.0,
+      "stress_avg": 28.0,
+      "steps": 17011,
+      "steps_7d_avg": 10312.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 70 ms (+1% vs 69 baseline), resting HR 52 (+1 vs 51), sleep 7.1 h, score 76"
+      }
+    },
+    {
+      "date": "2026-08-31",
+      "hrv_ms": 73.9,
+      "hrv_baseline_ms": 68.6,
+      "rhr": 51.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 28991,
+      "sleep_score": 81.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 15.0,
+      "stress_avg": 37.0,
+      "steps": 11709,
+      "steps_7d_avg": 10207.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 74 ms (+8% vs 69 baseline), resting HR 51 (-1 vs 52), sleep 8.1 h, score 81"
+      }
+    },
+    {
+      "date": "2026-09-01",
+      "hrv_ms": 70.4,
+      "hrv_baseline_ms": 68.8,
+      "rhr": 52.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 26827,
+      "sleep_score": 81.0,
+      "body_battery_high": 87.0,
+      "body_battery_low": 26.0,
+      "stress_avg": 35.0,
+      "steps": 10082,
+      "steps_7d_avg": 9802.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 70 ms (+2% vs 69 baseline), resting HR 52 (+1 vs 51), sleep 7.5 h, score 81"
+      }
+    },
+    {
+      "date": "2026-09-02",
+      "hrv_ms": 71.2,
+      "hrv_baseline_ms": 70.3,
+      "rhr": 53.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 25915,
+      "sleep_score": 73.0,
+      "body_battery_high": 83.0,
+      "body_battery_low": 12.0,
+      "stress_avg": 29.0,
+      "steps": 8103,
+      "steps_7d_avg": 9803.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 71 ms (+1% vs 70 baseline), resting HR 53 (+2 vs 51), sleep 7.2 h, score 73"
+      }
+    },
+    {
+      "date": "2026-09-03",
+      "hrv_ms": 59.6,
+      "hrv_baseline_ms": 70.6,
+      "rhr": 52.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 25829,
+      "sleep_score": 76.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 13.0,
+      "stress_avg": 35.0,
+      "steps": 11141,
+      "steps_7d_avg": 10685.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 60 ms (-16% vs 71 baseline)"
+      }
+    },
+    {
+      "date": "2026-09-04",
+      "hrv_ms": 65.3,
+      "hrv_baseline_ms": 69.7,
+      "rhr": 52.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 25698,
+      "sleep_score": 75.0,
+      "body_battery_high": 84.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 29.0,
+      "steps": 9423,
+      "steps_7d_avg": 10823.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 65 ms (-6% vs 70 baseline), resting HR 52 (±0 vs 52), sleep 7.1 h, score 75"
+      }
+    },
+    {
+      "date": "2026-09-05",
+      "hrv_ms": 69.0,
+      "hrv_baseline_ms": 68.7,
+      "rhr": 52.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 29068,
+      "sleep_score": 81.0,
+      "body_battery_high": 90.0,
+      "body_battery_low": 23.0,
+      "stress_avg": 23.0,
+      "steps": 7257,
+      "steps_7d_avg": 10675.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (±0% vs 69 baseline), resting HR 52 (±0 vs 52), sleep 8.1 h, score 81"
+      }
+    },
+    {
+      "date": "2026-09-06",
+      "hrv_ms": 68.7,
+      "hrv_baseline_ms": 68.4,
+      "rhr": 54.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 27552,
+      "sleep_score": 78.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 12.0,
+      "stress_avg": 23.0,
+      "steps": 9842,
+      "steps_7d_avg": 9651.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (±0% vs 68 baseline), resting HR 54 (+2 vs 52), sleep 7.7 h, score 78"
+      }
+    },
+    {
+      "date": "2026-09-07",
+      "hrv_ms": 68.4,
+      "hrv_baseline_ms": 68.3,
+      "rhr": 52.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 22554,
+      "sleep_score": 61.0,
+      "body_battery_high": 80.0,
+      "body_battery_low": 18.0,
+      "stress_avg": 22.0,
+      "steps": 10164,
+      "steps_7d_avg": 9430.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 68 ms (±0% vs 68 baseline), resting HR 52 (±0 vs 52), sleep 6.3 h, score 61"
+      }
+    },
+    {
+      "date": "2026-09-08",
+      "hrv_ms": 67.8,
+      "hrv_baseline_ms": 67.5,
+      "rhr": 51.0,
+      "rhr_baseline": 52.4,
+      "sleep_s": 26319,
+      "sleep_score": 73.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 28.0,
+      "stress_avg": 22.0,
+      "steps": 9432,
+      "steps_7d_avg": 9337.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 68 ms (±0% vs 68 baseline), resting HR 51 (-1 vs 52), sleep 7.3 h, score 73"
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "hrv_ms": 58.9,
+      "hrv_baseline_ms": 67.1,
+      "rhr": 51.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 28710,
+      "sleep_score": 86.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 28.0,
+      "steps": 10365,
+      "steps_7d_avg": 9661.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 59 ms (-12% vs 67 baseline)"
+      }
+    },
+    {
+      "date": "2026-09-10",
+      "hrv_ms": 59.6,
+      "hrv_baseline_ms": 65.4,
+      "rhr": 52.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 26006,
+      "sleep_score": 72.0,
+      "body_battery_high": 86.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 33.0,
+      "steps": 7482,
+      "steps_7d_avg": 9138.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 60 ms (-9% vs 65 baseline), resting HR 52 (±0 vs 52), sleep 7.2 h, score 72"
+      }
+    },
+    {
+      "date": "2026-09-11",
+      "hrv_ms": 69.2,
+      "hrv_baseline_ms": 65.4,
+      "rhr": 54.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 26201,
+      "sleep_score": 75.0,
+      "body_battery_high": 88.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 34.0,
+      "steps": 13383,
+      "steps_7d_avg": 9704.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+6% vs 65 baseline), resting HR 54 (+2 vs 52), sleep 7.3 h, score 75"
+      }
+    },
+    {
+      "date": "2026-09-12",
+      "hrv_ms": 61.3,
+      "hrv_baseline_ms": 65.9,
+      "rhr": 51.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 26316,
+      "sleep_score": 72.0,
+      "body_battery_high": 79.0,
+      "body_battery_low": 29.0,
+      "stress_avg": 38.0,
+      "steps": 14560,
+      "steps_7d_avg": 10747.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 61 ms (-7% vs 66 baseline), resting HR 51 (-1 vs 52), sleep 7.3 h, score 72"
+      }
+    },
+    {
+      "date": "2026-09-13",
+      "hrv_ms": 63.0,
+      "hrv_baseline_ms": 64.8,
+      "rhr": 51.0,
+      "rhr_baseline": 52.1,
+      "sleep_s": 24232,
+      "sleep_score": 65.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 16.0,
+      "stress_avg": 37.0,
+      "steps": 7962,
+      "steps_7d_avg": 10478.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 63 ms (-3% vs 65 baseline), resting HR 51 (-1 vs 52), sleep 6.7 h, score 65"
+      }
+    },
+    {
+      "date": "2026-09-14",
+      "hrv_ms": 59.7,
+      "hrv_baseline_ms": 64.0,
+      "rhr": 51.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 27262,
+      "sleep_score": 76.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 23.0,
+      "stress_avg": 24.0,
+      "steps": 9896,
+      "steps_7d_avg": 10440.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 60 ms (-7% vs 64 baseline), resting HR 51 (-1 vs 52), sleep 7.6 h, score 76"
+      }
+    },
+    {
+      "date": "2026-09-15",
+      "hrv_ms": 63.7,
+      "hrv_baseline_ms": 62.8,
+      "rhr": 52.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 26606,
+      "sleep_score": 76.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 35.0,
+      "steps": 8037,
+      "steps_7d_avg": 10241.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 64 ms (+1% vs 63 baseline), resting HR 52 (±0 vs 52), sleep 7.4 h, score 76"
+      }
+    },
+    {
+      "date": "2026-09-16",
+      "hrv_ms": 71.8,
+      "hrv_baseline_ms": 62.2,
+      "rhr": 53.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 24582,
+      "sleep_score": 69.0,
+      "body_battery_high": 85.0,
+      "body_battery_low": 19.0,
+      "stress_avg": 29.0,
+      "steps": 12208,
+      "steps_7d_avg": 10504.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 72 ms (+15% vs 62 baseline), resting HR 53 (+1 vs 52), sleep 6.8 h, score 69"
+      }
+    },
+    {
+      "date": "2026-09-17",
+      "hrv_ms": 68.7,
+      "hrv_baseline_ms": 64.0,
+      "rhr": 51.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 21354,
+      "sleep_score": 58.0,
+      "body_battery_high": 92.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 28.0,
+      "steps": 9664,
+      "steps_7d_avg": 10816.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: sleep 5.9 h, score 58"
+      }
+    },
+    {
+      "date": "2026-09-18",
+      "hrv_ms": 64.8,
+      "hrv_baseline_ms": 65.3,
+      "rhr": 52.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 23074,
+      "sleep_score": 68.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 27.0,
+      "stress_avg": 26.0,
+      "steps": 9293,
+      "steps_7d_avg": 10231.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 65 ms (-1% vs 65 baseline), resting HR 52 (±0 vs 52), sleep 6.4 h, score 68"
+      }
+    },
+    {
+      "date": "2026-09-19",
+      "hrv_ms": 68.9,
+      "hrv_baseline_ms": 64.7,
+      "rhr": 52.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 25454,
+      "sleep_score": 74.0,
+      "body_battery_high": 82.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 35.0,
+      "steps": 9327,
+      "steps_7d_avg": 9484.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+6% vs 65 baseline), resting HR 52 (±0 vs 52), sleep 7.1 h, score 74"
+      }
+    },
+    {
+      "date": "2026-09-20",
+      "hrv_ms": 59.5,
+      "hrv_baseline_ms": 65.8,
+      "rhr": 51.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 28109,
+      "sleep_score": 80.0,
+      "body_battery_high": 95.0,
+      "body_battery_low": 13.0,
+      "stress_avg": 34.0,
+      "steps": 13429,
+      "steps_7d_avg": 10265.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 60 ms (-10% vs 66 baseline), resting HR 51 (-1 vs 52), sleep 7.8 h, score 80"
+      }
+    },
+    {
+      "date": "2026-09-21",
+      "hrv_ms": 63.0,
+      "hrv_baseline_ms": 65.3,
+      "rhr": 51.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 23683,
+      "sleep_score": 63.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 27.0,
+      "stress_avg": 38.0,
+      "steps": 6696,
+      "steps_7d_avg": 9808.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 63 ms (-4% vs 65 baseline), resting HR 51 (-1 vs 52), sleep 6.6 h, score 63"
+      }
+    },
+    {
+      "date": "2026-09-22",
+      "hrv_ms": 66.7,
+      "hrv_baseline_ms": 65.8,
+      "rhr": 50.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 27922,
+      "sleep_score": 83.0,
+      "body_battery_high": 80.0,
+      "body_battery_low": 20.0,
+      "stress_avg": 35.0,
+      "steps": 8352,
+      "steps_7d_avg": 9853.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 67 ms (+1% vs 66 baseline), resting HR 50 (-2 vs 52), sleep 7.8 h, score 83"
+      }
+    },
+    {
+      "date": "2026-09-23",
+      "hrv_ms": 70.5,
+      "hrv_baseline_ms": 66.2,
+      "rhr": 53.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 25411,
+      "sleep_score": 71.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 28.0,
+      "stress_avg": 32.0,
+      "steps": 8235,
+      "steps_7d_avg": 9285.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 70 ms (+6% vs 66 baseline), resting HR 53 (+2 vs 51), sleep 7.1 h, score 71"
+      }
+    },
+    {
+      "date": "2026-09-24",
+      "hrv_ms": 61.8,
+      "hrv_baseline_ms": 66.0,
+      "rhr": 52.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 24993,
+      "sleep_score": 68.0,
+      "body_battery_high": 88.0,
+      "body_battery_low": 18.0,
+      "stress_avg": 31.0,
+      "steps": 7627,
+      "steps_7d_avg": 8994.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 62 ms (-6% vs 66 baseline), resting HR 52 (+1 vs 51), sleep 6.9 h, score 68"
+      }
+    },
+    {
+      "date": "2026-09-25",
+      "hrv_ms": 73.9,
+      "hrv_baseline_ms": 65.0,
+      "rhr": 53.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 28046,
+      "sleep_score": 81.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 13.0,
+      "stress_avg": 29.0,
+      "steps": 9636,
+      "steps_7d_avg": 9043.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 74 ms (+14% vs 65 baseline), resting HR 53 (+1 vs 52), sleep 7.8 h, score 81"
+      }
+    },
+    {
+      "date": "2026-09-26",
+      "hrv_ms": 62.6,
+      "hrv_baseline_ms": 66.3,
+      "rhr": 53.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 23079,
+      "sleep_score": 68.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 14.0,
+      "stress_avg": 32.0,
+      "steps": 16531,
+      "steps_7d_avg": 10072.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 63 ms (-6% vs 66 baseline), resting HR 53 (+1 vs 52), sleep 6.4 h, score 68"
+      }
+    },
+    {
+      "date": "2026-09-27",
+      "hrv_ms": 73.2,
+      "hrv_baseline_ms": 65.4,
+      "rhr": 51.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 24872,
+      "sleep_score": 74.0,
+      "body_battery_high": 96.0,
+      "body_battery_low": 27.0,
+      "stress_avg": 28.0,
+      "steps": 13902,
+      "steps_7d_avg": 10140.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 73 ms (+12% vs 65 baseline), resting HR 51 (-1 vs 52), sleep 6.9 h, score 74"
+      }
+    },
+    {
+      "date": "2026-09-28",
+      "hrv_ms": 63.0,
+      "hrv_baseline_ms": 67.4,
+      "rhr": 53.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 29632,
+      "sleep_score": 83.0,
+      "body_battery_high": 78.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 29.0,
+      "steps": 7241,
+      "steps_7d_avg": 10218.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 63 ms (-7% vs 67 baseline), resting HR 53 (+1 vs 52), sleep 8.2 h, score 83"
+      }
+    },
+    {
+      "date": "2026-09-29",
+      "hrv_ms": 62.3,
+      "hrv_baseline_ms": 67.4,
+      "rhr": 53.0,
+      "rhr_baseline": 52.1,
+      "sleep_s": 25362,
+      "sleep_score": 76.0,
+      "body_battery_high": 82.0,
+      "body_battery_low": 20.0,
+      "stress_avg": 29.0,
+      "steps": 9451,
+      "steps_7d_avg": 10375.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 62 ms (-8% vs 67 baseline), resting HR 53 (+1 vs 52), sleep 7.0 h, score 76"
+      }
+    },
+    {
+      "date": "2026-09-30",
+      "hrv_ms": 66.0,
+      "hrv_baseline_ms": 66.8,
+      "rhr": 53.0,
+      "rhr_baseline": 52.6,
+      "sleep_s": 30355,
+      "sleep_score": 87.0,
+      "body_battery_high": 92.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 27.0,
+      "steps": 8423,
+      "steps_7d_avg": 10402.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 66 ms (-1% vs 67 baseline), resting HR 53 (±0 vs 53), sleep 8.4 h, score 87"
+      }
+    },
+    {
+      "date": "2026-10-01",
+      "hrv_ms": 73.5,
+      "hrv_baseline_ms": 66.1,
+      "rhr": 50.0,
+      "rhr_baseline": 52.6,
+      "sleep_s": 29958,
+      "sleep_score": 87.0,
+      "body_battery_high": 91.0,
+      "body_battery_low": 19.0,
+      "stress_avg": 34.0,
+      "steps": 11632,
+      "steps_7d_avg": 10974.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 74 ms (+11% vs 66 baseline), resting HR 50 (-3 vs 53), sleep 8.1 h, score 87"
+      }
+    },
+    {
+      "date": "2026-10-02",
+      "hrv_ms": 69.8,
+      "hrv_baseline_ms": 67.8,
+      "rhr": 54.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 30240,
+      "sleep_score": 93.0,
+      "body_battery_high": 87.0,
+      "body_battery_low": 12.0,
+      "stress_avg": 23.0,
+      "steps": 6022,
+      "steps_7d_avg": 10457.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 70 ms (+3% vs 68 baseline), resting HR 54 (+2 vs 52), sleep 8.4 h, score 93"
+      }
+    },
+    {
+      "date": "2026-10-03",
+      "hrv_ms": 59.3,
+      "hrv_baseline_ms": 67.2,
+      "rhr": 54.0,
+      "rhr_baseline": 52.4,
+      "sleep_s": 27323,
+      "sleep_score": 81.0,
+      "body_battery_high": 82.0,
+      "body_battery_low": 16.0,
+      "stress_avg": 35.0,
+      "steps": 11709,
+      "steps_7d_avg": 9769.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 59 ms (-12% vs 67 baseline)"
+      }
+    },
+    {
+      "date": "2026-10-04",
+      "hrv_ms": 71.7,
+      "hrv_baseline_ms": 66.7,
+      "rhr": 50.0,
+      "rhr_baseline": 52.6,
+      "sleep_s": 27646,
+      "sleep_score": 82.0,
+      "body_battery_high": 80.0,
+      "body_battery_low": 15.0,
+      "stress_avg": 31.0,
+      "steps": 11938,
+      "steps_7d_avg": 9488.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 72 ms (+7% vs 67 baseline), resting HR 50 (-3 vs 53), sleep 7.7 h, score 82"
+      }
+    },
+    {
+      "date": "2026-10-05",
+      "hrv_ms": 66.7,
+      "hrv_baseline_ms": 66.5,
+      "rhr": 53.0,
+      "rhr_baseline": 52.4,
+      "sleep_s": 26807,
+      "sleep_score": 77.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 26.0,
+      "stress_avg": 23.0,
+      "steps": 6752,
+      "steps_7d_avg": 9418.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 67 ms (±0% vs 67 baseline), resting HR 53 (+1 vs 52), sleep 7.4 h, score 77"
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "hrv_ms": 68.2,
+      "hrv_baseline_ms": 67.0,
+      "rhr": 52.0,
+      "rhr_baseline": 52.4,
+      "sleep_s": 26612,
+      "sleep_score": 80.0,
+      "body_battery_high": 88.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 32.0,
+      "steps": 6917,
+      "steps_7d_avg": 9056.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 68 ms (+2% vs 67 baseline), resting HR 52 (±0 vs 52), sleep 7.4 h, score 80"
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "hrv_ms": 72.8,
+      "hrv_baseline_ms": 67.9,
+      "rhr": 53.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 27247,
+      "sleep_score": 78.0,
+      "body_battery_high": 78.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 25.0,
+      "steps": 10330,
+      "steps_7d_avg": 9329.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 73 ms (+7% vs 68 baseline), resting HR 53 (+1 vs 52), sleep 7.6 h, score 78"
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "hrv_ms": 71.6,
+      "hrv_baseline_ms": 68.9,
+      "rhr": 50.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 25891,
+      "sleep_score": 75.0,
+      "body_battery_high": 94.0,
+      "body_battery_low": 20.0,
+      "stress_avg": 33.0,
+      "steps": 6505,
+      "steps_7d_avg": 8596.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 72 ms (+4% vs 69 baseline), resting HR 50 (-2 vs 52), sleep 7.2 h, score 75"
+      }
+    },
+    {
+      "date": "2026-10-09",
+      "hrv_ms": 61.0,
+      "hrv_baseline_ms": 68.6,
+      "rhr": 52.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 27548,
+      "sleep_score": 80.0,
+      "body_battery_high": 84.0,
+      "body_battery_low": 18.0,
+      "stress_avg": 30.0,
+      "steps": 5254,
+      "steps_7d_avg": 8486.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 61 ms (-11% vs 69 baseline)"
+      }
+    },
+    {
+      "date": "2026-10-10",
+      "hrv_ms": 62.4,
+      "hrv_baseline_ms": 67.3,
+      "rhr": 52.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 23776,
+      "sleep_score": 67.0,
+      "body_battery_high": 83.0,
+      "body_battery_low": 23.0,
+      "stress_avg": 23.0,
+      "steps": 9758,
+      "steps_7d_avg": 8208.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 62 ms (-7% vs 67 baseline), resting HR 52 (±0 vs 52), sleep 6.6 h, score 67"
+      }
+    },
+    {
+      "date": "2026-10-11",
+      "hrv_ms": 64.5,
+      "hrv_baseline_ms": 67.8,
+      "rhr": 51.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 29080,
+      "sleep_score": 89.0,
+      "body_battery_high": 88.0,
+      "body_battery_low": 15.0,
+      "stress_avg": 22.0,
+      "steps": 12941,
+      "steps_7d_avg": 8351.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 64 ms (-5% vs 68 baseline), resting HR 51 (-1 vs 52), sleep 8.1 h, score 89"
+      }
+    },
+    {
+      "date": "2026-10-12",
+      "hrv_ms": 69.1,
+      "hrv_baseline_ms": 66.7,
+      "rhr": 50.0,
+      "rhr_baseline": 51.9,
+      "sleep_s": 24408,
+      "sleep_score": 72.0,
+      "body_battery_high": 86.0,
+      "body_battery_low": 13.0,
+      "stress_avg": 24.0,
+      "steps": 8822,
+      "steps_7d_avg": 8647.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+4% vs 67 baseline), resting HR 50 (-2 vs 52), sleep 6.8 h, score 72"
+      }
+    },
+    {
+      "date": "2026-10-13",
+      "hrv_ms": 72.0,
+      "hrv_baseline_ms": 67.1,
+      "rhr": 51.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 21614,
+      "sleep_score": 59.0,
+      "body_battery_high": 92.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 36.0,
+      "steps": 8547,
+      "steps_7d_avg": 8880.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: sleep 6.0 h, score 59"
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "hrv_ms": 65.8,
+      "hrv_baseline_ms": 67.6,
+      "rhr": 51.0,
+      "rhr_baseline": 51.3,
+      "sleep_s": 27888,
+      "sleep_score": 79.0,
+      "body_battery_high": 90.0,
+      "body_battery_low": 28.0,
+      "stress_avg": 34.0,
+      "steps": 9788,
+      "steps_7d_avg": 8802.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 66 ms (-3% vs 68 baseline), resting HR 51 (±0 vs 51), sleep 7.7 h, score 79"
+      }
+    },
+    {
+      "date": "2026-10-15",
+      "hrv_ms": 67.8,
+      "hrv_baseline_ms": 66.6,
+      "rhr": 52.0,
+      "rhr_baseline": 51.0,
+      "sleep_s": 25005,
+      "sleep_score": 75.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 31.0,
+      "steps": 10442,
+      "steps_7d_avg": 9365.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 68 ms (+2% vs 67 baseline), resting HR 52 (+1 vs 51), sleep 6.9 h, score 75"
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "hrv_ms": 69.2,
+      "hrv_baseline_ms": 66.1,
+      "rhr": 53.0,
+      "rhr_baseline": 51.3,
+      "sleep_s": 25300,
+      "sleep_score": 70.0,
+      "body_battery_high": 93.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 32.0,
+      "steps": 3816,
+      "steps_7d_avg": 9159.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+5% vs 66 baseline), resting HR 53 (+2 vs 51), sleep 7.0 h, score 70"
+      }
+    },
+    {
+      "date": "2026-10-17",
+      "hrv_ms": 65.7,
+      "hrv_baseline_ms": 67.3,
+      "rhr": 53.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 29037,
+      "sleep_score": 83.0,
+      "body_battery_high": 80.0,
+      "body_battery_low": 17.0,
+      "stress_avg": 37.0,
+      "steps": 14156,
+      "steps_7d_avg": 9787.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 66 ms (-2% vs 67 baseline), resting HR 53 (+2 vs 51), sleep 8.1 h, score 83"
+      }
+    },
+    {
+      "date": "2026-10-18",
+      "hrv_ms": 65.5,
+      "hrv_baseline_ms": 67.7,
+      "rhr": 50.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 23258,
+      "sleep_score": 64.0,
+      "body_battery_high": 84.0,
+      "body_battery_low": 19.0,
+      "stress_avg": 26.0,
+      "steps": 16469,
+      "steps_7d_avg": 10291.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 66 ms (-3% vs 68 baseline), resting HR 50 (-2 vs 52), sleep 6.5 h, score 64"
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "hrv_ms": 60.4,
+      "hrv_baseline_ms": 67.9,
+      "rhr": 51.0,
+      "rhr_baseline": 51.4,
+      "sleep_s": 25469,
+      "sleep_score": 76.0,
+      "body_battery_high": 79.0,
+      "body_battery_low": 21.0,
+      "stress_avg": 22.0,
+      "steps": 10143,
+      "steps_7d_avg": 10480.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 60 ms (-11% vs 68 baseline)"
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "hrv_ms": 68.6,
+      "hrv_baseline_ms": 66.6,
+      "rhr": 52.0,
+      "rhr_baseline": 51.6,
+      "sleep_s": 23671,
+      "sleep_score": 68.0,
+      "body_battery_high": 83.0,
+      "body_battery_low": 24.0,
+      "stress_avg": 37.0,
+      "steps": 9318,
+      "steps_7d_avg": 10590.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 69 ms (+3% vs 67 baseline), resting HR 52 (±0 vs 52), sleep 6.6 h, score 68"
+      }
+    },
+    {
+      "date": "2026-10-21",
+      "hrv_ms": 66.0,
+      "hrv_baseline_ms": 66.1,
+      "rhr": 53.0,
+      "rhr_baseline": 51.7,
+      "sleep_s": 29600,
+      "sleep_score": 90.0,
+      "body_battery_high": 89.0,
+      "body_battery_low": 12.0,
+      "stress_avg": 22.0,
+      "steps": 7497,
+      "steps_7d_avg": 10263.0,
+      "readiness": {
+        "level": "green",
+        "reason": "all signals normal: HRV 66 ms (±0% vs 66 baseline), resting HR 53 (+1 vs 52), sleep 8.2 h, score 84"
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "hrv_ms": 55.7,
+      "hrv_baseline_ms": 66.2,
+      "rhr": 54.0,
+      "rhr_baseline": 52.0,
+      "sleep_s": 26451,
+      "sleep_score": 78.0,
+      "body_battery_high": 70.0,
+      "body_battery_low": 13.0,
+      "stress_avg": 42.0,
+      "steps": 12287,
+      "steps_7d_avg": 10527.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 56 ms (-16% vs 66 baseline); Garmin HRV status unbalanced"
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "hrv_ms": 50.3,
+      "hrv_baseline_ms": 64.4,
+      "rhr": 56.0,
+      "rhr_baseline": 52.3,
+      "sleep_s": 21919,
+      "sleep_score": 60.0,
+      "body_battery_high": 81.0,
+      "body_battery_low": 20.0,
+      "stress_avg": 41.0,
+      "steps": 9352,
+      "steps_7d_avg": 11317.0,
+      "readiness": {
+        "level": "red",
+        "reason": "HRV 50 ms (-22% vs 64 baseline); Garmin HRV status unbalanced"
+      }
+    },
+    {
+      "date": "2026-10-24",
+      "hrv_ms": 57.2,
+      "hrv_baseline_ms": 61.7,
+      "rhr": 56.0,
+      "rhr_baseline": 52.7,
+      "sleep_s": 24853,
+      "sleep_score": 67.0,
+      "body_battery_high": 73.0,
+      "body_battery_low": 22.0,
+      "stress_avg": 34.0,
+      "steps": 9826,
+      "steps_7d_avg": 10699.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 57 ms (-7% vs 62 baseline); Garmin HRV status unbalanced"
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "hrv_ms": 56.7,
+      "hrv_baseline_ms": 60.5,
+      "rhr": 55.0,
+      "rhr_baseline": 53.1,
+      "sleep_s": 24920,
+      "sleep_score": 69.0,
+      "body_battery_high": 79.0,
+      "body_battery_low": 19.0,
+      "stress_avg": 33.0,
+      "steps": 13244,
+      "steps_7d_avg": 10238.0,
+      "readiness": {
+        "level": "green",
+        "reason": "1 minor flag only: HRV 57 ms (-6% vs 61 baseline); Garmin HRV status unbalanced"
+      }
+    }
+  ],
+  "bodyweight": [
+    {
+      "date": "2026-08-01",
+      "weight_kg": 82.1,
+      "source": "manual"
+    },
+    {
+      "date": "2026-08-07",
+      "weight_kg": 82.1,
+      "source": "manual"
+    },
+    {
+      "date": "2026-08-13",
+      "weight_kg": 82.3,
+      "source": "manual"
+    },
+    {
+      "date": "2026-08-19",
+      "weight_kg": 81.6,
+      "source": "manual"
+    },
+    {
+      "date": "2026-08-25",
+      "weight_kg": 82.4,
+      "source": "manual"
+    },
+    {
+      "date": "2026-08-31",
+      "weight_kg": 81.6,
+      "source": "manual"
+    },
+    {
+      "date": "2026-09-06",
+      "weight_kg": 82.5,
+      "source": "manual"
+    },
+    {
+      "date": "2026-09-12",
+      "weight_kg": 81.9,
+      "source": "manual"
+    },
+    {
+      "date": "2026-09-18",
+      "weight_kg": 81.5,
+      "source": "manual"
+    },
+    {
+      "date": "2026-09-24",
+      "weight_kg": 82.3,
+      "source": "manual"
+    },
+    {
+      "date": "2026-09-30",
+      "weight_kg": 81.5,
+      "source": "manual"
+    },
+    {
+      "date": "2026-10-06",
+      "weight_kg": 82.2,
+      "source": "manual"
+    },
+    {
+      "date": "2026-10-12",
+      "weight_kg": 82.1,
+      "source": "manual"
+    },
+    {
+      "date": "2026-10-18",
+      "weight_kg": 81.5,
+      "source": "manual"
+    },
+    {
+      "date": "2026-10-24",
+      "weight_kg": 82.0,
+      "source": "manual"
+    }
+  ],
+  "summary": {
+    "hrv_7d": 59.3,
+    "hrv_28d": 65.1,
+    "rhr_7d": 53.9,
+    "rhr_28d": 52.4,
+    "sleep_7d_s": 25269.0,
+    "sleep_28d_s": 26485.0,
+    "steps_7d_avg": 10238.0,
+    "days_10k_last_7": 3,
+    "bodyweight_latest": 82.0,
+    "bodyweight_change_4w_pct": -0.36
+  },
+  "readiness_today": {
+    "level": "green",
+    "headline": "Ready",
+    "metrics": [
+      {
+        "key": "hrv",
+        "label": "HRV",
+        "value": 56.7,
+        "unit": "ms",
+        "baseline": 60.5,
+        "delta_pct": -6.3,
+        "status": "warn"
+      },
+      {
+        "key": "rhr",
+        "label": "Resting HR",
+        "value": 55.0,
+        "unit": "bpm",
+        "baseline": 53.1,
+        "delta_pct": 3.5,
+        "status": "ok"
+      },
+      {
+        "key": "sleep",
+        "label": "Sleep",
+        "value": 6.9,
+        "unit": "h",
+        "baseline": 7.0,
+        "delta_pct": -0.4,
+        "status": "ok"
+      }
+    ],
+    "details": [
+      "HRV 57 ms (-6% vs 61 baseline); Garmin HRV status unbalanced - pulls it down a bit",
+      "Resting HR 55 (+2 vs 53) - neutral",
+      "Sleep 6.9 h, score 69 (usual 7.0 h) - neutral",
+      "Only a minor flag, so no change"
+    ]
+  }
+}

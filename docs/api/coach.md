@@ -14,7 +14,7 @@ becomes a new engine config version (author `advisor`, with its reason) that can
   change (`changes[]`), `s<n>` for a schedule change (`schedule_changes[]`), so ids are unique across
   both lists of a proposal. `approve` accepts both kinds in `change_ids`; a bare number is read as a
   parameter change (`"3"` = `"p3"`) for older clients.
-- Real payloads (a copy of the real database, "today" pinned to 2026-10-25, Claude replaced by a
+- Real payloads (a copy of the synthetic demo database, "today" pinned to 2026-10-25, Claude replaced by a
   canned answer) are in [`examples/coach_*.json`](examples/), regenerated with
   `cd backend && uv run python -m apps.fitness.scripts.gen_coach_examples`:
   `coach_proposals.json`, `coach_proposal_detail.json`, `coach_ask_response.json`,
@@ -43,7 +43,7 @@ becomes a new engine config version (author `advisor`, with its reason) that can
   "status": "pending",
   "trigger": {
     "type": "ask",
-    "title": "Question about Triceps Extension (Cable) @ Gym 3",
+    "title": "Question about Triceps Extension (Cable) @ Gym 2",
     "detail": "My triceps extension has been stuck for weeks. What should I change?",
     "ref": {"kind": "lift", "id": "127"}
   },
@@ -393,7 +393,7 @@ input (`past_advisor_changes`).
 
 Claude Opus 5.5 at $4 / $20 per million input / output tokens, cache reads $0.20, cache writes $5
 (prices live in the config under `advisor.price_*`). The frozen system prompt is about 2.3k tokens
-(cached), the input about 3.7k tokens (chars / 4) on the real database, limited to 15k
+(cached), the input about 3.7k tokens (chars / 4) on the demo database, limited to 15k
 (`advisor.input_budget_tokens`). A weekly review costs roughly **$0.15** (range $0.10-0.30, dominated
 by output and thinking tokens at `effort: high`); each call logs its tokens and estimated cost and
 stores them on the proposal (`cost_usd`).

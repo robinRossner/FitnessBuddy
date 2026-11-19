@@ -1,0 +1,1166 @@
+{
+ "cursor": "2026-10-25T07:00:00.000000Z|42",
+ "has_more": false,
+ "sessions": [
+  {
+   "id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "planned_session_id": null,
+   "gym_id": 3,
+   "kind": "upper",
+   "name": "Upper",
+   "started_at": "2026-10-22T17:30:00.000000Z",
+   "ended_at": "2026-10-22T18:32:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "e4516b91-7a43-5ddd-9ab2-19e6dd2c7946",
+   "planned_session_id": null,
+   "gym_id": 3,
+   "kind": "upper",
+   "name": "Upper",
+   "started_at": "2026-10-19T17:30:00.000000Z",
+   "ended_at": "2026-10-19T18:32:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-19T18:33:00.000000Z",
+   "deleted_at": null
+  }
+ ],
+ "sets": [
+  {
+   "id": "030e52f5-7489-5c98-9128-27b471e21c17",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 42,
+   "exercise_order": 1,
+   "set_order": 1,
+   "set_type": "working",
+   "weight_kg": 20,
+   "reps": 8,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:43:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "d1d5474e-e494-59b1-a868-a35f8a70a08c",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 42,
+   "exercise_order": 1,
+   "set_order": 2,
+   "set_type": "working",
+   "weight_kg": 20,
+   "reps": 6,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:44:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "6275a34e-2dc0-533b-8821-ec2d570a9ea6",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 101,
+   "exercise_order": 2,
+   "set_order": 1,
+   "set_type": "working",
+   "weight_kg": 45,
+   "reps": 8,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:46:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "c549e992-6d03-5ff7-a4a2-c6c66b3cb270",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 101,
+   "exercise_order": 2,
+   "set_order": 2,
+   "set_type": "working",
+   "weight_kg": 45,
+   "reps": 8,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:47:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "5749c486-e36c-5776-9c75-94f49758fdd7",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 101,
+   "exercise_order": 2,
+   "set_order": 3,
+   "set_type": "working",
+   "weight_kg": 45,
+   "reps": 7,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:48:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "6bcd2486-369c-54f8-8747-dd2b4a88f207",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 102,
+   "exercise_order": 3,
+   "set_order": 1,
+   "set_type": "working",
+   "weight_kg": 10,
+   "reps": 11,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:49:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "44e906e3-c1bd-5f2b-9002-4aff68669f3e",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 102,
+   "exercise_order": 3,
+   "set_order": 2,
+   "set_type": "working",
+   "weight_kg": 10,
+   "reps": 10,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:50:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "a9a5f1b8-23c7-500b-b34a-5dd190c76be3",
+   "session_id": "29ffb7b2-0083-59f1-b933-bda063e0f652",
+   "variant_id": 102,
+   "exercise_order": 3,
+   "set_order": 3,
+   "set_type": "working",
+   "weight_kg": 10,
+   "reps": 9,
+   "duration_s": null,
+   "completed_at": "2026-10-22T17:51:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-22T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "0f009b67-7725-573b-8ec3-b5948b815862",
+   "session_id": "e4516b91-7a43-5ddd-9ab2-19e6dd2c7946",
+   "variant_id": 42,
+   "exercise_order": 1,
+   "set_order": 1,
+   "set_type": "working",
+   "weight_kg": 20,
+   "reps": 7,
+   "duration_s": null,
+   "completed_at": "2026-10-19T17:43:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-19T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "b45d7933-4c44-5b6c-ad13-5a5a08b708c9",
+   "session_id": "e4516b91-7a43-5ddd-9ab2-19e6dd2c7946",
+   "variant_id": 42,
+   "exercise_order": 1,
+   "set_order": 2,
+   "set_type": "working",
+   "weight_kg": 20,
+   "reps": 6,
+   "duration_s": null,
+   "completed_at": "2026-10-19T17:44:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-19T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "d0ff51e4-c247-5a7b-b558-d003e6adccc7",
+   "session_id": "e4516b91-7a43-5ddd-9ab2-19e6dd2c7946",
+   "variant_id": 101,
+   "exercise_order": 2,
+   "set_order": 1,
+   "set_type": "working",
+   "weight_kg": 42.5,
+   "reps": 9,
+   "duration_s": null,
+   "completed_at": "2026-10-19T17:46:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-19T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "e76675ce-66e9-5b3c-b24b-7c2326d9d0bf",
+   "session_id": "e4516b91-7a43-5ddd-9ab2-19e6dd2c7946",
+   "variant_id": 101,
+   "exercise_order": 2,
+   "set_order": 2,
+   "set_type": "working",
+   "weight_kg": 42.5,
+   "reps": 8,
+   "duration_s": null,
+   "completed_at": "2026-10-19T17:47:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-19T18:33:00.000000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "e2822fcb-73dd-5c07-b609-4984cd67e91c",
+   "session_id": "e4516b91-7a43-5ddd-9ab2-19e6dd2c7946",
+   "variant_id": 101,
+   "exercise_order": 2,
+   "set_order": 3,
+   "set_type": "working",
+   "weight_kg": 42.5,
+   "reps": 8,
+   "duration_s": null,
+   "completed_at": "2026-10-19T17:48:00.000000Z",
+   "notes": null,
+   "updated_at": "2026-10-19T18:33:00.000000Z",
+   "deleted_at": null
+  }
+ ],
+ "body_measurements": [
+  {
+   "id": "9fdf77f7-86fe-5c0c-92fb-8ed8b1c20033",
+   "measured_at": "2026-10-24T07:10:00.000000Z",
+   "weight_kg": 78.4,
+   "note": null,
+   "updated_at": "2026-10-24T07:11:00.000000Z",
+   "deleted_at": null
+  }
+ ],
+ "planned_sessions": [
+  {
+   "id": "622a921b-6adf-5c9c-9f88-d9c93c168f71",
+   "date": "2026-10-26",
+   "kind": "upper",
+   "status": "proposed",
+   "title": "Upper",
+   "slot_id": "slot_0",
+   "template_kind": "upper",
+   "readiness": {
+    "color": "yellow",
+    "known": true,
+    "reason": "HRV 14% below baseline, sleep 5.9 h"
+   },
+   "adjustments": [
+    "Yellow: -1 set per exercise, no load increases"
+   ],
+   "notes": [],
+   "session": {
+    "type": "lifting",
+    "kind": "upper",
+    "gym": "Gym 4",
+    "exercises": [
+     {
+      "order": 1,
+      "variant_id": 42,
+      "variant_key": "cbbaad47-1c84-5301-bb5f-2da2ac7e6952",
+      "name": "Pull Up",
+      "exercise": "x",
+      "equipment_type": "bodyweight",
+      "load_convention": "total",
+      "rep_range": [
+       7,
+       12
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 17.5,
+        "target_reps": 7
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 17.5,
+        "target_reps": 7
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 20,
+         "reps": 8,
+         "duration_s": null
+        },
+        {
+         "weight": 20,
+         "reps": 6,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "stall_reset",
+      "reason": "stall reset to 17.5 kg",
+      "flags": [
+       "stall"
+      ]
+     },
+     {
+      "order": 2,
+      "variant_id": 201,
+      "variant_key": "cfbc24fa-f22c-56b2-b431-843a151558e7",
+      "name": "Incline Bench Press (Smith Machine) @ Gym 4",
+      "exercise": "x",
+      "equipment_type": "smith",
+      "load_convention": "total",
+      "rep_range": [
+       7,
+       12
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 45,
+        "target_reps": 9
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 45,
+        "target_reps": 9
+       },
+       {
+        "index": 3,
+        "set_type": "working",
+        "target_weight": 45,
+        "target_reps": 8
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 45,
+         "reps": 8,
+         "duration_s": null
+        },
+        {
+         "weight": 45,
+         "reps": 8,
+         "duration_s": null
+        },
+        {
+         "weight": 45,
+         "reps": 7,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "double_progression:add_reps",
+      "reason": "same load, each set +1 rep",
+      "flags": []
+     },
+     {
+      "order": 3,
+      "variant_id": 202,
+      "variant_key": "c6457747-77a9-5d32-8bd7-e95a4f6bca2f",
+      "name": "Lateral Raise (Cable) @ Gym 4",
+      "exercise": "x",
+      "equipment_type": "cable",
+      "load_convention": "total",
+      "rep_range": [
+       8,
+       15
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 10,
+        "target_reps": 12
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 10,
+        "target_reps": 11
+       },
+       {
+        "index": 3,
+        "set_type": "working",
+        "target_weight": 10,
+        "target_reps": 10
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 10,
+         "reps": 11,
+         "duration_s": null
+        },
+        {
+         "weight": 10,
+         "reps": 10,
+         "duration_s": null
+        },
+        {
+         "weight": 10,
+         "reps": 9,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "double_progression:add_reps",
+      "reason": "same load, each set +1 rep",
+      "flags": []
+     },
+     {
+      "order": 4,
+      "variant_id": 203,
+      "variant_key": "950176f3-c3b4-5704-a6b1-15096622ca47",
+      "name": "Iso-Lateral Row (Machine) @ Gym 4",
+      "exercise": "x",
+      "equipment_type": "plate_loaded",
+      "load_convention": "total",
+      "rep_range": [
+       7,
+       12
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 60,
+        "target_reps": 9
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 60,
+        "target_reps": 9
+       },
+       {
+        "index": 3,
+        "set_type": "working",
+        "target_weight": 60,
+        "target_reps": 8
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 60,
+         "reps": 8,
+         "duration_s": null
+        },
+        {
+         "weight": 60,
+         "reps": 8,
+         "duration_s": null
+        },
+        {
+         "weight": 60,
+         "reps": 7,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "double_progression:add_reps",
+      "reason": "same load, each set +1 rep",
+      "flags": []
+     },
+     {
+      "order": 5,
+      "variant_id": 204,
+      "variant_key": "4a8515a6-8253-5817-8837-8726e4679bef",
+      "name": "Seated Row (Cable) @ Gym 4",
+      "exercise": "x",
+      "equipment_type": "cable",
+      "load_convention": "total",
+      "rep_range": [
+       8,
+       12
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 50,
+        "target_reps": 10
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 50,
+        "target_reps": 10
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 50,
+         "reps": 9,
+         "duration_s": null
+        },
+        {
+         "weight": 50,
+         "reps": 9,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "double_progression:add_reps",
+      "reason": "same load, each set +1 rep",
+      "flags": []
+     },
+     {
+      "order": 6,
+      "variant_id": 205,
+      "variant_key": "46f72e46-4933-570a-abf0-a7aa94b16a86",
+      "name": "Triceps Extension (Cable) @ Gym 4",
+      "exercise": "x",
+      "equipment_type": "cable",
+      "load_convention": "total",
+      "rep_range": [
+       8,
+       15
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 20,
+        "target_reps": 12
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 20,
+        "target_reps": 11
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 20,
+         "reps": 11,
+         "duration_s": null
+        },
+        {
+         "weight": 20,
+         "reps": 10,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "double_progression:add_reps",
+      "reason": "same load, each set +1 rep",
+      "flags": []
+     },
+     {
+      "order": 7,
+      "variant_id": 106,
+      "variant_key": "890c1e36-a958-5f9c-84aa-383c6c568c1c",
+      "name": "Dumbbell Curl",
+      "exercise": "x",
+      "equipment_type": "dumbbell",
+      "load_convention": "per_hand",
+      "rep_range": [
+       8,
+       12
+      ],
+      "sets": [
+       {
+        "index": 1,
+        "set_type": "working",
+        "target_weight": 14,
+        "target_reps": 10
+       },
+       {
+        "index": 2,
+        "set_type": "working",
+        "target_weight": 14,
+        "target_reps": 9
+       }
+      ],
+      "last": {
+       "date": "2026-10-22",
+       "sets": [
+        {
+         "weight": 14,
+         "reps": 9,
+         "duration_s": null
+        },
+        {
+         "weight": 14,
+         "reps": 8,
+         "duration_s": null
+        }
+       ],
+       "best_e1rm": null
+      },
+      "rule": "double_progression:add_reps",
+      "reason": "same load, each set +1 rep",
+      "flags": []
+     }
+    ],
+    "deload": null
+   },
+   "config_version_id": null,
+   "updated_at": "2026-10-25T07:00:00.000000Z"
+  }
+ ],
+ "variants": [
+  {
+   "id": 42,
+   "exercise_id": 7,
+   "name": "Pull Up",
+   "gym_id": null,
+   "equipment_type": "bodyweight",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 101,
+   "exercise_id": 11,
+   "name": "Incline Bench Press (Smith Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "smith",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 102,
+   "exercise_id": 12,
+   "name": "Lateral Raise (Cable) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 103,
+   "exercise_id": 13,
+   "name": "Iso-Lateral Row (Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "plate_loaded",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 104,
+   "exercise_id": 14,
+   "name": "Seated Row (Cable) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 105,
+   "exercise_id": 15,
+   "name": "Triceps Extension (Cable) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 106,
+   "exercise_id": 16,
+   "name": "Dumbbell Curl",
+   "gym_id": null,
+   "equipment_type": "dumbbell",
+   "load_convention": "per_hand",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    8,
+    12
+   ]
+  },
+  {
+   "id": 130,
+   "exercise_id": 21,
+   "name": "Lying Leg Curl (Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 131,
+   "exercise_id": 22,
+   "name": "Squat (Smith Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "smith",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 132,
+   "exercise_id": 23,
+   "name": "Leg Extension (Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 133,
+   "exercise_id": 24,
+   "name": "Calf Press on Seated Leg Press @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "plate_loaded",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 134,
+   "exercise_id": 25,
+   "name": "Cable Crunch @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 140,
+   "exercise_id": 11,
+   "name": "Incline Bench Press (Barbell)",
+   "gym_id": null,
+   "equipment_type": "barbell",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 150,
+   "exercise_id": 31,
+   "name": "Chest Press (Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 151,
+   "exercise_id": 32,
+   "name": "Lat Pulldown (Cable) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 152,
+   "exercise_id": 34,
+   "name": "Pec Deck (Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 153,
+   "exercise_id": 33,
+   "name": "Shoulder Press (Machine) @ Gym 3",
+   "gym_id": 3,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 201,
+   "exercise_id": 11,
+   "name": "Incline Bench Press (Smith Machine) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "smith",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 202,
+   "exercise_id": 12,
+   "name": "Lateral Raise (Cable) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 203,
+   "exercise_id": 13,
+   "name": "Iso-Lateral Row (Machine) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "plate_loaded",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 204,
+   "exercise_id": 14,
+   "name": "Seated Row (Cable) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 205,
+   "exercise_id": 15,
+   "name": "Triceps Extension (Cable) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 230,
+   "exercise_id": 21,
+   "name": "Lying Leg Curl (Machine) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 231,
+   "exercise_id": 22,
+   "name": "Squat (Smith Machine) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "smith",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 232,
+   "exercise_id": 23,
+   "name": "Leg Extension (Machine) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 233,
+   "exercise_id": 24,
+   "name": "Calf Press on Seated Leg Press @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "plate_loaded",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 234,
+   "exercise_id": 25,
+   "name": "Cable Crunch @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "cable",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  },
+  {
+   "id": 250,
+   "exercise_id": 31,
+   "name": "Chest Press (Machine) @ Gym 4",
+   "gym_id": 4,
+   "equipment_type": "machine_stack",
+   "load_convention": "total",
+   "active": true,
+   "weight_ladder": null,
+   "rep_range": [
+    7,
+    12
+   ]
+  }
+ ],
+ "exercises": [
+  {
+   "id": 7,
+   "name": "Pull Up",
+   "muscle_group": "lats",
+   "movement_pattern": "vertical_pull",
+   "body_region": "Back",
+   "default_equipment": "bodyweight"
+  },
+  {
+   "id": 11,
+   "name": "Incline Bench Press",
+   "muscle_group": "chest",
+   "movement_pattern": "horizontal_push",
+   "body_region": "Chest",
+   "default_equipment": "smith"
+  },
+  {
+   "id": 12,
+   "name": "Lateral Raise",
+   "muscle_group": "shoulders",
+   "movement_pattern": "shoulder_abduction",
+   "body_region": "Shoulders",
+   "default_equipment": "cable"
+  },
+  {
+   "id": 13,
+   "name": "Iso-Lateral Row",
+   "muscle_group": "back",
+   "movement_pattern": "horizontal_pull",
+   "body_region": "Back",
+   "default_equipment": "plate_loaded"
+  },
+  {
+   "id": 14,
+   "name": "Seated Row",
+   "muscle_group": "back",
+   "movement_pattern": "horizontal_pull",
+   "body_region": "Back",
+   "default_equipment": "cable"
+  },
+  {
+   "id": 15,
+   "name": "Triceps Extension",
+   "muscle_group": "triceps",
+   "movement_pattern": "elbow_extension",
+   "body_region": "Arms",
+   "default_equipment": "cable"
+  },
+  {
+   "id": 16,
+   "name": "Dumbbell Curl",
+   "muscle_group": "biceps",
+   "movement_pattern": "elbow_flexion",
+   "body_region": "Arms",
+   "default_equipment": "dumbbell"
+  },
+  {
+   "id": 21,
+   "name": "Lying Leg Curl",
+   "muscle_group": "hamstrings",
+   "movement_pattern": "knee_flexion",
+   "body_region": "Legs",
+   "default_equipment": "machine_stack"
+  },
+  {
+   "id": 22,
+   "name": "Squat",
+   "muscle_group": "quads",
+   "movement_pattern": "squat",
+   "body_region": "Legs",
+   "default_equipment": "smith"
+  },
+  {
+   "id": 23,
+   "name": "Leg Extension",
+   "muscle_group": "quads",
+   "movement_pattern": "knee_extension",
+   "body_region": "Legs",
+   "default_equipment": "machine_stack"
+  },
+  {
+   "id": 24,
+   "name": "Calf Press on Seated Leg Press",
+   "muscle_group": "calves",
+   "movement_pattern": "calf_raise",
+   "body_region": "Legs",
+   "default_equipment": "plate_loaded"
+  },
+  {
+   "id": 25,
+   "name": "Cable Crunch",
+   "muscle_group": "abs",
+   "movement_pattern": "trunk_flexion",
+   "body_region": "Core",
+   "default_equipment": "cable"
+  },
+  {
+   "id": 31,
+   "name": "Chest Press",
+   "muscle_group": "chest",
+   "movement_pattern": "horizontal_push",
+   "body_region": "Chest",
+   "default_equipment": "machine_stack"
+  },
+  {
+   "id": 32,
+   "name": "Lat Pulldown",
+   "muscle_group": "lats",
+   "movement_pattern": "vertical_pull",
+   "body_region": "Back",
+   "default_equipment": "cable"
+  },
+  {
+   "id": 33,
+   "name": "Shoulder Press",
+   "muscle_group": "shoulders",
+   "movement_pattern": "vertical_push",
+   "body_region": "Shoulders",
+   "default_equipment": "machine_stack"
+  },
+  {
+   "id": 34,
+   "name": "Pec Deck",
+   "muscle_group": "chest",
+   "movement_pattern": "horizontal_adduction",
+   "body_region": "Chest",
+   "default_equipment": "machine_stack"
+  }
+ ],
+ "gyms": [
+  {
+   "id": 3,
+   "name": "Gym 3"
+  },
+  {
+   "id": 4,
+   "name": "Gym 4"
+  }
+ ],
+ "config": {
+  "version": "v3.1",
+  "dumbbell_increment_kg": 2.0,
+  "rep_range": [
+   7,
+   12
+  ]
+ }
+}

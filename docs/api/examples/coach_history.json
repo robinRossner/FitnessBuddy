@@ -1,0 +1,714 @@
+{
+  "versions": [
+    {
+      "version": "v3.7",
+      "created_at": "2026-11-19T13:38:26.199Z",
+      "author": "advisor",
+      "reason": "Advisor (consultation 2): Interval reps (maximum) 6 -> 7: The last two interval sessions passed at six reps.",
+      "diff": {
+        "running.intervals.reps_max": {
+          "old": 6,
+          "new": 7
+        }
+      },
+      "consultation_id": "2",
+      "outcome": null,
+      "active": true
+    },
+    {
+      "version": "v3.6",
+      "created_at": "2026-11-19T13:38:23.574Z",
+      "author": "engine",
+      "reason": "Quality VDOT may rise to a measured value from recent interval reps (running.vdot.from_intervals: median rep pace = I pace, age-discounted after 4 weeks, at most +max_step per update; drops keep the hysteresis rules)",
+      "diff": {
+        "running.vdot.from_intervals.age_discount_per_week": {
+          "old": null,
+          "new": 0.25
+        },
+        "running.vdot.from_intervals.age_free_days": {
+          "old": null,
+          "new": 28
+        },
+        "running.vdot.from_intervals.enabled": {
+          "old": null,
+          "new": true
+        },
+        "running.vdot.from_intervals.max_fade_pct": {
+          "old": null,
+          "new": 5
+        },
+        "running.vdot.from_intervals.max_spread_pct": {
+          "old": null,
+          "new": 8
+        },
+        "running.vdot.from_intervals.max_step": {
+          "old": null,
+          "new": 3.0
+        },
+        "running.vdot.from_intervals.min_peak_hr_pct_lthr": {
+          "old": null,
+          "new": 0.9
+        },
+        "running.vdot.from_intervals.min_rep_m": {
+          "old": null,
+          "new": 300
+        },
+        "running.vdot.from_intervals.min_reps": {
+          "old": null,
+          "new": 4
+        },
+        "running.vdot.from_intervals.rep_max_s": {
+          "old": null,
+          "new": 480
+        },
+        "running.vdot.from_intervals.rep_min_s": {
+          "old": null,
+          "new": 120
+        },
+        "running.vdot.from_intervals.window_days": {
+          "old": null,
+          "new": 70
+        }
+      },
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    },
+    {
+      "version": "v3.5",
+      "created_at": "2026-11-19T13:38:23.573Z",
+      "author": "engine",
+      "reason": "Easy and long run pace range calibrated from the recent easy runs at HR <= the easy ceiling (running.easy_calibration: median pace = fast end of the easy range, never slower than Daniels, at most +max_vdot_gain VDOT; quality paces unchanged)",
+      "diff": {
+        "running.easy_calibration.enabled": {
+          "old": null,
+          "new": true
+        },
+        "running.easy_calibration.hr_margin_bpm": {
+          "old": null,
+          "new": 2
+        },
+        "running.easy_calibration.max_elevation_m_per_km": {
+          "old": null,
+          "new": 25
+        },
+        "running.easy_calibration.max_vdot_gain": {
+          "old": null,
+          "new": 4.0
+        },
+        "running.easy_calibration.min_minutes": {
+          "old": null,
+          "new": 25
+        },
+        "running.easy_calibration.min_runs": {
+          "old": null,
+          "new": 3
+        },
+        "running.easy_calibration.window_days": {
+          "old": null,
+          "new": 28
+        }
+      },
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    },
+    {
+      "version": "v3.4",
+      "created_at": "2026-11-19T13:38:23.572Z",
+      "author": "engine",
+      "reason": "Volume cap may hold the last completed week's km (running.volume.hold_last_week, limited to hold_limit_factor x the highest of the 4 weeks before it; not after a week with an easy-run HR fail or drift)",
+      "diff": {
+        "running.volume.hold_last_week": {
+          "old": null,
+          "new": true
+        },
+        "running.volume.hold_limit_factor": {
+          "old": null,
+          "new": 1.1
+        }
+      },
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    },
+    {
+      "version": "v3.3",
+      "created_at": "2026-11-19T13:38:23.571Z",
+      "author": "engine",
+      "reason": "Progression engine v2 (research 2026-10-25): reps-at-load signal, two-strike gate, rung rule, censored misses, stall ladder, soft deloads; quality cycle, pace-based intervals, VDOT hysteresis, 4-week-mean volume cap, long-run step-back + drift gate",
+      "diff": {
+        "running.easy.exempt_after_lower": {
+          "old": null,
+          "new": true
+        },
+        "running.easy.strides.duration_s": {
+          "old": null,
+          "new": 20
+        },
+        "running.easy.strides.recovery_s": {
+          "old": null,
+          "new": 60
+        },
+        "running.easy.strides.reps": {
+          "old": null,
+          "new": 6
+        },
+        "running.fourth_run.consistent_weeks": {
+          "old": null,
+          "new": 8
+        },
+        "running.fourth_run.min_long_run_km": {
+          "old": null,
+          "new": 14
+        },
+        "running.fourth_run.min_runs_per_week": {
+          "old": null,
+          "new": 3
+        },
+        "running.fourth_run.min_weekly_km": {
+          "old": null,
+          "new": 28
+        },
+        "running.interval_fast_flag_pct": {
+          "old": null,
+          "new": 5
+        },
+        "running.interval_pace_tolerance_pct": {
+          "old": null,
+          "new": 3
+        },
+        "running.intervals.cooldown_min_km": {
+          "old": null,
+          "new": 0.5
+        },
+        "running.intervals.fade_max_pct": {
+          "old": null,
+          "new": 3
+        },
+        "running.intervals.fails_to_step_back": {
+          "old": null,
+          "new": 2
+        },
+        "running.intervals.green_hr_pct_lthr": {
+          "old": null,
+          "new": 1.02
+        },
+        "running.intervals.hr_ceiling_pct_lthr": {
+          "old": null,
+          "new": 1.08
+        },
+        "running.intervals.max_work_min": {
+          "old": null,
+          "new": 20
+        },
+        "running.intervals.pass_rep_share": {
+          "old": null,
+          "new": 0.8
+        },
+        "running.intervals.rep_ladder_m": {
+          "old": null,
+          "new": [
+            800,
+            1000,
+            1200
+          ]
+        },
+        "running.intervals.warmup_min_km": {
+          "old": null,
+          "new": 1.0
+        },
+        "running.long_run.cap_km": {
+          "old": 21,
+          "new": 20
+        },
+        "running.long_run.drift_cut_by_pct": {
+          "old": null,
+          "new": 10
+        },
+        "running.long_run.drift_cut_pct": {
+          "old": null,
+          "new": 8
+        },
+        "running.long_run.drift_hold_pct": {
+          "old": null,
+          "new": 5
+        },
+        "running.long_run.drift_min_minutes": {
+          "old": null,
+          "new": 60
+        },
+        "running.long_run.recent_days": {
+          "old": null,
+          "new": 21
+        },
+        "running.long_run.step_back_every": {
+          "old": null,
+          "new": 4
+        },
+        "running.long_run.step_back_pct": {
+          "old": null,
+          "new": 25
+        },
+        "running.quality.no_quality_after_break_days": {
+          "old": null,
+          "new": 15
+        },
+        "running.quality.phase_weeks": {
+          "old": null,
+          "new": {}
+        },
+        "running.quality.phases": {
+          "old": null,
+          "new": [
+            {
+              "name": "threshold",
+              "weeks": 12,
+              "sessions": [
+                "threshold"
+              ]
+            },
+            {
+              "name": "threshold_vo2max",
+              "weeks": 8,
+              "sessions": [
+                "threshold",
+                "vo2max"
+              ]
+            },
+            {
+              "name": "5k_specific",
+              "weeks": 6,
+              "sessions": [
+                "race_5k",
+                "threshold"
+              ]
+            },
+            {
+              "name": "time_trial",
+              "weeks": 1,
+              "sessions": [
+                "time_trial"
+              ]
+            }
+          ]
+        },
+        "running.race_5k.green_hr_pct_lthr": {
+          "old": null,
+          "new": 1.02
+        },
+        "running.race_5k.hr_ceiling_pct_lthr": {
+          "old": null,
+          "new": 1.08
+        },
+        "running.race_5k.max_work_min": {
+          "old": null,
+          "new": 20
+        },
+        "running.race_5k.recovery_s": {
+          "old": null,
+          "new": 120
+        },
+        "running.race_5k.rep_ladder_m": {
+          "old": null,
+          "new": [
+            800,
+            1000,
+            1200
+          ]
+        },
+        "running.race_5k.reps_max": {
+          "old": null,
+          "new": 6
+        },
+        "running.race_5k.reps_min": {
+          "old": null,
+          "new": 4
+        },
+        "running.race_5k.reps_start": {
+          "old": null,
+          "new": 6
+        },
+        "running.threshold.green_hr_pct_lthr": {
+          "old": null,
+          "new": 0.95
+        },
+        "running.threshold.hr_ceiling_pct_lthr": {
+          "old": null,
+          "new": 0.99
+        },
+        "running.threshold.max_work_min": {
+          "old": null,
+          "new": 30
+        },
+        "running.threshold.recovery_ladder_s": {
+          "old": null,
+          "new": [
+            90,
+            75,
+            60
+          ]
+        },
+        "running.threshold.rep_ladder_m": {
+          "old": null,
+          "new": [
+            1000,
+            1200,
+            1600,
+            2000
+          ]
+        },
+        "running.threshold.reps_max": {
+          "old": null,
+          "new": 5
+        },
+        "running.threshold.reps_min": {
+          "old": null,
+          "new": 3
+        },
+        "running.threshold.reps_start": {
+          "old": null,
+          "new": 3
+        },
+        "running.time_trial.cooldown_km": {
+          "old": null,
+          "new": 1.5
+        },
+        "running.time_trial.distance_m": {
+          "old": null,
+          "new": 5000
+        },
+        "running.time_trial.warmup_km": {
+          "old": null,
+          "new": 2.0
+        },
+        "running.vdot.ef_trend_min_pct": {
+          "old": null,
+          "new": 1.0
+        },
+        "running.vdot.ef_trend_weeks": {
+          "old": null,
+          "new": 4
+        },
+        "running.vdot.fail_drop": {
+          "old": null,
+          "new": 0.5
+        },
+        "running.vdot.fails_to_lower": {
+          "old": null,
+          "new": 3
+        },
+        "running.vdot.green_sessions": {
+          "old": null,
+          "new": 2
+        },
+        "running.vdot.green_window_weeks": {
+          "old": null,
+          "new": 3
+        },
+        "running.vdot.layoff": {
+          "old": null,
+          "new": [
+            {
+              "min_days": 15,
+              "pct": 2
+            },
+            {
+              "min_days": 29,
+              "pct": 5
+            },
+            {
+              "min_days": 57,
+              "pct": 8
+            }
+          ]
+        },
+        "running.vdot.max_per_4w": {
+          "old": null,
+          "new": 1.0
+        },
+        "running.vdot.max_step": {
+          "old": null,
+          "new": 0.5
+        },
+        "running.volume.cap_abs_km": {
+          "old": null,
+          "new": 2.0
+        },
+        "running.volume.mean_weeks": {
+          "old": null,
+          "new": 4
+        },
+        "running.volume.min_run_km": {
+          "old": null,
+          "new": 3.0
+        },
+        "running.volume.single_run_abs_km": {
+          "old": null,
+          "new": 0.0
+        },
+        "running.volume.single_run_days": {
+          "old": null,
+          "new": 30
+        },
+        "running.volume.single_run_factor": {
+          "old": null,
+          "new": 1.1
+        },
+        "running.weekly_volume_floor_km": {
+          "old": null,
+          "new": 18
+        },
+        "schedule.run_makeup_max_shift_days": {
+          "old": null,
+          "new": 1
+        },
+        "strength.big_miss_reps": {
+          "old": null,
+          "new": 3
+        },
+        "strength.break_tiers": {
+          "old": null,
+          "new": [
+            {
+              "min_days": 11,
+              "sets_minus": 1,
+              "days": 1
+            },
+            {
+              "min_days": 22,
+              "load_pct": 5,
+              "sets_minus": 1,
+              "days": 7
+            },
+            {
+              "min_days": 43,
+              "load_pct": 10,
+              "sets_factor": 0.5,
+              "days": 7
+            }
+          ]
+        },
+        "strength.censor.break_days": {
+          "old": null,
+          "new": 10
+        },
+        "strength.censor.calibration_sessions": {
+          "old": null,
+          "new": 2
+        },
+        "strength.censor.hard_run_hours": {
+          "old": null,
+          "new": 24
+        },
+        "strength.censor.hard_run_min_km": {
+          "old": null,
+          "new": 10
+        },
+        "strength.censor.readiness": {
+          "old": null,
+          "new": [
+            "yellow",
+            "red"
+          ]
+        },
+        "strength.deload.align_running_step_back": {
+          "old": null,
+          "new": true
+        },
+        "strength.deload.days": {
+          "old": null,
+          "new": 7
+        },
+        "strength.deload.fatigue_index_pct": {
+          "old": null,
+          "new": 40
+        },
+        "strength.deload.fatigue_min_exposures": {
+          "old": null,
+          "new": 3
+        },
+        "strength.deload.fatigue_weeks": {
+          "old": null,
+          "new": 2
+        },
+        "strength.deload.load_pct": {
+          "old": 10,
+          "new": 0
+        },
+        "strength.deload.min_gap_days": {
+          "old": null,
+          "new": 28
+        },
+        "strength.deload.sets_pct": {
+          "old": 40,
+          "new": 50
+        },
+        "strength.deload.sets_rounding": {
+          "old": null,
+          "new": "up"
+        },
+        "strength.e1rm_progress_pct": {
+          "old": null,
+          "new": 1.0
+        },
+        "strength.jump_abort_reps": {
+          "old": null,
+          "new": 5
+        },
+        "strength.multi_stall_days": {
+          "old": null,
+          "new": 14
+        },
+        "strength.multi_stall_lifts": {
+          "old": null,
+          "new": 3
+        },
+        "strength.noise_reps": {
+          "old": null,
+          "new": 2
+        },
+        "strength.rep_ceiling_cap": {
+          "old": null,
+          "new": 15
+        },
+        "strength.rung_min_reps": {
+          "old": null,
+          "new": 8
+        },
+        "strength.stall_exposures_2x": {
+          "old": null,
+          "new": 4
+        },
+        "strength.stall_min_days": {
+          "old": null,
+          "new": 12
+        },
+        "strength.stall_reset_small_pct": {
+          "old": null,
+          "new": 5
+        }
+      },
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    },
+    {
+      "version": "v3.2",
+      "created_at": "2026-11-19T13:38:23.570Z",
+      "author": "engine",
+      "reason": "Default rest timer added (lifting section, 2:00 for every exercise)",
+      "diff": {
+        "lifting.rest_default_s": {
+          "old": null,
+          "new": 120
+        }
+      },
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    },
+    {
+      "version": "v3.1",
+      "created_at": "2026-11-19T13:38:23.569Z",
+      "author": "engine",
+      "reason": "Missed-session policy and scheduling rules added (schedule section, defaults)",
+      "diff": {
+        "schedule.hard_kinds": {
+          "old": null,
+          "new": [
+            "lower",
+            "intervals"
+          ]
+        },
+        "schedule.horizon_weeks": {
+          "old": null,
+          "new": 2
+        },
+        "schedule.kind_load.easy": {
+          "old": null,
+          "new": 1
+        },
+        "schedule.kind_load.intervals": {
+          "old": null,
+          "new": 4
+        },
+        "schedule.kind_load.long": {
+          "old": null,
+          "new": 3
+        },
+        "schedule.kind_load.lower": {
+          "old": null,
+          "new": 4
+        },
+        "schedule.kind_load.rest": {
+          "old": null,
+          "new": 0
+        },
+        "schedule.kind_load.upper": {
+          "old": null,
+          "new": 2
+        },
+        "schedule.long_run_makeup_day": {
+          "old": null,
+          "new": "sat"
+        },
+        "schedule.makeup_never": {
+          "old": null,
+          "new": [
+            "easy"
+          ]
+        },
+        "schedule.makeup_priority": {
+          "old": null,
+          "new": [
+            "lower",
+            "intervals",
+            "upper",
+            "long",
+            "easy"
+          ]
+        },
+        "schedule.makeup_replaceable": {
+          "old": null,
+          "new": [
+            "easy"
+          ]
+        },
+        "schedule.makeup_use_rest_day": {
+          "old": null,
+          "new": true
+        },
+        "schedule.max_hard_per_day": {
+          "old": null,
+          "new": 1
+        },
+        "schedule.max_sessions_per_day": {
+          "old": null,
+          "new": 2
+        },
+        "schedule.no_consecutive_hard_days": {
+          "old": null,
+          "new": true
+        },
+        "schedule.shorten_max_pct": {
+          "old": null,
+          "new": 50
+        }
+      },
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    },
+    {
+      "version": "v3",
+      "created_at": "2026-11-19T13:38:23.548Z",
+      "author": "seed",
+      "reason": null,
+      "diff": {},
+      "consultation_id": null,
+      "outcome": null,
+      "active": false
+    }
+  ]
+}

@@ -52,7 +52,6 @@ def client(db, monkeypatch):
 
 def test_every_legacy_route_has_a_fitness_twin():
     ops = set(_operations())
-    assert not any(p.startswith(LEGACY + "/receipts") for _, p in ops)  # receipts moved out
     legacy = {(m, p) for m, p in ops if p.startswith(LEGACY + "/") and not p.startswith(FITNESS)}
     assert len(legacy) > 40
     for method, path in legacy:

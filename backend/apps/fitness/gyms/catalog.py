@@ -5,7 +5,7 @@ File format (see the yaml for the real thing)::
     gyms:
       - {key: gym1, name: Gym 1}                     # first gym: no start = since forever
       - {key: gym2, name: Gym 2, start: 2024-09-02}  # first session at this gym
-      - {key: gym3, name: Gym 3, start: 2026-08-17, same_as: gym1}   # optional: same place
+      - {key: gym2, name: Gym 2, start: 2026-08-17, same_as: gym1}   # optional: same place
 
 Optional per-date overrides for days that do not fit the period (e.g. one visit to the old gym)::
 

@@ -61,20 +61,12 @@ def client_at(app, host: str = "203.0.113.9") -> TestClient:
 # --- per-app tokens ----------------------------------------------------------------------
 
 
-def test_only_the_fitness_token_opens_the_fitness_api(app, monkeypatch):
-    # a retired RECEIPTS_API_TOKEN left in the environment opens nothing here
-    monkeypatch.setenv("RECEIPTS_API_TOKEN", OTHER_TOKEN)
-    get_core_settings.cache_clear()
+def test_only_the_fitness_token_opens_the_fitness_api(app):
     client = client_at(app)
     assert client.get(FITNESS_URL, headers=bearer(FITNESS_TOKEN)).status_code == 200
     assert client.get(FITNESS_URL, headers=bearer(OTHER_TOKEN)).status_code == 401
     # also under the app-scoped fitness prefix
     assert client.get("/api/v1/fitness/variants", headers=bearer(OTHER_TOKEN)).status_code == 401
-
-
-def test_receipts_routes_are_gone(app):
-    client = client_at(app)
-    assert client.get("/api/v1/receipts/status", headers=bearer(FITNESS_TOKEN)).status_code == 404
 
 
 def test_unset_fitness_token_is_503(app, monkeypatch):

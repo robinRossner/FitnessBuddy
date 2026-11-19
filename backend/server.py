@@ -2,7 +2,7 @@
 
 One process, one SQLite-backed deployment. The fitness app mounts its routes
 (apps/fitness/router.py) and registers its scheduler jobs; auth, settings and scheduler plumbing
-come from core/. (The Receipts server moved out to its own repository and deployment.)
+come from core/.
 """
 
 from __future__ import annotations

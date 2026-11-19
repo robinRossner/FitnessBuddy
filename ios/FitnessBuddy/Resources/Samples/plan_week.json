@@ -1,0 +1,1241 @@
+{
+ "start": "2026-10-26",
+ "days": [
+  {
+   "date": "2026-10-26",
+   "sessions": [
+    {
+     "id": "622a921b-6adf-5c9c-9f88-d9c93c168f71",
+     "date": "2026-10-26",
+     "kind": "upper",
+     "status": "proposed",
+     "title": "Upper",
+     "slot_id": "slot_0",
+     "template_kind": "upper",
+     "readiness": {
+      "color": "yellow",
+      "known": true,
+      "reason": "HRV 14% below baseline, sleep 5.9 h"
+     },
+     "adjustments": [
+      "Yellow: -1 set per exercise, no load increases"
+     ],
+     "notes": [],
+     "session": {
+      "type": "lifting",
+      "kind": "upper",
+      "gym": "Gym 4",
+      "exercises": [
+       {
+        "order": 1,
+        "variant_id": 42,
+        "variant_key": "cbbaad47-1c84-5301-bb5f-2da2ac7e6952",
+        "name": "Pull Up",
+        "exercise": "x",
+        "equipment_type": "bodyweight",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 17.5,
+          "target_reps": 7
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 17.5,
+          "target_reps": 7
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 20,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 20,
+           "reps": 6,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "stall_reset",
+        "reason": "stall reset to 17.5 kg",
+        "flags": [
+         "stall"
+        ]
+       },
+       {
+        "order": 2,
+        "variant_id": 201,
+        "variant_key": "cfbc24fa-f22c-56b2-b431-843a151558e7",
+        "name": "Incline Bench Press (Smith Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "smith",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 45,
+          "target_reps": 9
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 45,
+          "target_reps": 9
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 45,
+          "target_reps": 8
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 45,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 45,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 45,
+           "reps": 7,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 3,
+        "variant_id": 202,
+        "variant_key": "c6457747-77a9-5d32-8bd7-e95a4f6bca2f",
+        "name": "Lateral Raise (Cable) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         15
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 10,
+          "target_reps": 12
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 10,
+          "target_reps": 11
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 10,
+          "target_reps": 10
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 10,
+           "reps": 11,
+           "duration_s": null
+          },
+          {
+           "weight": 10,
+           "reps": 10,
+           "duration_s": null
+          },
+          {
+           "weight": 10,
+           "reps": 9,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 4,
+        "variant_id": 203,
+        "variant_key": "950176f3-c3b4-5704-a6b1-15096622ca47",
+        "name": "Iso-Lateral Row (Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "plate_loaded",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 60,
+          "target_reps": 9
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 60,
+          "target_reps": 9
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 60,
+          "target_reps": 8
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 60,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 60,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 60,
+           "reps": 7,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 5,
+        "variant_id": 204,
+        "variant_key": "4a8515a6-8253-5817-8837-8726e4679bef",
+        "name": "Seated Row (Cable) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 50,
+          "target_reps": 10
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 50,
+          "target_reps": 10
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 50,
+           "reps": 9,
+           "duration_s": null
+          },
+          {
+           "weight": 50,
+           "reps": 9,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 6,
+        "variant_id": 205,
+        "variant_key": "46f72e46-4933-570a-abf0-a7aa94b16a86",
+        "name": "Triceps Extension (Cable) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         15
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 20,
+          "target_reps": 12
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 20,
+          "target_reps": 11
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 20,
+           "reps": 11,
+           "duration_s": null
+          },
+          {
+           "weight": 20,
+           "reps": 10,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 7,
+        "variant_id": 106,
+        "variant_key": "890c1e36-a958-5f9c-84aa-383c6c568c1c",
+        "name": "Dumbbell Curl",
+        "exercise": "x",
+        "equipment_type": "dumbbell",
+        "load_convention": "per_hand",
+        "rep_range": [
+         8,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 14,
+          "target_reps": 10
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 14,
+          "target_reps": 9
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 14,
+           "reps": 9,
+           "duration_s": null
+          },
+          {
+           "weight": 14,
+           "reps": 8,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       }
+      ],
+      "deload": null
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "sessions": [
+    {
+     "id": "77cce3f0-30e1-557f-a344-1ff74ba0b3de",
+     "date": "2026-10-27",
+     "kind": "lower",
+     "status": "proposed",
+     "title": "Lower",
+     "slot_id": "slot_1",
+     "template_kind": "lower",
+     "readiness": {
+      "color": null,
+      "known": false,
+      "reason": "forecast not available yet"
+     },
+     "adjustments": [],
+     "notes": [],
+     "session": {
+      "type": "lifting",
+      "kind": "lower",
+      "gym": "Gym 4",
+      "exercises": [
+       {
+        "order": 1,
+        "variant_id": 230,
+        "variant_key": "b87f6323-dfc8-56bb-95c6-d13109d66c9d",
+        "name": "Lying Leg Curl (Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "machine_stack",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 75,
+          "target_reps": 10
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 75,
+          "target_reps": 9
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 75,
+          "target_reps": 9
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 75,
+           "reps": 9,
+           "duration_s": null
+          },
+          {
+           "weight": 75,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 75,
+           "reps": 8,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 2,
+        "variant_id": 231,
+        "variant_key": "8b2f32a4-c55c-54ea-a428-765156c41358",
+        "name": "Squat (Smith Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "smith",
+        "load_convention": "total",
+        "rep_range": [
+         6,
+         10
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 80,
+          "target_reps": 8
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 80,
+          "target_reps": 8
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 80,
+          "target_reps": 7
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 80,
+           "reps": 7,
+           "duration_s": null
+          },
+          {
+           "weight": 80,
+           "reps": 7,
+           "duration_s": null
+          },
+          {
+           "weight": 80,
+           "reps": 6,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 3,
+        "variant_id": 232,
+        "variant_key": "084482a8-1085-5754-aa0d-5bf34875b8e9",
+        "name": "Leg Extension (Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "machine_stack",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 55,
+          "target_reps": 11
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 55,
+          "target_reps": 10
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 55,
+           "reps": 10,
+           "duration_s": null
+          },
+          {
+           "weight": 55,
+           "reps": 9,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 4,
+        "variant_id": 233,
+        "variant_key": "65935ef5-69d5-5263-b498-7c74d9106322",
+        "name": "Calf Press on Seated Leg Press @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "plate_loaded",
+        "load_convention": "total",
+        "rep_range": [
+         10,
+         15
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 100,
+          "target_reps": 13
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 100,
+          "target_reps": 12
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 100,
+           "reps": 12,
+           "duration_s": null
+          },
+          {
+           "weight": 100,
+           "reps": 11,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 5,
+        "variant_id": 234,
+        "variant_key": "8914f8ee-3898-5a56-8741-6934172e76ff",
+        "name": "Cable Crunch @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         10,
+         15
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 35,
+          "target_reps": 12
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 35,
+          "target_reps": 12
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 35,
+           "reps": 11,
+           "duration_s": null
+          },
+          {
+           "weight": 35,
+           "reps": 11,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       }
+      ],
+      "deload": null
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "sessions": [
+    {
+     "id": "afdb34b5-aebf-5f24-8088-0b6c69ca4d9c",
+     "date": "2026-10-28",
+     "kind": "easy_run",
+     "status": "proposed",
+     "title": "Easy run 8 km",
+     "slot_id": "slot_2",
+     "template_kind": "easy_run",
+     "readiness": {
+      "color": null,
+      "known": false,
+      "reason": "forecast not available yet"
+     },
+     "adjustments": [],
+     "notes": [],
+     "session": {
+      "type": "easy_run",
+      "distance_km": 8.0,
+      "hr": {
+       "zone": "Z1-Z2",
+       "low": 127,
+       "high": 156,
+       "basis": "lthr"
+      },
+      "pace": {
+       "min_s_per_km": 324,
+       "max_s_per_km": 388,
+       "label": "5:24-6:28",
+       "note": "HR leads: slow down if HR passes the ceiling"
+      },
+      "reason": "easy run below 156 bpm",
+      "structure": {
+       "strides": {
+        "reps": 6,
+        "duration_s": 20.0,
+        "recovery_s": 60.0,
+        "est_km": 1.5,
+        "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between"
+       }
+      }
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "sessions": [
+    {
+     "id": "b7e7af24-78db-58a6-b164-82c83e8baf53",
+     "date": "2026-10-29",
+     "kind": "upper",
+     "status": "proposed",
+     "title": "Upper",
+     "slot_id": "slot_3",
+     "template_kind": "upper",
+     "readiness": {
+      "color": null,
+      "known": false,
+      "reason": "forecast not available yet"
+     },
+     "adjustments": [],
+     "notes": [],
+     "session": {
+      "type": "lifting",
+      "kind": "upper",
+      "gym": "Gym 4",
+      "exercises": [
+       {
+        "order": 1,
+        "variant_id": 42,
+        "variant_key": "cbbaad47-1c84-5301-bb5f-2da2ac7e6952",
+        "name": "Pull Up",
+        "exercise": "x",
+        "equipment_type": "bodyweight",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 17.5,
+          "target_reps": 7
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 17.5,
+          "target_reps": 7
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 20,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 20,
+           "reps": 6,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "stall_reset",
+        "reason": "stall reset to 17.5 kg",
+        "flags": [
+         "stall"
+        ]
+       },
+       {
+        "order": 2,
+        "variant_id": 201,
+        "variant_key": "cfbc24fa-f22c-56b2-b431-843a151558e7",
+        "name": "Incline Bench Press (Smith Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "smith",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 45,
+          "target_reps": 9
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 45,
+          "target_reps": 9
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 45,
+          "target_reps": 8
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 45,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 45,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 45,
+           "reps": 7,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 3,
+        "variant_id": 202,
+        "variant_key": "c6457747-77a9-5d32-8bd7-e95a4f6bca2f",
+        "name": "Lateral Raise (Cable) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         15
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 10,
+          "target_reps": 12
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 10,
+          "target_reps": 11
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 10,
+          "target_reps": 10
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 10,
+           "reps": 11,
+           "duration_s": null
+          },
+          {
+           "weight": 10,
+           "reps": 10,
+           "duration_s": null
+          },
+          {
+           "weight": 10,
+           "reps": 9,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 4,
+        "variant_id": 203,
+        "variant_key": "950176f3-c3b4-5704-a6b1-15096622ca47",
+        "name": "Iso-Lateral Row (Machine) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "plate_loaded",
+        "load_convention": "total",
+        "rep_range": [
+         7,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 60,
+          "target_reps": 9
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 60,
+          "target_reps": 9
+         },
+         {
+          "index": 3,
+          "set_type": "working",
+          "target_weight": 60,
+          "target_reps": 8
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 60,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 60,
+           "reps": 8,
+           "duration_s": null
+          },
+          {
+           "weight": 60,
+           "reps": 7,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 5,
+        "variant_id": 204,
+        "variant_key": "4a8515a6-8253-5817-8837-8726e4679bef",
+        "name": "Seated Row (Cable) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 50,
+          "target_reps": 10
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 50,
+          "target_reps": 10
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 50,
+           "reps": 9,
+           "duration_s": null
+          },
+          {
+           "weight": 50,
+           "reps": 9,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 6,
+        "variant_id": 205,
+        "variant_key": "46f72e46-4933-570a-abf0-a7aa94b16a86",
+        "name": "Triceps Extension (Cable) @ Gym 4",
+        "exercise": "x",
+        "equipment_type": "cable",
+        "load_convention": "total",
+        "rep_range": [
+         8,
+         15
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 20,
+          "target_reps": 12
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 20,
+          "target_reps": 11
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 20,
+           "reps": 11,
+           "duration_s": null
+          },
+          {
+           "weight": 20,
+           "reps": 10,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       },
+       {
+        "order": 7,
+        "variant_id": 106,
+        "variant_key": "890c1e36-a958-5f9c-84aa-383c6c568c1c",
+        "name": "Dumbbell Curl",
+        "exercise": "x",
+        "equipment_type": "dumbbell",
+        "load_convention": "per_hand",
+        "rep_range": [
+         8,
+         12
+        ],
+        "sets": [
+         {
+          "index": 1,
+          "set_type": "working",
+          "target_weight": 14,
+          "target_reps": 10
+         },
+         {
+          "index": 2,
+          "set_type": "working",
+          "target_weight": 14,
+          "target_reps": 9
+         }
+        ],
+        "last": {
+         "date": "2026-10-22",
+         "sets": [
+          {
+           "weight": 14,
+           "reps": 9,
+           "duration_s": null
+          },
+          {
+           "weight": 14,
+           "reps": 8,
+           "duration_s": null
+          }
+         ],
+         "best_e1rm": null
+        },
+        "rule": "double_progression:add_reps",
+        "reason": "same load, each set +1 rep",
+        "flags": []
+       }
+      ],
+      "deload": null
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "sessions": [
+    {
+     "id": "dbeeef2f-3d04-502e-86b8-9f765fefa78e",
+     "date": "2026-10-30",
+     "kind": "intervals",
+     "status": "proposed",
+     "title": "Intervals 5x1000 m @ 4:10",
+     "slot_id": "slot_4",
+     "template_kind": "intervals",
+     "readiness": {
+      "color": null,
+      "known": false,
+      "reason": "forecast not available yet"
+     },
+     "adjustments": [],
+     "notes": [],
+     "session": {
+      "type": "intervals",
+      "structure": {
+       "warmup": {
+        "distance_km": 1.0,
+        "hr": {
+         "zone": "Z1-Z2",
+         "low": 127,
+         "high": 156,
+         "basis": "lthr"
+        }
+       },
+       "work": {
+        "reps": 5,
+        "distance_m": 1000.0,
+        "pace_s_per_km": 250,
+        "pace_label": "4:10",
+        "pace_range_s_per_km": [
+         246.0,
+         254.0
+        ],
+        "hr": {
+         "zone": "Z4-Z5a",
+         "low": 166,
+         "high": 179
+        }
+       },
+       "recovery": {
+        "distance_m": 400.0,
+        "type": "jog",
+        "hr_drop_min_bpm": 12.0
+       },
+       "cooldown": {
+        "distance_km": 0.5
+       }
+      },
+      "total_km": 8.1
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "sessions": [
+    {
+     "id": "5633a583-a711-530a-8f43-b9dea14016ca",
+     "date": "2026-10-31",
+     "kind": "rest",
+     "status": "proposed",
+     "title": "Rest",
+     "slot_id": "slot_5",
+     "template_kind": "rest",
+     "readiness": {
+      "color": null,
+      "known": false,
+      "reason": "forecast not available yet"
+     },
+     "adjustments": [],
+     "notes": [],
+     "session": {
+      "type": "rest"
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-01",
+   "sessions": [
+    {
+     "id": "23e9cac5-1922-5e17-b400-8055e2686156",
+     "date": "2026-11-01",
+     "kind": "long_run",
+     "status": "proposed",
+     "title": "Long run 11 km",
+     "slot_id": "slot_6",
+     "template_kind": "long_run",
+     "readiness": {
+      "color": null,
+      "known": false,
+      "reason": "forecast not available yet"
+     },
+     "adjustments": [],
+     "notes": [],
+     "session": {
+      "type": "long_run",
+      "distance_km": 11.0,
+      "hr": {
+       "zone": "Z1-Z2",
+       "low": 127,
+       "high": 156,
+       "basis": "lthr"
+      },
+      "pace": {
+       "min_s_per_km": 324,
+       "max_s_per_km": 388,
+       "label": "5:24-6:28",
+       "note": "HR leads"
+      }
+     },
+     "config_version_id": null,
+     "updated_at": "2026-10-25T07:00:00.000000Z"
+    }
+   ]
+  }
+ ]
+}

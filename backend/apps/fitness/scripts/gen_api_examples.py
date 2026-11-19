@@ -1,7 +1,8 @@
 """Regenerate docs/api/examples/*.json by calling the real endpoints (FastAPI TestClient) against
-a COPY of the real database, so the shapes, ids and numbers are exactly what the server emits.
+a COPY of the synthetic demo database (seed_demo_db.py), so the shapes, ids and numbers are
+exactly what the server emits.
 
-    cd backend && uv run python -m apps.fitness.scripts.gen_api_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_api_examples [--db DB]
 
 The live database is never written; the engine re-run hook is stubbed. Lists in the pull example
 are trimmed (newest 3 sessions + their sets) to keep the fixture small.
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import tempfile
 import uuid
@@ -23,7 +25,7 @@ from fastapi.testclient import TestClient
 
 from apps.fitness.api.deps import get_db
 from apps.fitness.db.session import make_engine
-from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT
+from apps.fitness.settings import BACKEND_DIR, FITNESS_DIR, REPO_ROOT, get_settings
 from core.auth import get_api_token
 from server import app
 
@@ -58,8 +60,10 @@ def trim(page: dict, keep_sessions: int = 3) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "fitness.db"))
+    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "demo" / "fitness.db"))
     args = ap.parse_args()
+    os.environ["PROGRAM_LIVE_PATH"] = str(Path(args.db).with_name("program.yaml"))
+    get_settings.cache_clear()
 
     tmp = Path(tempfile.mkdtemp()) / "copy.db"
     shutil.copy(args.db, tmp)

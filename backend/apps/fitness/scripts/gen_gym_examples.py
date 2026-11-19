@@ -1,7 +1,8 @@
 """Regenerate docs/api/examples/gyms_list.json and gym_machines.json by calling the real gym
-endpoints (FastAPI TestClient) against a COPY of the real database (read-only calls only).
+endpoints (FastAPI TestClient) against a COPY of the synthetic demo database (seed_demo_db.py)
+(read-only calls only).
 
-    cd backend && uv run python -m apps.fitness.scripts.gen_gym_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_gym_examples [--db DB]
 
 The live database is never written. gym_machines.json is the machine list of the current gym.
 """
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -19,7 +21,7 @@ from sqlalchemy.orm import sessionmaker
 
 from apps.fitness.api.deps import get_db
 from apps.fitness.db.session import make_engine
-from apps.fitness.settings import BACKEND_DIR, REPO_ROOT
+from apps.fitness.settings import BACKEND_DIR, REPO_ROOT, get_settings
 from core.auth import get_api_token
 from server import app
 
@@ -36,8 +38,10 @@ def dump(name: str, data) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "fitness.db"))
+    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "demo" / "fitness.db"))
     args = ap.parse_args()
+    os.environ["PROGRAM_LIVE_PATH"] = str(Path(args.db).with_name("program.yaml"))
+    get_settings.cache_clear()
 
     tmp = Path(tempfile.mkdtemp()) / "copy.db"
     shutil.copy(args.db, tmp)

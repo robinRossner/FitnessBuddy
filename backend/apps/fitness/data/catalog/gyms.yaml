@@ -1,0 +1,25 @@
+# Gym periods: which gym a Strong session belongs to, by session date.
+#
+# - A gym is used from its `start` (the first session AT that gym, inclusive) until the next
+#   gym's `start`. The first gym has no `start`.
+# - `key` is the stable identity: rename `name` freely, the history follows the key.
+# - `same_as: <key or name>` says "this is the same place as that gym" (e.g. you moved back):
+#   the period is merged into that gym, with its machine/cable variants and weight ladders.
+# - Only machine_stack / cable / smith / plate_loaded variants are per gym; barbell, dumbbell and
+#   bodyweight variants are the same everywhere (machine weights are not comparable between
+#   gyms: pulley ratios and stack steps differ).
+# After editing: `uv run python -m apps.fitness.importers.strong import --apply` moves the sets
+# to the right variants (idempotent, nothing is duplicated).
+
+gyms:
+  - key: gym1
+    name: Gym 1
+
+  - key: gym2
+    name: Gym 2
+    start: 2026-08-17
+    # same_as: gym1      # uncomment if it turns out to be the same place
+
+# One-off days that do not fit their period. Applies to every session on that local date;
+# `gym` is a key or a name.
+overrides: []

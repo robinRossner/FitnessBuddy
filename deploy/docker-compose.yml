@@ -5,8 +5,7 @@
 #
 # The project name is pinned to what compose derived from the directory name (/opt/fitnessbuddy/deploy
 # -> `deploy`), so the network `deploy_default` and the volumes `deploy_caddy_data` / `deploy_caddy_config`
-# (Caddy's certificates!) keep their names. The Receipts server (separate repository, own
-# stack in /opt/receipts) attaches to `deploy_default`.
+# (Caddy's certificates!) keep their names.
 name: deploy
 
 services:

@@ -11,9 +11,9 @@ never recomputes e1RM, readiness, HR zones or interval verdicts itself.
   durations **seconds**, paces **seconds per km**. Unknown values are `null`, never `NaN`.
 - Every response has `"generated_at"` (when the numbers were computed; cached responses keep
   their original value).
-- Real example payloads (a copy of the real database, "today" pinned to 2026-10-25) are in
+- Real example payloads (a copy of the synthetic demo database, "today" pinned to 2026-10-25) are in
   [`examples/stats_*.json`](examples/); arrays there may be trimmed, see their `_note`.
-- Speed: every endpoint answers in well under 300 ms on the real database (cold, worst case about
+- Speed: every endpoint answers in well under 300 ms on the demo database (cold, worst case about
   60 ms for `/stats/lifts`, the rest below 25 ms). Responses are cached in-process and recomputed
   automatically after any new data (Garmin sync, sync push, stats rebuild, config change) or when
   the day changes.
@@ -47,7 +47,7 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
       "muscle_group": "triceps",
       "body_region": "Arms",
       "gym_id": 4,
-      "gym_name": "Gym 3",
+      "gym_name": "Gym 2",
       "active": true,
       "in_program": true,
       "sessions": 9,
@@ -231,12 +231,12 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   "kpis": {
     "vdot_current": 44.51,
     "vdot_4w_ago": 43.44,
-    "vdot_change": 3.0,
+    "vdot_change": 1.07,
     "vdot_source": "interval_reps",
     "vdot_fit_current": 41.0,
-    "efficiency_current": 1.2656,
-    "efficiency_4w_ago": 1.2982,
-    "efficiency_change_pct": -2.51,
+    "efficiency_current": 1.1761,
+    "efficiency_4w_ago": 1.1671,
+    "efficiency_change_pct": 0.77,
     "easy_hr_drift_flags_4w": 0,
     "runs_this_week": 1,
     "runs_planned_this_week": 3,
@@ -275,8 +275,8 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   ],
   "vdot": [
     {
-      "date": "2026-09-14",
-      "value": 43.44,
+      "date": "2026-08-31",
+      "value": 37.79,
       "source": "initial",
       "delta": 0.0,
       "reason": "initial VDOT 41.0 from the pace model's fit"
@@ -285,8 +285,8 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
       "date": "2026-10-19",
       "value": 44.51,
       "source": "interval_reps",
-      "delta": 3.0,
-      "reason": "VDOT 42.4 -> 45.4 measured from interval reps: 6 x 800 m on 2026-08-26 ... (capped at +3 per update)"
+      "delta": 0.6,
+      "reason": "VDOT 43.9 -> 44.5 measured from interval reps: 5 x 1000 m on 2026-10-16 ..."
     }
   ],
   "vdot_fit": [

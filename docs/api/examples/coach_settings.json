@@ -1,0 +1,12 @@
+{
+  "provider": "api",
+  "requested_provider": "auto",
+  "credential_configured": true,
+  "billing": "api",
+  "model": "claude-opus-5-5",
+  "approval_mode": "manual",
+  "api_key_configured": true,
+  "dry_run": false,
+  "calls_this_week": 0,
+  "max_calls_per_week": 4
+}

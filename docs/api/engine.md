@@ -67,13 +67,13 @@ Response `200` (short summary, one entry per planned week):
   {"week_start": "2026-10-26",
    "persisted": {"created": 0, "updated": 2, "unchanged": 5},
    "quality_vdot": 44.51,
-   "vdot_reason": "VDOT 42.4 -> 45.4 measured from interval reps: 6 x 800 m on 2026-08-26 at 4:22/km (...) (capped at +3 per update)",
-   "vdot_from_intervals": {"vdot": 45.8, "reason": "6 x 800 m on 2026-08-26 at 4:22/km (...): VDOT 45.8"},
-   "easy_pace": {"basis": "daniels", "vdot": 44.51, "reason": "Daniels easy pace for VDOT 45.1: ..."},
+   "vdot_reason": "VDOT 43.9 -> 44.5 measured from interval reps: 5 x 1000 m on 2026-10-16 at 4:22/km (...)",
+   "vdot_from_intervals": {"vdot": 44.5, "reason": "5 x 1000 m on 2026-10-16 at 4:22/km (...): VDOT 44.5"},
+   "easy_pace": {"basis": "daniels", "vdot": 44.51, "reason": "Daniels easy pace for VDOT 44.5: ..."},
    "runs": [
     {"date": "2026-10-30", "kind": "intervals", "session_type": "threshold", "reps": 3,
-     "distance_m": 1000.0, "pace_label": "4:38"},
-    {"date": "2026-11-01", "kind": "long_run", "distance_km": 7.0, "pace_label": "5:19-6:22",
+     "distance_m": 1000.0, "pace_label": "4:44"},
+    {"date": "2026-11-01", "kind": "long_run", "distance_km": 7.0, "pace_label": "5:22-6:25",
      "pace_basis": "daniels"}]}]}
 ```
 

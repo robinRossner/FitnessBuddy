@@ -1,7 +1,8 @@
 """Regenerate docs/api/examples/stats_*.json by calling the real stats endpoints (FastAPI
-TestClient) against a COPY of the real database, with "today" pinned to 2026-10-25.
+TestClient) against a COPY of the synthetic demo database (seed_demo_db.py), with "today"
+pinned to 2026-10-25.
 
-    cd backend && uv run python -m apps.fitness.scripts.gen_stats_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_stats_examples [--db DB]
     [--time]
 
 The live database is never written. Long arrays are trimmed (newest kept) and say so in `_note`,
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import tempfile
 import time
@@ -70,9 +72,11 @@ def dump(name: str, data) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "fitness.db"))
+    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "demo" / "fitness.db"))
     ap.add_argument("--time", action="store_true", help="print cold / warm endpoint timings")
     args = ap.parse_args()
+    os.environ["PROGRAM_LIVE_PATH"] = str(Path(args.db).with_name("program.yaml"))
+    get_settings.cache_clear()
 
     tmp = Path(tempfile.mkdtemp()) / "copy.db"
     shutil.copy(args.db, tmp)
@@ -85,7 +89,7 @@ def main() -> None:
         finally:
             db.close()
 
-    with factory() as db:  # the copy gets the new pace keys as a config version, like the real DB
+    with factory() as db:  # the copy gets the new pace keys as a config version, like the demo DB
         cs.ensure_seeded(db, get_settings().engine_config_path)
         cs.create_version(db, PACE_KEYS, reason="Interval pace tolerance keys", author="user")
         db.commit()

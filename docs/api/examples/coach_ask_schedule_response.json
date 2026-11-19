@@ -1,0 +1,24 @@
+{
+  "id": "3",
+  "created_at": "2026-11-19T13:38:26.203Z",
+  "status": "queued",
+  "trigger": {
+    "type": "ask",
+    "title": "Question about the week of 2026-10-26",
+    "detail": "I am tired this week, can Friday's intervals move?",
+    "ref": {
+      "kind": "week",
+      "id": "2026-10-26"
+    }
+  },
+  "question": "I am tired this week, can Friday's intervals move?",
+  "diagnosis": null,
+  "notes_for_user": null,
+  "confidence": null,
+  "changes": [],
+  "schedule_changes": [],
+  "session_overrides": [],
+  "applied_config_version": null,
+  "error": null,
+  "cost_usd": null
+}

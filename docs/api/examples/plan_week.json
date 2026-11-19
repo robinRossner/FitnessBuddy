@@ -1,0 +1,1692 @@
+{
+  "start": "2026-10-26",
+  "days": [
+    {
+      "date": "2026-10-26",
+      "sessions": [
+        {
+          "id": "c6eaf326-5d7b-5713-bec2-e1db59b16e83",
+          "date": "2026-10-26",
+          "kind": "upper",
+          "status": "proposed",
+          "adaptive": true,
+          "adapts_on": [
+            "your reps at each load",
+            "today's readiness",
+            "censored misses (readiness, hard runs, breaks)",
+            "stall ladder and deload weeks"
+          ],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Upper",
+          "slot_id": "mon_upper",
+          "template_kind": "upper",
+          "readiness": {
+            "color": "green",
+            "known": true,
+            "reason": "1 minor flag only: HRV 64 ms (+8% vs 59 baseline); Garmin HRV status unbalanced"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "lifting",
+            "kind": "upper",
+            "gym": "Gym 2",
+            "exercises": [
+              {
+                "order": 1,
+                "variant_id": 1,
+                "variant_key": "071b47f4-7af1-556b-b489-c39423f8fadc",
+                "name": "Bench Press (Barbell)",
+                "exercise": "bench_press",
+                "equipment_type": "barbell",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "retest",
+                "progression_note": "retest 77.5 kg after the deload: beat 11/9/8",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 77.5,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 77.5,
+                    "target_reps": 10
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 77.5,
+                    "target_reps": 9
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 77.5,
+                      "reps": 7,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 77.5,
+                      "reps": 6,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 77.5,
+                      "reps": 6,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 95.58
+                },
+                "rule": "retest",
+                "reason": "retest 77.5 kg after the deload: beat 11/9/8",
+                "flags": [
+                  "retest"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 2,
+                "variant_id": 2,
+                "variant_key": "7c12da27-abf6-52dc-9e7d-daa417e756c8",
+                "name": "Pull Up",
+                "exercise": "pull_up",
+                "equipment_type": "bodyweight",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 10/9/9 @ 7.5 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 10
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 10
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 7.5,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 9,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 8,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 118.67
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 10/9/8 @ 7.5 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 3,
+                "variant_id": 3,
+                "variant_key": "64ffa960-5b11-59d7-aaae-36d47633db59",
+                "name": "Seated Overhead Press (Dumbbell)",
+                "exercise": "overhead_press",
+                "equipment_type": "dumbbell",
+                "load_convention": "per_hand",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 12/12/11 @ 22 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 22.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 22.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 22.0,
+                    "target_reps": 12
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 22.0,
+                      "reps": 9,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 22.0,
+                      "reps": 8,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 22.0,
+                      "reps": 7,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 28.6
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 9/8/7 @ 22 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 4,
+                "variant_id": 14,
+                "variant_key": "e1e67ae1-d7b2-5587-87b6-57f8326e0852",
+                "name": "Seated Row (Cable) @ Gym 2",
+                "exercise": "seated_row",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 11/10/10 @ 55 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 55.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 55.0,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 55.0,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 55.0,
+                      "reps": 11,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 55.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 55.0,
+                      "reps": 9,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 75.17
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 11/10/9 @ 55 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 5,
+                "variant_id": 15,
+                "variant_key": "12fd0e6e-7326-5cac-bdc4-36a586197a26",
+                "name": "Lateral Raise (Cable) @ Gym 2",
+                "exercise": "lateral_raise",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  15
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 15/13/13 @ 7.5 kg; ceiling 15 for now: 12.5 kg from 12 reps would predict fewer than 8",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 15
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 14
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 14
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 7.5,
+                      "reps": 12,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 9,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 10.5
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 15): last 12/10/9 @ 7.5 kg",
+                "flags": [
+                  "ceiling_raised",
+                  "rung_infeasible"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 6,
+                "variant_id": 16,
+                "variant_key": "4fb654b9-98d8-5c3e-9036-f14a22813aea",
+                "name": "Triceps Extension (Cable) @ Gym 2",
+                "exercise": "triceps_extension",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  15
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 12/11/10 @ 27.5 kg; ceiling 15 for now: 32.5 kg from 12 reps would predict fewer than 8",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 27.5,
+                    "target_reps": 13
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 27.5,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 27.5,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 27.5,
+                      "reps": 8,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 27.5,
+                      "reps": 7,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 27.5,
+                      "reps": 7,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 34.83
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 15): last 8/7/7 @ 27.5 kg",
+                "flags": [
+                  "ceiling_raised"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 7,
+                "variant_id": 7,
+                "variant_key": "0f51477a-48bc-563f-8c4b-b984b97e3b62",
+                "name": "Bicep Curl (Dumbbell)",
+                "exercise": "biceps_curl",
+                "equipment_type": "dumbbell",
+                "load_convention": "per_hand",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  13
+                ],
+                "progression_state": "stalled",
+                "progression_note": "stalled again after a -5% reset: the coach proposes a rep range change or a variation; same load until then",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 16.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 16.0,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 16.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 16.0,
+                      "reps": 10,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 21.33
+                },
+                "rule": "stall:advisor",
+                "reason": "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stalled again after a -5% reset: the coach proposes a rep range change or a variation; same load until then",
+                "flags": [
+                  "stall"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              }
+            ],
+            "deload": null
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.865Z"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-27",
+      "sessions": [
+        {
+          "id": "677d526c-615e-5e21-9db0-eb6be658d5c2",
+          "date": "2026-10-27",
+          "kind": "lower",
+          "status": "proposed",
+          "adaptive": true,
+          "adapts_on": [
+            "your reps at each load",
+            "today's readiness",
+            "censored misses (readiness, hard runs, breaks)",
+            "stall ladder and deload weeks"
+          ],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Lower",
+          "slot_id": "tue_lower",
+          "template_kind": "lower",
+          "readiness": {
+            "color": null,
+            "known": false,
+            "reason": "forecast not available yet"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "lifting",
+            "kind": "lower",
+            "gym": "Gym 2",
+            "exercises": [
+              {
+                "order": 1,
+                "variant_id": 17,
+                "variant_key": "a4c734cb-a611-57f7-86e1-bc214657274e",
+                "name": "Squat (Smith Machine) @ Gym 2",
+                "exercise": "squat",
+                "equipment_type": "smith",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 10/10/8 @ 95 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 95.0,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 95.0,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 95.0,
+                    "target_reps": 9
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-20",
+                  "sets": [
+                    {
+                      "weight": 95.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 95.0,
+                      "reps": 9,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 95.0,
+                      "reps": 8,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 126.67
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 10/9/8 @ 95 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 2,
+                "variant_id": 9,
+                "variant_key": "2229531d-e0e3-5652-8786-0ace0a181705",
+                "name": "Romanian Deadlift (Barbell)",
+                "exercise": "romanian_deadlift",
+                "equipment_type": "barbell",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 11/10/9 @ 100 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 100.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 100.0,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 100.0,
+                    "target_reps": 10
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-20",
+                  "sets": [
+                    {
+                      "weight": 100.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 100.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 100.0,
+                      "reps": 8,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 133.33
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 10/10/8 @ 100 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 3,
+                "variant_id": 18,
+                "variant_key": "9e7b04aa-d49b-5ccc-9a85-55f409ab2678",
+                "name": "Lying Leg Curl (Machine) @ Gym 2",
+                "exercise": "leg_curl",
+                "equipment_type": "machine_stack",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "progressing",
+                "progression_note": "every set at the top at 55 kg -> 60 kg (Epley predicts ~9 reps)",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 60.0,
+                    "target_reps": 9
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 60.0,
+                    "target_reps": 9
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 60.0,
+                    "target_reps": 8
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-20",
+                  "sets": [
+                    {
+                      "weight": 55.0,
+                      "reps": 13,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 55.0,
+                      "reps": 13,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 55.0,
+                      "reps": 12,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 78.83
+                },
+                "rule": "double_progression:increase_load",
+                "reason": "every set at the top at 55 kg -> 60 kg (Epley predicts ~9 reps)",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 4,
+                "variant_id": 19,
+                "variant_key": "c646239c-fa45-5332-a599-945cb67c0f52",
+                "name": "Leg Extension (Machine) @ Gym 2",
+                "exercise": "leg_extension",
+                "equipment_type": "machine_stack",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "progressing",
+                "progression_note": "every set >= 11 twice at 60 kg -> 65 kg (Epley predicts ~10 reps)",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 65.0,
+                    "target_reps": 10
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 65.0,
+                    "target_reps": 8
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-20",
+                  "sets": [
+                    {
+                      "weight": 60.0,
+                      "reps": 12,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 60.0,
+                      "reps": 11,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 84.0
+                },
+                "rule": "double_progression:increase_load",
+                "reason": "every set >= 11 twice at 60 kg -> 65 kg (Epley predicts ~10 reps)",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 5,
+                "variant_id": 20,
+                "variant_key": "ca252cdb-c217-5f69-843e-5d45347fd0b5",
+                "name": "Standing Calf Raise (Machine) @ Gym 2",
+                "exercise": "calf_raise",
+                "equipment_type": "machine_stack",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 11/11/10 @ 80 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 80.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 80.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 80.0,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-20",
+                  "sets": [
+                    {
+                      "weight": 80.0,
+                      "reps": 11,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 80.0,
+                      "reps": 11,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 80.0,
+                      "reps": 10,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 109.33
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 11/11/10 @ 80 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 6,
+                "variant_id": 21,
+                "variant_key": "ad7d3e7b-d634-59b9-b9d7-7c1051d5bf72",
+                "name": "Cable Crunch @ Gym 2",
+                "exercise": "crunch",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "progressing",
+                "progression_note": "every set at the top at 45 kg -> 50 kg (Epley predicts ~10 reps)",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 50.0,
+                    "target_reps": 10
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 50.0,
+                    "target_reps": 8
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-20",
+                  "sets": [
+                    {
+                      "weight": 45.0,
+                      "reps": 15,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 45.0,
+                      "reps": 13,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 67.5
+                },
+                "rule": "double_progression:increase_load",
+                "reason": "every set at the top at 45 kg -> 50 kg (Epley predicts ~10 reps)",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              }
+            ],
+            "deload": null
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.865Z"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-28",
+      "sessions": [
+        {
+          "id": "3998c3b6-d0cd-533a-a8e9-bf19bcd996eb",
+          "date": "2026-10-28",
+          "kind": "easy_run",
+          "status": "proposed",
+          "adaptive": true,
+          "adapts_on": [
+            "your recent easy-run paces",
+            "today's readiness",
+            "weekly and single-run volume caps"
+          ],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Easy run 3.5 km",
+          "slot_id": "wed_easy_run",
+          "template_kind": "easy_run",
+          "readiness": {
+            "color": null,
+            "known": false,
+            "reason": "forecast not available yet"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "easy_run",
+            "distance_km": 3.5,
+            "hr": {
+              "zone": "Z1-Z2",
+              "low": 127,
+              "high": 156,
+              "basis": "lthr"
+            },
+            "pace": {
+              "min_s_per_km": 324,
+              "max_s_per_km": 388,
+              "label": "5:24-6:28",
+              "basis": "daniels",
+              "reason": "Daniels easy pace for VDOT 44.2: your 6 easy runs of 28 days at HR <= 154 (5:46-6:05/km, median 5:57) fit it",
+              "note": "HR leads: slow down if HR passes the ceiling"
+            },
+            "reason": "easy run below 156 bpm (lthr-based ceiling)",
+            "last_easy_run": {
+              "date": "2026-10-21",
+              "km": 6.0,
+              "passed": true,
+              "avg_hr": 145.6,
+              "pct_at_or_below_cap": 100.0,
+              "pct_source": "garmin_zones",
+              "efficiency": 1.19,
+              "decoupling_pct": -1.88,
+              "decoupling_flag": false,
+              "reasons": [],
+              "exempt": false,
+              "notes": [],
+              "hr_ceiling": 156
+            },
+            "phase": "threshold",
+            "phase_week": 9,
+            "progression_note": "easy 3.5 km incl. 6 x 20 s strides",
+            "structure": {
+              "strides": {
+                "reps": 6,
+                "duration_s": 20.0,
+                "recovery_s": 60.0,
+                "est_km": 1.5,
+                "note": "6 x 20 s relaxed fast strides near the end, 60 s easy jog / walk between"
+              }
+            }
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.865Z"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-29",
+      "sessions": [
+        {
+          "id": "230095d5-6293-541c-9084-8acd28b10484",
+          "date": "2026-10-29",
+          "kind": "upper",
+          "status": "proposed",
+          "adaptive": true,
+          "adapts_on": [
+            "your reps at each load",
+            "today's readiness",
+            "censored misses (readiness, hard runs, breaks)",
+            "stall ladder and deload weeks"
+          ],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Upper",
+          "slot_id": "thu_upper",
+          "template_kind": "upper",
+          "readiness": {
+            "color": null,
+            "known": false,
+            "reason": "forecast not available yet"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "lifting",
+            "kind": "upper",
+            "gym": "Gym 2",
+            "exercises": [
+              {
+                "order": 1,
+                "variant_id": 1,
+                "variant_key": "071b47f4-7af1-556b-b489-c39423f8fadc",
+                "name": "Bench Press (Barbell)",
+                "exercise": "bench_press",
+                "equipment_type": "barbell",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "retest",
+                "progression_note": "retest 77.5 kg after the deload: beat 11/9/8",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 77.5,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 77.5,
+                    "target_reps": 10
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 77.5,
+                    "target_reps": 9
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 77.5,
+                      "reps": 7,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 77.5,
+                      "reps": 6,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 77.5,
+                      "reps": 6,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 95.58
+                },
+                "rule": "retest",
+                "reason": "retest 77.5 kg after the deload: beat 11/9/8",
+                "flags": [
+                  "retest"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 2,
+                "variant_id": 2,
+                "variant_key": "7c12da27-abf6-52dc-9e7d-daa417e756c8",
+                "name": "Pull Up",
+                "exercise": "pull_up",
+                "equipment_type": "bodyweight",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 10/9/9 @ 7.5 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 10
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 10
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 7.5,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 9,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 8,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 118.67
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 10/9/8 @ 7.5 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 3,
+                "variant_id": 3,
+                "variant_key": "64ffa960-5b11-59d7-aaae-36d47633db59",
+                "name": "Seated Overhead Press (Dumbbell)",
+                "exercise": "overhead_press",
+                "equipment_type": "dumbbell",
+                "load_convention": "per_hand",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 12/12/11 @ 22 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 22.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 22.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 22.0,
+                    "target_reps": 12
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 22.0,
+                      "reps": 9,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 22.0,
+                      "reps": 8,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 22.0,
+                      "reps": 7,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 28.6
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 9/8/7 @ 22 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 4,
+                "variant_id": 14,
+                "variant_key": "e1e67ae1-d7b2-5587-87b6-57f8326e0852",
+                "name": "Seated Row (Cable) @ Gym 2",
+                "exercise": "seated_row",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  12
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 11/10/10 @ 55 kg",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 55.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 55.0,
+                    "target_reps": 11
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 55.0,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 55.0,
+                      "reps": 11,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 55.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 55.0,
+                      "reps": 9,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 75.17
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 12): last 11/10/9 @ 55 kg",
+                "flags": [],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 5,
+                "variant_id": 15,
+                "variant_key": "12fd0e6e-7326-5cac-bdc4-36a586197a26",
+                "name": "Lateral Raise (Cable) @ Gym 2",
+                "exercise": "lateral_raise",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  15
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 15/13/13 @ 7.5 kg; ceiling 15 for now: 12.5 kg from 12 reps would predict fewer than 8",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 15
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 14
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 7.5,
+                    "target_reps": 14
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 7.5,
+                      "reps": 12,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 7.5,
+                      "reps": 9,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 10.5
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 15): last 12/10/9 @ 7.5 kg",
+                "flags": [
+                  "ceiling_raised",
+                  "rung_infeasible"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 6,
+                "variant_id": 16,
+                "variant_key": "4fb654b9-98d8-5c3e-9036-f14a22813aea",
+                "name": "Triceps Extension (Cable) @ Gym 2",
+                "exercise": "triceps_extension",
+                "equipment_type": "cable",
+                "load_convention": "total",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  15
+                ],
+                "progression_state": "grinding",
+                "progression_note": "+1 rep per set: beat 12/11/10 @ 27.5 kg; ceiling 15 for now: 32.5 kg from 12 reps would predict fewer than 8",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 27.5,
+                    "target_reps": 13
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 27.5,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 3,
+                    "set_type": "working",
+                    "target_weight": 27.5,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 27.5,
+                      "reps": 8,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 27.5,
+                      "reps": 7,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 27.5,
+                      "reps": 7,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 34.83
+                },
+                "rule": "double_progression:add_reps",
+                "reason": "same load, each set +1 rep (cap 15): last 8/7/7 @ 27.5 kg",
+                "flags": [
+                  "ceiling_raised"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              },
+              {
+                "order": 7,
+                "variant_id": 7,
+                "variant_key": "0f51477a-48bc-563f-8c4b-b984b97e3b62",
+                "name": "Bicep Curl (Dumbbell)",
+                "exercise": "biceps_curl",
+                "equipment_type": "dumbbell",
+                "load_convention": "per_hand",
+                "rep_range": [
+                  7,
+                  12
+                ],
+                "effective_rep_range": [
+                  7,
+                  13
+                ],
+                "progression_state": "stalled",
+                "progression_note": "stalled again after a -5% reset: the coach proposes a rep range change or a variation; same load until then",
+                "sets": [
+                  {
+                    "index": 1,
+                    "set_type": "working",
+                    "target_weight": 16.0,
+                    "target_reps": 12
+                  },
+                  {
+                    "index": 2,
+                    "set_type": "working",
+                    "target_weight": 16.0,
+                    "target_reps": 11
+                  }
+                ],
+                "last": {
+                  "date": "2026-10-22",
+                  "sets": [
+                    {
+                      "weight": 16.0,
+                      "reps": 10,
+                      "duration_s": null
+                    },
+                    {
+                      "weight": 16.0,
+                      "reps": 10,
+                      "duration_s": null
+                    }
+                  ],
+                  "best_e1rm": 21.33
+                },
+                "rule": "stall:advisor",
+                "reason": "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stalled again after a -5% reset: the coach proposes a rep range change or a variation; same load until then",
+                "flags": [
+                  "stall"
+                ],
+                "needs_setup": false,
+                "rest_s": 120
+              }
+            ],
+            "deload": null
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.865Z"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-30",
+      "sessions": [
+        {
+          "id": "3bbb3464-1f12-5c63-a894-9508d45f3a26",
+          "date": "2026-10-30",
+          "kind": "intervals",
+          "status": "proposed",
+          "adaptive": true,
+          "adapts_on": [
+            "pace of your last quality session",
+            "training phase (quality cycle)",
+            "VDOT updates",
+            "today's readiness",
+            "weekly volume cap",
+            "recovery after lower-body days"
+          ],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Threshold 4x1000 m @ 4:42",
+          "slot_id": "fri_intervals",
+          "template_kind": "intervals",
+          "readiness": {
+            "color": null,
+            "known": false,
+            "reason": "forecast not available yet"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "intervals",
+            "structure": {
+              "session_type": "threshold",
+              "warmup": {
+                "distance_km": 2.0,
+                "hr": {
+                  "zone": "Z1-Z2",
+                  "low": 127,
+                  "high": 156,
+                  "basis": "lthr"
+                }
+              },
+              "work": {
+                "reps": 4,
+                "distance_m": 1000.0,
+                "duration_s": 282,
+                "pace_s_per_km": 282,
+                "pace_label": "4:42",
+                "pace_range_s_per_km": [
+                  278.0,
+                  286.0
+                ],
+                "pace_tolerance_pct": 3.0,
+                "hr": {
+                  "zone": "Z4",
+                  "low": 166,
+                  "high": 173,
+                  "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)"
+                }
+              },
+              "recovery": {
+                "distance_m": 250,
+                "duration_s": 90.0,
+                "type": "jog",
+                "hr_drop_min_bpm": 12.0
+              },
+              "cooldown": {
+                "distance_km": 1.5
+              }
+            },
+            "total_km": 8.3,
+            "phase": "threshold",
+            "phase_week": 9,
+            "progression_note": "last session on pace but the HR peaked above the ceiling: same session",
+            "progression": {
+              "rule": "quality:hold",
+              "reason": "last session on pace but the HR peaked above the ceiling: same session",
+              "lever": null,
+              "vdot": 44.25,
+              "last_session": {
+                "date": "2026-10-23",
+                "session_type": "threshold",
+                "reps": 6,
+                "work_pace_s_per_km": 258.59,
+                "work_hr": 169.55,
+                "hr_in_zone": true,
+                "hr_too_high": false,
+                "hr_below_zone": false,
+                "recovery_drop_bpm": 19.55,
+                "recovery_ok": true,
+                "pace_fade_pct": 0.13,
+                "passed": true,
+                "reasons": [],
+                "method": "intensity",
+                "target_pace_s_per_km": 282.0,
+                "reps_on_pace": 6,
+                "pace_ok_share": 1.0,
+                "last_rep_peak_hr": 174.0,
+                "hr_ceiling_bpm": 173.25,
+                "hr_safety_exceeded": true,
+                "green": false,
+                "verdict": "pass_hard",
+                "notes": [
+                  "last rep peaked at 174 bpm (> 173): on pace but hard, hold"
+                ]
+              }
+            }
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.865Z"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-31",
+      "sessions": [
+        {
+          "id": "664b0aa7-6c24-55f6-b7e5-f9c27e41ec49",
+          "date": "2026-10-31",
+          "kind": "rest",
+          "status": "proposed",
+          "adaptive": false,
+          "adapts_on": [],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Rest",
+          "slot_id": "sat_rest",
+          "template_kind": "rest",
+          "readiness": {
+            "color": null,
+            "known": false,
+            "reason": "forecast not available yet"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "rest"
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.865Z"
+        }
+      ]
+    },
+    {
+      "date": "2026-11-01",
+      "sessions": [
+        {
+          "id": "a17601e1-fc20-5bce-bf6f-047328c371a9",
+          "date": "2026-11-01",
+          "kind": "long_run",
+          "status": "proposed",
+          "adaptive": true,
+          "adapts_on": [
+            "your longest recent long run",
+            "HR drift of the last long run",
+            "step-back weeks",
+            "your recent easy-run paces",
+            "today's readiness",
+            "weekly and single-run volume caps"
+          ],
+          "moved_from": null,
+          "change_reason": null,
+          "title": "Long run 17 km",
+          "slot_id": "sun_long_run",
+          "template_kind": "long_run",
+          "readiness": {
+            "color": null,
+            "known": false,
+            "reason": "forecast not available yet"
+          },
+          "adjustments": [],
+          "notes": [],
+          "session": {
+            "type": "long_run",
+            "distance_km": 17.0,
+            "hr": {
+              "zone": "Z1-Z2",
+              "low": 127,
+              "high": 156,
+              "basis": "lthr"
+            },
+            "pace": {
+              "min_s_per_km": 324,
+              "max_s_per_km": 388,
+              "label": "5:24-6:28",
+              "basis": "daniels",
+              "reason": "Daniels easy pace for VDOT 44.2: your 6 easy runs of 28 days at HR <= 154 (5:46-6:05/km, median 5:57) fit it",
+              "note": "HR leads"
+            },
+            "phase": "threshold",
+            "phase_week": 9,
+            "progression_note": "last 16.0 km, +1 km",
+            "step_back": false,
+            "progression": {
+              "reason": "last 16.0 km, +1 km",
+              "drift": null,
+              "last_long_run": {
+                "passed": true,
+                "avg_hr": 145.6,
+                "pct_at_or_below_cap": 100.0,
+                "pct_source": "garmin_zones",
+                "efficiency": 1.13,
+                "decoupling_pct": 3.96,
+                "decoupling_flag": false,
+                "reasons": [],
+                "exempt": false,
+                "notes": [],
+                "hr_ceiling": 156
+              }
+            }
+          },
+          "config_version_id": 7,
+          "updated_at": "2026-11-19T13:38:24.866Z"
+        }
+      ]
+    }
+  ]
+}

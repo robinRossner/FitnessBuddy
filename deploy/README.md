@@ -185,14 +185,9 @@ Restore from a Mac copy: `gunzip -c ~/Backups/FitnessBuddy/db/fitness_<stamp>.db
 then follow "Restore from backup" above with that file. Remove the job with
 `launchctl bootout gui/$(id -u)/com.robinrossner.fitnessbuddy.backup`.
 
-## 10. Caddy and the Receipts server
+## 10. Caddy
 
-The Receipts server is a separate project (repository `~/Projects/Receipts App`, deployed from its
-own `deploy/` to `/opt/receipts`, own data and backups). It shares only this VM and this stack's
-Caddy: `deploy/Caddyfile` sends `/api/v1/receipts/*` to `receipts-backend:8000` (a container of the
-Receipts stack that joins this stack's Docker network `deploy_default` under that alias) and
-everything else to `backend:8000`. Caddy starts even when `receipts-backend` is down; that path then
-answers 502.
+`deploy/Caddyfile` sends everything to `backend:8000`.
 
 - The compose project name is pinned (`name: deploy` in `docker-compose.yml`), so the network
   `deploy_default` and the `caddy_data` volume (the certificates) keep their names.
@@ -201,8 +196,3 @@ answers 502.
 - `push.sh` validates the Caddyfile with the caddy image before restarting anything, and recreates
   only the caddy container when its Caddyfile changed (a rsync-replaced single-file bind mount is
   otherwise not noticed by compose).
-- Old receipts data from the time both apps shared this server may still sit in `data/receipts.db*`,
-  `data/receipts_photos/` and `backups/receipts_*` / `backups/receipts_photos_pending/`. Nothing here
-  reads, writes or deletes them any more (`push.sh` never touches `data/` or `backups/`); they are
-  removed by hand, after the Receipts server has been verified (see the Receipts repository's
-  `deploy/README.md`, "Removing the old copy").

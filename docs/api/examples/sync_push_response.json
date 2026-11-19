@@ -1,0 +1,71 @@
+{
+  "server_time": "2026-11-19T13:38:25.020Z",
+  "results": [
+    {
+      "entity": "session",
+      "id": "3b17c1ba-cddb-5750-9ffd-d5b446846003",
+      "status": "rejected",
+      "reason": "unknown gym_id 4"
+    },
+    {
+      "entity": "set",
+      "id": "eca0168f-be5a-514e-a28c-5414a6c16358",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "29864dcb-cf33-5667-91ac-63d08518bb33",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "ff821801-78cd-5d66-b1f1-db0f256979c2",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "7949cdfc-b334-5160-be4c-642db62f3252",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "23aa27c0-7d9a-57df-b8b1-a5992d8d0c17",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "7a7744b1-87ee-5417-960c-f4ae50dec2e9",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "24599e28-7531-5177-9584-7563c4dca461",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "c2e3b806-4b52-52b6-a8cb-9790d60da6bf",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "set",
+      "id": "b540411b-526b-5666-b2a0-1f6de4fc712e",
+      "status": "rejected",
+      "reason": "unknown session_id 3b17c1ba-cddb-5750-9ffd-d5b446846003"
+    },
+    {
+      "entity": "body_measurement",
+      "id": "89cc74cd-4696-5d65-a5e4-e4fb372f5b7a",
+      "status": "applied",
+      "reason": null
+    }
+  ]
+}

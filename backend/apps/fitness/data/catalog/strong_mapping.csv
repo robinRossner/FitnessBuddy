@@ -1,0 +1,69 @@
+strong_name,canonical_exercise,variant_name,equipment_type,load_convention,status,active,notes
+Bench Press (Barbell),bench_press,Bench Press (Barbell),barbell,total,auto,true,
+Bench Press (Dumbbell),bench_press,Bench Press (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Bent Over One Arm Row (Dumbbell),one_arm_row,Bent Over One Arm Row (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Bent Over Row (Barbell),bent_over_row,Bent Over Row (Barbell),barbell,total,auto,true,
+Bicep Curl (Cable),biceps_curl,Bicep Curl (Cable),cable,total,auto,true,
+Bicep Curl (Dumbbell),biceps_curl,Bicep Curl (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Bulgarian Split Squat,bulgarian_split_squat,Bulgarian Split Squat (Dumbbell),dumbbell,per_hand,auto,true,LOW CONFIDENCE: no equipment in the Strong name; assumed dumbbells
+Cable Crunch,crunch,Cable Crunch,cable,total,auto,true,
+Calf Press on Seated Leg Press,calf_raise,Calf Press on Seated Leg Press,machine_stack,total,auto,true,LOW CONFIDENCE: equipment type guessed from the name
+Chest Dip,dip,Chest Dip,bodyweight,total,auto,true,weight = added weight (0 = bodyweight)
+Chest Fly,chest_fly,Chest Fly,machine_stack,total,auto,true,LOW CONFIDENCE: equipment type guessed from the name
+Chest Press (Machine),chest_press,Chest Press (Machine),machine_stack,total,auto,true,
+Crunch,crunch,Crunch,bodyweight,total,auto,true,weight = added plate
+Crunch (Machine),crunch,Crunch (Machine),machine_stack,total,auto,true,
+Deadhang,dead_hang,Dead Hang,bodyweight,total,auto,true,timed hold
+Decline Crunch,crunch,Decline Crunch,bodyweight,total,auto,true,
+Front Raise (Cable),front_raise,Front Raise (Cable),cable,total,auto,true,
+Hack Squat,hack_squat,Hack Squat,plate_loaded,total,auto,true,MEDIUM CONFIDENCE: assumed plate-loaded sled; does logged weight include the sled?
+Hammer Curl (Cable),hammer_curl,Hammer Curl (Cable),cable,total,auto,true,
+Hammer Curl (Dumbbell),hammer_curl,Hammer Curl (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Handstand (Wall Facing),handstand_hold,Handstand (Wall Facing),bodyweight,total,auto,true,timed hold
+Hanging Leg Raise,hanging_leg_raise,Hanging Leg Raise,bodyweight,total,auto,true,
+Hip Adductor (Machine),hip_adduction,Hip Adductor (Machine),machine_stack,total,auto,true,
+Incline Bench Press (Dumbbell),incline_bench_press,Incline Bench Press (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Incline Bench Press (Smith Machine),incline_bench_press,Incline Bench Press (Smith Machine),smith,total,auto,true,does logged weight include the Smith bar?
+Incline Chest Fly (Dumbbell),chest_fly,Incline Chest Fly (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Iso-Lateral Row (Machine),machine_row,Iso-Lateral Row (Machine),plate_loaded,total,auto,true,MEDIUM CONFIDENCE: Iso-lateral rows are usually plate-loaded; per side or total?
+JM Press (Smith Machine),jm_press,JM Press (Smith Machine),smith,total,auto,true,
+Knee Raise (Captain's Chair),knee_raise,Knee Raise (Captain's Chair),bodyweight,total,auto,true,
+L-Sit,l_sit,L-Sit,bodyweight,total,auto,true,timed hold
+Lat Pulldown (Cable),lat_pulldown,Lat Pulldown (Cable),cable,total,auto,true,
+Lat Pulldown (Single Arm),lat_pulldown,Lat Pulldown (Single Arm),cable,total,auto,true,separate variant: single-arm load not comparable to two-arm
+Lateral Raise (Cable),lateral_raise,Lateral Raise (Cable),cable,total,auto,true,LOW CONFIDENCE: equipment type guessed from the name
+Lateral Raise (Dumbbell),lateral_raise,Lateral Raise (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Lateral Raise (Machine),lateral_raise,Lateral Raise (Machine),machine_stack,total,auto,true,
+Leg Extension (Machine),leg_extension,Leg Extension (Machine),machine_stack,total,auto,true,
+Leg Press,leg_press,Leg Press,plate_loaded,total,auto,true,MEDIUM CONFIDENCE: assumed plate-loaded
+Lying Leg Curl (Machine),leg_curl,Lying Leg Curl (Machine),machine_stack,total,auto,true,
+Plank,plank,Plank,bodyweight,total,auto,true,timed hold
+Preacher Curl (Barbell),preacher_curl,Preacher Curl (Barbell),barbell,total,auto,true,EZ/barbell
+Preacher Curl (Machine),preacher_curl,Preacher Curl (Machine),machine_stack,total,auto,true,
+Pull Up,pull_up,Pull Up,bodyweight,total,auto,true,weight = added weight (0 = bodyweight)
+Pull Up (Assisted),pull_up,Pull Up (Assisted),machine_stack,assistance,auto,true,weight = assistance (lower = harder); no e1RM
+Pull Up (Band),pull_up,Pull Up (Band),bodyweight,assistance,auto,true,weight = band assistance (0-5); no e1RM
+Pull up (Chest to bar),pull_up,Pull Up (Chest to Bar),bodyweight,total,auto,true,separate variant: harder than regular pull-up
+Pullover (Machine),pullover,Pullover (Machine),machine_stack,total,auto,true,
+Reverse Fly (Cable),reverse_fly,Reverse Fly (Cable),cable,total,auto,true,LOW CONFIDENCE: equipment type guessed from the name
+Reverse Fly (Machine),reverse_fly,Reverse Fly (Machine),machine_stack,total,auto,true,
+Romanian Deadlift (Barbell),romanian_deadlift,Romanian Deadlift (Barbell),barbell,total,auto,true,
+Seated Leg Curl (Machine),leg_curl,Seated Leg Curl (Machine),machine_stack,total,auto,true,separate variant from lying leg curl
+Seated Overhead Press (Dumbbell),overhead_press,Seated Overhead Press (Dumbbell),dumbbell,per_hand,confirmed,true,weight per dumbbell
+Seated Palms Up Wrist Curl (Dumbbell),wrist_curl,Seated Palms Up Wrist Curl (Dumbbell),dumbbell,per_hand,confirmed,false,user no longer does this exercise (inactive); history kept. Dumbbells are per hand (confirmed)
+Seated Row (Cable),seated_row,Seated Row (Cable),cable,total,auto,true,
+Seated Wide-Grip Row (Cable),seated_row,Seated Wide-Grip Row (Cable),cable,total,auto,true,
+Shoulder Press (Plate Loaded),overhead_press,Shoulder Press (Plate Loaded),plate_loaded,total,auto,true,per side or total?
+Shrug (Dumbbell),shrug,Shrug (Dumbbell),dumbbell,per_hand,confirmed,false,user no longer does this exercise (inactive); history kept. Dumbbells are per hand (confirmed)
+Sissy Squat (Smith Machine),sissy_squat,Sissy Squat,bodyweight,total,auto,true,Smith only used for balance; always 0 kg
+Skullcrusher (Barbell),skullcrusher,Skullcrusher (Barbell),barbell,total,auto,true,
+Squat (Barbell),squat,Squat (Barbell),barbell,total,auto,true,
+Squat (Machine),squat,Squat (Machine),plate_loaded,total,auto,true,LOW CONFIDENCE: equipment type guessed from the name
+Squat (Smith Machine),squat,Squat (Smith Machine),smith,total,auto,true,separate variant: not comparable to free barbell squat
+Standing Calf Raise (Barbell),calf_raise,Standing Calf Raise (Barbell),barbell,total,auto,true,
+Standing Calf Raise (Machine),calf_raise,Standing Calf Raise (Machine),machine_stack,total,auto,true,
+Stiff Leg Deadlift (Barbell),stiff_leg_deadlift,Stiff Leg Deadlift (Barbell),barbell,total,auto,true,
+T Bar Row,t_bar_row,T-Bar Row,plate_loaded,total,auto,true,
+Triceps Extension,triceps_extension,Triceps Extension,other,total,auto,true,LOW CONFIDENCE: equipment type guessed from the name
+Triceps Extension (Cable),triceps_extension,Triceps Extension (Cable),cable,total,auto,true,
+Triceps Extension (Dumbbell),triceps_extension,Triceps Extension (Dumbbell),dumbbell,total,auto,true,assumed one dumbbell held with both hands (overhead) -> total

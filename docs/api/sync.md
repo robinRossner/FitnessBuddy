@@ -152,7 +152,7 @@ Response (`examples/sync_pull.json`, `examples/sync_pull_incremental.json`):
 - `sessions`, `sets`, `body_measurements` have exactly the push shapes (`updated_at` /
   `deleted_at` included). For rows the server wrote itself (Strong import) `name` may be `""`
   and `ended_at` may be null.
-- `Variant`: `{"id": 122, "exercise_id": 2, "name": "Incline Bench Press (Smith Machine) @ Gym 3",
+- `Variant`: `{"id": 122, "exercise_id": 2, "name": "Incline Bench Press (Smith Machine) @ Gym 2",
   "gym_id": 4, "equipment_type": "smith", "load_convention": "total", "active": true,
   "deleted_at": null, "weight_ladder": [..]|null, "rep_range": [7, 12]|null,
   "increment_kg": 2.5|null}`. `equipment_type`:
@@ -172,7 +172,7 @@ Response (`examples/sync_pull.json`, `examples/sync_pull_incremental.json`):
   see `docs/api/exercises.md`); `is_timed` is kept and always equals `progression == "time"`.
   Exercises the user made in the app (`docs/api/exercises.md`) come the same way.
   `increment_kg` on a variant is the user's load step (null = ladder / equipment default).
-- `Gym`: `{"id": 4, "name": "Gym 3", "deleted_at": null}`. `deleted_at` is an addition to the base
+- `Gym`: `{"id": 4, "name": "Gym 2", "deleted_at": null}`. `deleted_at` is an addition to the base
   contract: retired gyms (e.g. "Main gym") are still sent so old data resolves, hide them in
   pickers when `deleted_at != null`.
 - `PlannedSession` = the item shape of `/plan/week` (below) plus `deleted_at`; `id` is stable
@@ -244,12 +244,12 @@ week is the soft deload that replaced the v1 engine's planned -10 % resets):
   "adjustments": [], "notes": [], "config_version_id": 8,
   "updated_at": "2026-10-25T15:45:23.767Z",
   "session": {
-    "type": "lifting", "kind": "upper", "gym": "Gym 3",
+    "type": "lifting", "kind": "upper", "gym": "Gym 2",
     "deload": {"active": true, "from": "2026-10-26", "until": "2026-11-01",
                "reason": "legacy_reset"},
     "exercises": [
       {"order": 2, "variant_id": 122, "variant_key": "634a70a4-b4fd-5a14-a86a-429cf78ff39e",
-       "name": "Incline Bench Press (Smith Machine) @ Gym 3", "exercise": "incline_bench_press",
+       "name": "Incline Bench Press (Smith Machine) @ Gym 2", "exercise": "incline_bench_press",
        "equipment_type": "smith", "load_convention": "total", "rep_range": [7, 12],
        "effective_rep_range": [7, 12], "progression_state": "deload",
        "progression_note": "deload week (several lifts stalled; replaces the planned -10% reset): 2 of 3 sets, same load; retest 80 kg after the deload",
@@ -468,7 +468,7 @@ All additive unless noted:
 ## Example fixtures
 
 Produced by `backend/apps/fitness/scripts/gen_api_examples.py` (real endpoints via FastAPI `TestClient` against
-a copy of the real database, with "today" pinned to Monday 2026-10-26; the current engine is run on
+a copy of the synthetic demo database, with "today" pinned to Monday 2026-10-26; the current engine is run on
 the copy first, so the plans show its output; the live database is not touched):
 `plan_today.json`, `plan_week.json`, `sync_pull.json` (snapshot; sessions trimmed to the newest 3,
 a `_note` key says so), `sync_pull_incremental.json` (changes caused by the example push),

@@ -1,0 +1,170 @@
+{
+  "items": [
+    {
+      "id": "3",
+      "created_at": "2026-11-19T13:38:26.203Z",
+      "status": "pending",
+      "trigger": {
+        "type": "ask",
+        "title": "Question about the week of 2026-10-26",
+        "detail": "I am tired this week, can Friday's intervals move?",
+        "ref": {
+          "kind": "week",
+          "id": "2026-10-26"
+        }
+      },
+      "question": "I am tired this week, can Friday's intervals move?",
+      "diagnosis": "Moving Friday's intervals one day later keeps the 24 h rule after Tuesday's lower day intact and gives the legs a rest day before them. The move to a day that has already passed cannot be done.",
+      "notes_for_user": "Approve the move if Saturday suits you; the second idea was invalid.",
+      "confidence": "medium",
+      "changes": [],
+      "schedule_changes": [
+        {
+          "id": "s1",
+          "date": "2026-10-30",
+          "action": "move",
+          "target": "intervals",
+          "to_date": "2026-10-31",
+          "new_kind": null,
+          "distance_km": null,
+          "reason": "One more day of recovery after the Thursday upper session.",
+          "risk": "medium",
+          "valid": true,
+          "validation_error": null,
+          "status": "proposed",
+          "label": "Move intervals Fri → Sat"
+        },
+        {
+          "id": "s2",
+          "date": "2026-10-28",
+          "action": "move",
+          "target": "easy",
+          "to_date": "2026-10-24",
+          "new_kind": null,
+          "distance_km": null,
+          "reason": "Do the easy run earlier.",
+          "risk": "medium",
+          "valid": false,
+          "validation_error": "2026-10-24 is in the past: nothing can be placed there",
+          "status": "invalid",
+          "label": "Move easy run Wed → Sat"
+        }
+      ],
+      "session_overrides": [],
+      "applied_config_version": null,
+      "error": null,
+      "cost_usd": 0.0971
+    },
+    {
+      "id": "2",
+      "created_at": "2026-11-19T13:38:26.106Z",
+      "status": "applied",
+      "trigger": {
+        "type": "ask",
+        "title": "Question to the coach",
+        "detail": "Are my intervals going well?",
+        "ref": {
+          "kind": null,
+          "id": null
+        }
+      },
+      "question": "Are my intervals going well?",
+      "diagnosis": "Your last interval session passed with room to spare, and recovery is stable.",
+      "notes_for_user": "One more rep at the top of the progression; the pace is unchanged.",
+      "confidence": "high",
+      "changes": [
+        {
+          "id": "p4",
+          "param": "running.intervals.reps_max",
+          "label": "Interval reps (maximum)",
+          "from": 6,
+          "to": 7,
+          "reason": "The last two interval sessions passed at six reps.",
+          "risk": "low",
+          "valid": true,
+          "validation_error": null,
+          "status": "applied"
+        }
+      ],
+      "schedule_changes": [],
+      "session_overrides": [],
+      "applied_config_version": "v3.7",
+      "error": null,
+      "cost_usd": 0.0971
+    },
+    {
+      "id": "1",
+      "created_at": "2026-11-19T13:38:26.001Z",
+      "status": "pending",
+      "trigger": {
+        "type": "ask",
+        "title": "Question about Triceps Extension (Cable) @ Gym 2",
+        "detail": "My triceps extension has been stuck for weeks. What should I change?",
+        "ref": {
+          "kind": "lift",
+          "id": "16"
+        }
+      },
+      "question": "My triceps extension has been stuck for weeks. What should I change?",
+      "diagnosis": "Triceps extension has not improved its best e1RM for several sessions while your HRV, resting heart rate and sleep are in their normal range, so this looks like a plateau at the current rep range rather than a recovery problem. Weekly running volume is well below the 10 % cap, so there is room to build it a little.",
+      "notes_for_user": "Nothing changes until you approve it. If triceps still stalls in 3-4 weeks, ask me again.",
+      "confidence": "medium",
+      "changes": [
+        {
+          "id": "p1",
+          "param": "exercise_overrides.triceps_extension.rep_range",
+          "label": "Triceps Extension (Cable) rep range",
+          "from": [
+            7,
+            12
+          ],
+          "to": [
+            8,
+            12
+          ],
+          "reason": "A slightly higher floor keeps the load heavier for longer before the next load step; check the best e1RM again in 3-4 weeks.",
+          "risk": "low",
+          "valid": true,
+          "validation_error": null,
+          "status": "proposed"
+        },
+        {
+          "id": "p2",
+          "param": "running.weekly_volume_cap_pct",
+          "label": "Weekly run volume cap (%)",
+          "from": 10,
+          "to": 12,
+          "reason": "Weekly km have stayed well under the cap for the last 4 weeks.",
+          "risk": "high",
+          "valid": true,
+          "validation_error": null,
+          "status": "proposed"
+        },
+        {
+          "id": "p3",
+          "param": "exercise_overrides.triceps_extension.target_weight",
+          "label": "exercise_overrides.triceps_extension.target_weight",
+          "from": 30,
+          "to": 35,
+          "reason": "Jump to 35 kg now.",
+          "risk": "low",
+          "valid": false,
+          "validation_error": "param is not on the allowlist (only engine parameters can be changed, never weights, paces or heart-rate numbers)",
+          "status": "invalid"
+        }
+      ],
+      "schedule_changes": [],
+      "session_overrides": [
+        {
+          "date": "2026-10-26",
+          "session": "Upper",
+          "change": "Keep the first triceps set easy to test the new floor.",
+          "reason": "The first set sets the tone for the other sets."
+        }
+      ],
+      "applied_config_version": null,
+      "error": null,
+      "cost_usd": 0.0971
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "1",
+  "created_at": "2026-11-19T13:38:26.001Z",
+  "status": "queued",
+  "trigger": {
+    "type": "ask",
+    "title": "Question about Triceps Extension (Cable) @ Gym 2",
+    "detail": "My triceps extension has been stuck for weeks. What should I change?",
+    "ref": {
+      "kind": "lift",
+      "id": "16"
+    }
+  },
+  "question": "My triceps extension has been stuck for weeks. What should I change?",
+  "diagnosis": null,
+  "notes_for_user": null,
+  "confidence": null,
+  "changes": [],
+  "schedule_changes": [],
+  "session_overrides": [],
+  "applied_config_version": null,
+  "error": null,
+  "cost_usd": null
+}

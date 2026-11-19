@@ -1,8 +1,9 @@
 """Regenerate docs/api/examples/coach_*.json by calling the real coach endpoints (FastAPI
-TestClient) against a COPY of the real database, with "today" pinned to 2026-10-25 and Claude
-replaced by a canned answer (no network, no API key needed, nothing is written to the live DB).
+TestClient) against a COPY of the synthetic demo database (seed_demo_db.py), with "today"
+pinned to 2026-10-25 and Claude replaced by a canned answer (no network, no API key needed,
+nothing is written to the live DB).
 
-    cd backend && uv run python -m apps.fitness.scripts.gen_coach_examples [--db var/fitness.db]
+    cd backend && uv run python -m apps.fitness.scripts.gen_coach_examples [--db DB]
 
 Walk-through: "Ask coach" about a stalled lift -> a pending proposal with a valid rep-range change,
 a valid weekly-volume change and one invalid change (a weight, which is never allowed); a second
@@ -87,8 +88,10 @@ class CannedClaude:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "fitness.db"))
+    ap.add_argument("--db", default=str(BACKEND_DIR / "var" / "demo" / "fitness.db"))
     args = ap.parse_args()
+    os.environ["PROGRAM_LIVE_PATH"] = str(Path(args.db).with_name("program.yaml"))
+    get_settings.cache_clear()
 
     tmp = Path(tempfile.mkdtemp()) / "copy.db"
     shutil.copy(args.db, tmp)

@@ -1,0 +1,267 @@
+{
+  "gym": {
+    "id": 2,
+    "name": "Gym 2",
+    "created_at": "2026-11-19T13:38:23.599Z",
+    "machine_count": 8,
+    "is_current": true,
+    "source": "import"
+  },
+  "items": [
+    {
+      "exercise_id": 18,
+      "exercise_name": "Seated Row",
+      "body_region": "back",
+      "in_program": true,
+      "equipment_type": "cable",
+      "variant": {
+        "id": 14,
+        "name": "Seated Row (Cable) @ Gym 2",
+        "equipment_type": "cable",
+        "weight_ladder": [
+          50.0,
+          52.5,
+          55.0
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 18,
+        "last_used": "2026-10-22"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 4,
+        "last_top_set": {
+          "weight_kg": 55.0,
+          "reps": 9
+        },
+        "weight_ladder": [
+          50.0,
+          52.5,
+          55.0
+        ]
+      }
+    },
+    {
+      "exercise_id": 7,
+      "exercise_name": "Lateral Raise",
+      "body_region": "shoulders",
+      "in_program": true,
+      "equipment_type": "cable",
+      "variant": {
+        "id": 15,
+        "name": "Lateral Raise (Cable) @ Gym 2",
+        "equipment_type": "cable",
+        "weight_ladder": [
+          7.5
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 18,
+        "last_used": "2026-10-22"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 5,
+        "last_top_set": {
+          "weight_kg": 8.75,
+          "reps": 10
+        },
+        "weight_ladder": [
+          7.5,
+          8.75
+        ]
+      }
+    },
+    {
+      "exercise_id": 9,
+      "exercise_name": "Triceps Extension",
+      "body_region": "triceps",
+      "in_program": true,
+      "equipment_type": "cable",
+      "variant": {
+        "id": 16,
+        "name": "Triceps Extension (Cable) @ Gym 2",
+        "equipment_type": "cable",
+        "weight_ladder": [
+          25.0,
+          27.5
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 18,
+        "last_used": "2026-10-22"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 6,
+        "last_top_set": {
+          "weight_kg": 25.0,
+          "reps": 11
+        },
+        "weight_ladder": [
+          22.5,
+          25.0
+        ]
+      }
+    },
+    {
+      "exercise_id": 28,
+      "exercise_name": "Squat",
+      "body_region": "quads",
+      "in_program": true,
+      "equipment_type": "smith",
+      "variant": {
+        "id": 17,
+        "name": "Squat (Smith Machine) @ Gym 2",
+        "equipment_type": "smith",
+        "weight_ladder": null,
+        "notes": null,
+        "active": true,
+        "sessions": 9,
+        "last_used": "2026-10-20"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 8,
+        "last_top_set": {
+          "weight_kg": 90.0,
+          "reps": 6
+        },
+        "weight_ladder": null
+      }
+    },
+    {
+      "exercise_id": 34,
+      "exercise_name": "Leg Curl",
+      "body_region": "hamstrings",
+      "in_program": true,
+      "equipment_type": "machine_stack",
+      "variant": {
+        "id": 18,
+        "name": "Lying Leg Curl (Machine) @ Gym 2",
+        "equipment_type": "machine_stack",
+        "weight_ladder": [
+          50.0,
+          52.5,
+          55.0
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 9,
+        "last_used": "2026-10-20"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 10,
+        "last_top_set": {
+          "weight_kg": 45.0,
+          "reps": 9
+        },
+        "weight_ladder": [
+          40.0,
+          42.5,
+          45.0
+        ]
+      }
+    },
+    {
+      "exercise_id": 33,
+      "exercise_name": "Leg Extension",
+      "body_region": "quads",
+      "in_program": true,
+      "equipment_type": "machine_stack",
+      "variant": {
+        "id": 19,
+        "name": "Leg Extension (Machine) @ Gym 2",
+        "equipment_type": "machine_stack",
+        "weight_ladder": [
+          57.5,
+          60.0
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 9,
+        "last_used": "2026-10-20"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 11,
+        "last_top_set": {
+          "weight_kg": 55.0,
+          "reps": 14
+        },
+        "weight_ladder": [
+          50.0,
+          52.5,
+          55.0
+        ]
+      }
+    },
+    {
+      "exercise_id": 38,
+      "exercise_name": "Calf Raise",
+      "body_region": "calves",
+      "in_program": true,
+      "equipment_type": "machine_stack",
+      "variant": {
+        "id": 20,
+        "name": "Standing Calf Raise (Machine) @ Gym 2",
+        "equipment_type": "machine_stack",
+        "weight_ladder": [
+          75.0,
+          80.0
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 9,
+        "last_used": "2026-10-20"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 12,
+        "last_top_set": {
+          "weight_kg": 75.0,
+          "reps": 15
+        },
+        "weight_ladder": [
+          70.0,
+          75.0
+        ]
+      }
+    },
+    {
+      "exercise_id": 39,
+      "exercise_name": "Crunch",
+      "body_region": "abs",
+      "in_program": true,
+      "equipment_type": "cable",
+      "variant": {
+        "id": 21,
+        "name": "Cable Crunch @ Gym 2",
+        "equipment_type": "cable",
+        "weight_ladder": [
+          42.5,
+          45.0
+        ],
+        "notes": null,
+        "active": true,
+        "sessions": 9,
+        "last_used": "2026-10-20"
+      },
+      "previous": {
+        "gym_name": "Gym 1",
+        "variant_id": 13,
+        "last_top_set": {
+          "weight_kg": 40.0,
+          "reps": 16
+        },
+        "weight_ladder": [
+          35.0,
+          37.5,
+          40.0
+        ]
+      }
+    }
+  ]
+}
