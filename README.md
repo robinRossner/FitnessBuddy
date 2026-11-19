@@ -1,211 +1,97 @@
 # FitnessBuddy
 
-Personal training system: strength log + running + recovery data, with a deterministic
-progression engine and a Claude advisor that proposes parameter changes only (validated against an
-allowlist; the engine still computes weights, reps and paces). Built in steps, see
-`docs/spec/decisions.md`: 1-3 backend, Strong import, Garmin sync, training engine + plans; 4 sync
-API for the iOS app (`ios/`); 5 stats API (`docs/api/stats.md`); 6 Claude advisor and coach API
-(`docs/api/coach.md`); 7 missed sessions and schedule changes.
+A training log and planner I built for myself: strength sessions, runs and recovery data go in,
+and the app tells me what to do today (which weight, how many reps, what pace). I wanted the
+numbers to be predictable, so a plain rule-based engine does the planning. Claude is only used as
+an advisor on top: it can read my history and *propose* changes to the engine's settings, and
+nothing changes until I approve it.
 
+The data comes from Strong (CSV import), Garmin (activities, sleep, HRV) and Withings (weight).
+The app is for one user and runs against my own server, so the screenshots and example payloads
+here are generated from a made-up demo database (see "Demo data").
+
+<p>
+  <img src="ios/docs/screenshots/today.png" width="240" alt="Today tab">
+  <img src="ios/docs/screenshots/coach.png" width="240" alt="Coach tab">
+  <img src="ios/docs/screenshots/progress-running.png" width="240" alt="Running progress">
+</p>
+
+## How it fits together
+
+- **Engine** (`backend/apps/fitness/engine/core/`): pure Python, plain data in and out, no database.
+  Double progression for lifts (stalls, deloads, retests), a VDOT-based pace model for runs, a
+  readiness score from HRV / resting HR / sleep, and rules for moving missed sessions. A layering
+  test keeps SQLAlchemy out of it. `engine/store/` loads data and persists the plans.
+- **Backend**: FastAPI + SQLAlchemy + SQLite, Alembic migrations, APScheduler for the Garmin and
+  Withings syncs. The iOS app talks to it through a push/pull sync API (`docs/api/sync.md`).
+- **iOS app** (`ios/`): SwiftUI + SwiftData, offline first: workouts are logged locally and pushed
+  when there is a connection. Shared models and logic live in the `FitnessCore` Swift package so
+  they can be tested without a simulator.
+- **Advisor** (`backend/apps/fitness/advisor/`): builds a summary of the last weeks and asks Claude
+  for a structured answer (diagnosis, proposed changes). The answer is never applied directly:
+  every proposed change goes through a validator that only accepts engine parameters on an
+  allowlist (never a weight, a pace or a heart-rate number), checks the range and the risk level,
+  and rejects the rest. Valid changes wait for my approval and become a new, diffable config version
+  that can be rolled back.
+
+## An example
+
+Asking the coach about a stalled lift (`docs/api/examples/coach_proposal_detail.json`, trimmed):
+
+```json
+{
+  "status": "pending",
+  "changes": [
+    {"id": "p1", "param": "exercise_overrides.triceps_extension.rep_range",
+     "from": [7, 12], "to": [8, 12], "risk": "low", "valid": true},
+    {"id": "p2", "param": "running.weekly_volume_cap_pct",
+     "from": 10, "to": 12, "risk": "high", "valid": true},
+    {"id": "p3", "param": "exercise_overrides.triceps_extension.target_weight",
+     "from": 30, "to": 35, "valid": false,
+     "validation_error": "param is not on the allowlist (only engine parameters can be changed, never weights, paces or heart-rate numbers)"}
+  ]
+}
 ```
-backend/
-  server.py            FastAPI entry point (`uvicorn server:app`)
-  core/                app-independent code: bearer auth, settings, scheduler helpers
-  apps/fitness/        FitnessBuddy: API, models, engine, advisor, importers, Alembic, data, config
-    engine/core/       pure engine: config, planner, lifting, running (no database)
-    engine/store/      engine database side: loaders, persist, service
-    advisor/           Claude coach: consultations, approval, triggers, rules/
-    garmin/ gyms/ exercises/ bodyweight/   services per area
-    api/               thin routers; deps.py (get_db, settings, error mapping)
-  tests/<group>/       engine advisor garmin importers api gyms sync analytics
-ios/       FitnessBuddy SwiftUI app (XcodeGen `project.yml`)
-deploy/    docker-compose + Caddy + nightly SQLite backup, push/bootstrap scripts (see deploy/README.md)
-docs/      spec & decisions (docs/spec/decisions.md), API contracts (docs/api/)
-scripts/   test-groups.sh (changed paths -> backend test groups), test-changed.sh; used by make + CI
-Makefile   named commands: `make` lists them
-imports/   your raw exports + import reports (gitignored)
+
+Approving applies only the valid changes that were selected:
+
+```sh
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"change_ids": ["p1"]}' http://localhost:8000/api/v1/coach/proposals/1/approve
 ```
 
-Fitness routes live under `/api/v1/...` (the installed iOS app) and, identically, under
-`/api/v1/fitness/...`; `/health` is unprefixed. The SQLite file and Alembic setup are in
-`backend/var/` (`fitness.db`; in the container `/app/var/...`).
-
-The Receipts server is a separate project with its own repository and deployment (see
-`deploy/README.md` section 10 for how it shares the VM's Caddy).
-
-## Setup
+## Running it
 
 ```sh
 brew install uv
 cd backend
-uv sync                       # Python 3.12 venv + deps
-cp .env.example .env          # optional
+uv sync
 uv run alembic -c apps/fitness/alembic.ini upgrade head   # creates backend/var/fitness.db
+API_TOKEN=dev uv run uvicorn server:app --reload          # http://localhost:8000/docs with DOCS_ENABLED=true
 ```
 
-## Import Strong history
+Settings (Garmin and Withings keys, `ANTHROPIC_API_KEY`, scheduler) are environment variables, see
+`backend/.env.example`. Importing a Strong export: `docs/spec/decisions.md` (step 2) and
+`python -m apps.fitness.importers.strong --help`.
 
-Put Strong CSV exports anywhere under `imports/` (e.g. `imports/strong/strong_workouts.csv`).
+Tests:
 
 ```sh
-cd backend
-uv run python -m apps.fitness.importers.strong mapping          # refresh apps/fitness/data/catalog/strong_mapping.csv
-# review the mapping csv: fix rows, set status=confirmed (unmapped names are skipped)
-uv run python -m apps.fitness.importers.strong import            # dry run (default), writes a report
-uv run python -m apps.fitness.importers.strong import --apply    # write to the DB
+make test          # backend suite (about 1200 tests); make test-fast skips the DB ones
+make ios-core-test # FitnessCore package tests, no simulator needed
+make ios-test-fast # app tests on the simulator (iPhone 17 Pro)
 ```
 
-Gym-bound variants (machine/cable/smith/plate-loaded) are split per gym by session date, see
-`backend/apps/fitness/data/catalog/gyms.yaml` (rename gyms, move a boundary or add `same_as: gym1`, then
-re-import: sets move, nothing is duplicated). `overrides: [{date, gym}]` pins single days to a
-gym (e.g. one visit to the old gym); a gym can also be split in time ("Gym 1 (old machines)" /
-"Gym 1") when the machines were replaced. Mapping rows have an `active` column (false =
-no longer trained, never planned).
+## Demo data
 
-Reports land in `imports/reports/strong_import_<timestamp>.md`. Re-running is safe (idempotent);
-newer overlapping exports replace older versions of the same workout.
+`make demo-data` builds a synthetic database for a fictional lifter and runner
+(`apps/fitness/scripts/seed_demo_db.py`, seeded, so it is reproducible) and regenerates
+`docs/api/examples/*.json` by calling the real endpoints. The iOS tests decode those files, so
+the API contract is checked on both sides. The app's demo mode (debug builds) shows similar made-up
+data and is what the screenshots come from.
 
-## Tests, lint, CI
+## Stack
 
-`make` (repo root) lists the targets; backend ones run `cd backend && uv run ...`.
-
-```sh
-make test                  # full backend suite (pytest -n auto)
-make test-fast             # -m "not db": tests that need no database, a few seconds
-make test-group GROUP=engine
-make test-changed          # only the groups your changes touch (vs origin/main + uncommitted)
-make lint                  # ruff check + ruff format --check;  make format fixes
-make typecheck             # pyright (basic) on the paths in backend/pyproject.toml
-make check                 # lint + typecheck + test + ios-test-fast
-make ios-test-fast         # iOS Fast test plan (SIM="iPhone 17 Pro"); ios-test = Full, ios-build
-```
-
-Backend tests live in `backend/tests/<group>/` with groups `engine advisor garmin importers api
-gyms sync analytics`; each test gets a marker named after its folder (`pytest -m engine` ==
-`pytest tests/engine`), plus `db` when it needs the database. `scripts/test-groups.sh` maps changed
-paths to groups (e.g. `engine/**` -> engine, analytics, advisor; `api/**`, `core/**`, `db/**`,
-alembic, settings, `pyproject.toml`, root `conftest.py` -> all); `make test-changed` and CI both
-use it.
-
-CI (`.github/workflows/`): `backend.yml` runs lint + pyright and, on PRs, one matrix job per affected group;
-every push to `main` runs the full suite (the deploy gate needs that run). `ios.yml` runs
-`xcodegen` + the `Fast` plan on PRs touching `ios/**` or `docs/api/examples/**`, `Full` on `main`.
-`tooling.yml` checks the shell scripts.
-
-Pre-commit (ruff, ruff format, `bash -n`), once per clone:
-
-```sh
-brew install pre-commit && pre-commit install
-```
-
-## Deploy
-
-`deploy/push.sh ubuntu@HOST` (or `make deploy DEPLOY_ARGS="ubuntu@HOST"`) ships the committed
-`HEAD`, not the working tree, and refuses uncommitted changes under `backend/`/`deploy/` and a
-`HEAD` without a green `backend` CI run (pushed, `gh auth login`). Escape hatches:
-`--allow-dirty` (still ships `HEAD`), `--working-tree` (ships the working tree, emergencies),
-`--skip-ci-check`; `--dry-run` prints the remote commands without running them. Runbook:
-`deploy/README.md`.
-
-## Bodyweight
-
-```sh
-cd backend
-uv run python -m apps.fitness.cli bodyweight add 82 [--date 2026-10-24]   # idempotent, one entry per day
-uv run python -m apps.fitness.cli bodyweight list
-uv run python -m apps.fitness.cli stats rebuild                             # after changing the log
-```
-
-Fallback when the log is empty: `user.bodyweight_kg` in `apps/fitness/config/engine.v2.yaml`.
-
-## Garmin sync (read-only towards Garmin)
-
-Official Personal API (pull-only). Create a key at
-https://connect.garmin.com/app/settings/personalApiToken (valid 30 days to 1 year), put it into
-`backend/.env` as `GARMIN_PERSONAL_API_KEY=...` (never commit it). Facts, windows and quirks:
-`docs/garmin-personal-api.md`.
-
-```sh
-cd backend
-uv run alembic -c apps/fitness/alembic.ini upgrade head
-uv run python -m apps.fitness.cli garmin check                    # token exchange + one probe per data kind
-uv run python -m apps.fitness.cli garmin backfill [--since 2023-01-01] [--kinds activities,sleep]
-uv run python -m apps.fitness.cli garmin sync                     # incremental (cursor - 3 days overlap)
-uv run python -m apps.fitness.cli garmin reparse                  # re-run parsers over stored raw JSON
-```
-
-- `GARMIN_SOURCE=personal_api|garminconnect|auto` (default `auto`): Personal API first; the
-  python-garminconnect fallback (needs `GARMIN_EMAIL`/`GARMIN_PASSWORD`, logs in at most once per
-  process) is used only if the key is dead or a recent window comes back empty.
-  `garmin backfill --source garminconnect` pulls old history from the fallback deliberately.
-- Backfill is chunked per kind window and resumable (`sync_state` cursors); a persistent 429 is
-  waited out (1, 3, 10 min) and then the run stops with the cursor intact, so just re-run it.
-- Stored: all activities in `runs` (`activity_type` = Garmin typeKey) + `laps`, `daily_health`,
-  Garmin weights in `body_measurements` (source `garmin`), `athlete_metrics` (max HR, LTHR, zone
-  floors), `garmin_raw` (raw JSON), originals in `backend/var/fit/` (all gitignored).
-- Scheduler: `SCHEDULER_ENABLED=true` starts APScheduler with the API (nightly 03:30 full sync,
-  four lighter runs at `SYNC_DAY_TIMES`, timezone Europe/Vienna). Off by default.
-
-## Training engine (step 3)
-
-Deterministic, parameterised by the versioned config, every decision logged (`decisions_log`).
-
-```sh
-cd backend
-uv run alembic -c apps/fitness/alembic.ini upgrade head
-uv run python -m apps.fitness.cli engine program generate        # apps/fitness/data/program/program.yaml from the last 8 weeks (edit it!)
-uv run python -m apps.fitness.cli engine plan --date 2026-10-26 --week   # dry run (default): plan + decisions, writes nothing
-uv run python -m apps.fitness.cli engine run                      # apply: reconcile, plan this + next week, decisions, triggers
-uv run python -m apps.fitness.cli engine readiness [--date D]
-uv run python -m apps.fitness.cli engine evaluate-runs [--weeks 6]
-uv run python -m apps.fitness.cli engine triggers                 # open advisor triggers
-uv run python -m apps.fitness.cli engine config show|rollback VERSION|check-garmin
-```
-
-- **Config**: `apps/fitness/config/engine.v3.yaml` only seeds the `config_versions` table; afterwards the DB is the
-  source of truth. Derived versions (`v3.1`, ...) carry parent, diff, reason and author
-  (`engine|advisor|user`); rollback creates a new version. After a Garmin sync the hook
-  (`apps/fitness/jobs/garmin_jobs.py`) creates a new version when Garmin reports a different max HR / LTHR
-  ("Garmin reported LTHR 171->178 on ...") and re-runs the engine (`ENGINE_AUTO_RUN=false` to skip).
-  HR zones are derived from LTHR (Friel run zones) and never stored.
-- **Plans**: `planned_sessions` with a stable id per (week, template slot); regeneration is idempotent,
-  `done/skipped/modified` sessions are never overwritten, an `approved` one whose content changes goes
-  back to `proposed`. Today's readiness adjustments (yellow: -1 set / intervals -> easy run; red: rest
-  or a short easy run) are written into that day's planned session.
-- **API** (bearer token): `GET /api/v1/plan/today`, `/plan/week?start=`, `/readiness?date=`,
-  `/config` (active + history), `POST /config/rollback/{version}`. Plan JSON: see `apps/fitness/api/engine.py`.
-- Rules, thresholds and their reasoning: `apps/fitness/config/engine.v3.yaml` (comments) and `docs/spec/decisions.md`.
-
-## Sync API for the iOS app (step 4)
-
-Offline-first sync with per-record last-write-wins (client `updated_at`) and a server-side change
-sequence as pull cursor (`server_seq`, stamped by SQLite triggers from migration 0005, so every
-write path - import, engine, Garmin, API - is picked up). Full contract, semantics and example
-payloads: `docs/api/sync.md`; real fixtures: `docs/api/examples/`
-(`cd backend && uv run python -m apps.fitness.scripts.gen_api_examples` regenerates them from a copy of the DB).
-
-```
-GET  /api/v1/health                          no auth: {"status","version"}
-POST /api/v1/sync/push                       sessions / sets / body_measurements -> per-record applied|stale|rejected
-GET  /api/v1/sync/pull?since=<cursor>        changes incl. tombstones + catalog + planned sessions + config (paged)
-GET  /api/v1/variants/{id}/history?limit=10  previous performance (last N sessions)
-```
-
-After a push that changed sessions/sets the server links the planned session (done/modified),
-recomputes the stats of the touched variants and re-runs the engine in the background
-(`apps/fitness/jobs/engine_jobs.py`, skipped with `ENGINE_AUTO_RUN=false`). Run `uv run alembic -c apps/fitness/alembic.ini upgrade head`
-after pulling this step (adds `server_seq`, `sync_seq`, `sets.completed_at`).
-
-## API (skeleton)
-
-```sh
-cd backend && uv run uvicorn server:app --reload
-# public: GET /health, /api/v1/health (also under /api/v1/fitness/...). Everything else needs `Authorization: Bearer $API_TOKEN`
-# Set DOCS_ENABLED=true in .env for /docs locally:
-# GET /api/v1/sessions, /api/v1/variants, /api/v1/variants/{id}/stats
-# bodyweight (needs `Authorization: Bearer $API_TOKEN`; set API_TOKEN in .env):
-# GET /api/v1/bodyweight?from=&to=, POST /api/v1/bodyweight (client uuid, upsert),
-# DELETE /api/v1/bodyweight/{id} (tombstone)
-# Garmin data (same bearer token): GET /api/v1/runs?from=&to=&activity_type=&include_other=,
-# GET /api/v1/runs/{id} (with laps), GET /api/v1/health/daily?from=&to=
-```
+Python 3.12, FastAPI, SQLAlchemy 2, Alembic, SQLite, APScheduler, the Anthropic SDK; Swift 6,
+SwiftUI, SwiftData, Swift Charts; Docker + Caddy for the single-VM deployment (`deploy/`). More
+detail and the reasoning behind decisions: `docs/spec/decisions.md`.

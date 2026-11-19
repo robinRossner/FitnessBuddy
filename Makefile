@@ -9,7 +9,7 @@ IOS_DEST = -destination 'platform=iOS Simulator,name=$(SIM)'
 XCODEBUILD = set -o pipefail; cd ios && xcodebuild -project FitnessBuddy.xcodeproj -scheme FitnessBuddy $(IOS_DEST)
 XCPRETTY := $(if $(shell command -v xcbeautify 2>/dev/null),| xcbeautify,)
 
-.PHONY: help test test-fast test-group test-changed lint format typecheck \
+.PHONY: help demo-data test test-fast test-group test-changed lint format typecheck \
 	ios-gen ios-build ios-core-test ios-test-fast ios-test check deploy
 
 help: ## list the targets
@@ -53,6 +53,13 @@ ios-test: ios-gen ## iOS tests, Full test plan
 	$(XCODEBUILD) -testPlan Full test $(XCPRETTY)
 
 check: lint typecheck test ios-core-test ios-test-fast ## lint + pyright + backend suite + FitnessCore + iOS Fast plan
+
+demo-data: ## synthetic demo DB, then regenerate docs/api/examples from it
+	cd backend && uv run python -m apps.fitness.scripts.seed_demo_db
+	cd backend && uv run python -m apps.fitness.scripts.gen_api_examples
+	cd backend && uv run python -m apps.fitness.scripts.gen_coach_examples
+	cd backend && uv run python -m apps.fitness.scripts.gen_gym_examples
+	cd backend && uv run python -m apps.fitness.scripts.gen_stats_examples
 
 deploy: ## deploy/push.sh $(DEPLOY_ARGS), e.g. DEPLOY_ARGS="ubuntu@HOST --dry-run"
 	deploy/push.sh $(DEPLOY_ARGS)
