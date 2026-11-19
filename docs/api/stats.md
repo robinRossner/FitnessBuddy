@@ -97,67 +97,67 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
 {
   "generated_at": "2026-10-25T11:24:36.044Z",
   "lift": {
-    "variant_id": 106,
-    "name": "Lateral Raise (Machine)",
-    "exercise_id": 7,
+    "variant_id": 3,
+    "name": "Seated Overhead Press (Dumbbell)",
+    "exercise_id": 6,
     "muscle_group": "shoulders",
-    "gym_id": 3,
-    "gym_name": "Gym 2",
+    "gym_id": null,
+    "gym_name": null,
     "active": true,
-    "sessions": 97,
+    "sessions": 48,
     "first_date": "2025-02-03",
-    "last_date": "2026-08-19",
-    "best_e1rm": 66.67,
-    "latest_e1rm": 66.67,
+    "last_date": "2026-10-22",
+    "best_e1rm": 31.53,
+    "latest_e1rm": 28.6,
     "trend_4w_pct": null,
-    "last_pr_date": "2025-11-22",
+    "last_pr_date": "2026-09-24",
     "stalled": true
   },
   "points": [
     {
-      "date": "2026-08-12",
+      "date": "2026-10-19",
       "session_id": "9e770d8b-4755-5b97-9784-985745d7b399",
-      "best_e1rm": 66.67,
+      "best_e1rm": 28.6,
       "top_set": {
-        "weight_kg": 50.0,
-        "reps": 10
+        "weight_kg": 22.0,
+        "reps": 9
       },
-      "volume_kg": 1350.0,
+      "volume_kg": 528.0,
       "sets": 3
     },
     {
-      "date": "2026-08-19",
-      "session_id": "500309af-9aa4-5a97-bb51-2883f0a1e2c9",
-      "best_e1rm": 66.67,
+      "date": "2026-10-22",
+      "session_id": "ecb09200-4f47-54b5-b1fb-4b8663310fd8",
+      "best_e1rm": 28.6,
       "top_set": {
-        "weight_kg": 50.0,
-        "reps": 10
+        "weight_kg": 22.0,
+        "reps": 9
       },
-      "volume_kg": 1350.0,
+      "volume_kg": 528.0,
       "sets": 3
     }
   ],
   "prs": [
     {
-      "date": "2025-10-18",
+      "date": "2026-04-30",
       "type": "reps",
-      "value": 9,
-      "weight_kg": 50.0,
-      "reps": 9
+      "value": 11,
+      "weight_kg": 18.0,
+      "reps": 11
     },
     {
-      "date": "2025-11-22",
+      "date": "2026-09-24",
       "type": "e1rm",
-      "value": 66.67,
-      "weight_kg": 50.0,
-      "reps": 10
+      "value": 31.53,
+      "weight_kg": 22.0,
+      "reps": 11
     },
     {
-      "date": "2025-11-22",
+      "date": "2026-09-24",
       "type": "reps",
-      "value": 10,
-      "weight_kg": 50.0,
-      "reps": 10
+      "value": 11,
+      "weight_kg": 22.0,
+      "reps": 11
     }
   ]
 }
@@ -528,7 +528,7 @@ readiness `unknown` when Garmin has nothing).
   "bodyweight": [
     {
       "date": "2026-08-17",
-      "weight_kg": 82.0,
+      "weight_kg": 82.3,
       "source": "garmin"
     },
     {
@@ -538,13 +538,13 @@ readiness `unknown` when Garmin has nothing).
     }
   ],
   "summary": {
-    "hrv_7d": 83.0,
-    "hrv_28d": 68.3,
-    "rhr_7d": 53.4,
-    "rhr_28d": 54.4,
-    "sleep_7d_s": 30320.0,
-    "sleep_28d_s": 29122.0,
-    "steps_7d_avg": 10871.0,
+    "hrv_7d": 66.8,
+    "hrv_28d": 67.1,
+    "rhr_7d": 52.6,
+    "rhr_28d": 52.9,
+    "sleep_7d_s": 26640.0,
+    "sleep_28d_s": 26280.0,
+    "steps_7d_avg": 10240.0,
     "days_10k_last_7": 4,
     "bodyweight_latest": 82.0,
     "bodyweight_change_4w_pct": null
@@ -553,8 +553,8 @@ readiness `unknown` when Garmin has nothing).
     "level": "green",
     "headline": "Ready",
     "metrics": [
-      {"key": "hrv", "label": "HRV", "value": 66.0, "unit": "ms", "baseline": 70.0, "delta_pct": -5.7, "status": "ok"},
-      {"key": "rhr", "label": "Resting HR", "value": 53.0, "unit": "bpm", "baseline": 52.0, "delta_pct": 1.9, "status": "ok"},
+      {"key": "hrv", "label": "HRV", "value": 66.0, "unit": "ms", "baseline": 70.2, "delta_pct": -6.0, "status": "ok"},
+      {"key": "rhr", "label": "Resting HR", "value": 53.0, "unit": "bpm", "baseline": 52.3, "delta_pct": 1.3, "status": "ok"},
       {"key": "sleep", "label": "Sleep", "value": 7.4, "unit": "h", "baseline": 7.6, "delta_pct": -2.6, "status": "ok"}
     ],
     "details": [
