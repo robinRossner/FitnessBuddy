@@ -9,11 +9,11 @@ struct StatsDecodingTests {
     @Test func liftsFixture() throws {
         let r = try Fixture.decode(LiftsStatsDTO.self, "stats_lifts")
         #expect(r.generatedAt != nil)
-        #expect(r.lifts.count > 50)
+        #expect(r.lifts.count == 21)
         let first = try #require(r.lifts.first)
-        #expect(first.variantId == 127 && first.muscleGroup == "triceps" && first.gymName == "Gym 3")
-        #expect(first.trend4wPct == 0)
-        #expect(first.bestE1rm == 91 && first.latestE1rm == 91)
+        #expect(first.variantId == 16 && first.muscleGroup == "triceps" && first.gymName == "Gym 2")
+        #expect(first.trend4wPct == 2.45)
+        #expect(first.bestE1rm == 38.5 && first.latestE1rm == 34.83)
         #expect(first.isStalled)
         #expect(r.lifts.contains { $0.gymName == nil })           // generic variants
         #expect(r.lifts.contains { $0.lastPrDate != nil })
@@ -21,12 +21,12 @@ struct StatsDecodingTests {
 
     @Test func liftDetailFixture() throws {
         let r = try Fixture.decode(LiftDetailDTO.self, "stats_lift_detail")
-        #expect(r.lift.variantId == 106 && r.lift.sessions == 124)
-        #expect(r.points.count == 124)
-        #expect(r.points[0].date == "2025-02-03")
-        #expect(r.points[0].topSet == TopSetDTO(weightKg: 40, reps: 11) && r.points[0].bestE1rm == 54.67)
-        #expect(r.lift.bestE1rm == 66.67 && r.lift.trend4wPct == nil && r.lift.lastPrDate == "2025-11-22")
-        #expect(r.prs.count == 16)
+        #expect(r.lift.variantId == 3 && r.lift.sessions == 48)
+        #expect(r.points.count == 48)
+        #expect(r.points[0].date == "2026-04-27")
+        #expect(r.points[0].topSet == TopSetDTO(weightKg: 18, reps: 8) && r.points[0].bestE1rm == 22.8)
+        #expect(r.lift.bestE1rm == 31.53 && r.lift.trend4wPct == -2.32 && r.lift.lastPrDate == "2026-09-24")
+        #expect(r.prs.count == 14)
         #expect(Set(r.prs.map(\.type)) == [.e1rm, .weight, .reps])
     }
 
@@ -34,44 +34,44 @@ struct StatsDecodingTests {
         let r = try Fixture.decode(WeeklyVolumeDTO.self, "stats_volume_weekly")
         #expect(r.weeks.count == 26)
         let last = try #require(r.weeks.last)
-        #expect(last.weekStart == "2026-10-19" && last.liftingSets == 39)
+        #expect(last.weekStart == "2026-10-19" && last.liftingSets == 56)
         #expect(last.setsByMuscleGroup?["chest"] == 6)
-        #expect(last.runningKm == 8.13)
+        #expect(last.runningKm == 16.4)
     }
 
     @Test func runningFixture() throws {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
-        #expect(r.weekly.count == 26 && r.efficiency.count == 9 && r.vdot.count == 2 && r.vdotFit.count == 12 && r.intervals.count == 3)
+        #expect(r.weekly.count == 26 && r.efficiency.count == 46 && r.vdot.count == 6 && r.vdotFit.count == 70 && r.intervals.count == 24)
         let step = try #require(r.vdot.last)
-        #expect(step.value == 44.51 && step.source == "interval_reps" && step.delta == 3.0 && step.reason?.contains("measured from interval reps") == true)
-        #expect(r.vdot.first?.source == "initial" && r.vdotFit[0].source == nil && r.vdotFit[0].value == 41.4)
-        #expect(r.weekly.last?.timeInZonesS?["z1"] == 1639)
-        #expect(r.efficiency[0].type == "easy" && r.efficiency[0].efficiency == 1.2948)
-        #expect(r.intervals[0].passed == true && r.intervals[0].hrInRange == false && r.intervals[0].targetHrLow == 166)
+        #expect(step.value == 44.25 && step.source == "interval_reps" && step.delta == 0.29 && step.reason?.contains("measured from interval reps") == true)
+        #expect(r.vdot.first?.source == "initial" && r.vdotFit[0].source == nil && r.vdotFit[0].value == 41.0)
+        #expect(r.weekly.last?.timeInZonesS?["z1"] == 2763)
+        #expect(r.efficiency[0].type == "long" && r.efficiency[0].efficiency == 1.1528)
+        #expect(r.intervals[0].passed == true && r.intervals[0].hrInRange == true && r.intervals[0].targetHrLow == 166)
     }
 
     @Test func runAnalysisFixtures() throws {
         let iv = try Fixture.decode(RunAnalysisDTO.self, "stats_run_analysis_intervals")
-        #expect(iv.laps.count == 13)
-        #expect(iv.laps.filter { $0.kind == .work }.count == 5)
-        #expect(iv.laps[2].paceOk != nil && iv.laps[2].hrOk == true && iv.laps[2].targetHrLow == 179 && iv.laps[2].targetPaceSPerKm != nil)
+        #expect(iv.laps.count == 14)
+        #expect(iv.laps.filter { $0.kind == .work }.count == 6)
+        #expect(iv.laps[1].paceOk != nil && iv.laps[1].hrOk == true && iv.laps[1].targetHrLow == 179 && iv.laps[1].targetPaceSPerKm != nil)
         #expect(iv.verdict?.passed == true && (iv.verdict?.reasons.count ?? 0) >= 1)
         #expect(iv.planned == nil)
         let easy = try Fixture.decode(RunAnalysisDTO.self, "stats_run_analysis_easy")
-        #expect(easy.run.type == "easy" && easy.verdict?.passed == false)
+        #expect(easy.run.type == "easy" && easy.verdict?.passed == true)
         #expect(easy.laps.allSatisfy { $0.kind == .other })
     }
 
     @Test func healthFixture() throws {
         let r = try Fixture.decode(HealthStatsDTO.self, "stats_health")
-        #expect(r.days.count == 90 && r.bodyweight.count == 2)
-        #expect(r.days[0].hrvMs == nil && r.days[0].readiness?.readinessLevel == .unknown)
+        #expect(r.days.count == 90 && r.bodyweight.count == 15)
+        #expect(r.days[0].hrvMs == 70.6 && r.days[0].readiness?.readinessLevel == .green)
         let today = try #require(r.days.last)
-        #expect(today.hrvMs == 66 && today.hrvBaselineMs == 70 && today.sleepS == 26640 && today.bodyBatteryHigh == 96)
+        #expect(today.hrvMs == 56.7 && today.hrvBaselineMs == 60.5 && today.sleepS == 24920 && today.bodyBatteryHigh == 79)
         #expect(today.readiness?.readinessLevel == .green)
-        #expect(r.summary?.hrv7d == 83)
-        #expect(r.summary?.sleep7dS == 30320)
-        #expect(r.summary?.bodyweightChange4wPct == nil)
+        #expect(r.summary?.hrv7d == 59.3)
+        #expect(r.summary?.sleep7dS == 25269)
+        #expect(r.summary?.bodyweightChange4wPct == -0.36)
         #expect(r.bodyweight.last?.source == "manual")
     }
 
@@ -80,8 +80,8 @@ struct StatsDecodingTests {
         #expect(r.items.map(\.id) == ["sleep_vs_lifting", "hrv_vs_lift_performance", "hrv_vs_easy_efficiency",
                                       "rhr_vs_easy_efficiency", "run_load_vs_lift_performance"])
         let first = r.items[0]
-        #expect(first.r == 0.582 && first.n == 11 && first.points.count == 11 && first.note?.hasPrefix("n=11") == true)
-        #expect(first.category == .recovery && first.insight?.hasPrefix("More sleep") == true)
+        #expect(first.r == -0.078 && first.n == 46 && first.points.count == 46 && first.note?.hasPrefix("n=46") == true)
+        #expect(first.category == .recovery && first.insight?.hasPrefix("No clear link") == true)
         #expect(r.items.filter { $0.category == .hybrid }.map(\.id) == ["run_load_vs_lift_performance"])
     }
 

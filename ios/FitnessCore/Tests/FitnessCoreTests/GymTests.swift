@@ -45,11 +45,11 @@ struct GymDecodingTests {
 
     @Test func serverExampleFixturesDecode() throws {
         let list = try Fixture.decode(GymListDTO.self, "gyms_list")
-        #expect(list.currentGymId == 4 && list.gyms.count >= 3 && list.gyms.allSatisfy { $0.machineCount != nil })
+        #expect(list.currentGymId == 2 && list.gyms.count == 2 && list.gyms.allSatisfy { $0.machineCount != nil })
         let dto = try Fixture.decode(GymMachinesDTO.self, "gym_machines")
-        #expect(!dto.items.isEmpty && dto.items[0].variant?.weightLadder == nil && dto.items[0].previous?.gymName == "Gym 2")
+        #expect(!dto.items.isEmpty && dto.items[3].variant?.weightLadder == nil && dto.items[0].previous?.gymName == "Gym 1")
         // a smith machine without steps counts as set up; the program progress is computed from the list
-        #expect(MachineLogic.isSetUp(dto.items[0]) && MachineLogic.progress(dto.items).total > 0)
+        #expect(MachineLogic.isSetUp(dto.items[3]) && MachineLogic.progress(dto.items).total > 0)
     }
 
     @Test func minimalPayloadsStillDecode() throws {

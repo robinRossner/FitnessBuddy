@@ -15,7 +15,7 @@ struct DecodingTests {
         #expect(!ex.sets.isEmpty)
         #expect(ex.sets[0].setType == "working")
         #expect(ex.rule != nil)
-        #expect(plan.readiness?.level == .unknown)  // known == false even though color == "green"
+        #expect(plan.readiness?.level == .green)  // known == true, color == "green"
     }
 
     @Test func planWeekCoversRunsAndRest() throws {
@@ -48,16 +48,16 @@ struct DecodingTests {
 
     @Test func syncPullSnapshot() throws {
         let pull = try Fixture.decode(PullResponse.self, "sync_pull")
-        #expect(pull.cursor == "c9483")
+        #expect(pull.cursor == "c1748")
         #expect(pull.hasMore == false)
         #expect(pull.serverTime != nil)
         #expect(!pull.sessions.isEmpty && !pull.sets.isEmpty)
         #expect(!pull.variants.isEmpty && !pull.exercises.isEmpty)
-        #expect(pull.gyms.contains { $0.deletedAt != nil })
-        #expect(pull.config?.version == "v3.5")
+        #expect(pull.gyms.count == 2)  // the demo data has no soft-deleted gym
+        #expect(pull.config?.version == "v3.6")
         #expect(pull.config?.dumbbellIncrementKg == 2.0)
         #expect(pull.config?.incrementsKg?["barbell"] == 5.0)
-        #expect(pull.bodyMeasurements.count == 2)
+        #expect(pull.bodyMeasurements.count == 31)
         #expect(pull.plannedSessions.count > 0)
         #expect(pull.sessions.allSatisfy { ["upper", "lower", "full", "other"].contains($0.kind) })
         let ladder = pull.variants.compactMap(\.weightLadder).first
@@ -66,19 +66,19 @@ struct DecodingTests {
 
     @Test func syncPullIncremental() throws {
         let pull = try Fixture.decode(PullResponse.self, "sync_pull_incremental")
-        #expect(pull.cursor == "c9491")
+        #expect(pull.cursor == "c1749")
         #expect(pull.variants.isEmpty && pull.gyms.isEmpty)
-        // the incremental pull carries back exactly the rows of the example push
+        // the incremental pull carries back only the body measurement of the example push
         let push = try Fixture.decode(PushRequest.self, "sync_push_request")
-        #expect(pull.sessions.count == 1 && pull.sessions.count == push.sessions.count)
-        #expect(pull.sets.count == 5 && pull.sets.count == push.sets.count)
+        #expect(pull.sessions.isEmpty)
+        #expect(pull.sets.isEmpty)
         #expect(pull.bodyMeasurements.count == push.bodyMeasurements.count)
     }
 
     @Test func pushResponseAndHistory() throws {
         let push = try Fixture.decode(PushResponse.self, "sync_push_response")
         let request = try Fixture.decode(PushRequest.self, "sync_push_request")
-        #expect(push.results.count == 7)  // one result per pushed row
+        #expect(push.results.count == 11)  // one result per pushed row
         #expect(push.results.count == request.sessions.count + request.sets.count + request.bodyMeasurements.count)
         #expect(push.results.allSatisfy { ["applied", "stale", "rejected"].contains($0.status) })
         let history = try Fixture.decode([VariantHistoryEntryDTO].self, "variant_history")
@@ -100,7 +100,7 @@ struct DecodingTests {
 
     @Test func realPushRequestFixtureRoundTrips() throws {
         let req = try Fixture.decode(PushRequest.self, "sync_push_request")
-        #expect(req.sessions.count == 1 && req.sets.count == 5 && req.bodyMeasurements.count == 1)
+        #expect(req.sessions.count == 1 && req.sets.count == 9 && req.bodyMeasurements.count == 1)
         let again = try APICoding.makeDecoder().decode(PushRequest.self, from: APICoding.makeEncoder().encode(req))
         #expect(again == req)
     }

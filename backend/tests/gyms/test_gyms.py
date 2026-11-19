@@ -36,8 +36,8 @@ Leg Curl (Machine),leg_curl,Leg Curl (Machine),machine_stack,total,confirmed,tru
 GYMS = """\
 gyms:
   - {key: gym1, name: Gym 1}
-  - {key: gym2, name: Gym 2, start: 2024-09-02}
-  - {key: gym3, name: Gym 3, start: 2026-08-17}
+  - {key: gym2, name: Gym 2, start: 2024-09-30}
+  - {key: gym3, name: Gym 3, start: 2026-08-25}
 """
 
 
@@ -54,10 +54,10 @@ ROWS = [
     ("2024-01-10 10:00:00", "Upper", "Squat (Barbell)", 100.0, 5),
     ("2024-09-29 10:00:00", "Upper", "Lat Pulldown (Cable)", 60.0, 10),  # last day at Gym 1
     ("2024-09-29 10:00:00", "Upper", "Shrug (Dumbbell)", 40.0, 10),
-    ("2024-09-02 10:00:00", "Upper", "Lat Pulldown (Cable)", 40.0, 10),  # first day at Gym 2
+    ("2024-09-30 10:00:00", "Upper", "Lat Pulldown (Cable)", 40.0, 10),  # first day at Gym 2
     ("2026-08-24 10:00:00", "Upper", "Lat Pulldown (Cable)", 45.0, 10),  # last day at Gym 2
-    ("2026-08-17 10:00:00", "Upper", "Lat Pulldown (Cable)", 30.0, 10),  # first day at Gym 3
-    ("2026-08-17 10:00:00", "Upper", "Leg Curl (Machine)", 45.0, 12),
+    ("2026-08-25 10:00:00", "Upper", "Lat Pulldown (Cable)", 30.0, 10),  # first day at Gym 3
+    ("2026-08-25 10:00:00", "Upper", "Leg Curl (Machine)", 45.0, 12),
 ]
 
 
@@ -132,9 +132,9 @@ def load_gyms_from(text: str) -> GymPeriods:
 
 
 def test_same_as_merges_by_key_or_name():
-    by_key = load_gyms_from(GYMS.replace("start: 2026-08-17}", "start: 2026-08-17, same_as: gym1}"))
+    by_key = load_gyms_from(GYMS.replace("start: 2026-08-25}", "start: 2026-08-25, same_as: gym1}"))
     by_name = load_gyms_from(
-        GYMS.replace("start: 2026-08-17}", "start: 2026-08-17, same_as: Gym 1}")
+        GYMS.replace("start: 2026-08-25}", "start: 2026-08-25, same_as: Gym 1}")
     )
     for p in (by_key, by_name):
         assert p.resolve(date(2026, 9, 1)).key == "gym1"
@@ -186,9 +186,9 @@ def test_import_assigns_gym_variants_and_sessions(db, env):
     assert names["Shrug (Dumbbell)"].gym_id is None and names["Shrug (Dumbbell)"].active is False
     assert names["Lat Pulldown (Cable) @ Gym 2"].active is True
     assert _gym_of_session(db, "2024-09-29") == "Gym 1"
-    assert _gym_of_session(db, "2024-09-02") == "Gym 2"
+    assert _gym_of_session(db, "2024-09-30") == "Gym 2"
     assert _gym_of_session(db, "2026-08-24") == "Gym 2"
-    assert _gym_of_session(db, "2026-08-17") == "Gym 3"
+    assert _gym_of_session(db, "2026-08-25") == "Gym 3"
     # ladders are per gym variant
     assert names["Lat Pulldown (Cable) @ Gym 1"].weight_ladder == [50.0, 60.0]
     assert names["Lat Pulldown (Cable) @ Gym 2"].weight_ladder == [40.0, 45.0]
@@ -229,7 +229,7 @@ def test_moving_a_boundary_moves_sets_without_duplicates(db, env):
     db.commit()
     ids_before = {s.id for s in db.scalars(select(WorkoutSet))}
     # Gym 2 actually started a day earlier: the 2024-09-29 session moves from Gym 1 to Gym 2
-    gyms.write_text(GYMS.replace("2024-09-02", "2024-09-29"), encoding="utf-8")
+    gyms.write_text(GYMS.replace("2024-09-30", "2024-09-29"), encoding="utf-8")
     res = run_import(db, opts)
     db.commit()
     assert res.sets_created == 0 and res.sets_moved == 1  # only the Gym-1 pulldown set moved
@@ -262,7 +262,7 @@ def test_same_as_merges_gym3_into_gym1_and_back(db, env):
     opts, gyms = env
     run_import(db, opts)
     db.commit()
-    merged = GYMS.replace("start: 2026-08-17}", "start: 2026-08-17, same_as: gym1}")
+    merged = GYMS.replace("start: 2026-08-25}", "start: 2026-08-25, same_as: gym1}")
     gyms.write_text(merged, encoding="utf-8")
     res = run_import(db, opts)
     db.commit()
@@ -274,9 +274,9 @@ def test_same_as_merges_gym3_into_gym1_and_back(db, env):
     )
     assert orphan is not None and orphan.deleted_at is not None  # ... as a tombstone, not deleted
     assert "Leg Curl (Machine) @ Gym 1" in names
-    # the 2026-08-17 pulldown now shares Gym 1's variant and ladder
+    # the 2026-08-25 pulldown now shares Gym 1's variant and ladder
     assert names["Lat Pulldown (Cable) @ Gym 1"].weight_ladder == [30.0, 50.0, 60.0]
-    assert _gym_of_session(db, "2026-08-17") == "Gym 1"
+    assert _gym_of_session(db, "2026-08-25") == "Gym 1"
     gym3 = db.scalar(select(Gym).where(Gym.key == "gym3"))
     assert gym3.deleted_at is not None  # retired: nothing refers to it any more
     assert dict(res.sessions_by_gym) == {"Gym 1": 3, "Gym 2": 2}
@@ -327,7 +327,7 @@ def test_override_pins_a_date_to_another_gym():
     by_name = load_gyms_from(OVERRIDE_GYMS.replace("gym: gym2", "gym: Gym 2"))
     assert by_name.resolve(date(2026, 8, 26)).key == "gym2"
     merged = load_gyms_from(
-        OVERRIDE_GYMS.replace("start: 2026-08-17}", "start: 2026-08-17, same_as: gym2}")
+        OVERRIDE_GYMS.replace("start: 2026-08-25}", "start: 2026-08-25, same_as: gym2}")
     )
     assert merged.resolve(date(2026, 8, 26)).key == "gym2"
 
@@ -378,8 +378,8 @@ def test_split_gym_with_new_machines_keeps_separate_variants(db, env):
         "gyms:\n"
         "  - {key: gym1_old, name: Gym 1 (old machines)}\n"
         "  - {key: gym1, name: Gym 1, start: 2024-06-01}\n"
-        "  - {key: gym2, name: Gym 2, start: 2024-09-02}\n"
-        "  - {key: gym3, name: Gym 3, start: 2026-08-17}\n",
+        "  - {key: gym2, name: Gym 2, start: 2024-09-30}\n"
+        "  - {key: gym3, name: Gym 3, start: 2026-08-25}\n",
         encoding="utf-8",
     )
     run_import(db, opts)

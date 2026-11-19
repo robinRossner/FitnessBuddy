@@ -59,9 +59,9 @@ struct CoachRepositoryTests {
         var pending: (Int, String?)?
         repo.onPendingChanged = { pending = ($0, $1) }
         await repo.load(force: true)
-        #expect(repo.proposals.count == 3 && repo.history.count == 9 && repo.settings?.approvalMode == .manual)
+        #expect(repo.proposals.count == 3 && repo.history.count == 8 && repo.settings?.approvalMode == .manual)
         #expect(pending?.0 == 2 && pending?.1 == "3")
-        #expect(repo.activeVersion?.version == "v3.6" && repo.groups.pending.count == 2)
+        #expect(repo.activeVersion?.version == "v3.7" && repo.groups.pending.count == 2)
         #expect(server.queries["GET /api/v1/coach/proposals"]?.contains("limit=100") == true)
         #expect(repo.proposalsFetchedAt != nil && !repo.isOffline && repo.failure == nil)
     }
@@ -72,7 +72,7 @@ struct CoachRepositoryTests {
         await repo.load(force: true)
         repo.transportOverride = ClosureTransport { _, _, _, _ in throw APIError.transport(URLError(.notConnectedToInternet)) }
         await repo.refreshAll()
-        #expect(repo.isOffline && repo.proposals.count == 3 && repo.history.count == 9)
+        #expect(repo.isOffline && repo.proposals.count == 3 && repo.history.count == 8)
         #expect(repo.failure != nil)
     }
 
@@ -93,7 +93,7 @@ struct CoachRepositoryTests {
         var replanned = 0
         repo.afterPlanChange = { replanned += 1 }
         let result = try await repo.approve("abc", changeIds: ["ch1", "ch3"])
-        #expect(result.status == .applied && result.appliedConfigVersion == "v3.6" && result.id == "2")
+        #expect(result.status == .applied && result.appliedConfigVersion == "v3.7" && result.id == "2")
         #expect(server.bodies["POST /api/v1/coach/proposals/abc/approve"] == #"{"change_ids":["ch1","ch3"]}"#)
         #expect(replanned == 1)
         #expect(server.calls.contains("GET /api/v1/coach/history"))  // refreshed afterwards

@@ -13,35 +13,35 @@ struct NewFieldDecodingTests {
     @Test func liftsFixtureCarriesRegionAndProgram() throws {
         let r = try Fixture.decode(LiftsStatsDTO.self, "stats_lifts")
         let first = try #require(r.lifts.first)
-        #expect(first.bodyRegion == "Arms" && first.inProgram == true && first.trend4wPct == 0)
+        #expect(first.bodyRegion == "Arms" && first.inProgram == true && first.trend4wPct == 2.45)
         #expect(r.lifts.filter { $0.inProgram == true }.count > 5)
     }
 
     @Test func volumeFixtureCarriesPlanAndPRs() throws {
         let r = try Fixture.decode(WeeklyVolumeDTO.self, "stats_volume_weekly")
         let last = try #require(r.weeks.last)
-        #expect(last.plannedLiftingSessions == 3 && last.prs == 0 && last.prLifts?.value == 0 && last.liftingSessions == 2)
+        #expect(last.plannedLiftingSessions == 3 && last.prs == 2 && last.prLifts?.value == 2 && last.liftingSessions == 3)
     }
 
     @Test func runningFixtureCarriesKpisAndRunDetail() throws {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
         let k = try #require(r.kpis)
-        #expect(k.vdotCurrent == 44.51 && k.vdot4wAgo == 43.44 && k.vdotChange == 3.0)
+        #expect(k.vdotCurrent == 44.25 && k.vdot4wAgo == 43.55 && k.vdotChange == 0.7)
         #expect(k.vdotSource == "interval_reps" && k.vdotFitCurrent == 41.0)
-        #expect(k.efficiency4wAgo == 1.2982 && k.efficiencyChangePct == -2.51 && k.easyHrDriftFlags4w?.value == 0)
-        #expect(k.runsThisWeek == 1 && k.runsPlannedThisWeek == 3 && k.kmThisWeek == 8.13)
+        #expect(k.efficiency4wAgo == 1.1657 && k.efficiencyChangePct == 0.32 && k.easyHrDriftFlags4w?.value == 0)
+        #expect(k.runsThisWeek == 2 && k.runsPlannedThisWeek == 3 && k.kmThisWeek == 16.4)
         let detail = try #require(r.weekly.last?.runsDetail)
-        #expect(detail.count == 1 && detail[0].type == .long && detail[0].km == 8.13)
-        #expect(r.weekly.last?.runsByType?.value(.long) == 1)
+        #expect(detail.count == 2 && detail[0].type == .easy && detail[0].km == 6.0)
+        #expect(r.weekly.last?.runsByType?.value(.intervals) == 1)
     }
 
     @Test func healthFixtureCarriesReadinessTodayAndSteps() throws {
         let r = try Fixture.decode(HealthStatsDTO.self, "stats_health")
         let rt = try #require(r.readinessToday)
         #expect(rt.headline == "Ready" && rt.level == "green" && rt.metrics.map(\.key) == ["hrv", "rhr", "sleep"])
-        #expect(rt.metrics[0].status == .ok && rt.metrics[0].deltaPct == -3.9 && rt.details.count == 4)
-        #expect(r.days.last?.steps7dAvg == 10871)
-        #expect(r.summary?.steps7dAvg == 10871 && r.summary?.days10kLast7 == 4)
+        #expect(rt.metrics[0].status == .warn && rt.metrics[0].deltaPct == -6.3 && rt.details.count == 4)
+        #expect(r.days.last?.steps7dAvg == 10238)
+        #expect(r.summary?.steps7dAvg == 10238 && r.summary?.days10kLast7 == 3)
     }
 
     @Test func planTodayFixtureCarriesReadinessToday() throws {
@@ -100,9 +100,9 @@ struct ReadinessSummaryTests {
         let s = try #require(ReadinessSummary.make(today: dto, legacy: nil, day: nil))
         #expect(s.level == .green && s.headline == "Ready" && s.metrics.count == 3 && s.details.count == 4)
         let chips = s.metrics.map { "\($0.chipLabel) \($0.chipValue)" }
-        #expect(chips == ["HRV 66 ms", "RHR 53", "Sleep \(Fmt.number(7.4, maxFraction: 1)) h"])
-        #expect(s.metrics[0].chipDelta == MetricDelta(up: false, text: "4%"))
-        #expect(s.metrics[1].chipDelta == MetricDelta(up: true, text: "1"))     // bpm: absolute beats
+        #expect(chips == ["HRV 57 ms", "RHR 55", "Sleep \(Fmt.number(6.9, maxFraction: 1)) h"])
+        #expect(s.metrics[0].chipDelta == MetricDelta(up: false, text: "6%"))
+        #expect(s.metrics[1].chipDelta == MetricDelta(up: true, text: "2"))     // bpm: absolute beats
         #expect(s.metrics[2].chipDelta == nil)                                  // sleep: no delta
     }
 
@@ -292,7 +292,7 @@ struct RunningDashboardTests {
     @Test func vdotTilesShowThePlanVdotAndItsSource() throws {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
         let k = RunStackTransforms.kpis(r)
-        #expect(k.vdotCurrent == 44.51 && k.vdotCurrent == r.vdot.last?.value)   // the chart ends on the headline number
+        #expect(k.vdotCurrent == 44.25 && k.vdotCurrent == r.vdot.last?.value)   // the chart ends on the headline number
         #expect(k.vdotSource == "interval_reps" && k.vdotFit == 41.0)
         // an older backend without the new fields still decodes: no source, no secondary series
         let old = try APICoding.makeDecoder().decode(RunningStatsDTO.self, from: Data(#"{"weekly":[],"vdot":[{"date":"2026-10-01","value":41.0}],"kpis":{"vdot_current":41.0}}"#.utf8))

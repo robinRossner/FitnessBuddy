@@ -24,13 +24,13 @@ struct CoachDecodingTests {
         #expect(list.items.map(\.id) == ["3", "2", "1"])  // string ids, newest first
         #expect(list.items[0].isPending && list.items[0].changes.isEmpty && list.items[0].scheduleChanges.count == 2)
         let applied = list.items[1]
-        #expect(applied.status == .applied && applied.appliedConfigVersion == "v3.6" && applied.confidence == .high)
+        #expect(applied.status == .applied && applied.appliedConfigVersion == "v3.7" && applied.confidence == .high)
         #expect(applied.trigger.type == .ask && applied.trigger.ref == CoachTriggerRefDTO(kind: nil, id: nil))
         #expect(applied.changes[0].status == .applied && applied.changes[0].param == "running.intervals.reps_max")
         #expect(applied.sessionOverrides.isEmpty && applied.costUsd == 0.0971)
         let p = list.items[2]
         #expect(p.status == .pending && p.isPending && p.confidence == .medium && p.trigger.type == .ask)
-        #expect(p.trigger.ref == CoachTriggerRefDTO(kind: "lift", id: "127"))
+        #expect(p.trigger.ref == CoachTriggerRefDTO(kind: "lift", id: "16"))
         #expect(p.createdAt != nil && p.question?.hasPrefix("My triceps extension") == true && p.notesForUser != nil)
         #expect(p.changes.map(\.id) == ["p1", "p2", "p3"] && p.sessionOverrides.count == 1)
         #expect(p.changes[0].from == .array([.number(7), .number(12)]) && p.changes[0].to == .array([.number(8), .number(12)]))
@@ -53,23 +53,23 @@ struct CoachDecodingTests {
     @Test func askAndApproveResponses() throws {
         let ask = try CoachCoding.makeDecoder().decode(CoachProposalDTO.self, from: Fixture.data("coach_ask_response"))
         #expect(ask.status == .queued && ask.id == "1" && ask.diagnosis == nil && ask.confidence == nil && ask.changes.isEmpty)
-        #expect(ask.costUsd == nil && ask.error == nil && ask.trigger.ref?.id == "127" && !ask.isPending)
+        #expect(ask.costUsd == nil && ask.error == nil && ask.trigger.ref?.id == "16" && !ask.isPending)
         let done = try CoachCoding.makeDecoder().decode(CoachProposalDTO.self, from: Fixture.data("coach_approve_response"))
-        #expect(done.status == .applied && done.appliedConfigVersion == "v3.6" && !done.isPending)
+        #expect(done.status == .applied && done.appliedConfigVersion == "v3.7" && !done.isPending)
     }
 
     @Test func historyFixture() throws {
         let h = try CoachCoding.makeDecoder().decode(CoachHistoryDTO.self, from: Fixture.data("coach_history"))
-        #expect(h.versions.map(\.version) == ["v3.6", "v3.5", "v3.4", "v3.3", "v3.2", "v3.1", "v3", "v2", "v1"])
-        let v36 = h.versions[0]
-        #expect(v36.active && v36.author == .advisor && v36.consultationId == "2" && v36.outcome == nil)
-        #expect(v36.diff == [CoachDiffEntryDTO(path: "running.intervals.reps_max", old: .number(6), new: .number(7))])
+        #expect(h.versions.map(\.version) == ["v3.7", "v3.6", "v3.5", "v3.4", "v3.3", "v3.2", "v3.1", "v3"])
+        let v37 = h.versions[0]
+        #expect(v37.active && v37.author == .advisor && v37.consultationId == "2" && v37.outcome == nil)
+        #expect(v37.diff == [CoachDiffEntryDTO(path: "running.intervals.reps_max", old: .number(6), new: .number(7))])
         #expect(h.versions[1].author == .engine)
         let v32 = try #require(h.versions.first { $0.version == "v3.2" })
-        #expect(!v32.active && v32.author == .user && v32.consultationId == nil)
+        #expect(!v32.active && v32.author == .engine && v32.consultationId == nil)
         // sorted, keys intact (snake_case, not converted), null -> number
-        #expect(v32.diff.map(\.path) == ["running.interval_fast_flag_pct", "running.interval_pace_tolerance_pct"])
-        #expect(v32.diff[0].old == .null && v32.diff[0].new == .number(5) && v32.diff[0].changeText == "none → 5 %")
+        #expect(v32.diff.map(\.path) == ["lifting.rest_default_s"])
+        #expect(v32.diff[0].old == .null && v32.diff[0].new == .number(120) && v32.diff[0].changeText == "none → 120 s")
         let v3 = try #require(h.versions.first { $0.version == "v3" })
         #expect(v3.author == .seed && v3.diff.isEmpty && v3.reason == nil)
         #expect(h.versions.filter(\.active).count == 1)

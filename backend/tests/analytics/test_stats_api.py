@@ -1139,14 +1139,14 @@ def _vdot_record(db, day: date, vdot: float, source: str, delta: float, reason: 
 
 
 def test_vdot_series_is_the_engine_state_from_the_decision_log(client, db, world):
-    _vdot_record(db, days_ago(60), 43.44, "initial", 0.0, "initial VDOT 41.0 from the fit")
+    _vdot_record(db, days_ago(60), 42.4, "initial", 0.0, "initial VDOT 42.4 from the fit")
     _vdot_record(
         db,
         days_ago(10),
-        44.51,
+        45.4,
         "interval_reps",
         3.0,
-        "VDOT 41.0 -> 45.1 measured from interval reps",
+        "VDOT 42.4 -> 45.4 measured from interval reps",
     )
     _vdot_record(db, days_ago(3), 45.9, "green_sessions", 0.5, "VDOT 45.4 -> 45.9: 2 passed")
     # junk rows are ignored: no record, other subject
@@ -1160,31 +1160,31 @@ def test_vdot_series_is_the_engine_state_from_the_decision_log(client, db, world
     cache.invalidate()
     body = strict_json(client.get("/api/v1/stats/running?weeks=2"))
     assert [(p["date"], p["value"], p["source"], p["delta"]) for p in body["vdot"]] == [
-        (days_ago(60).isoformat(), 43.44, "initial", 0.0),
-        (days_ago(10).isoformat(), 44.51, "interval_reps", 3.0),
+        (days_ago(60).isoformat(), 42.4, "initial", 0.0),
+        (days_ago(10).isoformat(), 45.4, "interval_reps", 3.0),
         (days_ago(3).isoformat(), 45.9, "green_sessions", 0.5),
     ]  # the whole history, not cut to the 2-week chart window
-    assert body["vdot"][1]["reason"].startswith("VDOT 41.0 -> 45.1 measured from interval reps")
+    assert body["vdot"][1]["reason"].startswith("VDOT 42.4 -> 45.4 measured from interval reps")
     k = body["kpis"]
     assert k["vdot_current"] == 45.9 and k["vdot_source"] == "green_sessions"
-    assert k["vdot_4w_ago"] == 43.44 and k["vdot_change"] == pytest.approx(3.5)
+    assert k["vdot_4w_ago"] == 42.4 and k["vdot_change"] == pytest.approx(3.5)
     assert body["vdot_fit"] and k["vdot_fit_current"] is not None  # secondary, may differ
 
 
 def test_vdot_current_equals_the_engine_state(client, db, world):
     from apps.fitness.engine.store import data as D
 
-    _vdot_record(db, days_ago(20), 43.44, "initial", 0.0, "initial")
-    _vdot_record(db, days_ago(6), 44.51, "interval_reps", 3.0, "measured")
+    _vdot_record(db, days_ago(20), 42.4, "initial", 0.0, "initial")
+    _vdot_record(db, days_ago(6), 45.4, "interval_reps", 3.0, "measured")
     _vdot_record(
-        db, days_ago(6), 44.51, "interval_reps", 3.0, "measured again"
+        db, days_ago(6), 45.4, "interval_reps", 3.0, "measured again"
     )  # idempotent re-run
     db.commit()
     cache.invalidate()
     body = client.get("/api/v1/stats/running").json()
     log = D.load_vdot_log(db)  # what the planner takes as its VDOT state
     assert len(body["vdot"]) == len(log) == 2
-    assert body["kpis"]["vdot_current"] == body["vdot"][-1]["value"] == log[-1].vdot == 44.51
+    assert body["kpis"]["vdot_current"] == body["vdot"][-1]["value"] == log[-1].vdot == 45.4
     assert body["vdot"][-1]["reason"] == "measured again"  # the latest decision of the day wins
 
 

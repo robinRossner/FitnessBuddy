@@ -94,7 +94,7 @@ struct SyncMergeTests {
         #expect(try ctx.fetchCount(FetchDescriptor<CachedVariant>()) == pull.variants.count)
         #expect(try ctx.fetchCount(FetchDescriptor<CachedGym>()) == pull.gyms.count)
         #expect(try ctx.fetchCount(FetchDescriptor<CachedPlannedSession>()) == pull.plannedSessions.count)
-        #expect(SyncState.current(in: ctx).config?.version == "v3.5")
+        #expect(SyncState.current(in: ctx).config?.version == "v3.6")
         // applying the same snapshot again is a no-op
         let stats = try SyncMerge.apply(pull, in: ctx)
         #expect(stats.applied == 0)

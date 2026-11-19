@@ -141,8 +141,8 @@ def rec_v(day: date, v: float, src="initial", delta=0.0) -> V.VdotRecord:
 
 
 def test_first_vdot_record_anchors_the_fit():
-    u = V.update_vdot([], 43.44, VC, today=TODAY)
-    assert u.record.source == "initial" and u.vdot == 43.44
+    u = V.update_vdot([], 42.4, VC, today=TODAY)
+    assert u.record.source == "initial" and u.vdot == 42.4
 
 
 def test_vdot_step_is_capped_at_half_a_point_per_update():

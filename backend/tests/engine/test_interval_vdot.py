@@ -72,7 +72,7 @@ def test_median_rep_pace_is_taken_as_i_pace():
     assert s.median_pace_s_per_km == pytest.approx(249)
     assert s.raw_vdot == pytest.approx(vdot_for_pace(249, FRAC_INTERVAL))
     assert s.discount == 0 and est.vdot == pytest.approx(s.raw_vdot)
-    assert 46.0 < est.vdot < 46.5  # 4:22/km = I pace of VDOT ~46.3
+    assert 46.0 < est.vdot < 46.5  # 4:09/km = I pace of VDOT ~46.3
     assert s.effort == "submaximal" and "sub-maximal" in est.reason
 
 
@@ -154,28 +154,28 @@ def measured(day: date, v: float) -> V.Measured:
 
 
 def test_measured_reps_raise_straight_up_capped_at_max_step():
-    log = [V.VdotRecord(ago(3), 43.44, "initial")]
-    up = V.update_vdot(log, 43.44, VC, today=TODAY, measured=measured(ago(42), 45.8))
+    log = [V.VdotRecord(ago(3), 42.4, "initial")]
+    up = V.update_vdot(log, 42.4, VC, today=TODAY, measured=measured(ago(42), 45.8))
     assert up.record is not None and up.record.source == "interval_reps"
-    assert up.vdot == pytest.approx(44.51) and up.record.delta == pytest.approx(3.0)
+    assert up.vdot == pytest.approx(45.4) and up.record.delta == pytest.approx(3.0)
     assert "measured from interval reps" in up.reason and "capped at +3" in up.reason
-    small = V.update_vdot(log, 43.44, VC, today=TODAY, measured=measured(ago(42), 43.4))
+    small = V.update_vdot(log, 42.4, VC, today=TODAY, measured=measured(ago(42), 43.4))
     assert small.vdot == pytest.approx(43.4)  # beyond max_step / max_per_4w of inference
 
 
 def test_measured_raise_is_idempotent_and_never_oscillates():
-    log = [V.VdotRecord(ago(30), 43.44, "initial")]
-    first = V.update_vdot(log, 43.44, VC, today=TODAY, measured=measured(ago(42), 44.0))
+    log = [V.VdotRecord(ago(30), 42.4, "initial")]
+    first = V.update_vdot(log, 42.4, VC, today=TODAY, measured=measured(ago(42), 44.0))
     assert first.record is not None
     log.append(first.record)
-    again = V.update_vdot(log, 43.44, VC, today=TODAY, measured=measured(ago(42), 44.0))
+    again = V.update_vdot(log, 42.4, VC, today=TODAY, measured=measured(ago(42), 44.0))
     assert again.record is None and again.vdot == pytest.approx(44.0)  # same week
     later = TODAY + timedelta(days=7)
-    decayed = V.update_vdot(log, 43.44, VC, today=later, measured=measured(ago(42), 43.75))
+    decayed = V.update_vdot(log, 42.4, VC, today=later, measured=measured(ago(42), 43.75))
     assert decayed.record is None and decayed.vdot == pytest.approx(44.0)  # never down by age
     # inference rises see the 4-week room used up by the measured jump
     greens = [ago(-2), ago(-5)]
-    inf = V.update_vdot(log, 43.44, VC, today=later, greens=greens, ef_trend_pct=2.0)
+    inf = V.update_vdot(log, 42.4, VC, today=later, greens=greens, ef_trend_pct=2.0)
     assert inf.record is None and "used up" in inf.reason
 
 
