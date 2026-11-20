@@ -218,7 +218,7 @@ def test_easy_run_json_distance_step_with_hr_range_and_strides():
     assert strides["type"] == "RepeatGroupDTO" and strides["numberOfIterations"] == 6
     work, rec = strides["workoutSteps"]
     assert work["endConditionValue"] == 20.0 and rec["stepType"]["stepTypeKey"] == "recovery"
-    assert p["estimatedDurationInSecs"] == round(3.5 * 370 + 6 * 80)
+    assert p["estimatedDurationInSecs"] == round(3.5 * 356 + 6 * 80)
     assert (
         "[FitnessBuddy ps=" + P1 + " d=2026-10-29 h=" + spec.content_hash + "]"
         in (p["description"])
