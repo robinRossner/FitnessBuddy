@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-19T13:38:28.106Z",
+  "generated_at": "2026-11-20T10:52:15.144Z",
   "run": {
-    "id": "83429cc4-68e4-4d14-a1e1-a5f17802d53d",
+    "id": "9ded278e-bac3-4924-9af1-c3219ec99ba8",
     "date": "2026-10-23",
     "type": "intervals",
     "name": "Intervals 6x1000",
@@ -37,9 +37,9 @@
       "avg_pace_s_per_km": 258.7,
       "avg_hr": 169.9,
       "max_hr": 174.0,
-      "target_pace_s_per_km": 274.8,
-      "target_hr_low": 179,
-      "target_hr_high": 189,
+      "target_pace_s_per_km": 289.1,
+      "target_hr_low": 174,
+      "target_hr_high": 185,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -65,9 +65,9 @@
       "avg_pace_s_per_km": 256.8,
       "avg_hr": 168.6,
       "max_hr": 173.0,
-      "target_pace_s_per_km": 274.8,
-      "target_hr_low": 179,
-      "target_hr_high": 189,
+      "target_pace_s_per_km": 289.1,
+      "target_hr_low": 174,
+      "target_hr_high": 185,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -93,9 +93,9 @@
       "avg_pace_s_per_km": 256.9,
       "avg_hr": 169.4,
       "max_hr": 174.0,
-      "target_pace_s_per_km": 274.8,
-      "target_hr_low": 179,
-      "target_hr_high": 189,
+      "target_pace_s_per_km": 289.1,
+      "target_hr_low": 174,
+      "target_hr_high": 185,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -121,9 +121,9 @@
       "avg_pace_s_per_km": 258.6,
       "avg_hr": 169.6,
       "max_hr": 175.0,
-      "target_pace_s_per_km": 274.8,
-      "target_hr_low": 179,
-      "target_hr_high": 189,
+      "target_pace_s_per_km": 289.1,
+      "target_hr_low": 174,
+      "target_hr_high": 185,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -149,9 +149,9 @@
       "avg_pace_s_per_km": 261.4,
       "avg_hr": 169.0,
       "max_hr": 173.0,
-      "target_pace_s_per_km": 274.8,
-      "target_hr_low": 179,
-      "target_hr_high": 189,
+      "target_pace_s_per_km": 289.1,
+      "target_hr_low": 174,
+      "target_hr_high": 185,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -177,9 +177,9 @@
       "avg_pace_s_per_km": 259.1,
       "avg_hr": 170.8,
       "max_hr": 174.0,
-      "target_pace_s_per_km": 274.8,
-      "target_hr_low": 179,
-      "target_hr_high": 189,
+      "target_pace_s_per_km": 289.1,
+      "target_hr_low": 174,
+      "target_hr_high": 185,
       "pace_ok": true,
       "hr_ok": true
     },
@@ -214,12 +214,11 @@
   ],
   "verdict": {
     "passed": true,
-    "summary": "6 reps at 4:19/km, work HR 170: passed easily.",
+    "summary": "6 reps at 4:19/km, work HR 170: passed on pace.",
     "reasons": [
       "6 of 6 reps on pace",
       "last rep +0.1% vs the first",
-      "last rep peaked at 174 bpm: passed easily",
-      "Reps ran ~6% faster than target 4:35/km; the target will catch up via VDOT"
+      "Reps ran ~11% faster than target 4:49/km; the target will catch up via VDOT"
     ]
   }
 }

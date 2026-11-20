@@ -180,7 +180,7 @@ def test_stats_and_ladder(db, options):
     )
     # engine config v2 falls back to 82 kg bodyweight: (82 + 10 added) * (1 + 5/30)
     assert pull_stats.e1rm_basis == "total"
-    assert pull_stats.best_e1rm_kg == round(85 * (1 + 5 / 30), 2)
+    assert pull_stats.best_e1rm_kg == round(92 * (1 + 5 / 30), 2)
 
 
 def test_user_edited_ladder_is_kept(db, options):

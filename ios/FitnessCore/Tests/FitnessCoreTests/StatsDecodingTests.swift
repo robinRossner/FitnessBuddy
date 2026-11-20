@@ -44,17 +44,17 @@ struct StatsDecodingTests {
         #expect(r.weekly.count == 26 && r.efficiency.count == 46 && r.vdot.count == 6 && r.vdotFit.count == 70 && r.intervals.count == 24)
         let step = try #require(r.vdot.last)
         #expect(step.value == 44.25 && step.source == "interval_reps" && step.delta == 0.29 && step.reason?.contains("measured from interval reps") == true)
-        #expect(r.vdot.first?.source == "initial" && r.vdotFit[0].source == nil && r.vdotFit[0].value == 41.0)
-        #expect(r.weekly.last?.timeInZonesS?["z1"] == 2763)
+        #expect(r.vdot.first?.source == "initial" && r.vdotFit[0].source == nil && r.vdotFit[0].value == 37.8)
+        #expect(r.weekly.last?.timeInZonesS?["z1"] == 683)
         #expect(r.efficiency[0].type == "long" && r.efficiency[0].efficiency == 1.1528)
-        #expect(r.intervals[0].passed == true && r.intervals[0].hrInRange == true && r.intervals[0].targetHrLow == 166)
+        #expect(r.intervals[0].passed == true && r.intervals[0].hrInRange == true && r.intervals[0].targetHrLow == 162)
     }
 
     @Test func runAnalysisFixtures() throws {
         let iv = try Fixture.decode(RunAnalysisDTO.self, "stats_run_analysis_intervals")
         #expect(iv.laps.count == 14)
         #expect(iv.laps.filter { $0.kind == .work }.count == 6)
-        #expect(iv.laps[1].paceOk != nil && iv.laps[1].hrOk == true && iv.laps[1].targetHrLow == 179 && iv.laps[1].targetPaceSPerKm != nil)
+        #expect(iv.laps[1].paceOk != nil && iv.laps[1].hrOk == true && iv.laps[1].targetHrLow == 174 && iv.laps[1].targetPaceSPerKm != nil)
         #expect(iv.verdict?.passed == true && (iv.verdict?.reasons.count ?? 0) >= 1)
         #expect(iv.planned == nil)
         let easy = try Fixture.decode(RunAnalysisDTO.self, "stats_run_analysis_easy")

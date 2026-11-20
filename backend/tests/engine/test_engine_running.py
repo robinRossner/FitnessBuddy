@@ -13,7 +13,7 @@ from apps.fitness.settings import FITNESS_DIR
 CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v3.yaml")
 RC = CFG.running_cfg
 RC6 = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml").running_cfg
-ZONES = zones_from_config(CFG)  # easy <= 156, intervals 166-179
+ZONES = zones_from_config(CFG)  # easy <= 152, intervals 162-174
 D = date(2026, 10, 20)
 FLOORS = (98.0, 117.0, 137.0, 156.0, 176.0)  # Garmin zone floors
 
@@ -44,9 +44,9 @@ def test_easy_run_pass():
 
 
 def test_easy_run_fails_on_avg_hr_above_ceiling():
-    r = run([lap(300, 160)] * 4, zones_s={"z1": 0, "z2": 0, "z3": 100, "z4": 1100, "z5": 0})
+    r = run([lap(300, 156)] * 4, zones_s={"z1": 0, "z2": 0, "z3": 100, "z4": 1100, "z5": 0})
     ev = R.evaluate_easy_run(r, ZONES, RC.easy)
-    assert not ev.passed and any("above the easy ceiling 156" in x for x in ev.reasons)
+    assert not ev.passed and any("above the easy ceiling 152" in x for x in ev.reasons)
 
 
 def test_easy_run_fails_on_time_share_even_with_low_average():
@@ -61,12 +61,12 @@ def test_easy_run_fails_on_time_share_even_with_low_average():
 
 def test_fraction_split_uses_laps_when_no_zone_data():
     laps = [lap(330, 150), lap(330, 150), lap(330, 150), lap(300, 165)]
-    frac, src = R.easy_time_fraction(156, None, laps)
+    frac, src = R.easy_time_fraction(152, None, laps)
     assert src == "laps" and frac == pytest.approx(0.75, abs=0.02)
-    assert R.easy_time_fraction(156, None, []) == (None, "none")
+    assert R.easy_time_fraction(152, None, []) == (None, "none")
     r = run(laps, zones_s=None)
     ev = R.evaluate_easy_run(r, ZONES, RC.easy)
-    assert any("at or below 156" in x for x in ev.reasons)
+    assert any("at or below 152" in x for x in ev.reasons)
 
 
 def test_time_share_is_garmins_z1_to_z3_whatever_the_bpm_cap():

@@ -64,8 +64,8 @@ def _best(db, variant: str) -> dict[str, float | None]:
 
 def test_config_fallback_when_no_measurements(imported):
     assert _best(imported, "Pull Up") == {
-        "2024-01-10": pytest.approx(85 * (1 + 5 / 30), abs=0.01),
-        "2025-01-10": pytest.approx(85 * (1 + 5 / 30), abs=0.01),
+        "2024-01-10": pytest.approx(92 * (1 + 5 / 30), abs=0.01),
+        "2025-01-10": pytest.approx(92 * (1 + 5 / 30), abs=0.01),
     }
 
 

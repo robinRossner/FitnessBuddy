@@ -88,11 +88,11 @@ def lap(pace, hr, dist=1000, intensity=None):
     return R.LapData(pace * dist / 1000, dist, hr, hr + 5, intensity)
 
 
-def interval_run(day: date, reps=5, hr=166) -> R.RunData:
-    laps = [lap(311, 142, 1000, "warmup")]
+def interval_run(day: date, reps=5, hr=162) -> R.RunData:
+    laps = [lap(311, 138, 1000, "warmup")]
     for _ in range(reps):
-        laps += [lap(250, hr, 1000, "active"), lap(370, 150, 400, "recovery")]
-    laps[-1] = lap(305, 155, 1000, "cooldown")
+        laps += [lap(250, hr, 1000, "active"), lap(370, 146, 400, "recovery")]
+    laps[-1] = lap(305, 151, 1000, "cooldown")
     return run_from(day, laps, "5x1000 intervals")
 
 
@@ -271,7 +271,7 @@ def test_a_missed_quality_session_is_repeated_and_the_phase_waits():
 def test_easy_run_has_strides_and_phase_fields():
     plan = generate_week(inputs())
     easy = day_of(plan, "wed_easy_run").prescription
-    assert easy["hr"]["high"] == 156 and easy["hr"]["low"] == 127 and easy["distance_km"] == 7
+    assert easy["hr"]["high"] == 152 and easy["hr"]["low"] == 124 and easy["distance_km"] == 7
     assert (
         easy["structure"]["strides"]["reps"] == 6
         and easy["structure"]["strides"]["duration_s"] == 20
@@ -283,7 +283,7 @@ def test_easy_run_has_strides_and_phase_fields():
     assert easy["structure"]["strides"]["est_km"] == round(est, 1) and 1.0 < est < 2.0
     assert easy["last_easy_run"]["passed"] is True
     long = day_of(plan, "sun_long_run").prescription
-    assert long["distance_km"] >= 10 and long["hr"]["high"] == 156
+    assert long["distance_km"] >= 10 and long["hr"]["high"] == 152
     assert long["progression_note"] and long["step_back"] is False
 
 
@@ -360,7 +360,7 @@ def test_yellow_converts_the_quality_session_to_easy_plus_strides():
     )
     day = day_of(p, "fri_intervals")
     assert day.kind == "easy_run" and day.prescription["converted_from"]["kind"] == "intervals"
-    assert "easy + strides" in day.adjustments[0] and day.prescription["hr"]["high"] == 156
+    assert "easy + strides" in day.adjustments[0] and day.prescription["hr"]["high"] == 152
     assert day.prescription["structure"]["strides"]["reps"] == 6
 
 

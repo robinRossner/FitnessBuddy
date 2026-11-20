@@ -645,8 +645,8 @@
               "distance_km": 3.0,
               "hr": {
                 "basis": "lthr",
-                "high": 156,
-                "low": 127,
+                "high": 152,
+                "low": 124,
                 "zone": "Z1-Z2"
               },
               "last_easy_run": {
@@ -656,7 +656,7 @@
                 "decoupling_pct": 0.0,
                 "efficiency": 1.28,
                 "exempt": false,
-                "hr_ceiling": 156,
+                "hr_ceiling": 152,
                 "km": 6.0,
                 "notes": [],
                 "passed": true,
@@ -670,12 +670,12 @@
                 "max_s_per_km": 376,
                 "min_s_per_km": 314,
                 "note": "HR leads: slow down if HR passes the ceiling",
-                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
               },
               "phase": "threshold",
               "phase_week": 2,
               "progression_note": "easy 3 km incl. 6 x 20 s strides",
-              "reason": "easy run below 156 bpm (lthr-based ceiling)",
+              "reason": "easy run below 152 bpm (lthr-based ceiling)",
               "structure": {
                 "strides": {
                   "duration_s": 20,
@@ -696,8 +696,8 @@
               "distance_km": 3.0,
               "hr": {
                 "basis": "lthr",
-                "high": 156,
-                "low": 127,
+                "high": 152,
+                "low": 124,
                 "zone": "Z1-Z2"
               },
               "last_easy_run": {
@@ -707,7 +707,7 @@
                 "decoupling_pct": 0.0,
                 "efficiency": 1.28,
                 "exempt": false,
-                "hr_ceiling": 156,
+                "hr_ceiling": 152,
                 "km": 6.0,
                 "notes": [],
                 "passed": true,
@@ -721,12 +721,12 @@
                 "max_s_per_km": 376,
                 "min_s_per_km": 314,
                 "note": "HR leads: slow down if HR passes the ceiling",
-                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
               },
               "phase": "threshold",
               "phase_week": 2,
               "progression_note": "easy 3 km incl. 6 x 20 s strides",
-              "reason": "easy run below 156 bpm (lthr-based ceiling)",
+              "reason": "easy run below 152 bpm (lthr-based ceiling)",
               "structure": {
                 "strides": {
                   "duration_s": 20,
@@ -1148,8 +1148,8 @@
                   "distance_km": 1.0,
                   "hr": {
                     "basis": "lthr",
-                    "high": 156,
-                    "low": 127,
+                    "high": 152,
+                    "low": 124,
                     "zone": "Z1-Z2"
                   }
                 },
@@ -1157,8 +1157,8 @@
                   "distance_m": 1000,
                   "duration_s": 273,
                   "hr": {
-                    "high": 173,
-                    "low": 166,
+                    "high": 169,
+                    "low": 162,
                     "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
                     "zone": "Z4"
                   },
@@ -1206,8 +1206,8 @@
                   "distance_km": 1.0,
                   "hr": {
                     "basis": "lthr",
-                    "high": 156,
-                    "low": 127,
+                    "high": 152,
+                    "low": 124,
                     "zone": "Z1-Z2"
                   }
                 },
@@ -1215,8 +1215,8 @@
                   "distance_m": 1000,
                   "duration_s": 273,
                   "hr": {
-                    "high": 173,
-                    "low": 166,
+                    "high": 169,
+                    "low": 162,
                     "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
                     "zone": "Z4"
                   },
@@ -1295,8 +1295,8 @@
               "distance_km": 3.0,
               "hr": {
                 "basis": "lthr",
-                "high": 156,
-                "low": 127,
+                "high": 152,
+                "low": 124,
                 "zone": "Z1-Z2"
               },
               "pace": {
@@ -1305,7 +1305,7 @@
                 "max_s_per_km": 376,
                 "min_s_per_km": 314,
                 "note": "HR leads",
-                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
               },
               "phase": "threshold",
               "phase_week": 2,
@@ -1327,8 +1327,8 @@
               "distance_km": 3.0,
               "hr": {
                 "basis": "lthr",
-                "high": 156,
-                "low": 127,
+                "high": 152,
+                "low": 124,
                 "zone": "Z1-Z2"
               },
               "pace": {
@@ -1337,7 +1337,7 @@
                 "max_s_per_km": 376,
                 "min_s_per_km": 314,
                 "note": "HR leads",
-                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
               },
               "phase": "threshold",
               "phase_week": 2,
@@ -1755,8 +1755,8 @@
               "distance_km": 3.0,
               "hr": {
                 "basis": "lthr",
-                "high": 156,
-                "low": 127,
+                "high": 152,
+                "low": 124,
                 "zone": "Z1-Z2"
               },
               "last_easy_run": {
@@ -1766,7 +1766,7 @@
                 "decoupling_pct": 0.0,
                 "efficiency": 1.28,
                 "exempt": false,
-                "hr_ceiling": 156,
+                "hr_ceiling": 152,
                 "km": 6.0,
                 "notes": [],
                 "passed": true,
@@ -1780,12 +1780,12 @@
                 "max_s_per_km": 376,
                 "min_s_per_km": 314,
                 "note": "HR leads: slow down if HR passes the ceiling",
-                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
               },
               "phase": "threshold",
               "phase_week": 2,
               "progression_note": "easy 3 km incl. 6 x 20 s strides",
-              "reason": "easy run below 156 bpm (lthr-based ceiling)",
+              "reason": "easy run below 152 bpm (lthr-based ceiling)",
               "structure": {
                 "strides": {
                   "duration_s": 20,
@@ -2061,8 +2061,8 @@
                   "distance_km": 2.0,
                   "hr": {
                     "basis": "lthr",
-                    "high": 156,
-                    "low": 127,
+                    "high": 152,
+                    "low": 124,
                     "zone": "Z1-Z2"
                   }
                 },
@@ -2070,8 +2070,8 @@
                   "distance_m": 1000,
                   "duration_s": 273,
                   "hr": {
-                    "high": 173,
-                    "low": 166,
+                    "high": 169,
+                    "low": 162,
                     "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
                     "zone": "Z4"
                   },
@@ -2156,8 +2156,8 @@
               "distance_km": 3.5,
               "hr": {
                 "basis": "lthr",
-                "high": 156,
-                "low": 127,
+                "high": 152,
+                "low": 124,
                 "zone": "Z1-Z2"
               },
               "pace": {
@@ -2166,7 +2166,7 @@
                 "max_s_per_km": 376,
                 "min_s_per_km": 314,
                 "note": "HR leads",
-                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+                "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
               },
               "phase": "threshold",
               "phase_week": 2,

@@ -83,8 +83,8 @@ def test_best_hold():
 
 def test_bodyweight_loaded_uses_bodyweight_plus_added():
     ctx = E1RMContext("bodyweight", "total", True, bodyweight_kg=82)
-    assert set_e1rm(0, 10, "working", ctx) == (pytest.approx(100.0), "total")
-    assert set_e1rm(20, 5, "working", ctx) == (pytest.approx(110.83, abs=0.01), "total")
+    assert set_e1rm(0, 10, "working", ctx) == (pytest.approx(109.33, abs=0.01), "total")
+    assert set_e1rm(20, 5, "working", ctx) == (pytest.approx(119.0, abs=0.01), "total")
     # not bodyweight-loaded (weighted crunch): only the added plate counts
     plate = E1RMContext("bodyweight", "total", True, bodyweight_kg=82, bodyweight_loaded=False)
     assert set_e1rm(10, 10, "working", plate) == (pytest.approx(13.33, abs=0.01), "added_weight")
@@ -94,11 +94,11 @@ def test_bodyweight_loaded_uses_bodyweight_plus_added():
 def test_assistance_is_bodyweight_minus_assistance():
     machine = E1RMContext("machine_stack", "assistance", True, bodyweight_kg=82)
     assert set_e1rm(20, 8, "working", machine) == (
-        pytest.approx(55 * (1 + 8 / 30), abs=0.01),
+        pytest.approx(62 * (1 + 8 / 30), abs=0.01),
         "total",
     )
     assert set_e1rm(0, 8, "working", machine) is not None  # no help = full bodyweight
-    assert set_e1rm(75, 8, "working", machine) is None  # more help than bodyweight
+    assert set_e1rm(82, 8, "working", machine) is None  # more help than bodyweight
     band = E1RMContext("bodyweight", "assistance", True, bodyweight_kg=82)
     assert set_e1rm(5, 10, "working", band) is None  # band level 5, not 5 kg: no e1RM
     assert set_e1rm(0, 10, "working", band) is None

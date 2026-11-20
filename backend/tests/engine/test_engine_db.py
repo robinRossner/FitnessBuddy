@@ -934,7 +934,7 @@ def test_plan_today_and_week_preview_then_stored(client, db, program, settings):
     first = stored["days"][0]["sessions"][0]
     assert first["status"] == "proposed" and first["id"] and first["slot_id"] == "mon_upper"
     iv = stored["days"][4]["sessions"][0]["session"]
-    assert iv["type"] == "intervals" and iv["structure"]["work"]["hr"]["low"] == 166
+    assert iv["type"] == "intervals" and iv["structure"]["work"]["hr"]["low"] == 162
 
 
 def test_readiness_endpoint(client):

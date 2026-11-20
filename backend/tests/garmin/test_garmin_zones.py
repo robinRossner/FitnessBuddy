@@ -59,7 +59,7 @@ def test_floors_set_the_easy_target_and_quality_stays_on_lthr():
     z = zones_from_config(CFG, NEW)
     assert z.source == "garmin" and z.easy_basis == "garmin"
     assert (z.easy_low, z.easy_high) == (121, 150)
-    assert (z.interval_low, z.interval_high) == (166, 179)
+    assert (z.interval_low, z.interval_high) == (162, 174)
     assert [(x.name, x.low, x.high) for x in z.zones] == [
         ("z1", 0, 120),
         ("z2", 121, 129),
@@ -67,7 +67,7 @@ def test_floors_set_the_easy_target_and_quality_stays_on_lthr():
         ("z4", 151, 171),
         ("z5", 172, 190),
     ]
-    assert z.lthr == 171 and z.z5_low == 174  # hard efforts are judged on LTHR's Z5
+    assert z.lthr == 171 and z.z5_low == 170  # hard efforts are judged on LTHR's Z5
     assert z.zone_of(150) == "z3" and z.zone_of(151) == "z4"
     assert z.as_dict()["source"] == "garmin"
 
@@ -83,8 +83,8 @@ def test_planned_sessions_use_the_latest_floors():
     assert st["session_type"] == "threshold"
     assert (st["work"]["hr"]["zone"], st["work"]["hr"]["low"], st["work"]["hr"]["high"]) == (
         "Z4",
-        166,
-        173,
+        162,
+        169,
     )
     assert st["warmup"]["hr"]["high"] == 150
     assert plan.zones["easy"]["high"] == 150
@@ -93,24 +93,24 @@ def test_planned_sessions_use_the_latest_floors():
 def test_vo2_and_5k_work_target_stays_on_lthr():
     assert _hr(H.garmin_zones(HR_CFG, NEW), "intervals") == {
         "zone": "Z4-Z5a",
-        "low": 166,
-        "high": 179,
+        "low": 162,
+        "high": 174,
     }
 
 
 def test_without_floors_the_targets_stay_on_lthr():
     z = zones_from_config(CFG)
-    assert z.source == "lthr" and (z.easy_low, z.easy_high) == (127, 156)
-    assert z.z5_low == 174
+    assert z.source == "lthr" and (z.easy_low, z.easy_high) == (124, 152)
+    assert z.z5_low == 170
     plan = generate_week(inputs())
     easy = next(d for d in plan.days if d.kind == "easy_run").prescription
-    assert easy["hr"] == {"zone": "Z1-Z2", "low": 127, "high": 156, "basis": "lthr"}
+    assert easy["hr"] == {"zone": "Z1-Z2", "low": 124, "high": 152, "basis": "lthr"}
 
 
 def test_a_manual_config_ignores_garmin_floors():
     cfg = manual_cfg()
-    assert zones_from_config(cfg, NEW).easy_high == 156
-    assert zone_book(cfg, NEW).for_run(run_on(MON, NEW)).easy_high == 156
+    assert zones_from_config(cfg, NEW).easy_high == 152
+    assert zone_book(cfg, NEW).for_run(run_on(MON, NEW)).easy_high == 152
 
 
 # ------------------------------------------------------------------- validating the floors
@@ -129,8 +129,8 @@ def test_a_manual_config_ignores_garmin_floors():
 )
 def test_invalid_floors_fall_back_to_lthr(floors):
     assert not H.valid_floors(floors, 190)
-    assert zones_from_config(CFG, floors).easy_high == 156
-    assert zone_book(CFG, floors).for_run(run_on(MON, floors)).easy_high == 156
+    assert zones_from_config(CFG, floors).easy_high == 152
+    assert zone_book(CFG, floors).for_run(run_on(MON, floors)).easy_high == 152
 
 
 def test_invalid_floors_warn_once_and_never_crash(caplog, monkeypatch):
@@ -141,7 +141,7 @@ def test_invalid_floors_warn_once_and_never_crash(caplog, monkeypatch):
             zones_from_config(CFG, PERCENT)
     assert sum("ignoring Garmin zone floors" in r.message for r in caplog.records) == 1
     plan = generate_week(inputs(zone_floors=PERCENT))
-    assert plan.zones["easy"]["high"] == 156
+    assert plan.zones["easy"]["high"] == 152
 
 
 def test_percent_floors_are_not_rebinned_as_bpm():
@@ -171,13 +171,13 @@ def test_a_run_keeps_the_ceiling_of_its_own_floors():
 
 
 def test_runs_before_garmin_zones_were_adopted_keep_the_lthr_ceiling():
-    """The engine targeted 156 back then; Garmin's floors of that time would give 155."""
+    """The engine targeted 152 back then; Garmin's floors of that time would give 155."""
     book = zone_book(CFG, NEW)
     day = GARMIN_ZONES_SINCE - timedelta(days=1)
-    run = run_on(day, OLD, hr=156)
-    assert book.for_run(run).easy_high == 156
+    run = run_on(day, OLD, hr=152)
+    assert book.for_run(run).easy_high == 152
     ev = R.evaluate_easy_run(run, book.for_run(run), CFG.running_cfg.easy)
-    assert ev.passed and ev.hr_ceiling == 156
+    assert ev.passed and ev.hr_ceiling == 152
     assert book.for_run(run_on(GARMIN_ZONES_SINCE, OLD)).easy_high == 155
 
 
@@ -206,7 +206,11 @@ def test_interval_effort_is_judged_on_lthr_whatever_the_floors():
     book = zone_book(CFG, NEW)
     cfg = CFG.running_cfg.vdot.from_intervals
     today = MON + timedelta(days=1)
-    for hr, effort in ((173, "submaximal"), (174, "maximal")):  # Garmin's Z5 would start at 172
+    for hr, effort in (
+        (169, "submaximal"),
+        (170, "maximal"),
+    ):
+        # LTHR's Z5 starts at 170; Garmin's at 172
         run = replace(interval_run(MON, reps=5, hr=hr), zone_floors=NEW)
         best = IV.estimate_from_reps([run], book.current, cfg, today=today, zones_of=book.for_run)
         assert best.best.effort == effort

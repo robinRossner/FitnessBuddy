@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-19T13:38:28.119Z",
+  "generated_at": "2026-11-20T10:52:15.158Z",
   "run": {
-    "id": "a83acbea-3ba5-4010-a3e0-137df269d4ea",
+    "id": "e6609ed2-c038-4965-84a0-dc6a8af2524a",
     "date": "2026-10-21",
     "type": "easy",
     "name": "Easy run",
@@ -24,8 +24,8 @@
       "avg_hr": 146.3,
       "max_hr": 150.0,
       "target_pace_s_per_km": null,
-      "target_hr_low": 127,
-      "target_hr_high": 156,
+      "target_hr_low": 124,
+      "target_hr_high": 152,
       "pace_ok": null,
       "hr_ok": true
     },
@@ -38,8 +38,8 @@
       "avg_hr": 145.1,
       "max_hr": 151.0,
       "target_pace_s_per_km": null,
-      "target_hr_low": 127,
-      "target_hr_high": 156,
+      "target_hr_low": 124,
+      "target_hr_high": 152,
       "pace_ok": null,
       "hr_ok": true
     },
@@ -52,8 +52,8 @@
       "avg_hr": 147.9,
       "max_hr": 151.0,
       "target_pace_s_per_km": null,
-      "target_hr_low": 127,
-      "target_hr_high": 156,
+      "target_hr_low": 124,
+      "target_hr_high": 152,
       "pace_ok": null,
       "hr_ok": true
     },
@@ -66,8 +66,8 @@
       "avg_hr": 146.3,
       "max_hr": 149.0,
       "target_pace_s_per_km": null,
-      "target_hr_low": 127,
-      "target_hr_high": 156,
+      "target_hr_low": 124,
+      "target_hr_high": 152,
       "pace_ok": null,
       "hr_ok": true
     },
@@ -80,8 +80,8 @@
       "avg_hr": 141.5,
       "max_hr": 144.0,
       "target_pace_s_per_km": null,
-      "target_hr_low": 127,
-      "target_hr_high": 156,
+      "target_hr_low": 124,
+      "target_hr_high": 152,
       "pace_ok": null,
       "hr_ok": true
     },
@@ -94,8 +94,8 @@
       "avg_hr": 146.3,
       "max_hr": 151.0,
       "target_pace_s_per_km": null,
-      "target_hr_low": 127,
-      "target_hr_high": 156,
+      "target_hr_low": 124,
+      "target_hr_high": 152,
       "pace_ok": null,
       "hr_ok": true
     }
@@ -104,7 +104,7 @@
     "passed": true,
     "summary": "Easy run: avg HR 146, 100% in Garmin Z1-Z3: passed.",
     "reasons": [
-      "avg HR 146 within the easy ceiling 156",
+      "avg HR 146 within the easy ceiling 152",
       "100% of the time in Garmin Z1-Z3"
     ]
   }

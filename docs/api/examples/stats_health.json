@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T13:38:28.126Z",
+  "generated_at": "2026-11-20T10:52:15.165Z",
   "days": [
     {
       "date": "2026-07-28",
@@ -1546,7 +1546,7 @@
       "steps_7d_avg": 10263.0,
       "readiness": {
         "level": "green",
-        "reason": "all signals normal: HRV 66 ms (±0% vs 66 baseline), resting HR 53 (+1 vs 52), sleep 8.2 h, score 84"
+        "reason": "all signals normal: HRV 66 ms (±0% vs 66 baseline), resting HR 53 (+1 vs 52), sleep 8.2 h, score 90"
       }
     },
     {

@@ -26,7 +26,7 @@ def test_engine_config_values():
     hr = CONFIG.running["heart_rate"]
     assert hr["max_hr"] == 192 and hr["lthr"] is None
     assert hr["easy_hr_max"] == int(0.80 * 192) == 153
-    assert hr["easy_hr_target_low"] == 128
+    assert hr["easy_hr_target_low"] == 125
     assert CONFIG.weekly_template["fri"] == "intervals"
 
 

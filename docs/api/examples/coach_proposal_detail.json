@@ -1,6 +1,6 @@
 {
   "id": "1",
-  "created_at": "2026-11-19T13:38:26.001Z",
+  "created_at": "2026-11-20T10:52:12.983Z",
   "status": "pending",
   "trigger": {
     "type": "ask",
@@ -1124,7 +1124,7 @@
           "capped": false,
           "quality_vdot": 44.25,
           "range": "5:24-6:28",
-          "reason": "Daniels easy pace for VDOT 44.2: your 6 easy runs of 28 days at HR <= 154 (5:46-6:05/km, median 5:57) fit it",
+          "reason": "Daniels easy pace for VDOT 44.2: your 6 easy runs of 28 days at HR <= 150 (5:46-6:05/km, median 5:57) fit it",
           "vdot": 44.25
         },
         "long_run": {
@@ -1147,7 +1147,7 @@
         "vdot": {
           "day": "2026-10-19",
           "delta": 0.29,
-          "reason": "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 44.3: VDOT 44.3",
+          "reason": "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 170: sub-maximal, so your I pace is at least this) = I pace of VDOT 44.3: VDOT 44.3",
           "source": "interval_reps",
           "vdot": 44.25
         },
@@ -1537,210 +1537,210 @@
     ],
     "rules": [
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:stagnation",
         "2026-10-26",
         "aerobic efficiency +0.3% vs the previous 4 weeks"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "quality:hold",
         "fri_intervals",
         "last session on pace but the HR peaked above the ceiling: same session"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "stall:advisor",
         "Bicep Curl (Dumbbell)",
         "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stalled again after a -5% reset: the coach proposes a rep range change or a variation; same lo"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "retest",
         "Bench Press (Barbell)",
         "retest 77.5 kg after the deload: beat 11/9/8"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:weekly_volume_cap",
         "2026-10-26",
         "4-week mean 26.4 km -> cap max(26.4 x 1.1, 26.4 + 2, hold 16.4) = 29.04 km; hold: last week ran 16.4 km, held up to 16.4 km (limit 1.1 x the highest of the 4 we"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:quality_phase",
         "2026-10-26",
         "threshold week 9/12 (cycle 1): threshold session"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:stagnation",
         "2026-10-19",
         "aerobic efficiency +0.3% vs the previous 4 weeks"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:weekly_volume_cap",
         "2026-10-19",
         "4-week mean 30.65 km -> cap max(30.65 x 1.1, 30.65 + 2, hold 32.4) = 33.72 km; hold: last week ran 32.4 km, held up to 32.4 km (limit 1.1 x the highest of the 4"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:quality_phase",
         "2026-10-19",
         "threshold week 8/12 (cycle 1): threshold session"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Bicep Curl (Dumbbell)",
         "deload week (several lifts stalled together): 1 of 2 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Triceps Extension (Cable)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Lateral Raise (Cable)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Seated Row (Cable)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Seated Overhead Press (Dumbbell)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Pull Up",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Bench Press (Barbell)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 77.5 kg after the deload (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Cable Crunch",
         "deload week (several lifts stalled together): 1 of 2 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Standing Calf Raise (Machine)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Leg Extension (Machine)",
         "deload week (several lifts stalled together): 1 of 2 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Lying Leg Curl (Machine)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Romanian Deadlift (Barbell)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "deload:multi_lift_stall",
         "Squat (Smith Machine)",
         "deload week (several lifts stalled together): 2 of 3 sets, same load (2026-10-19 .. 2026-10-25)"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "deload",
         "deload:multi_lift_stall",
         "2026-10-19",
         "4 lifts stalled within 14 days (Bench Press (Barbell)): no per-lift resets; soft deload 2026-10-19 .. 2026-10-25 (sets halved, loads kept), then a retest of the"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:vdot",
         "2026-10-19",
-        "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 174: sub-maximal, so your I pace is at least this) ="
+        "VDOT 44.0 -> 44.2 measured from interval reps: 6 x 1000 m on 2026-10-16 at 4:18/km (avg rep HR 169 below Z5 170: sub-maximal, so your I pace is at least this) ="
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "running",
         "running:stagnation",
         "2026-10-12",
         "aerobic efficiency +0.2% vs the previous 4 weeks"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "double_progression:hold_noise",
         "Bicep Curl (Dumbbell)",
         "1 rep fewer than last time: noise, same target"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "double_progression:decrease_load",
         "Triceps Extension (Cable)",
         "8 reps fewer than last time at 27.5 kg -> 25 kg and rebuild"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "stall:advisor",
         "Seated Row (Cable)",
         "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stalled again after a -5% reset: the coach proposes a rep range change or a variation; same lo"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "stall:reset_small",
         "Seated Overhead Press (Dumbbell)",
         "no progress (load, reps or e1RM +1%) in 4 or more clean sessions; stall ladder step 1: -5% to 20 kg, rebuild"
       ],
       [
-        "2026-11-19",
+        "2026-11-20",
         "progression",
         "double_progression:decrease_load",
         "Bench Press (Barbell)",
@@ -1989,7 +1989,7 @@
               "2026-10-23",
               "intervals",
               "done",
-              8.3,
+              7.0,
               null
             ],
             [
@@ -2029,7 +2029,7 @@
               "2026-10-28",
               "easy_run",
               "proposed",
-              3.5,
+              5.0,
               null
             ],
             [
@@ -2043,7 +2043,7 @@
               "2026-10-30",
               "intervals",
               "proposed",
-              8.3,
+              7.0,
               null
             ],
             [
@@ -2106,8 +2106,8 @@
       {
         "date": "2026-10-28",
         "kind": "easy_run",
-        "km": 3.5,
-        "title": "Easy run 3.5 km"
+        "km": 5.0,
+        "title": "Easy run 5 km"
       },
       {
         "date": "2026-10-29",
@@ -2141,8 +2141,8 @@
             "distance_km": 2.0,
             "hr": {
               "basis": "lthr",
-              "high": 156,
-              "low": 127,
+              "high": 152,
+              "low": 124,
               "zone": "Z1-Z2"
             }
           },
@@ -2150,8 +2150,8 @@
             "distance_m": 1000.0,
             "duration_s": 282,
             "hr": {
-              "high": 173,
-              "low": 166,
+              "high": 169,
+              "low": 162,
               "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
               "zone": "Z4"
             },
@@ -2162,10 +2162,10 @@
             ],
             "pace_s_per_km": 282,
             "pace_tolerance_pct": 3.0,
-            "reps": 4
+            "reps": 3
           }
         },
-        "title": "Threshold 4x1000 m @ 4:42"
+        "title": "Threshold 3x1000 m @ 4:42"
       },
       {
         "date": "2026-10-31",

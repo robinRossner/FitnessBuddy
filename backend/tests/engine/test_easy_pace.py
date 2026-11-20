@@ -15,7 +15,7 @@ from apps.fitness.engine.core.pace import FRAC_EASY_FAST, easy_range_for_vdot, v
 from apps.fitness.engine.core.planner import PlanInputs, generate_week
 from tests.support.db import alembic_config
 
-CAL = EasyCalibrationConfig()  # window 28 d, 3 runs, >= 25 min, HR <= 154, +4 VDOT max
+CAL = EasyCalibrationConfig()  # window 28 d, 3 runs, >= 25 min, HR <= 150, +4 VDOT max
 TODAY = date(2026, 10, 28)
 Q_VDOT = 42.0
 
@@ -24,7 +24,7 @@ def lap(pace: float, hr: float, dist: float = 1000) -> R.LapData:
     return R.LapData(pace * dist / 1000, dist, hr, hr + 6)
 
 
-def run(day: date, pace: float = 320, hr: float = 150, km: int = 8, **kw) -> R.RunData:
+def run(day: date, pace: float = 320, hr: float = 146, km: int = 8, **kw) -> R.RunData:
     laps = kw.pop("laps", None) or [lap(pace, hr) for _ in range(km)]
     dist = sum(x.distance_m for x in laps)
     dur = sum(x.duration_s for x in laps)
@@ -45,7 +45,7 @@ def calibrate(engine_config: EngineConfig):
 
 
 def zones(cfg: EngineConfig):
-    return zones_from_config(cfg)  # easy ceiling 156 (LTHR 171)
+    return zones_from_config(cfg)  # easy ceiling 152 (LTHR 171)
 
 
 def easy(cfg: EngineConfig):
@@ -62,19 +62,19 @@ def days_ago(n: int) -> date:
 def test_only_steady_genuinely_easy_runs_qualify(engine_config):
     interval = run(
         days_ago(3),
-        laps=[lap(330, 140), lap(250, 150), lap(380, 140, 400), lap(250, 150), lap(330, 140)],
+        laps=[lap(330, 136), lap(250, 146), lap(380, 136, 400), lap(250, 146), lap(330, 136)],
         title="5x1000 intervals",
     )
-    hot_share = run(days_ago(4), laps=[lap(320, 140)] * 3 + [lap(320, 165)] * 2)  # avg 150
-    drift = run(days_ago(5), laps=[lap(320, 140)] * 4 + [lap(320, 156)] * 4)  # avg 148, ~10 %
+    hot_share = run(days_ago(4), laps=[lap(320, 136)] * 3 + [lap(320, 161)] * 2)  # avg 150
+    drift = run(days_ago(5), laps=[lap(320, 136)] * 4 + [lap(320, 152)] * 4)  # avg 148, ~10 %
     runs = [
         run(days_ago(1)),  # counts
-        run(days_ago(2), hr=155),  # avg HR above 156 - 2
+        run(days_ago(2), hr=151),  # avg HR above 152 - 2
         interval,
         hot_share,  # only 60 % of the time <= 156
         drift,
         run(days_ago(6), km=4),  # 21 min < 25 min
-        run(days_ago(7), laps=[lap(320, 150, 3000)] * 3),  # 3 laps: no decoupling
+        run(days_ago(7), laps=[lap(320, 146, 3000)] * 3),  # 3 laps: no decoupling
         run(days_ago(8), elevation_gain_m=400),  # 50 m/km
         run(days_ago(9)),  # a quality-session day
         run(days_ago(28)),  # outside the 28-day window (not counted at all)
@@ -100,7 +100,7 @@ def test_only_steady_genuinely_easy_runs_qualify(engine_config):
 
 
 def test_an_hr_fail_never_counts_even_if_the_plan_would_exempt_it(engine_config):
-    hot = run(days_ago(1), laps=[lap(320, 140)] * 3 + [lap(320, 165)] * 2)
+    hot = run(days_ago(1), laps=[lap(320, 136)] * 3 + [lap(320, 161)] * 2)
     samples, skipped = EP.qualifying_runs(
         [hot], zones(engine_config), easy(engine_config), CAL, today=TODAY
     )
@@ -111,8 +111,8 @@ def test_an_hr_fail_never_counts_even_if_the_plan_would_exempt_it(engine_config)
 
 
 def test_median_pace_becomes_the_fast_end_of_the_easy_range(calibrate):
-    runs = [run(days_ago(19), 336, 154), run(days_ago(17), 311, 152), run(days_ago(13), 322, 145)]
-    runs.append(run(days_ago(6), 320, 151))
+    runs = [run(days_ago(19), 336, 150), run(days_ago(17), 311, 148), run(days_ago(13), 322, 141)]
+    runs.append(run(days_ago(6), 320, 147))
     cal = calibrate(runs)
     assert cal.calibrated and cal.basis == "calibrated" and not cal.capped
     assert cal.median_pace_s_per_km == 321  # median of 311, 320, 322, 336
@@ -120,7 +120,7 @@ def test_median_pace_becomes_the_fast_end_of_the_easy_range(calibrate):
     assert round(cal.easy_range().min_s_per_km) == 321
     assert Q_VDOT < cal.vdot <= Q_VDOT + CAL.max_vdot_gain
     assert cal.quality_vdot == Q_VDOT
-    assert cal.reason.startswith("Easy pace from your 4 easy runs of 28 days at HR <= 154")
+    assert cal.reason.startswith("Easy pace from your 4 easy runs of 28 days at HR <= 150")
     assert "5:11-5:36/km, median 5:21" in cal.reason and "42.0 for quality sessions" in cal.reason
     assert [s["date"] for s in cal.as_dict()["runs"]] == [
         d.isoformat() for d in (days_ago(19), days_ago(17), days_ago(13), days_ago(6))
@@ -128,14 +128,14 @@ def test_median_pace_becomes_the_fast_end_of_the_easy_range(calibrate):
 
 
 def test_the_gain_over_the_quality_vdot_is_capped(calibrate):
-    cal = calibrate([run(days_ago(i), 270, 145) for i in (2, 5, 9)])
+    cal = calibrate([run(days_ago(i), 270, 141) for i in (2, 5, 9)])
     assert cal.calibrated and cal.capped
     assert cal.vdot == Q_VDOT + 4.0 and cal.estimate_vdot > cal.vdot
     assert "(capped at +4)" in cal.reason
 
 
 def test_never_slower_than_daniels(calibrate):
-    cal = calibrate([run(days_ago(i), 400, 140) for i in (2, 5, 9)])
+    cal = calibrate([run(days_ago(i), 400, 136) for i in (2, 5, 9)])
     assert not cal.calibrated and cal.basis == "daniels" and cal.vdot == Q_VDOT
     assert cal.estimate_vdot < Q_VDOT
     assert cal.easy_range() == easy_range_for_vdot(Q_VDOT)
@@ -157,7 +157,7 @@ def test_disabled_keeps_daniels(calibrate):
 
 
 def test_the_calibration_is_deterministic(calibrate):
-    runs = [run(days_ago(i), 300 + i, 150) for i in (2, 5, 9, 14)]
+    runs = [run(days_ago(i), 300 + i, 146) for i in (2, 5, 9, 14)]
     a, b = calibrate(runs), calibrate(list(reversed(runs)))
     assert a.as_dict() == b.as_dict()
 
@@ -182,7 +182,7 @@ def _plan(cfg, runs=None):
             health=health(None),
             runs=runs
             if runs is not None
-            else [run(MON - timedelta(days=d), 320, 150) for d in (19, 12, 5, 1)],
+            else [run(MON - timedelta(days=d), 320, 146) for d in (19, 12, 5, 1)],
             gym_name="Gym 3",
             quality_log=[Q.QualityRecord(last_fri, "threshold", 3, 1000, 90, 300.0)],
             vdot_log=[V.VdotRecord(MON - timedelta(days=30), Q_VDOT, "initial")],
@@ -223,7 +223,7 @@ def test_planner_moves_easy_and_long_ranges_but_not_the_quality_session(engine_c
 
 
 def test_planner_without_enough_easy_runs_keeps_daniels(engine_config):
-    plan = _plan(engine_config, runs=[run(MON - timedelta(days=d), 320, 150) for d in (5, 1)])
+    plan = _plan(engine_config, runs=[run(MON - timedelta(days=d), 320, 146) for d in (5, 1)])
     pace = _day(plan, "wed_easy_run").prescription["pace"]
     assert pace["basis"] == "daniels" and "need 3" in pace["reason"]
     rng = easy_range_for_vdot(Q_VDOT)

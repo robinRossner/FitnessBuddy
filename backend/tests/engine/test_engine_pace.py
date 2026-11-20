@@ -85,18 +85,18 @@ def test_zones_from_lthr_171_friel():
     z = zones_from_config(V3)
     assert (z.max_hr, z.lthr) == (190, 171)
     assert [(x.name, x.low, x.high) for x in z.zones] == [
-        ("z1", 0, 149),
-        ("z2", 150, 156),
-        ("z3", 157, 165),
-        ("z4", 166, 173),
-        ("z5a", 174, 179),
-        ("z5b", 180, 186),
-        ("z5c", 187, 190),
+        ("z1", 0, 145),
+        ("z2", 146, 152),
+        ("z3", 153, 161),
+        ("z4", 162, 169),
+        ("z5a", 170, 174),
+        ("z5b", 175, 181),
+        ("z5c", 182, 190),
     ]
-    assert z.easy_high == 156 and z.easy_basis == "lthr"  # top of Z2 = 89 % LTHR
+    assert z.easy_high == 152 and z.easy_basis == "lthr"  # top of Z2 = 89 % LTHR
     assert z.easy_low == 124  # 65 % of max HR 190
-    assert (z.interval_low, z.interval_high) == (166, 179)  # Z4 .. Z5a
-    assert z.zone_of(150) == "z2" and z.zone_of(170) == "z4" and z.zone_of(190) == "z5c"
+    assert (z.interval_low, z.interval_high) == (162, 174)  # Z4 .. Z5a
+    assert z.zone_of(146) == "z2" and z.zone_of(165) == "z4" and z.zone_of(185) == "z5c"
 
 
 def test_zones_follow_lthr_and_fall_back_to_max_hr():

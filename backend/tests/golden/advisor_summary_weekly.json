@@ -491,7 +491,7 @@
         "capped": false,
         "quality_vdot": 45.91,
         "range": "5:14-6:16",
-        "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it",
+        "reason": "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it",
         "vdot": 45.91
       },
       "long_run": {
@@ -514,7 +514,7 @@
       "vdot": {
         "day": "2026-10-25",
         "delta": 3.0,
-        "reason": "VDOT 42.9 -> 45.9 measured from interval reps: 4 x 1000 m on 2026-10-20 at 4:10/km (avg rep HR 168 below Z5 174: sub-maximal, so your I pace is at least this) = I pace of VDOT 46.1: VDOT 46.1 (capped at +3 per update)",
+        "reason": "VDOT 42.9 -> 45.9 measured from interval reps: 4 x 1000 m on 2026-10-20 at 4:10/km (avg rep HR 168 below Z5 170: sub-maximal, so your I pace is at least this) = I pace of VDOT 46.1: VDOT 46.1 (capped at +3 per update)",
         "source": "interval_reps",
         "vdot": 45.91
       },
@@ -849,7 +849,7 @@
       "running",
       "running:vdot",
       "2026-10-25",
-      "VDOT 42.9 -> 45.9 measured from interval reps: 4 x 1000 m on 2026-10-20 at 4:10/km (avg rep HR 168 below Z5 174: sub-maximal, so your I pace is at least this) ="
+      "VDOT 42.9 -> 45.9 measured from interval reps: 4 x 1000 m on 2026-10-20 at 4:10/km (avg rep HR 168 below Z5 170: sub-maximal, so your I pace is at least this) ="
     ],
     [
       "<logged-on>",
@@ -898,7 +898,7 @@
       "running",
       "running:easy_pace_calibration",
       "2026-10-26",
-      "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30) fit it"
+      "Daniels easy pace for VDOT 45.9: your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30) fit it"
     ],
     [
       "<logged-on>",
@@ -912,7 +912,7 @@
       "running",
       "running:easy_pace_calibration",
       "2026-10-19",
-      "Easy pace from your 4 easy runs of 28 days at HR <= 154 (5:30-5:30/km, median 5:30): easy VDOT 43.2 vs 42.9 for quality sessions"
+      "Easy pace from your 4 easy runs of 28 days at HR <= 150 (5:30-5:30/km, median 5:30): easy VDOT 43.2 vs 42.9 for quality sessions"
     ]
   ],
   "running": {
@@ -1233,8 +1233,8 @@
           "distance_km": 2.0,
           "hr": {
             "basis": "lthr",
-            "high": 156,
-            "low": 127,
+            "high": 152,
+            "low": 124,
             "zone": "Z1-Z2"
           }
         },
@@ -1242,8 +1242,8 @@
           "distance_m": 1000,
           "duration_s": 273,
           "hr": {
-            "high": 173,
-            "low": 166,
+            "high": 169,
+            "low": 162,
             "note": "pace leads; HR is a ceiling only (wrist HR lags on short reps)",
             "zone": "Z4"
           },

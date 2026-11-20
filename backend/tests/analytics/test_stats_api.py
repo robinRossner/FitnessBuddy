@@ -271,7 +271,7 @@ def world(db, monkeypatch):
             BodyMeasurement(
                 measured_at=utc(datetime.combine(days_ago(0), datetime.min.time())),
                 day=days_ago(0),
-                weight_kg=76.5,
+                weight_kg=83.64,
                 source="garmin",
             ),
         ]
@@ -534,7 +534,7 @@ def test_running_efficiency_vdot_and_intervals(client, world):
     }  # fmt: skip
     assert ok["reps"] == 4 and ok["target_pace_s_per_km"] == 250  # from the linked plan
     assert ok["avg_work_pace_s_per_km"] == 250 and ok["avg_work_hr"] == 168
-    assert (ok["target_hr_low"], ok["target_hr_high"]) == (166, 179)
+    assert (ok["target_hr_low"], ok["target_hr_high"]) == (162, 174)
     assert ok["hr_in_range"] is True and ok["recovery_ok"] is True and ok["passed"] is True
     # HR above the zone no longer fails a session: pace decides (HR is a safety ceiling)
     assert bad["hr_in_range"] is False and bad["passed"] is True
@@ -550,8 +550,8 @@ def test_zone_collapse_maps_friel_seven_to_five():
 
 
 def test_time_in_zones_from_laps_uses_engine_zones_and_collapses_z5():
-    zones = zones_from_config(load_engine_config(CFG_PATH))  # LTHR 171: z1<=149 ... z5a>=174
-    hrs = [140, 152, 160, 170, 176, 183, 190]  # one lap each: z1 z2 z3 z4 z5a z5b z5c
+    zones = zones_from_config(load_engine_config(CFG_PATH))  # LTHR 171: z1<=145 ... z5a>=170
+    hrs = [140, 150, 158, 166, 172, 178, 186]  # one lap each: z1 z2 z3 z4 z5a z5b z5c
     laps = tuple(R.LapData(60, 200, hr) for hr in hrs)
     run = R.RunData("r", TODAY, 1400, 420, 160, laps=laps)
     secs, source = time_in_zones(run, zones)
@@ -562,7 +562,7 @@ def test_time_in_zones_from_laps_uses_engine_zones_and_collapses_z5():
 def test_time_in_zones_rebins_garmin_zone_seconds_onto_engine_zones():
     zones = zones_from_config(load_engine_config(CFG_PATH))
     floors = (98.0, 117.0, 137.0, 156.0, 176.0)
-    # all of Garmin z4 (156-175): spread evenly over 20 bpm -> 1 bpm in z2, 9 z3, 8 z4, 2 z5
+    # all of Garmin z4 (156-175): spread evenly over 20 bpm -> 6 bpm in z3, 8 z4, 6 z5
     run = R.RunData(
         "r", TODAY, 5000, 2000, 160,
         time_in_zones_s={"z1": 0, "z2": 0, "z3": 0, "z4": 2000, "z5": 0},
@@ -570,7 +570,7 @@ def test_time_in_zones_rebins_garmin_zone_seconds_onto_engine_zones():
     )  # fmt: skip
     secs, source = time_in_zones(run, zones)
     assert source == "garmin_zones"
-    assert secs == {"z1": 0, "z2": 100, "z3": 900, "z4": 800, "z5": 200}
+    assert secs == {"z1": 0, "z2": 0, "z3": 600, "z4": 800, "z5": 600}
     assert sum(secs.values()) == 2000
     none, src = time_in_zones(R.RunData("r", TODAY, 5000, 2000), zones)
     assert src == "none" and set(none.values()) == {0}
@@ -596,7 +596,7 @@ def test_interval_run_analysis_laps_targets_and_verdict(client, world):
     work = [lp for lp in body["laps"] if lp["kind"] == "work"]
     assert all(lp["target_pace_s_per_km"] == 250 and lp["pace_ok"] is True for lp in work)
     # HR: the green line and the safety ceiling of a VO2max session (102 / 108 % of LTHR 171)
-    assert all((lp["target_hr_low"], lp["target_hr_high"]) == (179, 189) for lp in work)
+    assert all((lp["target_hr_low"], lp["target_hr_high"]) == (174, 185) for lp in work)
     assert all(lp["hr_ok"] is True for lp in work)
     warm = body["laps"][0]
     assert warm["index"] == 1 and warm["target_pace_s_per_km"] is None and warm["pace_ok"] is None
@@ -686,7 +686,7 @@ def test_easy_run_analysis_and_verdicts(client, world):
     assert body["run"]["type"] == "easy" and body["planned"] is None
     assert body["verdict"]["passed"] is True and body["verdict"]["reasons"]
     assert all(lp["kind"] == "other" for lp in body["laps"])
-    assert all((lp["target_hr_low"], lp["target_hr_high"]) == (127, 156) for lp in body["laps"])
+    assert all((lp["target_hr_low"], lp["target_hr_high"]) == (124, 152) for lp in body["laps"])
     assert all(lp["hr_ok"] is True and lp["pace_ok"] is None for lp in body["laps"])
 
     hot = client.get(f"/api/v1/runs/{world.hot.id}/analysis").json()
@@ -744,13 +744,13 @@ def test_bodyweight_series_and_four_week_change(client, world):
     body = client.get("/api/v1/stats/health?days=90").json()
     assert body["bodyweight"] == [
         {"date": days_ago(30).isoformat(), "weight_kg": 82.0, "source": "manual"},
-        {"date": TODAY.isoformat(), "weight_kg": 76.5, "source": "garmin"},
+        {"date": TODAY.isoformat(), "weight_kg": 83.64, "source": "garmin"},
     ]
-    assert body["summary"]["bodyweight_latest"] == 76.5
+    assert body["summary"]["bodyweight_latest"] == 83.64
     assert body["summary"]["bodyweight_change_4w_pct"] == 2.0  # vs the weigh-in 30 days ago
     short = client.get("/api/v1/stats/health?days=10").json()
     assert [b["date"] for b in short["bodyweight"]] == [TODAY.isoformat()]
-    assert short["summary"]["bodyweight_latest"] == 76.5  # summary ignores the window
+    assert short["summary"]["bodyweight_latest"] == 83.64  # summary ignores the window
 
 
 def test_bodyweight_change_pct_rules():
@@ -759,12 +759,12 @@ def test_bodyweight_change_pct_rules():
     assert bodyweight_change_pct([(d, 82.0)]) is None
     assert bodyweight_change_pct([(d - timedelta(days=28), 80.0), (d, 76.0)]) == pytest.approx(-5.0)
     # closest to "4 weeks before the latest" wins
-    pts = [(d - timedelta(days=40), 70.0), (d - timedelta(days=27), 75.0), (d, 78.0)]
+    pts = [(d - timedelta(days=40), 77.0), (d - timedelta(days=27), 82.0), (d, 85.28)]
     assert bodyweight_change_pct(pts) == pytest.approx(4.0)
     # the only older weigh-in is too far from the 4-week mark -> unknown rather than misleading
-    assert bodyweight_change_pct([(d - timedelta(days=90), 70.0), (d, 75.0)]) is None
+    assert bodyweight_change_pct([(d - timedelta(days=90), 77.0), (d, 82.0)]) is None
     assert (
-        bodyweight_change_pct([(d - timedelta(days=60), 70.0), (d - timedelta(days=5), 75.0)])
+        bodyweight_change_pct([(d - timedelta(days=60), 77.0), (d - timedelta(days=5), 82.0)])
         is None
     )
 
@@ -1176,9 +1176,7 @@ def test_vdot_current_equals_the_engine_state(client, db, world):
 
     _vdot_record(db, days_ago(20), 42.4, "initial", 0.0, "initial")
     _vdot_record(db, days_ago(6), 45.4, "interval_reps", 3.0, "measured")
-    _vdot_record(
-        db, days_ago(6), 45.4, "interval_reps", 3.0, "measured again"
-    )  # idempotent re-run
+    _vdot_record(db, days_ago(6), 45.4, "interval_reps", 3.0, "measured again")  # idempotent re-run
     db.commit()
     cache.invalidate()
     body = client.get("/api/v1/stats/running").json()

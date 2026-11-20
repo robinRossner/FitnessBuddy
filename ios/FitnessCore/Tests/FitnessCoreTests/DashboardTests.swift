@@ -27,7 +27,7 @@ struct NewFieldDecodingTests {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
         let k = try #require(r.kpis)
         #expect(k.vdotCurrent == 44.25 && k.vdot4wAgo == 43.55 && k.vdotChange == 0.7)
-        #expect(k.vdotSource == "interval_reps" && k.vdotFitCurrent == 41.0)
+        #expect(k.vdotSource == "interval_reps" && k.vdotFitCurrent == 38.5)
         #expect(k.efficiency4wAgo == 1.1657 && k.efficiencyChangePct == 0.32 && k.easyHrDriftFlags4w?.value == 0)
         #expect(k.runsThisWeek == 2 && k.runsPlannedThisWeek == 3 && k.kmThisWeek == 16.4)
         let detail = try #require(r.weekly.last?.runsDetail)
@@ -293,7 +293,7 @@ struct RunningDashboardTests {
         let r = try Fixture.decode(RunningStatsDTO.self, "stats_running")
         let k = RunStackTransforms.kpis(r)
         #expect(k.vdotCurrent == 44.25 && k.vdotCurrent == r.vdot.last?.value)   // the chart ends on the headline number
-        #expect(k.vdotSource == "interval_reps" && k.vdotFit == 41.0)
+        #expect(k.vdotSource == "interval_reps" && k.vdotFit == 38.5)
         // an older backend without the new fields still decodes: no source, no secondary series
         let old = try APICoding.makeDecoder().decode(RunningStatsDTO.self, from: Data(#"{"weekly":[],"vdot":[{"date":"2026-10-01","value":41.0}],"kpis":{"vdot_current":41.0}}"#.utf8))
         #expect(old.vdot.first?.source == nil && old.vdotFit.isEmpty && old.kpis?.vdotSource == nil)
