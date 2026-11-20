@@ -127,7 +127,7 @@ def test_hrv_without_enough_baseline_uses_garmin_range():
 def test_hrv_drop_anomaly_needs_consecutive_days():
     days = baseline(hrv=70.0, n=10)
     # three days at ~-20 % vs the 7 days before each
-    low = [HealthDay(TODAY - timedelta(days=i), hrv_ms=54.0, resting_hr=62.0) for i in range(3)]
+    low = [HealthDay(TODAY - timedelta(days=i), hrv_ms=54.0, resting_hr=53.0) for i in range(3)]
     hist = [h for h in days if h.day < TODAY - timedelta(days=2)] + low
     a = hrv_drop_anomaly(hist, TODAY, CFG)
     assert a and a["days"] == 3
