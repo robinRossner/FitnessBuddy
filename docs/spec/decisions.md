@@ -548,9 +548,9 @@ that were recorded here moved to that repository's `docs/decisions.md`.
 - **Runs before 2026-11-02 keep the LTHR ceiling** (`GARMIN_ZONES_SINCE`), not one derived from the
   floors of that time. The engine targeted 152 then; the `HR_MAX` floors of that time would give 151,
   a ceiling that was never applied.
-- **Threshold and intervals stay on LTHR (checked against past reps, 2026-11-02).** Targets 166-173 and
-  166-179, green lines, `pass_hard` ceilings and the maximal-effort check are % of LTHR. On the 14 reps
-  of 800-1000 m at 4:20-4:35/km (Aug-Sep), 13 peaked inside 166-179 but only 6 reached the %HRR Z5
+- **Threshold and intervals stay on LTHR (checked against past reps, 2026-11-02).** Targets 162-169 and
+  162-174, green lines, `pass_hard` ceilings and the maximal-effort check are % of LTHR. On the 14 reps
+  of 800-1000 m at 4:20-4:35/km (Aug-Sep), 13 peaked inside 162-174 but only 6 reached the %HRR Z5
   (172+), and none averaged there. Steady 5:40-5:50/km runs average 147-148 bpm, which is already the
   bottom of the %HRR Z4, far slower than threshold pace. No sustained threshold effort exists in the
   data, so LTHR 171 itself is unverified; a 30-minute time trial would settle it.

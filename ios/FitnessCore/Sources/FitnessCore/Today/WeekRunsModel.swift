@@ -31,7 +31,7 @@ public struct WeekRunRow: Identifiable, Equatable, Sendable {
     public var distanceText: String?
     /// "5×1000 m" for intervals; carries the "*" when present.
     public var structureText: String?
-    /// "Z1–Z2" or "127–156 bpm".
+    /// "Z1–Z2" or "124–152 bpm".
     public var hrLabel: String?
     /// "5:20–5:40" when no HR range is known.
     public var paceText: String?

@@ -25,7 +25,7 @@ from server import app
 TODAY = date(2026, 10, 28)  # a Wednesday
 TOKEN = "test-token"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
-HR_EASY = {"zone": "Z1-Z2", "low": 127, "high": 156, "basis": "lthr"}
+HR_EASY = {"zone": "Z1-Z2", "low": 124, "high": 152, "basis": "lthr"}
 PACE_EASY = {"min_s_per_km": 324, "max_s_per_km": 388, "label": "5:24-6:28"}
 
 
@@ -214,7 +214,7 @@ def test_easy_run_json_distance_step_with_hr_range_and_strides():
     assert main["endCondition"]["conditionTypeKey"] == "distance"
     assert main["endConditionValue"] == 3500.0  # 5 km in all: 3.5 km easy + ~1.5 km strides
     assert main["targetType"]["workoutTargetTypeKey"] == "heart.rate.zone"
-    assert (main["targetValueOne"], main["targetValueTwo"]) == (127.0, 156.0)
+    assert (main["targetValueOne"], main["targetValueTwo"]) == (124.0, 152.0)
     assert strides["type"] == "RepeatGroupDTO" and strides["numberOfIterations"] == 6
     work, rec = strides["workoutSteps"]
     assert work["endConditionValue"] == 20.0 and rec["stepType"]["stepTypeKey"] == "recovery"
@@ -237,7 +237,7 @@ def test_easy_run_names_strides_and_puts_them_after_the_distance():
     run = gw.PlannedRun(P1, date(2026, 11, 4), "easy_run", None, easy(8.0))
     spec = gw.build_workout(run)
     main, strides = steps_of(spec)
-    assert main["endConditionValue"] == 6500.0 and main["description"] == "easy, HR below 156"
+    assert main["endConditionValue"] == 6500.0 and main["description"] == "easy, HR below 152"
     assert [main["stepOrder"], strides["stepOrder"]] == [1, 2]
     stride, rec = strides["workoutSteps"]
     assert stride["stepType"]["stepTypeKey"] == "interval" and stride["endConditionValue"] == 20.0
@@ -245,7 +245,7 @@ def test_easy_run_names_strides_and_puts_them_after_the_distance():
     assert spec.name == "Wed 04.11 Easy 8 km w/ 6x20s strides"
     desc = spec.payload()["description"]
     assert desc.startswith(
-        "Easy 6.5 km, HR 127-156; then 6x20s strides, 60s jog between (8 km in all)"
+        "Easy 6.5 km, HR 124-152; then 6x20s strides, 60s jog between (8 km in all)"
     )
 
 
@@ -285,7 +285,7 @@ def test_intervals_json_warmup_repeats_recovery_cooldown_with_pace_and_hr():
     spec = gw.build_workout(run)
     wu, rep, cd = steps_of(spec)
     assert wu["stepType"]["stepTypeKey"] == "warmup" and wu["endConditionValue"] == 1000.0
-    assert wu["targetValueTwo"] == 156.0
+    assert wu["targetValueTwo"] == 152.0
     assert rep["numberOfIterations"] == 3 and rep["skipLastRestStep"] is True
     work, recovery = rep["workoutSteps"]
     assert work["endConditionValue"] == 1000.0

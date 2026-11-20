@@ -25,7 +25,7 @@ from tests.support.db import alembic_config
 
 CFG = load_engine_config(FITNESS_DIR / "config" / "engine.v6.yaml")
 RC = CFG.running_cfg
-ZONES = zones_from_config(CFG)  # LTHR 171: Z3 from 157, Z5 from 174; peak-HR floor 157.5
+ZONES = zones_from_config(CFG)  # LTHR 171: Z3 from 153, Z5 from 170; peak-HR floor 153.5
 IC = VdotFromIntervalsConfig()  # 70 d window, >= 4 reps of 2-8 min, -0.25 / week after 28 d
 TODAY = date(2026, 10, 28)
 

@@ -697,8 +697,8 @@
       "distance_km": 8.0,
       "hr": {
        "zone": "Z1-Z2",
-       "low": 127,
-       "high": 156,
+       "low": 124,
+       "high": 152,
        "basis": "lthr"
       },
       "pace": {
@@ -707,7 +707,7 @@
        "label": "5:24-6:28",
        "note": "HR leads: slow down if HR passes the ceiling"
       },
-      "reason": "easy run below 156 bpm",
+      "reason": "easy run below 152 bpm",
       "structure": {
        "strides": {
         "reps": 6,
@@ -1136,8 +1136,8 @@
         "distance_km": 1.0,
         "hr": {
          "zone": "Z1-Z2",
-         "low": 127,
-         "high": 156,
+         "low": 124,
+         "high": 152,
          "basis": "lthr"
         }
        },
@@ -1221,8 +1221,8 @@
       "distance_km": 11.0,
       "hr": {
        "zone": "Z1-Z2",
-       "low": 127,
-       "high": 156,
+       "low": 124,
+       "high": 152,
        "basis": "lthr"
       },
       "pace": {

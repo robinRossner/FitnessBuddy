@@ -156,10 +156,10 @@ struct ReadinessSummaryTests {
 @Suite(.tags(.stats, .fast))
 struct ZoneChipTests {
     @Test func planNamedZoneWins() {
-        #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z1-Z2", low: 127, high: 156, basis: "lthr")) == "Z1–Z2")
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z1-Z2", low: 124, high: 152, basis: "lthr")) == "Z1–Z2")
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z4-Z5a", low: 166, high: 179, basis: nil)) == "Z4–Z5a")
         #expect(HRZoneChip.highestZone(in: "Z4–Z5a") == 5 && HRZoneChip.highestZone(in: "Z1–Z2") == 2)
-        #expect(HRZoneChip.highestZone(in: "127–156 bpm") == nil)
+        #expect(HRZoneChip.highestZone(in: "124–152 bpm") == nil)
         // Garmin's zones, named by the engine: the bpm range is never re-derived from LTHR
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z2-Z3", low: 121, high: 150, basis: "garmin")) == "Z2–Z3")
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: "Z4", low: 151, high: 171, basis: nil)) == "Z4")
@@ -170,14 +170,14 @@ struct ZoneChipTests {
 
     @Test func derivedFromBpmWithLthrBounds() {
         // LTHR-based easy ceiling 152 = 89 % of ~171: 124 bpm is Z1, 152 bpm tops Z2.
-        #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 127, high: 156, basis: "lthr")) == "Z1–Z2")
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 124, high: 152, basis: "lthr")) == "Z1–Z2")
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 150, high: 160, basis: nil), lthr: 171) == "Z2–Z3")
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 140, high: 145, basis: nil), lthr: 171) == "Z1")
         #expect(HRZoneChip.zone(ofBpm: 190, lthr: 171) == 5)
     }
 
     @Test func fallsBackToTheBpmRange() {
-        #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 127, high: 156, basis: nil)) == "127–156 bpm")
+        #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: 124, high: 152, basis: nil)) == "124–152 bpm")
         #expect(HRZoneChip.label(for: HRRangeDTO(zone: nil, low: nil, high: nil, basis: nil)) == nil)
         #expect(HRZoneChip.label(for: nil) == nil)
     }

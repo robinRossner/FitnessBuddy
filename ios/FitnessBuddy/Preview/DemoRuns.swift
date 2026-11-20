@@ -10,7 +10,7 @@ enum DemoRuns {
     /// Interval target pace of the plan ("5x1000 m @ 4:10"), s/km; older sessions had a slower target (VDOT grew).
     static let planTargetPace = 250.0
     static let targetHrLow = 166.0, targetHrHigh = 179.0
-    static let easyHrCeiling = 156.0
+    static let easyHrCeiling = 152.0
     static let weeksBack = 8
 
     struct Run {
@@ -153,7 +153,7 @@ enum DemoRuns {
             let pace = (run.paceSPerKm + noise(51, idx) * 4 + Double(idx) * 0.3).rounded()
             let hr = (run.avgHr - 4 + Double(idx) * 0.7).rounded()
             laps.append(LapDTO(index: idx, kind: .other, distanceM: d, durationS: pace * d / 1000, avgPaceSPerKm: pace, avgHr: hr, maxHr: hr + 5,
-                               targetHrLow: 127, targetHrHigh: easyHrCeiling, hrOk: hr <= easyHrCeiling))
+                               targetHrLow: 124, targetHrHigh: easyHrCeiling, hrOk: hr <= easyHrCeiling))
             left -= d
             idx += 1
         }

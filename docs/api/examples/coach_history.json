@@ -2,7 +2,7 @@
   "versions": [
     {
       "version": "v3.7",
-      "created_at": "2026-11-20T10:52:13.184Z",
+      "created_at": "2026-11-20T10:56:08.803Z",
       "author": "advisor",
       "reason": "Advisor (consultation 2): Interval reps (maximum) 6 -> 7: The last two interval sessions passed at six reps.",
       "diff": {
@@ -17,7 +17,7 @@
     },
     {
       "version": "v3.6",
-      "created_at": "2026-11-20T10:52:10.429Z",
+      "created_at": "2026-11-20T10:56:05.911Z",
       "author": "engine",
       "reason": "Quality VDOT may rise to a measured value from recent interval reps (running.vdot.from_intervals: median rep pace = I pace, age-discounted after 4 weeks, at most +max_step per update; drops keep the hysteresis rules)",
       "diff": {
@@ -76,7 +76,7 @@
     },
     {
       "version": "v3.5",
-      "created_at": "2026-11-20T10:52:10.429Z",
+      "created_at": "2026-11-20T10:56:05.910Z",
       "author": "engine",
       "reason": "Easy and long run pace range calibrated from the recent easy runs at HR <= the easy ceiling (running.easy_calibration: median pace = fast end of the easy range, never slower than Daniels, at most +max_vdot_gain VDOT; quality paces unchanged)",
       "diff": {
@@ -115,7 +115,7 @@
     },
     {
       "version": "v3.4",
-      "created_at": "2026-11-20T10:52:10.427Z",
+      "created_at": "2026-11-20T10:56:05.909Z",
       "author": "engine",
       "reason": "Volume cap may hold the last completed week's km (running.volume.hold_last_week, limited to hold_limit_factor x the highest of the 4 weeks before it; not after a week with an easy-run HR fail or drift)",
       "diff": {
@@ -134,7 +134,7 @@
     },
     {
       "version": "v3.3",
-      "created_at": "2026-11-20T10:52:10.426Z",
+      "created_at": "2026-11-20T10:56:05.908Z",
       "author": "engine",
       "reason": "Progression engine v2 (research 2026-10-25): reps-at-load signal, two-strike gate, rung rule, censored misses, stall ladder, soft deloads; quality cycle, pace-based intervals, VDOT hysteresis, 4-week-mean volume cap, long-run step-back + drift gate",
       "diff": {
@@ -595,7 +595,7 @@
     },
     {
       "version": "v3.2",
-      "created_at": "2026-11-20T10:52:10.425Z",
+      "created_at": "2026-11-20T10:56:05.907Z",
       "author": "engine",
       "reason": "Default rest timer added (lifting section, 2:00 for every exercise)",
       "diff": {
@@ -610,7 +610,7 @@
     },
     {
       "version": "v3.1",
-      "created_at": "2026-11-20T10:52:10.424Z",
+      "created_at": "2026-11-20T10:56:05.906Z",
       "author": "engine",
       "reason": "Missed-session policy and scheduling rules added (schedule section, defaults)",
       "diff": {
@@ -702,7 +702,7 @@
     },
     {
       "version": "v3",
-      "created_at": "2026-11-20T10:52:10.402Z",
+      "created_at": "2026-11-20T10:56:05.883Z",
       "author": "seed",
       "reason": null,
       "diff": {},

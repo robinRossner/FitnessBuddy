@@ -274,7 +274,7 @@ The Friday quality session of the same week, abridged:
  "progression_note": "first threshold session of the cycle",
  "structure": {
    "session_type": "threshold",
-   "warmup": {"distance_km": 1.0, "hr": {"zone": "Z1-Z2", "low": 127, "high": 156, "basis": "lthr"}},
+   "warmup": {"distance_km": 1.0, "hr": {"zone": "Z1-Z2", "low": 124, "high": 152, "basis": "lthr"}},
    "work": {"reps": 3, "distance_m": 1000.0, "duration_s": 294, "pace_s_per_km": 294,
             "pace_label": "4:54", "pace_range_s_per_km": [290.0, 298.0], "pace_tolerance_pct": 3.0,
             "hr": {"zone": "Z4", "low": 166, "high": 173,

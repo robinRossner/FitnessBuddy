@@ -26,7 +26,7 @@ public enum HRZoneChip: Sendable {
         return bpmText(hr)
     }
 
-    /// "127–156 bpm"
+    /// "124–152 bpm"
     public static func bpmText(_ hr: HRRangeDTO?) -> String? {
         guard let lo = hr?.low, let hi = hr?.high else { return nil }
         return "\(Int(lo.rounded()))–\(Int(hi.rounded())) bpm"
