@@ -41,6 +41,14 @@ public enum CoachError: LocalizedError, Equatable, Sendable {
         return .failed(error.localizedDescription)
     }
 
+    /// The variant a 409 names: `{"detail": "...", "existing_variant_id": 7, "existing_variant_name": "..."}`.
+    public static func existingVariant(_ body: String?) -> (id: Int, name: String)? {
+        guard let body, let data = body.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let id = obj["existing_variant_id"] as? Int, let name = obj["existing_variant_name"] as? String else { return nil }
+        return (id, name)
+    }
+
     /// FastAPI errors look like `{"detail": "..."}` (or a list of validation errors).
     public static func detail(_ body: String?) -> String? {
         guard let body, let data = body.data(using: .utf8),

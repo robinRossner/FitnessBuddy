@@ -23,6 +23,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from apps.fitness.db.catalog import region_of_muscle
 from apps.fitness.db.models import (
     Exercise,
     ExerciseVariant,
@@ -49,8 +50,8 @@ _NS = uuid.UUID("5d0b6d52-7f0e-4b7e-9d0f-6f1d1a0e2c11")  # user-made variants
 class GymError(ServiceError):
     """An error with an HTTP status (the API maps it to HTTPException)."""
 
-    def __init__(self, status: int, message: str):
-        super().__init__(status, message)
+    def __init__(self, status: int, message: str, extra: dict[str, object] | None = None):
+        super().__init__(status, message, extra=extra)
 
 
 # --------------------------------------------------------------------------- current gym
@@ -129,17 +130,51 @@ def preview_ladder(start: float, step: float, count: int, extra: list[float] | N
 # --------------------------------------------------------------------------- variants
 
 
+EQUIPMENT_LABEL = {
+    "barbell": "Barbell",
+    "dumbbell": "Dumbbell",
+    "machine_stack": "Machine",
+    "plate_loaded": "Plate Loaded",
+    "cable": "Cable",
+    "bodyweight": "Bodyweight",
+    "smith": "Smith Machine",
+    "other": None,
+}
+
+
+def variant_name(base: str, equipment_type: str) -> str:
+    label = EQUIPMENT_LABEL.get(equipment_type)
+    return f"{base} ({label})" if label else base
+
+
+def relabel_for_type(name: str, old_type: str, new_type: str) -> str:
+    """The variant name after its equipment type changed: when the base name ends in the old
+    type's automatic label ("Lateral Raise (Machine)"), the label of the new type replaces it.
+    A custom name stays; so does the " @ <gym>" suffix."""
+    base, sep, gym = name.partition(" @ ")
+    label = EQUIPMENT_LABEL.get(old_type)
+    if label is None or not base.endswith(f" ({label})") or len(base) <= len(label) + 3:
+        return name
+    return variant_name(base[: -len(label) - 3], new_type) + sep + gym
+
+
 def base_name(variant: ExerciseVariant) -> str:
     return variant.name.split(" @ ")[0]
 
 
-def user_variant_key(gym_id: int, exercise_id: int) -> str:
+def user_variant_key(gym_id: int, exercise_id: int, equipment_type: str | None = None) -> str:
+    """The key of the user's machine; a replacement for another type has the type in it."""
+    if equipment_type is not None:
+        return str(uuid.uuid5(_NS, f"user:variant:{gym_id}|{exercise_id}|{equipment_type}"))
     return str(uuid.uuid5(_NS, f"user:variant:{gym_id}|{exercise_id}"))
 
 
 def is_user_variant(v: ExerciseVariant) -> bool:
     """Made through the gyms API (not by the importer): the importer must not tombstone it."""
-    return v.gym_id is not None and v.key == user_variant_key(v.gym_id, v.exercise_id)
+    return v.gym_id is not None and v.key in (
+        user_variant_key(v.gym_id, v.exercise_id),
+        user_variant_key(v.gym_id, v.exercise_id, _val(v.equipment_type)),
+    )
 
 
 def is_bound(v: ExerciseVariant) -> bool:
@@ -475,7 +510,7 @@ def machine_item(
     return {
         "exercise_id": ex.id,
         "exercise_name": ex.name,
-        "body_region": ex.primary_muscle,
+        "body_region": region_of_muscle(ex.primary_muscle),
         "in_program": entry is not None,
         "equipment_type": equipment,
         "variant": variant,
@@ -532,8 +567,14 @@ def create_machine(
         v = reviving
         v.deleted_at = None
         v.active = True
+        old_type = _val(v.equipment_type)
         if name is not None and name.strip():
             v.name = full
+        else:  # a revived variant keeps its name: only an automatic label follows the new type
+            relabeled = relabel_for_type(v.name, old_type, equipment_type)
+            taken = any(o.name == relabeled and o is not v for o in all_rows if o.gym_id == gym.id)
+            if not taken:
+                v.name = relabeled
         v.equipment_type = EquipmentType(equipment_type)
         if ladder is not None:
             v.weight_ladder, v.ladder_inferred = ladder, False
@@ -557,11 +598,123 @@ def create_machine(
     return v
 
 
+def _replace_for_type(
+    db: Session, v: ExerciseVariant, new_type: str, settings: Settings | None
+) -> ExerciseVariant:
+    """Another equipment type is another exercise: `v` stays as it is (history, name) but is
+    deactivated, and the variant of the same exercise, gym and new type takes over (an existing
+    one is revived, else a new one with the automatic label). Settings that still make sense
+    (notes, increment, load convention) carry over, the history does not."""
+    if new_type not in EQUIPMENT_LABEL:
+        raise GymError(422, f"equipment_type must be one of {', '.join(EQUIPMENT_LABEL)}")
+    old_type = _val(v.equipment_type)
+    gym_clause = (
+        ExerciseVariant.gym_id == v.gym_id
+        if v.gym_id is not None
+        else ExerciseVariant.gym_id.is_(None)
+    )
+    target = db.scalar(
+        select(ExerciseVariant)
+        .where(
+            ExerciseVariant.exercise_id == v.exercise_id,
+            gym_clause,
+            ExerciseVariant.equipment_type == EquipmentType(new_type),
+            ExerciseVariant.id != v.id,
+        )
+        .order_by(ExerciseVariant.deleted_at.is_not(None), ExerciseVariant.id)
+    )
+    if target is None:
+        gym = db.get(Gym, v.gym_id) if v.gym_id is not None else None
+        gym_part = f" @ {gym.name}" if gym is not None else ""
+        base = relabel_for_type(base_name(v), old_type, new_type)
+        if base == base_name(v):  # a custom name: the label is added to it
+            base = variant_name(base_name(v), new_type)
+        name = base + gym_part
+        taken = db.scalar(
+            select(ExerciseVariant.id).where(
+                ExerciseVariant.name == name, gym_clause, ExerciseVariant.id != v.id
+            )
+        )
+        if taken is not None or name == v.name:
+            raise GymError(409, f"a variant named {name!r} already exists at this gym")
+        if v.gym_id is not None:
+            key = user_variant_key(v.gym_id, v.exercise_id, new_type)
+        else:
+            from apps.fitness.exercises.service import generic_variant_key
+
+            key = generic_variant_key(v.exercise_id, new_type)
+        target = ExerciseVariant(
+            exercise_id=v.exercise_id,
+            gym_id=v.gym_id,
+            key=str(key),
+            name=name,
+            equipment_type=EquipmentType(new_type),
+            load_convention=v.load_convention,
+            ladder_inferred=True,
+            increment_kg=v.increment_kg,
+            notes=v.notes,
+        )
+        db.add(target)
+    target.deleted_at = None
+    target.active = True
+    v.active = False
+    db.flush()
+    if settings is not None and v.gym_id is not None:
+        current = effective_current_gym(db, settings)
+        if current is not None and current.id == v.gym_id:
+            _program_follows(db, v, base_name(v), base_name(target), settings)
+    return target
+
+
+def _program_follows(
+    db: Session, v: ExerciseVariant, old_base: str, new_base: str, settings: Settings
+) -> None:
+    """The live program's lines that name the replaced variant get the new name (the program
+    write helper keeps a backup), and so does a per-exercise `variant` override."""
+    if old_base == new_base:
+        return
+    from apps.fitness.engine.core.program import KINDS, set_kind_slots
+    from apps.fitness.engine.store import service as engine
+    from apps.fitness.exercises.templates import _slot_dict
+
+    ex = db.get(Exercise, v.exercise_id)
+    if ex is None:
+        return
+    try:
+        program = engine.get_program(settings)
+    except (OSError, ValueError):
+        return
+    for kind in KINDS:
+        cur = program.days.get(kind, [])
+        if any(pe.exercise == ex.slug and pe.variant == old_base for pe in cur):
+            slots = [
+                {**_slot_dict(pe), "variant": new_base}
+                if pe.exercise == ex.slug and pe.variant == old_base
+                else _slot_dict(pe)
+                for pe in cur
+            ]
+            set_kind_slots(settings.live_program_path, kind, slots)
+    cs.ensure_seeded(db, settings.engine_config_path)
+    cfg = cs.load_active(db)[0]
+    if (cfg.exercise_overrides.get(ex.slug) or {}).get("variant") == old_base:
+        cs.create_version(
+            db, {f"exercise_overrides.{ex.slug}.variant": new_base}, author="user",
+            reason=f"{ex.name}: the equipment type changed, the plan follows",
+        )  # fmt: skip
+
+
 def update_variant(
-    db: Session, v: ExerciseVariant, fields: dict[str, Any]
+    db: Session, v: ExerciseVariant, fields: dict[str, Any], settings: Settings | None = None
 ) -> tuple[ExerciseVariant, bool]:
-    """Apply PATCH fields; returns (variant, engine_inputs_changed)."""
+    """Apply PATCH fields; returns (variant, engine_inputs_changed). A new `equipment_type`
+    swaps the variant for the one of that type (`_replace_for_type`): the returned variant is
+    then another row than `v`, and the other fields apply to it."""
     changed = False
+    if fields.get("equipment_type") is not None and fields["equipment_type"] != _val(
+        v.equipment_type
+    ):
+        v = _replace_for_type(db, v, fields["equipment_type"], settings)
+        changed = True
     if "name" in fields:
         name = (fields["name"] or "").strip()
         if not name:
@@ -594,11 +747,6 @@ def update_variant(
         v.notes = fields["notes"]
     if "active" in fields and fields["active"] is not None and bool(fields["active"]) != v.active:
         v.active = bool(fields["active"])
-        changed = True
-    if fields.get("equipment_type") is not None and fields["equipment_type"] != _val(
-        v.equipment_type
-    ):
-        v.equipment_type = EquipmentType(fields["equipment_type"])
         changed = True
     if "increment_kg" in fields:
         inc = fields["increment_kg"]
@@ -689,13 +837,19 @@ def add_machine(
 
 
 def edit_variant(
-    db: Session, variant_id: int, fields: dict[str, Any], *, replan: Replan | None = None
+    db: Session,
+    variant_id: int,
+    fields: dict[str, Any],
+    *,
+    replan: Replan | None = None,
+    settings: Settings | None = None,
 ) -> dict[str, Any]:
     """PATCH a variant (machine or generic); re-plans when an engine input changed."""
     v = db.get(ExerciseVariant, variant_id)
     if v is None or v.deleted_at is not None:
         raise GymError(404, "variant not found")
-    v, engine_changed = update_variant(db, v, fields)
+    v, engine_changed = update_variant(db, v, fields, settings)
+    replaced = variant_id if v.id != variant_id else None
     db.commit()
     if engine_changed and replan is not None:
         replan("machine changed")
@@ -712,4 +866,5 @@ def edit_variant(
         "active": bool(v.active),
         "sessions": usage.sessions,
         "last_used": usage.last_used.isoformat() if usage.last_used else None,
+        "replaced_variant_id": replaced,
     }

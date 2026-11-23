@@ -19,7 +19,6 @@ MUSCLE_REGION = {
     "lats": "Back",
     "traps": "Back",
     "shoulders": "Shoulders",
-    "rear_delts": "Shoulders",
     "biceps": "Arms",
     "triceps": "Arms",
     "forearms": "Arms",
@@ -32,9 +31,18 @@ MUSCLE_REGION = {
 }
 
 
+# muscle values that were merged into another one (old clients and old rows still send them)
+MUSCLE_ALIASES = {"rear_delts": "shoulders"}
+
+
+def normalize_muscle(muscle: str | None) -> str | None:
+    """`rear_delts` (merged into shoulders) -> `shoulders`; anything else unchanged."""
+    return MUSCLE_ALIASES.get(muscle, muscle) if muscle is not None else None
+
+
 def region_of_muscle(muscle: str | None) -> str:
     """Coarse body region of a primary muscle; 'Other' for anything unknown (e.g. full_body)."""
-    return MUSCLE_REGION.get(muscle or "", "Other")
+    return MUSCLE_REGION.get(normalize_muscle(muscle) or "", "Other")
 
 
 @dataclass(frozen=True)

@@ -15,6 +15,14 @@ extension AXID {
         static let exerciseSetup = "workout.exerciseSetup"
         static let exerciseEdit = "workout.exerciseEdit"
         static let reorder = "workout.reorder"
+        /// An open slot (planned exercise with no variant at this gym): `workout.openSlot.<n>`, with its buttons.
+        static func openSlot(_ n: Int) -> String { "workout.openSlot.\(n)" }
+        static func openSlotSetup(_ n: Int) -> String { "workout.openSlotSetup.\(n)" }
+        static func openSlotPick(_ n: Int) -> String { "workout.openSlotPick.\(n)" }
+        /// The "Instead of ..." caption of a substitute exercise.
+        static let substituteNote = "workout.substituteNote"
+        /// The same caption on the planned-session preview (Summary and Workout tab).
+        static let planSubstituteNote = "workout.planSubstituteNote"
         /// Tappable controls on the start screen.
         static let nextCard = "workout.nextCard"
         static let chooseButton = "workout.chooseButton"

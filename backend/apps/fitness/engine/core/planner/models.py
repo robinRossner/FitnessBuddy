@@ -41,6 +41,10 @@ class LiftContext:
     ladder: list[L.LadderEvent] = field(default_factory=list)  # stall-ladder steps so far
     # no history here yet: (gym name, weight kg, reps) of the same exercise at another gym
     previous: tuple[str, float, int | None] | None = None
+    # the program slot's default variant is not available here: this variant fills the slot
+    # for the plan only (program.yaml keeps the default); the default's name and why
+    substitute_for: str | None = None
+    substitute_reason: str | None = None
 
 
 @dataclass
@@ -69,6 +73,9 @@ class PlanInputs:
     cancelled_weeks: dict[date, str | None] = field(default_factory=dict)
     bodyweight_kg: float | None = None
     zone_floors: tuple[float, ...] | None = None  # Garmin's latest z1..z5 floors
+    # recently trained variants usable at the current gym, by variant id: the next targets the
+    # app uses when one is added or swapped in outside the plan (`adhoc_targets`)
+    adhoc: dict[int, LiftContext] = field(default_factory=dict)
 
 
 @dataclass

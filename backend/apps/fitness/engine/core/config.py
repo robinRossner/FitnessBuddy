@@ -103,6 +103,10 @@ class StrengthConfig(_Model):
         BreakTier(min_days=22, load_pct=5, sets_minus=1, days=7),
         BreakTier(min_days=43, load_pct=10, sets_factor=0.5, days=7),
     )
+    # Exposures before a gap of at least this many days are stale: they no longer count for the
+    # stall counter, progress events (best load / e1RM) or reference reps; the comeback after
+    # the gap is handled once by `break_tiers` and the lift then progresses from its new level.
+    stale_gap_days: int = 112
 
 
 class IncrementConfig(_Model):

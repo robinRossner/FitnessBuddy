@@ -77,9 +77,9 @@ public enum LiftListing: Sendable {
     public static func filtered(_ lifts: [LiftSummaryDTO], query: String, muscle: String?) -> [LiftSummaryDTO] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         return lifts.filter { lift in
-            if let muscle, lift.muscleGroup != muscle { return false }
+            if let muscle, MuscleGroup.merged(lift.muscleGroup) != muscle { return false }
             guard !q.isEmpty else { return true }
-            return [lift.name, lift.gymName ?? "", MuscleGroup.display(lift.muscleGroup)].contains { $0.lowercased().contains(q) }
+            return [lift.name, lift.gymName ?? "", MuscleGroup.display(MuscleGroup.merged(lift.muscleGroup))].contains { $0.lowercased().contains(q) }
         }
         .sorted { a, b in
             if a.isActive != b.isActive { return a.isActive }
@@ -88,7 +88,7 @@ public enum LiftListing: Sendable {
     }
 
     public static func muscleGroups(_ lifts: [LiftSummaryDTO]) -> [String] {
-        Array(Set(lifts.compactMap(\.muscleGroup))).sorted()
+        Array(Set(lifts.compactMap { MuscleGroup.merged($0.muscleGroup) })).sorted()
     }
 
     /// PRs in the window = lifts whose latest PR date falls inside it.
@@ -99,6 +99,12 @@ public enum LiftListing: Sendable {
 }
 
 public enum MuscleGroup: Sendable {
+    /// Rear delts are part of shoulders now; cached data and old servers may still say `rear_delts`.
+    public static func merged(_ raw: String?) -> String? {
+        raw == "rear_delts" ? "shoulders" : raw
+    }
+
+
     /// "upper_back" / "upperBack" -> "Upper back". (Dictionary keys may arrive camel-cased from the snake-case decoder.)
     public static func display(_ raw: String?) -> String {
         guard let raw, !raw.isEmpty else { return "Other" }
@@ -127,7 +133,7 @@ public enum VolumeTransforms: Sendable {
     public static func setsByMuscle(_ weeks: [WeekVolumeDTO], last: Int = 4) -> [(group: String, sets: Int)] {
         var totals: [String: Int] = [:]
         for w in weeks.sorted(by: { $0.weekStart < $1.weekStart }).suffix(last) {
-            for (k, v) in w.setsByMuscleGroup ?? [:] { totals[k, default: 0] += v }
+            for (k, v) in w.setsByMuscleGroup ?? [:] { totals[MuscleGroup.merged(k) ?? k, default: 0] += v }
         }
         return totals.map { ($0.key, $0.value) }.sorted { $0.sets > $1.sets }
     }

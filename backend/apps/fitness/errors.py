@@ -7,8 +7,15 @@ from __future__ import annotations
 
 
 class ServiceError(Exception):
-    def __init__(self, status: int, message: str, headers: dict[str, str] | None = None):
+    def __init__(
+        self,
+        status: int,
+        message: str,
+        headers: dict[str, str] | None = None,
+        extra: dict[str, object] | None = None,
+    ):
         super().__init__(message)
         self.status = status
         self.message = message
         self.headers = headers
+        self.extra = extra  # additive fields of the error body next to `detail`

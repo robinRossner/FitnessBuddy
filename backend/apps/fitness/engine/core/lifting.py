@@ -323,6 +323,7 @@ class ExpoEval:
     event: str | None = None  # load_pr | rep_pr | e1rm_pr
     drop: int = 0  # reps fewer than the previous comparable exposure (first k sets)
     miss: bool = False  # fewer reps than the previous comparable exposure
+    stale: bool = False  # before a gap of `stale_gap_days`: kept only to detect the comeback
 
     @property
     def total(self) -> int:
@@ -345,6 +346,15 @@ class LiftAnalysis:
     peak_e1rm: float | None = None
     baseline: date | None = None  # exposures before this day do not count for a stall
     retest_failed: bool = False
+    # first exposure after a gap of `stale_gap_days` (None: no such gap): the evidence before
+    # it is stale (no stall count, no best load / e1RM, no reference reps)
+    restart: date | None = None
+    ladder: list[LadderEvent] = field(default_factory=list)  # the valid stall-ladder steps
+
+    @property
+    def live(self) -> list[ExpoEval]:
+        """The exposures since the last long gap (all of them without one)."""
+        return [x for x in self.evals if not x.stale]
 
     @property
     def last(self) -> ExpoEval | None:
@@ -395,6 +405,11 @@ def analyze(
     st = cfg.strength
     lo = spec.rep_range[0]
     hist = [e for e in history if _working(e)]
+    # a long gap makes everything before it stale: only the comeback itself looks back past it
+    restart = 0
+    for i in range(1, len(hist)):
+        if (hist[i].day - hist[i - 1].day).days >= st.stale_gap_days:
+            restart = i
     evals: list[ExpoEval] = []
     best_load = None
     best_e1 = None
@@ -405,9 +420,13 @@ def analyze(
             e1 = e1rm(effective_load(spec, load), max(reps))
         ee = ExpoEval(e, load, reps, e1)
         ee.censored = _censor_reason(i, hist, spec, cfg, ctx)
-        if i > 0:
+        if i < restart:
+            ee.stale = True
+            evals.append(ee)
+            continue
+        if i > restart:
             heavier = best_load is not None and _harder(spec, load, best_load)
-            same = [x for x in evals if abs(x.load - load) < 1e-6]
+            same = [x for x in evals if abs(x.load - load) < 1e-6 and not x.stale]
             if heavier and all(r >= lo for r in reps) and reps:
                 ee.event = "load_pr"
             elif same:
@@ -423,7 +442,9 @@ def analyze(
                 and e1 >= best_e1 * gain - 1e-9
             ):
                 ee.event = "e1rm_pr"
-            prev = next((x for x in reversed(evals) if abs(x.load - load) < 1e-6), None)
+            prev = next(
+                (x for x in reversed(evals) if abs(x.load - load) < 1e-6 and not x.stale), None
+            )
             if prev is not None:
                 cur, old = _s_k(reps, prev.reps)
                 ee.drop = old - cur
@@ -436,10 +457,20 @@ def analyze(
 
     an = LiftAnalysis(evals)
     an.n_required = st.stall_exposures_2x if spec.per_week >= 2 else st.stall_exposures
+    an.restart = hist[restart].day if restart > 0 else None
     # stall ladder episode
     pos = 0
     peak = None
     events = sorted(ctx.ladder, key=lambda x: x.day)
+    if an.restart is not None:
+        # a step needs `n_required` exposures after the comeback: one decided on fewer stood on
+        # the stale history (or predates the gap) and does not count
+        events = [
+            ev
+            for ev in events
+            if sum(1 for x in evals if not x.stale and x.expo.day < ev.day) >= an.n_required
+        ]
+    an.ladder = events
     for k, ev in enumerate(events):
         if k > 0 and _recovered(evals, events[k - 1], ev.day):
             pos = 0
@@ -450,6 +481,8 @@ def analyze(
     an.ladder_pos = pos
     an.peak_e1rm = peak
     an.baseline = events[-1].day if events else None
+    if an.restart is not None and (an.baseline is None or an.baseline < an.restart):
+        an.baseline = an.restart
     # retests restart the count as well
     for w in ctx.windows:
         if (
@@ -546,7 +579,7 @@ def _predicted_targets(
 
 def _ref(an: LiftAnalysis, load: float) -> ExpoEval | None:
     """The better (by reps) of the last two exposures at `load` that count."""
-    same = [x for x in an.evals if abs(x.load - load) < 1e-6 and x.counts][-2:]
+    same = [x for x in an.live if abs(x.load - load) < 1e-6 and x.counts][-2:]
     return max(same, key=lambda x: x.total) if same else None
 
 
@@ -775,8 +808,8 @@ def _progress(
             )
 
     # 4) a ladder step decided earlier and not trained yet: the same prescription again
-    if ctx.ladder:
-        ev = max(ctx.ladder, key=lambda e: (e.day, e.step))
+    if an.ladder:
+        ev = max(an.ladder, key=lambda e: (e.day, e.step))
         if not any(x.day >= ev.day for x in hist):
             return _ladder_step(spec, an, cfg, day, load, eff_hi, hist, pending=ev)
 
@@ -786,13 +819,14 @@ def _progress(
 
     # 6) first exposure(s) at a new load far below the floor
     first_set = last.reps[0] if last.reps else 0
-    at_load = [x for x in an.evals if abs(x.load - load) < 1e-6]
+    live = an.live
+    at_load = [x for x in live if abs(x.load - load) < 1e-6]
     run = 0  # consecutive latest exposures at this load
-    for x in reversed(an.evals):
+    for x in reversed(live):
         if abs(x.load - load) > 1e-6:
             break
         run += 1
-    before = an.evals[-run - 1] if len(an.evals) > run else None
+    before = live[-run - 1] if len(live) > run else None
     new_load = run <= 2 and (before is None or _harder(spec, load, before.load))
     judged = last.censored is None or last.censored.startswith("first sessions")
     if (
@@ -830,7 +864,7 @@ def _progress(
 
     # 7) real drop vs noise (only clean exposures count)
     if last.censored is None and last.miss:
-        prev_clean = [x for x in an.evals[:-1] if abs(x.load - load) < 1e-6 and x.censored is None]
+        prev_clean = [x for x in live[:-1] if abs(x.load - load) < 1e-6 and x.censored is None]
         two = bool(prev_clean) and prev_clean[-1].miss and prev_clean[-1].drop > 0
         if last.drop >= st.big_miss_reps or two:
             down = _step(spec, cfg, load, -1)
@@ -942,7 +976,7 @@ def _ladder_step(
     peak = (
         pending.peak_e1rm
         if pending is not None
-        else max((x.e1rm for x in an.evals if x.e1rm is not None), default=None)
+        else max((x.e1rm for x in an.live if x.e1rm is not None), default=None)
     )
     flags = ["stall"] + (["identical_exposures"] if _identical(hist, an.n_required) else [])
     why = (

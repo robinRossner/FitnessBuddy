@@ -191,6 +191,8 @@ struct NewExerciseSheet: View {
     @State private var draft: NewExerciseDraft
     @State private var saving = false
     @State private var errorText: String?
+    /// Set when the server says the exercise already exists with this type here (the 409 names the variant).
+    @State private var existing: (id: Int, name: String)?
 
     init(initialName: String = "", onDone: @escaping (CachedVariant) -> Void) {
         self.onDone = onDone
@@ -218,7 +220,14 @@ struct NewExerciseSheet: View {
                          ? "Machines are saved for \(gymName). At another gym you set it up again (one tap in the exercise list)."
                          : "Saved for every gym.")
                 }
-                SaveStatusSection(errorText: errorText, canWrite: env.exercises.canWrite)
+                if let existing {
+                    Section {
+                        Label("Already set up here as \u{201C}\(existing.name.withoutGymSuffix)\u{201D}", systemImage: "exclamationmark.circle.fill")
+                            .font(.footnote).foregroundStyle(.orange)
+                        Button("Use \u{201C}\(existing.name.withoutGymSuffix)\u{201D}") { useExisting(existing.id) }
+                    }
+                }
+                SaveStatusSection(errorText: existing == nil ? errorText : nil, canWrite: env.exercises.canWrite)
             }
             .navigationTitle("New exercise")
             .navigationBarTitleDisplayMode(.inline)
@@ -241,11 +250,24 @@ struct NewExerciseSheet: View {
         saving = true
         defer { saving = false }
         do {
+            existing = nil
             let variant = try await env.exercises.create(draft, gymId: env.settings.currentGymId)
             env.sync.request(.manual)
             onDone(variant)
         } catch {
+            if case GymError.duplicate(_, let id, let name) = error { existing = (id, name) }
             errorText = error.localizedDescription
+        }
+    }
+
+    /// Picks the variant the server named, as if it had been chosen from the list. Not in the cache yet: sync and say so.
+    private func useExisting(_ id: Int) {
+        if let variant = env.exercises.variant(id: id) {
+            onDone(variant)
+        } else {
+            existing = nil
+            env.sync.request(.manual)
+            errorText = "\(errorText ?? "It already exists"). It will show up in the list after the next sync."
         }
     }
 }
@@ -258,6 +280,8 @@ struct ExerciseEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     let variant: CachedVariant
     let exercise: CachedExercise?
+    /// Called with the new variant id when changing the type replaced the variant.
+    var onVariantReplaced: ((Int) -> Void)?
     @State private var name: String
     @State private var muscle: String
     @State private var equipment: String
@@ -266,11 +290,12 @@ struct ExerciseEditSheet: View {
     @State private var saving = false
     @State private var errorText: String?
 
-    init(variant: CachedVariant, exercise: CachedExercise?) {
+    init(variant: CachedVariant, exercise: CachedExercise?, onVariantReplaced: ((Int) -> Void)? = nil) {
         self.variant = variant
         self.exercise = exercise
+        self.onVariantReplaced = onVariantReplaced
         _name = State(initialValue: ExerciseOptions.editableName(variantName: variant.name, equipmentType: variant.equipmentType))
-        _muscle = State(initialValue: exercise?.muscleGroup ?? "chest")
+        _muscle = State(initialValue: MuscleGroup.merged(exercise?.muscleGroup) ?? "chest")
         _equipment = State(initialValue: variant.equipmentType)
         _increment = State(initialValue: variant.incrementKg)
         _progression = State(initialValue: exercise?.progression ?? .load)
@@ -287,7 +312,7 @@ struct ExerciseEditSheet: View {
     private var progressionChanged: Bool { exercise != nil && progression != exercise?.progression }
 
     private var changed: Bool {
-        nameChanged || (exercise != nil && muscle != exercise?.muscleGroup) || equipment != variant.equipmentType
+        nameChanged || (exercise != nil && muscle != MuscleGroup.merged(exercise?.muscleGroup)) || equipment != variant.equipmentType
             || increment != variant.incrementKg || progressionChanged
     }
 
@@ -355,14 +380,15 @@ struct ExerciseEditSheet: View {
         saving = true
         defer { saving = false }
         do {
-            if let exercise, muscle != exercise.muscleGroup {
+            if let exercise, muscle != MuscleGroup.merged(exercise.muscleGroup) {
                 try await env.exercises.setMuscle(exerciseId: exercise.id, muscle: muscle)
             }
             if let exercise, progressionChanged {
                 try await env.exercises.setProgression(exerciseId: exercise.id, to: progression)
             }
             if equipment != variant.equipmentType || increment != variant.incrementKg {
-                try await env.exercises.setVariant(variant.id, equipmentType: equipment, incrementKg: increment)
+                let newId = try await env.exercises.setVariant(variant.id, equipmentType: equipment, incrementKg: increment)
+                if newId != variant.id { onVariantReplaced?(newId) }
             }
             // last, so the new name carries the (possibly new) type label
             if let exercise, nameChanged {

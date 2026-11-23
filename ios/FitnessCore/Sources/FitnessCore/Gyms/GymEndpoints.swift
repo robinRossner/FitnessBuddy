@@ -16,13 +16,16 @@ public enum GymError: LocalizedError, Equatable, Sendable {
     case notConfigured
     /// 409: duplicate name, gym with sessions, current gym, machine already exists.
     case conflict(String)
+    /// 409 that names the variant already there (`existing_variant_id` / `existing_variant_name`), e.g. creating an
+    /// exercise that exists with the same type at this gym.
+    case duplicate(String, variantId: Int, variantName: String)
     case failed(String)
 
     public var errorDescription: String? {
         switch self {
         case .needsConnection: "Needs a connection"
         case .notConfigured: "Connect your backend in Settings first"
-        case .conflict(let m), .failed(let m): m
+        case .conflict(let m), .failed(let m), .duplicate(let m, _, _): m
         }
     }
 
@@ -32,7 +35,11 @@ public enum GymError: LocalizedError, Equatable, Sendable {
             switch api {
             case .transport: return .needsConnection
             case .notConfigured: return .notConfigured
-            case .http(409, let body): return .conflict(CoachError.detail(body) ?? "This conflicts with existing data.")
+            case .http(409, let body):
+                if let existing = CoachError.existingVariant(body) {
+                    return .duplicate(CoachError.detail(body) ?? "This already exists.", variantId: existing.id, variantName: existing.name)
+                }
+                return .conflict(CoachError.detail(body) ?? "This conflicts with existing data.")
             case .http(let code, let body): return .failed(CoachError.detail(body) ?? "Server error \(code)")
             default: return .failed(api.errorDescription ?? "Something went wrong")
             }

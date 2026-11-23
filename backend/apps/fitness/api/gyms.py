@@ -151,11 +151,12 @@ def create_machine(gym_id: int, body: MachineBody, db: Db, settings: Cfg) -> dic
 
 
 @router.patch("/variants/{variant_id}")
-def patch_variant(variant_id: int, body: VariantPatch, db: Db) -> dict[str, Any]:
+def patch_variant(variant_id: int, body: VariantPatch, db: Db, settings: Cfg) -> dict[str, Any]:
     with _errors():
         return gs.edit_variant(
-            db, variant_id, body.model_dump(exclude_unset=True), replan=rerun_engine
-        )
+            db, variant_id, body.model_dump(exclude_unset=True), replan=rerun_engine,
+            settings=settings,
+        )  # fmt: skip
 
 
 @router.post("/weight-ladder/preview")

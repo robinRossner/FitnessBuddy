@@ -8,7 +8,7 @@ extension TemplateChange {
     static func performed(sets: [LocalSet]) -> [TemplateExercise] {
         let kept = sets.filter { $0.deletedAt == nil }
         return Dictionary(grouping: kept, by: \.exerciseOrder).sorted { $0.key < $1.key }
-            .compactMap { _, group in group.first.map { TemplateExercise(variantId: $0.variantId, sets: group.count) } }
+            .compactMap { _, group in group.first.map { TemplateExercise(variantId: $0.variantId, sets: group.count, slot: $0.slotName) } }
     }
 
     /// The new template for a running workout, or nil when it should not be offered.

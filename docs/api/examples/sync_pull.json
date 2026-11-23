@@ -17798,7 +17798,7 @@
     {
       "id": 21,
       "name": "Reverse Fly",
-      "muscle_group": "rear_delts",
+      "muscle_group": "shoulders",
       "movement_pattern": "horizontal_abduction",
       "body_region": "Shoulders",
       "default_equipment": "cable",

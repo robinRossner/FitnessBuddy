@@ -95,6 +95,8 @@ final class LocalSet {
     var hintWeightKg: Double? = nil
     /// The plan said the machine of this exercise is not set up at the current gym yet.
     var needsSetup: Bool = false
+    /// Local only (never synced): the program slot's default variant name when the backend substituted this exercise.
+    var slotName: String? = nil
 
     init(id: UUID = UUID(), sessionId: UUID, variantId: Int, variantName: String = "", exerciseOrder: Int,
          setOrder: Int, setType: String = "working", weightKg: Double? = nil, reps: Int? = nil,

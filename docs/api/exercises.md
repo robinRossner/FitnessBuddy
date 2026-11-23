@@ -47,6 +47,15 @@ token like the other APIs.
 - `exercises`: non-empty, in order. `variant_id` is the integer `ExerciseVariant.id` (JSON number,
   as in `/sync/pull`); `sets` is optional (1..10; default: the old slot's sets, else 3). An unknown
   or deleted variant is `404`; the same exercise twice is `422`.
+- Optional `slot` (additive, 2026-11-23): the plan item's `slot` (the program entry's variant name).
+  When it names a current entry of that kind, the entry is **kept as it is** (only `sets` applies)
+  whatever `variant_id` says: the app sends it for a substitute the engine chose for a slot that
+  is not set up at this gym, and for such a slot that could not be done at all (then without
+  `variant_id`). Each item needs `variant_id` or `slot` (else `422`); a `slot` that is not in the
+  template and no `variant_id` is `422`. An exercise the user swapped in explicitly is sent without
+  `slot`, so it replaces the default.
+- `sets` is the template's base count: the app sends the plan's `template_sets`, not the reduced
+  count of a deload or comeback week.
 - The server rewrites only `days.<kind>` of the **live program file** (comments and the other keys
   stay), after copying the old file to `program.backups/program_YYYYmmdd-HHMMSS.yaml` (last 20 are
   kept) and writes atomically. Slots are `{exercise, variant (name without " @ gym"), sets}`;
@@ -99,8 +108,8 @@ right away and the next pull confirms it.
  "timed": false, "gym_id": 6, "increment_kg": 2.5}
 ```
 
-- `muscle_group`: `chest | lats | back | traps | shoulders | rear_delts | biceps | triceps | forearms |
-  quads | hamstrings | glutes | adductors | calves | abs` (sets `body_region`).
+- `muscle_group`: `chest | lats | back | traps | shoulders | biceps | triceps | forearms |
+  quads | hamstrings | glutes | adductors | calves | abs` (sets `body_region`). `rear_delts` (merged into `shoulders`) is still accepted and stored as `shoulders`.
 - `equipment_type`: `barbell | dumbbell | machine_stack | plate_loaded | cable | bodyweight | smith | other`.
 - `progression` (optional, `load | reps | time`, default `load`): how the exercise progresses, see
   "Progression mode" below. `timed` (optional, default false): logged in seconds; `timed: true`
@@ -171,7 +180,7 @@ Catalog exercises: the catalog sync no longer overwrites the name of an `edited_
 
 ### Variant settings: PATCH /api/v1/variants/{id}
 
-The gyms API's variant PATCH (`docs/api/gyms.md`) also takes `equipment_type` (any type above) and
+The gyms API's variant PATCH (`docs/api/gyms.md`) also takes `equipment_type` (any type above; another type answers with a new variant and `replaced_variant_id`, see there) and
 `increment_kg` (`0 < x <= 50`, rounded to 0.25; `null` = back to the ladder / equipment default).
 `increment_kg` is the flat load step of that variant: the app's +/- buttons and the engine's
 progression use it instead of the weight ladder and the equipment default (a program

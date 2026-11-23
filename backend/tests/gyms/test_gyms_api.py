@@ -8,9 +8,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
-from apps.fitness.db.models import Exercise, ExerciseVariant, Gym
+from apps.fitness.db.models import Exercise, ExerciseVariant, Gym, WorkoutSet
 from apps.fitness.db.types import utcnow
 from apps.fitness.engine.core import lifting as L
 from apps.fitness.engine.core.config import EngineConfig
@@ -355,6 +355,72 @@ def test_patch_variant_fields_and_rerun_on_ladder_change(world, client, db, reru
     assert client.patch("/api/v1/variants/99999", json={"active": True}).status_code == 404
     assert client.patch(url, json={"bogus": 1}).status_code == 422
     assert client.patch(url, json={"name": ""}).status_code == 422
+
+
+def test_patch_variant_type_makes_a_new_variant_and_keeps_the_old_one(world, client, db):
+    g = new_gym(client)
+    old = machine(client, g["id"], ex_id(world, "lateral_raise")).json()["variant"]
+    assert old["name"] == f"Lateral Raise (Cable) @ {g['name']}" or old["equipment_type"]
+    v = db.get(ExerciseVariant, old["id"])
+    v.notes, v.increment_kg = "pin 4", 2.5
+    world.lift_session(TODAY, "upper", [(v, 20.0, [10, 10])])
+    db.commit()
+    url = f"/api/v1/variants/{v.id}"
+
+    out = client.patch(url, json={"equipment_type": "plate_loaded"}).json()
+    assert out["id"] != v.id and out["replaced_variant_id"] == v.id
+    assert out["equipment_type"] == "plate_loaded" and out["active"] is True
+    assert out["name"].endswith(f"(Plate Loaded) @ {g['name']}")
+    assert out["notes"] == "pin 4" and out["increment_kg"] == 2.5 and out["sessions"] == 0
+    db.expire_all()
+    old_row = db.get(ExerciseVariant, v.id)  # kept, retired, sets untouched
+    assert old_row.active is False and old_row.equipment_type.value == v.equipment_type.value
+    assert (
+        db.scalar(select(func.count()).select_from(WorkoutSet).where(WorkoutSet.variant_id == v.id))
+        == 2
+    )
+    assert (
+        db.scalar(
+            select(func.count()).select_from(WorkoutSet).where(WorkoutSet.variant_id == out["id"])
+        )
+        == 0
+    )
+
+    # back to the first type: the old variant comes back, no third one
+    back = client.patch(
+        f"/api/v1/variants/{out['id']}", json={"equipment_type": old["equipment_type"]}
+    ).json()
+    assert (
+        back["id"] == v.id and back["replaced_variant_id"] == out["id"] and back["active"] is True
+    )
+    assert back["sessions"] == 1
+    n = db.scalar(
+        select(func.count()).select_from(ExerciseVariant).where(ExerciseVariant.gym_id == g["id"])
+    )
+    assert n == 2
+    # same type again: not a change
+    assert (
+        client.patch(
+            f"/api/v1/variants/{v.id}", json={"equipment_type": old["equipment_type"]}
+        ).json()["replaced_variant_id"]
+        is None
+    )
+
+
+def test_type_change_at_the_current_gym_renames_the_program_line(world, client, db):
+    from apps.fitness.settings import get_settings
+
+    g = new_gym(client)
+    client.put("/api/v1/gyms/current", json={"gym_id": g["id"]})
+    v = machine(client, g["id"], ex_id(world, "chest_fly")).json()["variant"]
+    assert v["name"] == f"Chest Fly (Machine) @ {g['name']}"
+    path = get_settings().live_program_path
+    assert "variant: Chest Fly (Machine)" in path.read_text()
+    out = client.patch(f"/api/v1/variants/{v['id']}", json={"equipment_type": "cable"}).json()
+    assert out["name"] == f"Chest Fly (Cable) @ {g['name']}"
+    text = path.read_text()
+    assert "variant: Chest Fly (Cable)" in text and "Chest Fly (Machine)" not in text
+    assert list((path.parent / "program.backups").glob("program_*.yaml"))
 
 
 def test_patch_variant_name_must_be_unique_at_the_gym(world, client):

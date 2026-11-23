@@ -658,3 +658,32 @@ that were recorded here moved to that repository's `docs/decisions.md`.
 - Watch names say `w/ 6x20s strides` instead of `+ ...` (the km are the total); `BUILDER_VERSION`
   3 replaces every pushed workout once. The app shows "After 6.5 km easy · ... · ≈ 1.5 km of the
   8 km" on the run sheet and "incl. 6 × 20 s strides" on the Today card.
+
+## Program slots, substitutes, ad-hoc targets, stale history (2026-11-23)
+- **The saved program is the default of every session.** `program.yaml` (the user's last saved
+  template) is never changed by the engine. A slot whose variant is not usable at the current gym
+  (no generic, no active variant there) is filled for that plan by a **substitute** of the same
+  movement pattern (`engine/store/substitutes.py`): the candidate trained most recently at this
+  gym, else anywhere, else the catalog (same exercise, same primary muscle, a machine at this gym,
+  lowest id); never a variant already in that day; inactive variants never. It progresses from its
+  own history and is marked `substitute_for` / `substitute_reason`. At a gym where the default
+  exists, the default is used again. Nothing of the pattern -> the old `needs_setup` item; the app
+  shows it as an open slot (set up the machine or pick an exercise) instead of dropping it.
+- **Equipment is part of an exercise's identity.** A variant of the same exercise on other
+  equipment than the program line names ("Lateral Raise (Cable)" for "Lateral Raise (Machine)") is
+  a substitute with its own progression, never merged; the same label at another gym (per-gym
+  machines) is the same exercise.
+- **Templates.** A one-session swap leaves the program alone unless the user picks "update
+  template". The update sends the plan's `template_sets` (base count, not the deload / comeback
+  cut, which had saved 2 instead of 3 sets) and `slot` for substitutes done as planned and for open
+  slots, so they keep the default; an exercise the user swapped in explicitly replaces it.
+- **Ad-hoc exercises progress.** Every lifting plan carries `adhoc_targets` for recently trained
+  variants usable here, computed with the same `prescribe` rules (double progression, rung rule,
+  break tiers, deload windows); the app uses them when an exercise is added or swapped in, instead
+  of copying the last session. One source of truth: the backend engine.
+- **Stale history.** `strength.stale_gap_days` (112): exposures before a gap that long no longer
+  count for the stall counter, progress events (best load / e1RM) or reference reps, and a
+  stall-ladder step needs `n_required` exposures after the comeback (older persisted steps that
+  stood on stale history are ignored). The comeback is handled once by `break_tiers` (e.g. -10 %,
+  half the sets in the first week), then the lift progresses normally. Before, a Bicep Curl back
+  after 675 days was flagged "no progress in 4+ clean sessions" from its 2024 sessions.

@@ -17,7 +17,7 @@ LOWER_PATTERNS = frozenset(
 LOWER_MUSCLES = frozenset({"quads", "hamstrings", "glutes", "adductors", "calves"})
 CORE_MUSCLES = frozenset({"abs"})
 UPPER_MUSCLES = frozenset(
-    {"chest", "back", "lats", "shoulders", "rear_delts", "biceps", "triceps", "forearms", "traps"}
+    {"chest", "back", "lats", "shoulders", "biceps", "triceps", "forearms", "traps"}
 )
 IGNORED_PATTERNS = frozenset({"cardio"})
 

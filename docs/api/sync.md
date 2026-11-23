@@ -314,6 +314,24 @@ The Friday quality session of the same week, abridged:
   falls back to 120).
 - Lifting exercises: `variant_id` links to the catalog (match with `variants`). An exercise the
   engine cannot resolve yet has `"unresolved": true`, no `variant_id` and `target_weight: null`.
+- **Program slots (additive, 2026-11-23; absent on older plans).** Every lifting exercise has
+  `slot` (the program entry's variant name, e.g. `"Lat Pulldown (Machine)"`) and `template_sets`
+  (the program's set count for it; `sets` can be shorter in a deload or comeback week; the app
+  saves `template_sets` with "update template"). When the slot's variant is not usable at the
+  current gym, the engine fills it for this plan with a **substitute**: same movement pattern,
+  usable here (generic or active at this gym), not already in the session; the one trained most
+  recently at this gym, else anywhere, else the same exercise / same primary muscle. The same
+  exercise on other equipment (e.g. "Lateral Raise (Cable)" for a "Lateral Raise (Machine)" slot)
+  is a substitute too. A substitute is a normal item (own `variant_id`, targets from its own
+  history) plus `substitute_for` (the default's name) and `substitute_reason` ("Lat Pulldown
+  (Machine) is not set up at GymPod Ascheim"). The program keeps the default. `unresolved` items
+  remain only when nothing of the pattern is usable here.
+- **Ad-hoc targets (additive, 2026-11-23).** A lifting `session` has `adhoc_targets`: the next
+  targets, by the same engine rules as planned lifts, of up to 30 recently trained variants
+  (working sets within `strength.stale_gap_days`, usable at the current gym) that are not in the
+  session. Same item shape as `exercises` without `order`, `last`, `reason`, `slot`; the set count
+  is the last session's working sets (1..6). The app prefills an exercise added or swapped in
+  from it. No decisions are logged for them.
   Timed exercises carry `target_duration_s` instead of reps. `target_weight` is in the variant's
   logged convention (per dumbbell for `per_hand`).
 - When the user logs a session against a plan item, set `planned_session_id` on the pushed session.

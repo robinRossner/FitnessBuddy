@@ -103,12 +103,20 @@ other gym-bound exercises the user has history with (alphabetical).
 ```json
 {"id": 123, "exercise_id": 7, "gym_id": 4, "name": "Lateral Raise (Cable) @ Gym 2",
  "equipment_type": "cable", "weight_ladder": [5.0, 7.5, 10.0], "increment_kg": null, "notes": null,
- "active": true, "sessions": 9, "last_used": "2026-10-23"}
+ "active": true, "sessions": 9, "last_used": "2026-10-23", "replaced_variant_id": null}
 ```
 
 - `weight_ladder: null` clears the ladder (the importer may infer one from history again).
 - Changing the ladder, `active`, `equipment_type` or `increment_kg` re-runs the engine for the
   upcoming sessions.
+- A different `equipment_type` makes another exercise (own history and progression): the variant
+  is not changed in place. The variant of the same exercise, gym and new type is created (name
+  with the new automatic label, `notes`, `increment_kg` and load convention carried over, no
+  history) or, if one exists, reactivated, and the old one is set `active=false` (rows and sets
+  stay). The answer is the NEW variant and `replaced_variant_id` is the old id (`null` when the
+  type did not change); the other fields of the same PATCH apply to the new variant. When the gym
+  is the current one, the live program lines (and a per-exercise `variant` override) naming the
+  old variant get the new name (backup first). The next pull carries both rows.
 - `404` for an unknown / deleted variant, `409` for a name already used at the gym.
 
 ### Weight ladder rules (POST and PATCH)
@@ -132,8 +140,10 @@ a weight is above 500 or the result has more than 60 entries. Nothing is stored.
 ## Plan behaviour
 
 - Gym-bound program exercises resolve to the variant at the current gym.
-- No variant there: the plan item is `unresolved: true`, `needs_setup: true`, no target weights,
-  `progression_note` "Set up this machine for <gym>".
+- No variant there: the engine fills the slot with a substitute of the same movement pattern
+  usable at this gym (`substitute_for`, see `docs/api/sync.md`); only when there is none is the plan
+  item `unresolved: true`, `needs_setup: true`, no target weights, `progression_note` "Set up this
+  machine for <gym>".
 - A machine with no history gets `progression_state: "baseline"` and `progression_note` "First
   session at this gym: pick a weight for about 10 reps" (plus " (previous gym: 65 kg × 9; machines
   differ)"). No target weight; `hint_weight_kg` is the previous gym's top-set weight, a hint only.

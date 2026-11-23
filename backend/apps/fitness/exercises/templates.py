@@ -111,15 +111,17 @@ def _slot_dict(pe: Any) -> dict[str, Any]:
 def set_day_template(
     db: Session,
     kind: str,
-    picks: list[tuple[int, int | None]],
+    picks: list[tuple[int | None, int | None, str | None]],
     settings: Settings | None = None,
     *,
     replan_now: Callable[[str], Any] | None = None,
 ) -> dict[str, Any]:
-    """The exercise list the user actually did, as (variant id, sets or None), becomes the
-    template of that day kind: only `days.<kind>` of the live program file is rewritten (backup
-    first), then `replan_now(reason)` re-plans synchronously. Idempotent: an identical list
-    writes nothing."""
+    """The exercise list the user actually did, as (variant id, sets or None, slot or None),
+    becomes the template of that day kind: only `days.<kind>` of the live program file is
+    rewritten (backup first), then `replan_now(reason)` re-plans synchronously. A `slot` that
+    names a current entry of the kind (its `variant`) keeps that entry whatever the variant id
+    says (a substitute the engine chose, or a slot not set up at this gym). Idempotent: an
+    identical list writes nothing."""
     if kind not in KINDS:
         raise ExerciseError(422, f"kind must be one of {list(KINDS)}")
     s = settings or get_settings()
@@ -129,9 +131,29 @@ def set_day_template(
         raise ExerciseError(409, f"no program: {exc}") from None
     current = program.days.get(kind, [])
     old = {pe.exercise: pe for pe in current}
+    by_slot = {pe.variant: pe for pe in current}
+    cs.ensure_seeded(db, s.engine_config_path)
+    cfg = cs.load_active(db)[0]
+    # the plan names slots after the effective program (a variant override may rename them)
+    effective_now = apply_overrides(program, cfg.exercise_overrides).days.get(kind, [])
+    by_slot.update({eff.variant: pe for eff, pe in zip(effective_now, current, strict=False)})
     slots: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for variant_id, sets in picks:
+    kept_slugs: set[str] = set()
+    for variant_id, sets, slot_name in picks:
+        kept = by_slot.get(slot_name) if slot_name else None
+        if kept is not None:
+            if kept.exercise in seen:
+                raise ExerciseError(422, f"exercise {kept.exercise!r} appears twice")
+            seen.add(kept.exercise)
+            kept_slugs.add(kept.exercise)
+            entry = _slot_dict(kept)
+            if sets:
+                entry["sets"] = sets
+            slots.append(entry)
+            continue
+        if variant_id is None:
+            raise ExerciseError(422, f"slot {slot_name!r} is not in the {kind} template")
         variant, exercise = _live_variant(db, variant_id, f"variant {variant_id} not found")
         if exercise.slug in seen:
             raise ExerciseError(422, f"exercise {exercise.slug!r} appears twice")
@@ -145,14 +167,13 @@ def set_day_template(
         if prev is not None:  # rep_range / increment_kg / note carry over
             slot.update({k: v for k, v in _slot_dict(prev).items() if k in CARRY})
         slots.append(slot)
-    cs.ensure_seeded(db, s.engine_config_path)
-    cfg = cs.load_active(db)[0]
     # A per-exercise `variant` override (a rename writes one) would win over the picked variant:
     # point it at the picked name (not unset: the exercise's other day kind may rely on it).
     stale = {
         sl["exercise"]: sl["variant"]
         for sl in slots
-        if (cfg.exercise_overrides.get(sl["exercise"]) or {}).get("variant")
+        if sl["exercise"] not in kept_slugs
+        and (cfg.exercise_overrides.get(sl["exercise"]) or {}).get("variant")
         not in (None, sl["variant"])
     }
     backup = None

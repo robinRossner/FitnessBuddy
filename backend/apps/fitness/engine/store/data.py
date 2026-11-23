@@ -10,7 +10,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from apps.fitness.db.models import (
@@ -298,25 +298,81 @@ def legacy_windows(db: Session, cfg: EngineConfig) -> list[L.DeloadWindow]:
     return out
 
 
-def load_lift_contexts(db: Session, program: Program, gym: Gym | None) -> dict[str, LiftContext]:
-    out: dict[str, LiftContext] = {}
+def _lift_context(db: Session, v: ExerciseVariant) -> LiftContext:
     from apps.fitness.gyms.service import previous_hint
 
+    history = load_exposures(db, v.id)
+    hint = previous_hint(db, v) if not history else None
+    return LiftContext(
+        variant_info(v),
+        history,
+        load_ladder(db, v.id),
+        (hint["gym_name"], hint["weight_kg"], hint["reps"]) if hint else None,
+    )
+
+
+def _named_equipment(db: Session, base_name: str) -> set[str]:
+    """Equipment types of the variants named `base_name` (generic or "<base_name> @ <gym>")."""
+    pattern = base_name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return set(
+        db.scalars(
+            select(ExerciseVariant.equipment_type).where(
+                or_(
+                    ExerciseVariant.name == base_name,
+                    ExerciseVariant.name.like(pattern + " @ %", escape="\\"),
+                )
+            )
+        )
+    )
+
+
+def load_lift_contexts(db: Session, program: Program, gym: Gym | None) -> dict[str, LiftContext]:
+    """Context per program variant name. A slot whose variant has no usable variant at `gym`
+    gets a substitute of the same movement pattern (`engine/store/substitutes.py`), never one
+    already in the same day; with none it stays `LiftContext(None)` (needs setup)."""
+    from apps.fitness.engine.store.substitutes import find_substitute, substitute_reason
+
     names = {e.variant: e.exercise for exs in program.days.values() for e in exs if e.active}
+    out: dict[str, LiftContext] = {}
     for name in sorted(names):
         v = resolve_variant(db, name, gym, names[name])
         if v is None:
-            out[name] = LiftContext(None)
             continue
-        history = load_exposures(db, v.id)
-        hint = previous_hint(db, v) if not history else None
-        out[name] = LiftContext(
-            variant_info(v),
-            history,
-            load_ladder(db, v.id),
-            (hint["gym_name"], hint["weight_kg"], hint["reps"]) if hint else None,
-        )
+        out[name] = ctx = _lift_context(db, v)
+        named = _named_equipment(db, name)
+        if base_name_of(v) != name and named and v.equipment_type not in named:
+            # the same exercise on other equipment is another lift (own history, own targets):
+            # it fills the slot for now, the program keeps the default
+            ctx.substitute_for = name
+            ctx.substitute_reason = substitute_reason(name, gym)
+    for _kind, exs in program.days.items():
+        active = [e for e in exs if e.active]
+        used = {c.variant.id for e in active if (c := out.get(e.variant)) and c.variant}
+        for e in active:
+            if e.variant in out:
+                continue
+            sub = find_substitute(db, e.exercise, gym, used)
+            if sub is None:
+                out[e.variant] = LiftContext(None)
+                continue
+            used.add(sub.id)
+            ctx = _lift_context(db, sub)
+            ctx.substitute_for = e.variant
+            ctx.substitute_reason = substitute_reason(e.variant, gym)
+            out[e.variant] = ctx
     return out
+
+
+def load_adhoc_contexts(
+    db: Session, gym: Gym | None, today: date, cfg: EngineConfig
+) -> dict[int, LiftContext]:
+    """Contexts of the recently trained variants usable at `gym` (`PlanInputs.adhoc`)."""
+    from apps.fitness.engine.store.substitutes import adhoc_variants
+
+    return {
+        v.id: _lift_context(db, v)
+        for v in adhoc_variants(db, gym, today, cfg.strength.stale_gap_days)
+    }
 
 
 # --------------------------------------------------------------------------- running state
@@ -608,6 +664,7 @@ def load_inputs(
         config_version=config_version,
         program=program,
         lifts=load_lift_contexts(db, program, gym),
+        adhoc=load_adhoc_contexts(db, gym, today, cfg),
         health=load_health(db, today - timedelta(days=120), today),
         runs=runs,
         actual_lower_days=lower_days(db, today - timedelta(weeks=8), today),

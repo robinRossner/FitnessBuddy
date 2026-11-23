@@ -10,7 +10,7 @@ enum ExerciseOptions {
     static let muscles: [(key: String, label: String, region: String)] = [
         ("chest", "Chest", "Chest"),
         ("lats", "Lats", "Back"), ("back", "Upper back", "Back"), ("traps", "Traps", "Back"),
-        ("shoulders", "Shoulders", "Shoulders"), ("rear_delts", "Rear delts", "Shoulders"),
+        ("shoulders", "Shoulders", "Shoulders"),
         ("biceps", "Biceps", "Arms"), ("triceps", "Triceps", "Arms"), ("forearms", "Forearms", "Arms"),
         ("quads", "Quads", "Legs"), ("hamstrings", "Hamstrings", "Legs"), ("glutes", "Glutes", "Legs"),
         ("adductors", "Adductors", "Legs"), ("calves", "Calves", "Legs"),
@@ -31,11 +31,11 @@ enum ExerciseOptions {
     static let increments: [Double] = [0.5, 1, 1.25, 2, 2.5, 4, 5, 7.5, 10]
 
     static func region(ofMuscle muscle: String?) -> String {
-        muscles.first { $0.key == muscle }?.region ?? "Other"
+        muscles.first { $0.key == MuscleGroup.merged(muscle) }?.region ?? "Other"
     }
 
     static func muscleLabel(_ key: String?) -> String {
-        muscles.first { $0.key == key }?.label ?? (key ?? "").replacingOccurrences(of: "_", with: " ").capitalized
+        muscles.first { $0.key == MuscleGroup.merged(key) }?.label ?? (key ?? "").replacingOccurrences(of: "_", with: " ").capitalized
     }
 
     static func equipmentLabel(_ key: String?) -> String {
@@ -106,7 +106,8 @@ enum ExerciseCatalog {
             rows.append((region(ex), ExercisePickRow(exerciseId: v.exerciseId, exerciseName: ex?.name ?? v.name.withoutGymSuffix,
                                                      variantId: v.id, title: v.name.withoutGymSuffix, equipmentType: v.equipmentType)))
         }
-        for ex in exercises where !covered.contains(ex.id) && ex.movementPattern != "cardio" {
+        let searching = !search.trimmingCharacters(in: .whitespaces).isEmpty
+        for ex in exercises where !covered.contains(ex.id) && (searching || ex.movementPattern != "cardio") {
             rows.append((region(ex), ExercisePickRow(exerciseId: ex.id, exerciseName: ex.name, variantId: nil, title: ex.name,
                                                      equipmentType: nil)))
         }
@@ -194,8 +195,16 @@ struct VariantSettingsPatch: Encodable, Sendable, Equatable {
 /// The variant fields `PATCH /variants/{id}` answers with.
 struct VariantPatchResponse: Decodable, Sendable {
     var id: Int
+    var exerciseId: Int?
+    var gymId: Int?
+    var name: String?
     var equipmentType: String?
     var incrementKg: Double?
+    var weightLadder: [Double]?
+    var active: Bool?
+    /// Set when the type changed: the answer is the new variant of that type and this one was retired (another
+    /// type is another exercise, with its own history).
+    var replacedVariantId: Int?
 }
 
 /// Creates and edits exercises on the server, then mirrors the answer into the local cache at once (the next pull
@@ -228,6 +237,9 @@ struct ExerciseLibrary {
     private func cachedExercise(_ id: Int) -> CachedExercise? {
         try? context.fetch(FetchDescriptor<CachedExercise>(predicate: #Predicate { $0.id == id })).first
     }
+
+    /// A cached variant by id (nil: not synced yet).
+    func variant(id: Int) -> CachedVariant? { cachedVariant(id) }
 
     /// A brand-new exercise with its first variant (machines at `gymId`). Returns the variant to log.
     func create(_ draft: NewExerciseDraft, gymId: Int?) async throws -> CachedVariant {
@@ -288,13 +300,27 @@ struct ExerciseLibrary {
         try? context.save()
     }
 
-    func setVariant(_ variantId: Int, equipmentType: String, incrementKg: Double?) async throws {
+    /// Returns the variant the edit ended on: another one than `variantId` when the type changed (the old one is
+    /// retired in the cache, the next pull confirms both).
+    @discardableResult
+    func setVariant(_ variantId: Int, equipmentType: String, incrementKg: Double?) async throws -> Int {
         let body = VariantSettingsPatch(equipmentType: equipmentType, incrementKg: incrementKg)
         let dto = try decode(VariantPatchResponse.self, try await send("PATCH", ExerciseEndpoints.variant(variantId), body))
+        if let oldId = dto.replacedVariantId, let old = cachedVariant(oldId) { old.active = false }
         if let v = cachedVariant(dto.id) {
             v.equipmentType = dto.equipmentType ?? equipmentType
             v.incrementKg = dto.incrementKg
-            try? context.save()
+            if let active = dto.active { v.active = active }
+            if let name = dto.name { v.name = name }
+        } else if dto.replacedVariantId != nil, let exerciseId = dto.exerciseId, let name = dto.name {
+            let old = cachedVariant(dto.replacedVariantId ?? 0)
+            let v = CachedVariant(id: dto.id, exerciseId: exerciseId, name: name, gymId: dto.gymId,
+                                  equipmentType: dto.equipmentType ?? equipmentType, loadConvention: old?.loadConvention ?? "total",
+                                  active: dto.active ?? true, weightLadder: dto.weightLadder ?? [])
+            v.incrementKg = dto.incrementKg
+            context.insert(v)
         }
+        try? context.save()
+        return dto.id
     }
 }

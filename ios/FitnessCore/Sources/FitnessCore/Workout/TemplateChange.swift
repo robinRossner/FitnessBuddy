@@ -2,12 +2,20 @@ import Foundation
 
 /// One exercise of a program template as sent to `PUT /api/v1/program/{kind}`.
 public struct TemplateExercise: Codable, Sendable, Equatable {
-    public var variantId: Int
+    /// Nil for a slot with no usable variant at this gym (the server keeps its default).
+    public var variantId: Int?
+    /// The program slot (its default variant name); when it names a current program entry the server keeps that entry.
+    public var slot: String?
     public var sets: Int
 
-    public enum CodingKeys: String, CodingKey, Sendable { case variantId = "variant_id", sets }
+    public enum CodingKeys: String, CodingKey, Sendable { case variantId = "variant_id", slot, sets }
 
-    public init(variantId: Int, sets: Int) { self.variantId = variantId; self.sets = sets }
+    public init(variantId: Int?, sets: Int, slot: String? = nil) {
+        self.variantId = variantId; self.sets = sets; self.slot = slot
+    }
+
+    /// Identity of the program slot this entry stands for.
+    var key: String { slot ?? "id:\(variantId.map(String.init) ?? "nil")" }
 }
 
 /// Body of `PUT /api/v1/program/{kind}`; `exercises` in performed order.
@@ -24,23 +32,39 @@ public struct PendingTemplateUpdate: Codable, Sendable, Equatable {
 /// Detects whether a finished workout changed the exercise structure of the planned session it started from.
 public enum TemplateChange: Sendable {
     /// The structure that would become the new template, or nil when the exercises are the same and in the same
-    /// order as the template (set-count differences alone do not count).
-    /// - `performed`: one entry per exercise group in exercise order (variant id, number of sets that are kept).
+    /// order as the template (set-count differences alone do not count). Entries are identified by slot (a
+    /// substitute done as planned is unchanged) or else by variant id.
+    /// - `performed`: one entry per exercise group in exercise order (variant id, slot, number of sets kept).
     public static func newTemplate(template: [TemplateExercise], performed: [TemplateExercise]) -> [TemplateExercise]? {
         var merged: [TemplateExercise] = []
         for p in performed where p.sets > 0 {
-            if let i = merged.firstIndex(where: { $0.variantId == p.variantId }) { merged[i].sets += p.sets }
+            if let i = merged.firstIndex(where: { $0.key == p.key }) { merged[i].sets += p.sets }
             else { merged.append(p) }
         }
-        guard !merged.isEmpty, merged.map(\.variantId) != template.map(\.variantId) else { return nil }
-        return merged.map { p in
-            TemplateExercise(variantId: p.variantId, sets: template.first { $0.variantId == p.variantId }?.sets ?? max(1, p.sets))
+        guard !merged.isEmpty else { return nil }
+        let performedKeys = Set(merged.map(\.key))
+        // Unresolved template entries nobody performed stay where they are; they are not removals.
+        let kept = template.enumerated().filter { $0.element.variantId == nil && !performedKeys.contains($0.element.key) }
+        let comparable = template.filter { t in !kept.contains { $0.element.key == t.key } }
+        guard merged.map(\.key) != comparable.map(\.key) else { return nil }
+        var result = merged.map { p -> TemplateExercise in
+            guard let t = template.first(where: { $0.key == p.key }) else {
+                return TemplateExercise(variantId: p.variantId, sets: max(1, p.sets), slot: p.slot)
+            }
+            return TemplateExercise(variantId: p.variantId, sets: t.sets, slot: t.slot)
         }
+        for (i, t) in kept { result.insert(t, at: min(i, result.count)) }
+        return result
     }
 
-    /// Template exercises of a planned session (unresolved ones without a variant are skipped, as at start).
+    /// Template exercises of a planned session: base set counts (not the cut ones), substitutes keep their slot,
+    /// unresolved items stay as variant-less slots.
     public static func templateExercises(of planned: [PlannedExerciseDTO]) -> [TemplateExercise] {
-        planned.compactMap { ex in ex.variantId.map { TemplateExercise(variantId: $0, sets: ex.sets.count) } }
+        planned.map { ex in
+            let sets = ex.templateSets ?? ex.sets.count
+            guard let id = ex.variantId else { return TemplateExercise(variantId: nil, sets: sets, slot: ex.slot ?? ex.name) }
+            return TemplateExercise(variantId: id, sets: sets, slot: ex.substituteFor)
+        }
     }
 }
 

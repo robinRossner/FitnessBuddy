@@ -50,6 +50,40 @@ class LiftingMixin(PlannerState):
             bodyweight_kg=self.inp.bodyweight_kg or self.cfg.user.bodyweight_kg,
         )
 
+    def _adhoc_targets(
+        self, exercises: list[dict[str, Any]], kind: str, day: date, windows: list[L.DeloadWindow]
+    ) -> list[dict[str, Any]]:
+        """Next targets of the recently trained variants that are not in this session, by the
+        same rules as the planned lifts (no decisions logged): what the app prefills when one
+        is added or swapped in. Set count = the last session's working sets (1..6)."""
+        planned = {e.get("variant_id") for e in exercises}
+        by_slug = self.inp.program.by_exercise()
+        out = []
+        for vid, ctx in self.inp.adhoc.items():
+            v = ctx.variant
+            if v is None or vid in planned:
+                continue
+            hist = [e for e in ctx.history if e.day < day]
+            last = hist[-1] if hist else None
+            n = len([s for s in last.sets if s.reps is not None or s.duration_s]) if last else 3
+            pe = by_slug.get(v.exercise_slug)
+            spec = L.LiftSpec(
+                variant=v,
+                rep_range=(pe.rep_range if pe else None)
+                or (self.st.reps_rep_range if v.progression == "reps" else self.st.rep_range),
+                n_sets=max(1, min(6, n or 3)),
+                increment_kg=v.increment_kg,
+                progression=v.progression,
+                lower_body=kind == "lower",
+                bodyweight_kg=self.inp.bodyweight_kg or self.cfg.user.bodyweight_kg,
+            )
+            presc = L.prescribe(spec, hist, self.cfg, day=day, ctx=self._env(ctx, windows))
+            item = _exercise_item(v, spec, presc)
+            item.pop("last", None)
+            item.pop("reason", None)
+            out.append(item)
+        return out
+
     def _env(self, ctx: LiftContext, windows: list[L.DeloadWindow]) -> L.LiftEnv:
         return L.LiftEnv(
             variant_id=ctx.variant.id if ctx.variant else None,
@@ -158,10 +192,10 @@ class LiftingMixin(PlannerState):
                 stalled.append((ctx, an))
         recent_resets = [
             ctx
-            for ctx, _an, _s in analyses.values()
+            for ctx, an, _s in analyses.values()
             if any(
                 e.step != L.LADDER_ADVISOR and 0 <= (first - e.day).days <= st.multi_stall_days
-                for e in ctx.ladder
+                for e in an.ladder
             )
         ]
         n_stalled = len(stalled) + len(
@@ -330,6 +364,8 @@ class LiftingMixin(PlannerState):
                         "order": order,
                         "name": pe.variant,
                         "exercise": pe.exercise,
+                        "slot": pe.variant,
+                        "template_sets": pe.sets,
                         "unresolved": True,
                         "reason": "no variant at the current gym yet: set up this machine",
                         "needs_setup": True,
@@ -352,6 +388,8 @@ class LiftingMixin(PlannerState):
                 continue
             v = ctx.variant
             spec = self._spec(pe, kind, v)
+            if ctx.substitute_for is not None:  # the default's load step is not this exercise's
+                spec = replace(spec, increment_kg=v.increment_kg)
             hist = [e for e in ctx.history if e.day < slot.day]
             presc = L.prescribe(spec, hist, self.cfg, day=slot.day, ctx=self._env(ctx, windows))
             if presc.ladder is not None:
@@ -359,28 +397,17 @@ class LiftingMixin(PlannerState):
             if "increase_load" in presc.rule:
                 increases.append(v.name)
             err = presc.effective_rep_range or spec.rep_range
-            exercises.append(
-                {
-                    "order": order,
-                    "variant_id": v.id,
-                    "variant_key": v.key,
-                    "name": v.name,
-                    "exercise": v.exercise_slug,
-                    "equipment_type": v.equipment_type,
-                    "load_convention": v.load_convention,
-                    "rep_range": list(spec.rep_range),
-                    "effective_rep_range": list(err),
-                    "progression_state": presc.state,
-                    "progression_note": presc.note,
-                    "sets": [s.as_dict() for s in presc.sets],
-                    "last": presc.previous.as_dict() if presc.previous else None,
-                    "rule": presc.rule,
-                    "reason": presc.reason,
-                    "flags": presc.flags,
-                    "needs_setup": False,
-                    **({"hint_weight_kg": presc.hint_weight_kg} if presc.hint_weight_kg else {}),
-                }
-            )
+            item = {
+                "order": order,
+                **_exercise_item(v, spec, presc),
+                "slot": pe.variant,
+                "template_sets": pe.sets,
+                "needs_setup": False,
+            }
+            if ctx.substitute_for is not None:
+                item["substitute_for"] = ctx.substitute_for
+                item["substitute_reason"] = ctx.substitute_reason
+            exercises.append(item)
             out: dict[str, Any] = {
                 "day": slot.day.isoformat(),
                 "sets": [s.as_dict() for s in presc.sets],
@@ -487,6 +514,7 @@ class LiftingMixin(PlannerState):
             "kind": kind,
             "gym": inp.gym_name,
             "exercises": exercises,
+            "adhoc_targets": self._adhoc_targets(exercises, kind, slot.day, windows),
             "deload": (
                 {
                     "active": True,
@@ -507,3 +535,26 @@ class LiftingMixin(PlannerState):
             _TITLES[kind] + (" (deload)" if cover is not None else ""),
             pres,
         )
+
+
+def _exercise_item(v: VariantInfo, spec: L.LiftSpec, presc: L.LiftPrescription) -> dict[str, Any]:
+    """The plan JSON of one prescribed lift (docs/api/sync.md "Plan JSON")."""
+    err = presc.effective_rep_range or spec.rep_range
+    return {
+        "variant_id": v.id,
+        "variant_key": v.key,
+        "name": v.name,
+        "exercise": v.exercise_slug,
+        "equipment_type": v.equipment_type,
+        "load_convention": v.load_convention,
+        "rep_range": list(spec.rep_range),
+        "effective_rep_range": list(err),
+        "progression_state": presc.state,
+        "progression_note": presc.note,
+        "sets": [s.as_dict() for s in presc.sets],
+        "last": presc.previous.as_dict() if presc.previous else None,
+        "rule": presc.rule,
+        "reason": presc.reason,
+        "flags": presc.flags,
+        **({"hint_weight_kg": presc.hint_weight_kg} if presc.hint_weight_kg else {}),
+    }

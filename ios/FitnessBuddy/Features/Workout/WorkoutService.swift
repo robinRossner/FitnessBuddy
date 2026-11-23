@@ -53,28 +53,42 @@ struct WorkoutService {
     /// Whether a workout shows (and prefills from) last session's numbers; see `LastSession`.
     private var showLast: Bool { LastSession.isShown(defaults) }
 
-    /// The target the cached plan holds for set `index` of this exercise (the next planned session that has it).
-    /// Only used while last session is hidden, for exercises added or swapped in outside the plan.
-    private func plannedSet(variantId: Int, index: Int) -> PlannedSetDTO? {
+    /// The plan exercise holding targets for this variant: planned exercises first, then the ad-hoc targets the
+    /// backend sends for recently trained variants. The session's own planned session is preferred, then the
+    /// next upcoming ones.
+    private func plannedExercise(variantId: Int, plannedSessionId: String?) -> PlannedExerciseDTO? {
         let today = AppClock.todayString
-        let plans = (try? context.fetch(FetchDescriptor<CachedPlannedSession>(sortBy: [SortDescriptor(\.date)]))) ?? []
-        for plan in plans where plan.date >= today && plan.status != "done" && plan.status != "skipped" {
-            guard let ex = plan.item?.session?.exercises?.first(where: { $0.variantId == variantId && !$0.sets.isEmpty }),
-                  ex.sets.contains(where: { $0.targetWeight != nil || $0.targetReps != nil || $0.targetDurationS != nil })
-            else { continue }
-            return ex.sets[min(index, ex.sets.count - 1)]
+        let all = (try? context.fetch(FetchDescriptor<CachedPlannedSession>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        let own = all.filter { $0.id == plannedSessionId }
+        let upcoming = all.filter { $0.date >= today && $0.status != "done" && $0.status != "skipped" && $0.id != plannedSessionId }
+        func hasTarget(_ ex: PlannedExerciseDTO) -> Bool {
+            ex.variantId == variantId && ex.sets.contains { $0.targetWeight != nil || $0.targetReps != nil || $0.targetDurationS != nil }
+        }
+        for plan in own + upcoming {
+            let session = plan.item?.session
+            if let ex = session?.exercises?.first(where: hasTarget) ?? session?.adhocTargets?.first(where: hasTarget) { return ex }
         }
         return nil
     }
 
-    /// Starting values of an ad-hoc set while last session is hidden, and the target it carries (if any).
-    private func hiddenStart(variantId: Int, index: Int, last: LastSetDTO?, repRangeHigh: Int?)
+    private func plannedSet(variantId: Int, index: Int, plannedSessionId: String? = nil) -> PlannedSetDTO? {
+        guard let ex = plannedExercise(variantId: variantId, plannedSessionId: plannedSessionId) else { return nil }
+        return ex.sets[min(index, ex.sets.count - 1)]
+    }
+
+    /// Starting values of an ad-hoc set and the target it carries (if any). With last session hidden there is no
+    /// last-based fallback for the weight.
+    private func adhocStart(variantId: Int, index: Int, last: LastSetDTO?, repRangeHigh: Int?, plannedSessionId: String? = nil)
         -> (values: LastSession.Values, target: LastSession.Values?) {
-        let target = plannedSet(variantId: variantId, index: index).map {
+        let target = plannedSet(variantId: variantId, index: index, plannedSessionId: plannedSessionId).map {
             LastSession.Values(weight: $0.targetWeight, reps: $0.targetReps, duration: $0.targetDurationS)
         }
         let lastValues = last.map { LastSession.Values(weight: $0.weight, reps: $0.reps, duration: $0.durationS) }
-        return (LastSession.hiddenPrefill(target: target, last: lastValues, repRangeHigh: repRangeHigh), target)
+        if !showLast { return (LastSession.hiddenPrefill(target: target, last: lastValues, repRangeHigh: repRangeHigh), target) }
+        let t = (target?.isEmpty ?? true) ? nil : target
+        return (LastSession.Values(weight: SetupRules.prefillWeight(target: t?.weight, last: last?.weight, baseline: false),
+                                   reps: t?.reps ?? last?.reps ?? repRangeHigh,
+                                   duration: t?.duration ?? last?.durationS), t)
     }
 
     private func gymId(named name: String) -> Int? {
@@ -109,7 +123,7 @@ struct WorkoutService {
         context.insert(s)
         var order = 0
         for ex in exercises {
-            guard let variantId = ex.variantId else { continue }  // unresolved exercises can't be logged yet
+            guard let variantId = ex.variantId else { continue }  // unresolved: shown as an open slot in the workout
             order += 1
             let baseline = ex.isBaseline
             let last = baseline ? [] : (ex.last?.sets ?? [])  // other gym's numbers say nothing about this machine
@@ -128,6 +142,7 @@ struct WorkoutService {
                 set.isBaseline = baseline
                 set.hintWeightKg = ex.hintWeightKg
                 set.needsSetup = ex.showsSetupButton
+                set.slotName = ex.substituteFor
                 set.prevWeightKg = prev?.weight
                 set.prevReps = prev?.reps
                 set.prevDurationS = prev?.durationS
@@ -157,7 +172,7 @@ struct WorkoutService {
                                    setOrder: j + 1, setType: o.setType, weightKg: o.weightKg, reps: o.reps, durationS: o.durationS)
                 if !showLast {
                     // the old numbers are last session: start from the target (or the top of the rep range) instead
-                    let h = hiddenStart(variantId: o.variantId, index: j, last: LastSetDTO(weight: o.weightKg, reps: o.reps, durationS: o.durationS),
+                    let h = adhocStart(variantId: o.variantId, index: j, last: LastSetDTO(weight: o.weightKg, reps: o.reps, durationS: o.durationS),
                                         repRangeHigh: variant(o.variantId)?.repRangeHigh)
                     set.weightKg = h.values.weight
                     set.reps = h.values.reps
@@ -179,24 +194,25 @@ struct WorkoutService {
 
     // MARK: Exercises
 
-    func addExercise(_ variant: CachedVariant, to session: LocalSession, setCount: Int = 3) {
+    func addExercise(_ variant: CachedVariant, to session: LocalSession, setCount: Int = 3, slot: String? = nil) {
         let order = (sets(of: session).map(\.exerciseOrder).max() ?? 0) + 1
         let prev = previousPerformance(variantId: variant.id, excluding: session.id)
-        let n = prev.isEmpty ? setCount : min(max(prev.count, 1), 6)
+        let planned = plannedExercise(variantId: variant.id, plannedSessionId: session.plannedSessionId)
+        let n = planned.map { max($0.sets.count, 1) } ?? (prev.isEmpty ? setCount : min(max(prev.count, 1), 6))
         for i in 0..<n {
             let p = i < prev.count ? prev[i] : prev.last
             let set = LocalSet(sessionId: session.id, variantId: variant.id, variantName: variant.name, exerciseOrder: order,
                                setOrder: i + 1, weightKg: p?.weight, reps: p?.reps ?? variant.repRangeHigh,
                                durationS: p?.durationS)
-            if !showLast {
-                let h = hiddenStart(variantId: variant.id, index: i, last: p, repRangeHigh: variant.repRangeHigh)
-                set.weightKg = h.values.weight
-                set.reps = h.values.reps
-                set.durationS = h.values.duration
-                set.targetWeightKg = h.target?.weight
-                set.targetReps = h.target?.reps
-                set.targetDurationS = h.target?.duration
-            }
+            let h = adhocStart(variantId: variant.id, index: i, last: p, repRangeHigh: variant.repRangeHigh,
+                               plannedSessionId: session.plannedSessionId)
+            set.weightKg = h.values.weight
+            set.reps = h.values.reps
+            set.durationS = h.values.duration
+            set.targetWeightKg = h.target?.weight
+            set.targetReps = h.target?.reps
+            set.targetDurationS = h.target?.duration
+            set.slotName = slot
             set.isDemo = session.isDemo
             set.prevWeightKg = p?.weight
             set.prevReps = p?.reps
@@ -215,31 +231,42 @@ struct WorkoutService {
             set.variantId = variant.id
             set.variantName = variant.name
             set.plannedRestS = nil
+            set.slotName = nil  // an explicit swap is a real change, not the slot's substitute any more
             set.targetWeightKg = nil
             set.targetReps = nil
             set.targetDurationS = nil
             set.prevWeightKg = p?.weight
             set.prevReps = p?.reps
             set.prevDurationS = p?.durationS
-            if !showLast {
-                let h = hiddenStart(variantId: variant.id, index: i, last: p, repRangeHigh: variant.repRangeHigh)
-                set.targetWeightKg = h.target?.weight
-                set.targetReps = h.target?.reps
-                set.targetDurationS = h.target?.duration
-                if !set.isCompleted {
-                    set.weightKg = h.values.weight
-                    set.reps = h.values.reps ?? set.reps
-                    set.durationS = h.values.duration
-                }
-            } else if !set.isCompleted {
-                set.weightKg = p?.weight
-                set.reps = p?.reps ?? set.reps
-                set.durationS = p?.durationS
+            let h = adhocStart(variantId: variant.id, index: i, last: p, repRangeHigh: variant.repRangeHigh,
+                               plannedSessionId: session.plannedSessionId)
+            set.targetWeightKg = h.target?.weight
+            set.targetReps = h.target?.reps
+            set.targetDurationS = h.target?.duration
+            if !set.isCompleted {
+                set.weightKg = h.values.weight
+                set.reps = h.values.reps ?? set.reps
+                set.durationS = h.values.duration
             }
             set.touch()
         }
         session.touch()
         save()
+    }
+
+    /// A variant's type changed and the server made a new variant: the sets not done yet follow it, completed
+    /// sets stay on the old variant (the honest history). The name comes from the new variant.
+    func replaceVariant(in session: LocalSession, from oldId: Int, to newId: Int) {
+        guard oldId != newId else { return }
+        let newName = variant(newId)?.name
+        var changed = false
+        for set in sets(of: session) where set.variantId == oldId && !set.isCompleted {
+            set.variantId = newId
+            if let newName { set.variantName = newName }
+            set.touch()
+            changed = true
+        }
+        if changed { session.touch(); save() }
     }
 
     /// Removes the exercise with all its sets, the same way a single set delete does (tombstones for anything the

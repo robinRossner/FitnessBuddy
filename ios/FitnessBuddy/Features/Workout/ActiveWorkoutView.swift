@@ -11,12 +11,14 @@ struct ActiveWorkoutView: View {
     @Query private var states: [SyncState]
     @Query private var restOverrides: [LocalRestOverride]
     @Query private var exercises: [CachedExercise]
+    @Query private var plannedRows: [CachedPlannedSession]
 
     @State private var showAddExercise = false
     @State private var swapOrder: Int?
     @State private var restPickerOrder: Int?
     @State private var editVariantId: Int?
     @State private var setupTarget: MachineSetupTarget?
+    @State private var pickSlot: String?
     @State private var notesShown: Set<Int> = []
     @State private var confirmFinish = false
     @State private var confirmDiscard = false
@@ -26,6 +28,8 @@ struct ActiveWorkoutView: View {
     init(session: LocalSession) {
         self.session = session
         let id = session.id
+        let plannedId = session.plannedSessionId ?? ""
+        _plannedRows = Query(filter: #Predicate<CachedPlannedSession> { $0.id == plannedId })
         _sets = Query(filter: #Predicate<LocalSet> { $0.sessionId == id && $0.deletedAt == nil },
                       sort: [SortDescriptor(\.exerciseOrder), SortDescriptor(\.setOrder)])
     }
@@ -46,14 +50,68 @@ struct ActiveWorkoutView: View {
             .map { (order: $0.0, sets: $0.1.sorted { $0.setOrder < $1.setOrder }) }
     }
 
+    /// Planned exercises with no variant at this gym whose slot nothing in the workout fills yet.
+    private var openSlots: [PlannedExerciseDTO] {
+        let filled = Set(sets.compactMap(\.slotName))
+        return (plannedRows.first?.item?.session?.exercises ?? [])
+            .filter { $0.variantId == nil && !filled.contains($0.slot ?? $0.name) }
+    }
+
+    private struct WorkoutRow: Identifiable {
+        enum Kind { case slot(Int, PlannedExerciseDTO); case group(Int, [LocalSet]) }
+        let id: String
+        let kind: Kind
+    }
+
+    /// Exercise groups with the open slots at their plan position (after the resolved exercises that precede
+    /// them in the plan; clamped to the end when the workout has fewer groups).
+    private var rows: [WorkoutRow] {
+        let planned = plannedRows.first?.item?.session?.exercises ?? []
+        var out = groups.map { WorkoutRow(id: "g\($0.order)", kind: .group($0.order, $0.sets)) }
+        for (n, slot) in openSlots.enumerated() {
+            let before = planned.prefix { $0.order != slot.order }.filter { $0.variantId != nil }.count
+            let at = min(before + n, out.count)
+            out.insert(WorkoutRow(id: "s\(n)", kind: .slot(n, slot)), at: at)
+        }
+        return out
+    }
+
+    private func openSlotSection(_ n: Int, _ ex: PlannedExerciseDTO) -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(ex.name.withoutGymSuffix).font(.title3.weight(.bold))
+                Text("Not set up at this gym").font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button { setupTarget = MachineSetupTarget(exercise: ex) } label: {
+                        Label("Set up machine", systemImage: "wrench.and.screwdriver").font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered).tint(.orange).controlSize(.small)
+                    .disabled(!env.gyms.canWrite)
+                    .accessibilityIdentifier(AXID.Workout.openSlotSetup(n))
+                    Button { pickSlot = ex.slot ?? ex.name } label: {
+                        Label("Pick exercise", systemImage: "list.bullet").font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered).controlSize(.small)
+                    .accessibilityIdentifier(AXID.Workout.openSlotPick(n))
+                }
+            }
+            .buttonStyle(.borderless)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(AXID.Workout.openSlot(n))
+        }
+    }
+
     private var completedCount: Int { sets.filter(\.isCompleted).count }
     private var uncompletedCount: Int { sets.count - completedCount }
 
     var body: some View {
         List {
             Section { header }
-            ForEach(groups, id: \.order) { group in
-                exerciseSection(group.order, group.sets)
+            ForEach(rows) { row in
+                switch row.kind {
+                case .slot(let n, let ex): openSlotSection(n, ex)
+                case .group(let order, let sets): exerciseSection(order, sets)
+                }
             }
             Section {
                 Button { showAddExercise = true } label: {
@@ -103,6 +161,11 @@ struct ActiveWorkoutView: View {
         .sheet(isPresented: $showAddExercise) {
             ExercisePickerView(title: "Add exercise") { service.addExercise($0, to: session) }
         }
+        .sheet(isPresented: Binding(get: { pickSlot != nil }, set: { if !$0 { pickSlot = nil } })) {
+            ExercisePickerView(title: "Pick exercise") { variant in
+                if let slot = pickSlot { service.addExercise(variant, to: session, slot: slot) }
+            }
+        }
         .sheet(isPresented: Binding(get: { swapOrder != nil }, set: { if !$0 { swapOrder = nil } })) {
             ExercisePickerView(title: "Swap exercise") { variant in
                 if let order = swapOrder { service.swapExercise(in: session, order: order, to: variant) }
@@ -117,7 +180,9 @@ struct ActiveWorkoutView: View {
         }
         .sheet(item: $setupTarget) { MachineSetupSheet(target: $0) }
         .sheet(item: Binding(get: { editVariantId.flatMap { variantsById[$0] } }, set: { if $0 == nil { editVariantId = nil } })) { variant in
-            ExerciseEditSheet(variant: variant, exercise: exercises.first { $0.id == variant.exerciseId })
+            ExerciseEditSheet(variant: variant, exercise: exercises.first { $0.id == variant.exerciseId }) { newId in
+                service.replaceVariant(in: session, from: variant.id, to: newId)
+            }
         }
         .sheet(item: Binding(get: { restPickerOrder.map(RestPickerTarget.init) }, set: { restPickerOrder = $0?.order })) { target in
             restPickerSheet(order: target.order)
@@ -236,6 +301,12 @@ struct ActiveWorkoutView: View {
                             showReorder = true
                         }
                         .accessibilityHint("Hold to reorder exercises")
+                    if let slot = group.first?.slotName, let name = group.first?.variantName,
+                       slot.withoutGymSuffix != name.withoutGymSuffix {
+                        Text("Instead of \(slot.withoutGymSuffix), not set up here")
+                            .font(.caption).foregroundStyle(.secondary).textCase(nil)
+                            .accessibilityIdentifier(AXID.Workout.substituteNote)
+                    }
                     if group.first?.isBaseline == true {
                         Text(SetupRules.baselineNote).font(.caption).foregroundStyle(Domain.lifting.color).textCase(nil)
                     }

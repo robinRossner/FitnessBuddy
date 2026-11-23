@@ -74,6 +74,18 @@ struct ChartTransformTests {
         #expect(by.map(\.group) == ["back", "chest"])
     }
 
+    @Test func rearDeltsMergeIntoShouldersAndA409NamesTheExistingVariant() {
+        let by = VolumeTransforms.setsByMuscle([WeekVolumeDTO(weekStart: "2026-10-19", setsByMuscleGroup: ["shoulders": 6, "rear_delts": 3])])
+        #expect(by.count == 1 && by[0].group == "shoulders" && by[0].sets == 9)
+        let lifts = [LiftSummaryDTO(variantId: 1, name: "Face Pull", muscleGroup: "rear_delts"), LiftSummaryDTO(variantId: 2, name: "Press", muscleGroup: "shoulders")]
+        #expect(LiftListing.muscleGroups(lifts) == ["shoulders"])
+        #expect(LiftListing.filtered(lifts, query: "", muscle: "shoulders").count == 2)
+        let body = #"{"detail":"'Lateral Raise' (cable) already exists at Gym","existing_variant_id":175,"existing_variant_name":"Lateral Raise (Machine) @ Gym"}"#
+        let err = GymError.map(APIError.http(409, body))
+        #expect(err == .duplicate("'Lateral Raise' (cable) already exists at Gym", variantId: 175, variantName: "Lateral Raise (Machine) @ Gym"))
+        #expect(GymError.map(APIError.http(409, #"{"detail":"x"}"#)) == .conflict("x"))
+    }
+
     @Test func liftListSortsActiveFirstSearchesAndFilters() {
         let lifts = [LiftSummaryDTO(variantId: 1, name: "Zercher Squat", muscleGroup: "quads", gymName: "Gym 3", active: false),
                      LiftSummaryDTO(variantId: 2, name: "Bench Press", muscleGroup: "chest", gymName: "Gym 3", active: true),

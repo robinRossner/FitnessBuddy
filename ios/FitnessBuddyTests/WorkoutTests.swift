@@ -146,6 +146,26 @@ struct WorkoutServiceTests {
         #expect(svc.sets(of: session).allSatisfy { !$0.dirty })
     }
 
+    @Test func typeChangeMovesOnlyUncompletedSetsToTheNewVariant() throws {
+        let ctx = try makeContext()
+        let svc = WorkoutService(context: ctx)
+        let session = svc.startEmpty(gymId: nil)
+        let old = CachedVariant(id: 7, exerciseId: 1, name: "Curl (Cable) @ Gym 3", gymId: 3, equipmentType: "cable")
+        let new = CachedVariant(id: 8, exerciseId: 1, name: "Curl (Machine) @ Gym 3", gymId: 3, equipmentType: "machine")
+        ctx.insert(old)
+        ctx.insert(new)
+        svc.addExercise(old, to: session)
+        let first = try #require(svc.sets(of: session).first)
+        svc.setWeight(first, 20, in: session)
+        svc.setReps(first, 10)
+        #expect(svc.toggleComplete(first))
+        svc.replaceVariant(in: session, from: 7, to: 8)
+        let sets = svc.sets(of: session)
+        #expect(sets.map(\.variantId) == [7, 8, 8])
+        #expect(sets[0].variantName == "Curl (Cable) @ Gym 3")
+        #expect(sets[1].variantName == "Curl (Machine) @ Gym 3")
+    }
+
     @Test func deletingAnExerciseRemovesAllItsSets() throws {
         let ctx = try makeContext()
         let svc = WorkoutService(context: ctx)

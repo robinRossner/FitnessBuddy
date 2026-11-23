@@ -67,7 +67,7 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   variant that is the same in every gym). `muscle_group` is the exercise's primary muscle.
 - `body_region`: coarse region for dashboards, one of `Chest` | `Back` | `Shoulders` | `Arms` |
   `Legs` | `Core` | `Other`. It is stored per exercise in `apps/fitness/data/catalog/exercises.yaml`
-  (`body_region`); rear delts count as Shoulders, lats and traps as Back, biceps / triceps /
+  (`body_region`); rear delts are part of Shoulders, lats and traps as Back, biceps / triceps /
   forearms as Arms, glutes / hamstrings / quads / calves / adductors as Legs, abs as Core,
   anything else (e.g. cardio) as Other. Exercises that are not in the catalog derive it from
   `muscle_group` by the same table.
@@ -217,7 +217,8 @@ descending** (ties: name). `GET /stats/lifts/{id}` returns the same object as `l
   lift (PRs on retired lifts are ignored). `pr_lifts`: number of **distinct lifts** (variants)
   with such a PR that week. Rep PRs do not count.
 - `planned_lifting_sessions`: upper / lower sessions in `planned_sessions` for that week
-  (soft-deleted ones ignored) when the week is fully planned (a row for every day of the
+  (soft-deleted ones ignored; a skipped session that was made up counts once, via its
+  make-up) when the week is fully planned (a row for every day of the
   engine's weekly template, rest days included, which is how the planner stores it). Otherwise,
   including a week with only a carried-over Sunday plan, the template count, 3 (`upper`,
   `lower`, `upper`).

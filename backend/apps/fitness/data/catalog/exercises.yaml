@@ -4,10 +4,10 @@
 # fields:
 #   slug                 stable key (referenced by strong_mapping.csv `canonical_exercise`)
 #   name                 display name
-#   primary_muscle       chest | back | lats | shoulders | rear_delts | biceps | triceps |
+#   primary_muscle       chest | back | lats | shoulders | biceps | triceps |
 #                        forearms | quads | hamstrings | glutes | adductors | calves | abs | traps
 #   body_region          coarse region for dashboards: Chest | Back | Shoulders | Arms | Legs | Core | Other
-#                        (rear_delts -> Shoulders; lats, traps -> Back; biceps, triceps, forearms ->
+#                        (lats, traps -> Back; biceps, triceps, forearms ->
 #                        Arms; quads, hamstrings, glutes, adductors, calves -> Legs; abs -> Core)
 #   movement_pattern     horizontal_push | vertical_push | horizontal_pull | vertical_pull |
 #                        squat | hinge | lunge | knee_extension | knee_flexion | hip_adduction |
@@ -45,12 +45,12 @@ exercises:
   - {slug: pull_up, name: Pull Up, primary_muscle: lats, body_region: Back, secondary_muscles: [biceps, back], movement_pattern: vertical_pull, default_equipment: bodyweight, e1rm: true, bodyweight_loaded: true, aliases: [pull up, pull-up, chin up, chin-up]}
   - {slug: lat_pulldown, name: Lat Pulldown, primary_muscle: lats, body_region: Back, secondary_muscles: [biceps], movement_pattern: vertical_pull, default_equipment: cable, e1rm: true, aliases: [lat pulldown]}
   - {slug: pullover, name: Pullover, primary_muscle: lats, body_region: Back, movement_pattern: shoulder_extension, default_equipment: machine_stack, e1rm: true, aliases: [pullover, straight arm pulldown]}
-  - {slug: bent_over_row, name: Bent Over Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps, rear_delts], movement_pattern: horizontal_pull, default_equipment: barbell, e1rm: true, aliases: [bent over row, barbell row]}
+  - {slug: bent_over_row, name: Bent Over Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps, shoulders], movement_pattern: horizontal_pull, default_equipment: barbell, e1rm: true, aliases: [bent over row, barbell row]}
   - {slug: one_arm_row, name: One Arm Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: dumbbell, e1rm: true, aliases: [bent over one arm row, one arm row, dumbbell row]}
-  - {slug: seated_row, name: Seated Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps, rear_delts], movement_pattern: horizontal_pull, default_equipment: cable, e1rm: true, aliases: [seated row, seated wide-grip row, cable row]}
+  - {slug: seated_row, name: Seated Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps, shoulders], movement_pattern: horizontal_pull, default_equipment: cable, e1rm: true, aliases: [seated row, seated wide-grip row, cable row]}
   - {slug: machine_row, name: Machine Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: plate_loaded, e1rm: true, aliases: [iso-lateral row, chest supported row, machine row]}
   - {slug: t_bar_row, name: T-Bar Row, primary_muscle: back, body_region: Back, secondary_muscles: [lats, biceps], movement_pattern: horizontal_pull, default_equipment: plate_loaded, e1rm: true, aliases: [t bar row, t-bar row]}
-  - {slug: reverse_fly, name: Reverse Fly, primary_muscle: rear_delts, body_region: Shoulders, secondary_muscles: [back], movement_pattern: horizontal_abduction, default_equipment: cable, e1rm: true, aliases: [reverse fly, rear delt fly, face pull]}
+  - {slug: reverse_fly, name: Reverse Fly, primary_muscle: shoulders, body_region: Shoulders, secondary_muscles: [back], movement_pattern: horizontal_abduction, default_equipment: cable, e1rm: true, aliases: [reverse fly, rear delt fly, face pull]}
   - {slug: shrug, name: Shrug, primary_muscle: traps, body_region: Back, movement_pattern: scapular_elevation, default_equipment: dumbbell, e1rm: true, aliases: [shrug]}
   - {slug: biceps_curl, name: Biceps Curl, primary_muscle: biceps, body_region: Arms, movement_pattern: elbow_flexion, default_equipment: dumbbell, e1rm: true, aliases: [bicep curl, biceps curl, curl]}
   - {slug: hammer_curl, name: Hammer Curl, primary_muscle: biceps, body_region: Arms, secondary_muscles: [forearms], movement_pattern: elbow_flexion, default_equipment: dumbbell, e1rm: true, aliases: [hammer curl]}

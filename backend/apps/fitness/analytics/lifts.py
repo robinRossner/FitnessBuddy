@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.analytics import common
 from apps.fitness.analytics.common import num
-from apps.fitness.db.catalog import load_catalog, region_of_muscle
+from apps.fitness.db.catalog import load_catalog, normalize_muscle, region_of_muscle
 from apps.fitness.db.models import (
     AdvisorTrigger,
     DecisionLog,
@@ -159,7 +159,7 @@ def _summary(v, ex, gym_name, rows, today, ctx: Context) -> dict:
         "variant_id": v.id,
         "name": base_name_of(v),
         "exercise_id": ex.id,
-        "muscle_group": ex.primary_muscle,
+        "muscle_group": normalize_muscle(ex.primary_muscle),
         "body_region": ctx.regions.get(ex.slug) or region_of_muscle(ex.primary_muscle),
         "gym_id": v.gym_id,
         "gym_name": gym_name,

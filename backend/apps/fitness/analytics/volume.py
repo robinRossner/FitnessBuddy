@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from apps.fitness.analytics import common, planned
 from apps.fitness.analytics.common import num
+from apps.fitness.db.catalog import normalize_muscle
 from apps.fitness.db.models import Exercise, ExerciseSessionStats, ExerciseVariant, Run
 from apps.fitness.garmin.mapping import RUN_TYPES
 
@@ -62,7 +63,7 @@ def weekly_volume(db: Session, weeks: int) -> dict:
             b["_pr_sessions"].add(sid)
             b["_pr_lifts"].add(vid)
         if sets:
-            b["sets_by_muscle_group"][muscle] += sets
+            b["sets_by_muscle_group"][normalize_muscle(muscle)] += sets
     runs = db.execute(
         select(Run.started_at_local, Run.distance_m, Run.duration_s).where(
             Run.deleted_at.is_(None),

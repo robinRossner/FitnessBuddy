@@ -25,7 +25,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from apps.fitness.db.catalog import MUSCLE_REGION
+from apps.fitness.db.catalog import MUSCLE_REGION, normalize_muscle
 from apps.fitness.db.models import Exercise, ExerciseVariant, Gym
 from apps.fitness.db.types import EquipmentType, LoadConvention, Progression
 from apps.fitness.gyms import service as gs
@@ -43,7 +43,6 @@ _NS = uuid.UUID("0c7f4f8e-4f86-4d0a-9a43-3f0f5b3f6a21")  # user-made generic var
 _PATTERN = {
     "chest": "horizontal_push",
     "shoulders": "vertical_push",
-    "rear_delts": "horizontal_abduction",
     "triceps": "elbow_extension",
     "back": "horizontal_pull",
     "lats": "vertical_pull",
@@ -56,17 +55,6 @@ _PATTERN = {
     "adductors": "hip_adduction",
     "calves": "calf_raise",
     "abs": "trunk_flexion",
-}
-
-EQUIPMENT_LABEL = {
-    "barbell": "Barbell",
-    "dumbbell": "Dumbbell",
-    "machine_stack": "Machine",
-    "plate_loaded": "Plate Loaded",
-    "cable": "Cable",
-    "bodyweight": "Bodyweight",
-    "smith": "Smith Machine",
-    "other": None,
 }
 
 
@@ -84,9 +72,8 @@ def is_user_generic_variant(v: ExerciseVariant) -> bool:
     )
 
 
-def variant_name(base: str, equipment_type: str) -> str:
-    label = EQUIPMENT_LABEL.get(equipment_type)
-    return f"{base} ({label})" if label else base
+variant_name = gs.variant_name
+EQUIPMENT_LABEL = gs.EQUIPMENT_LABEL
 
 
 def _slug(db: Session, name: str) -> str:
@@ -130,6 +117,25 @@ def _gym_for(db: Session, gym_id: int | None, settings: Settings) -> Gym:
     return gym
 
 
+def _existing_variant(
+    db: Session, ex: Exercise, equipment_type: str, gym: Gym | None
+) -> ExerciseVariant | None:
+    """The live, active variant of `ex` with this equipment at `gym` (generic without one)."""
+    return db.scalar(
+        select(ExerciseVariant)
+        .where(
+            ExerciseVariant.exercise_id == ex.id,
+            ExerciseVariant.gym_id == gym.id
+            if gym is not None
+            else ExerciseVariant.gym_id.is_(None),
+            ExerciseVariant.equipment_type == EquipmentType(equipment_type),
+            ExerciseVariant.deleted_at.is_(None),
+            ExerciseVariant.active.is_(True),
+        )
+        .order_by(ExerciseVariant.id)
+    )
+
+
 def _slot(db: Session, ex: Exercise, equipment_type: str, gym: Gym | None) -> str:
     """Can `ex` take a variant with this equipment (at `gym` for machines)? "same": it has one
     already; "taken": another machine type is set up at that gym (one machine per exercise and
@@ -167,6 +173,7 @@ def create_exercise(
     name = " ".join(name.split())
     if not name:
         raise ExerciseError(422, "name must not be empty")
+    muscle_group = normalize_muscle(muscle_group) or muscle_group
     _check_muscle(muscle_group)
     _check_equipment(equipment_type)
     gym = _gym_for(db, gym_id, settings) if equipment_type in GYM_BOUND_EQUIPMENT else None
@@ -179,7 +186,15 @@ def create_exercise(
     for e, slot in slots:
         if slot == "same":
             where = f" at {gym.name}" if gym is not None else ""
-            raise ExerciseError(409, f"{e.name!r} ({equipment_type}) already exists{where}")
+            existing = _existing_variant(db, e, equipment_type, gym)
+            extra = (
+                {"existing_variant_id": existing.id, "existing_variant_name": existing.name}
+                if existing is not None
+                else None
+            )
+            raise ExerciseError(
+                409, f"{e.name!r} ({equipment_type}) already exists{where}", extra=extra
+            )
     # The same name with other equipment is the same movement: it gets a variant (history stays
     # grouped). Its muscle and progression mode win over the request's.
     ex = next((e for e, slot in slots if slot == "free"), None)
@@ -298,6 +313,7 @@ def update_exercise(
     when a program variant got a new name or the progression mode changed, so the caller
     re-runs the engine."""
     if fields.get("muscle_group") is not None:
+        fields = {**fields, "muscle_group": normalize_muscle(fields["muscle_group"])}
         _check_muscle(fields["muscle_group"])
     mode = fields.get("progression")
     if mode is not None:

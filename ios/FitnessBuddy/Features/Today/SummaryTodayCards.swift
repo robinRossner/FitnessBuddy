@@ -259,6 +259,13 @@ struct PlannedLiftView: View {
                     ForEach(Array(exercises.enumerated()), id: \.offset) { _, ex in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(ex.name.withoutGymSuffix).font(.headline)
+                            if let slot = ex.substituteFor, slot.withoutGymSuffix != ex.name.withoutGymSuffix {
+                                Text("Instead of \(slot.withoutGymSuffix), not set up here")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .accessibilityIdentifier(AXID.Workout.planSubstituteNote)
+                            } else if ex.variantId == nil {
+                                Text("Not set up at this gym").font(.caption).foregroundStyle(.secondary)
+                            }
                             let sets = PlanFormat.setsSummary(ex.sets)
                             if !sets.isEmpty { Text(sets).font(.subheadline.monospacedDigit()).foregroundStyle(.secondary) }
                             if showLastSession, let last = PlanFormat.lastSummary(ex.last) {

@@ -20,6 +20,81 @@
             "moved_from": null,
             "notes": [],
             "prescription": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "break"
+                  ],
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "progression_note": "back after 13 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "progression_note": "retest 50 kg after the deload: beat 12/11",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
               "deload": null,
               "exercises": [
                 {
@@ -86,6 +161,8 @@
                       "target_weight": 72.5
                     }
                   ],
+                  "slot": "Bench Press (Barbell)",
+                  "template_sets": 3,
                   "variant_id": 1,
                   "variant_key": "Bench Press (Barbell)"
                 },
@@ -146,6 +223,8 @@
                       "target_weight": 49.0
                     }
                   ],
+                  "slot": "Incline Bench Press (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 2,
                   "variant_key": "Incline Bench Press (Smith Machine)"
                 },
@@ -213,6 +292,8 @@
                       "target_weight": 30.0
                     }
                   ],
+                  "slot": "Chest Fly (Machine)",
+                  "template_sets": 3,
                   "variant_id": 4,
                   "variant_key": "Chest Fly (Machine)"
                 },
@@ -280,6 +361,8 @@
                       "target_weight": 10.0
                     }
                   ],
+                  "slot": "Lateral Raise (Cable)",
+                  "template_sets": 3,
                   "variant_id": 6,
                   "variant_key": "Lateral Raise (Cable)"
                 }
@@ -294,6 +377,81 @@
               "reason": "forecast not available yet"
             },
             "session": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "break"
+                  ],
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "progression_note": "back after 13 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "progression_note": "retest 50 kg after the deload: beat 12/11",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
               "deload": null,
               "exercises": [
                 {
@@ -361,6 +519,8 @@
                       "target_weight": 72.5
                     }
                   ],
+                  "slot": "Bench Press (Barbell)",
+                  "template_sets": 3,
                   "variant_id": 1,
                   "variant_key": "Bench Press (Barbell)"
                 },
@@ -422,6 +582,8 @@
                       "target_weight": 49.0
                     }
                   ],
+                  "slot": "Incline Bench Press (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 2,
                   "variant_key": "Incline Bench Press (Smith Machine)"
                 },
@@ -490,6 +652,8 @@
                       "target_weight": 30.0
                     }
                   ],
+                  "slot": "Chest Fly (Machine)",
+                  "template_sets": 3,
                   "variant_id": 4,
                   "variant_key": "Chest Fly (Machine)"
                 },
@@ -558,6 +722,8 @@
                       "target_weight": 10.0
                     }
                   ],
+                  "slot": "Lateral Raise (Cable)",
+                  "template_sets": 3,
                   "variant_id": 6,
                   "variant_key": "Lateral Raise (Cable)"
                 }
@@ -592,6 +758,173 @@
             "moved_from": null,
             "notes": [],
             "prescription": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "progression_note": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "break"
+                  ],
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "progression_note": "back after 15 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "progression_note": "retest 30 kg after the deload: beat 12/11/10",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "progression_note": "retest 10 kg after the deload: beat 12/12/10",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
               "deload": null,
               "exercises": [
                 {
@@ -651,6 +984,8 @@
                       "target_weight": 98.0
                     }
                   ],
+                  "slot": "Squat (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 7,
                   "variant_key": "Squat (Smith Machine)"
                 },
@@ -707,6 +1042,8 @@
                       "target_weight": 50.0
                     }
                   ],
+                  "slot": "Leg Extension (Machine)",
+                  "template_sets": 2,
                   "variant_id": 8,
                   "variant_key": "Leg Extension (Machine)"
                 }
@@ -721,6 +1058,173 @@
               "reason": "forecast not available yet"
             },
             "session": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "progression_note": "retest 72.5 kg after the deload: beat 8/7/6",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "break"
+                  ],
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "progression_note": "back after 15 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "progression_note": "retest 30 kg after the deload: beat 12/11/10",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "progression_note": "retest 10 kg after the deload: beat 12/12/10",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 13,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 3,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
               "deload": null,
               "exercises": [
                 {
@@ -781,6 +1285,8 @@
                       "target_weight": 98.0
                     }
                   ],
+                  "slot": "Squat (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 7,
                   "variant_key": "Squat (Smith Machine)"
                 },
@@ -838,6 +1344,8 @@
                       "target_weight": 50.0
                     }
                   ],
+                  "slot": "Leg Extension (Machine)",
+                  "template_sets": 2,
                   "variant_id": 8,
                   "variant_key": "Leg Extension (Machine)"
                 }
@@ -993,6 +1501,81 @@
             "moved_from": null,
             "notes": [],
             "prescription": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "break"
+                  ],
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "progression_note": "back after 16 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "progression_note": "retest 50 kg after the deload: beat 12/11",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
               "deload": null,
               "exercises": [
                 {
@@ -1059,6 +1642,8 @@
                       "target_weight": 72.5
                     }
                   ],
+                  "slot": "Bench Press (Barbell)",
+                  "template_sets": 3,
                   "variant_id": 1,
                   "variant_key": "Bench Press (Barbell)"
                 },
@@ -1119,6 +1704,8 @@
                       "target_weight": 49.0
                     }
                   ],
+                  "slot": "Incline Bench Press (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 2,
                   "variant_key": "Incline Bench Press (Smith Machine)"
                 },
@@ -1186,6 +1773,8 @@
                       "target_weight": 30.0
                     }
                   ],
+                  "slot": "Chest Fly (Machine)",
+                  "template_sets": 3,
                   "variant_id": 4,
                   "variant_key": "Chest Fly (Machine)"
                 },
@@ -1253,6 +1842,8 @@
                       "target_weight": 10.0
                     }
                   ],
+                  "slot": "Lateral Raise (Cable)",
+                  "template_sets": 3,
                   "variant_id": 6,
                   "variant_key": "Lateral Raise (Cable)"
                 }
@@ -1267,6 +1858,81 @@
               "reason": "forecast not available yet"
             },
             "session": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "break"
+                  ],
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "progression_note": "back after 16 days: same load, 2 of 3 sets; misses don't count yet",
+                  "progression_state": "rebuild",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "return_after_break",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "retest",
+                    "identical_exposures"
+                  ],
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "progression_note": "retest 50 kg after the deload: beat 12/11",
+                  "progression_state": "retest",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "retest",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
               "deload": null,
               "exercises": [
                 {
@@ -1334,6 +2000,8 @@
                       "target_weight": 72.5
                     }
                   ],
+                  "slot": "Bench Press (Barbell)",
+                  "template_sets": 3,
                   "variant_id": 1,
                   "variant_key": "Bench Press (Barbell)"
                 },
@@ -1395,6 +2063,8 @@
                       "target_weight": 49.0
                     }
                   ],
+                  "slot": "Incline Bench Press (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 2,
                   "variant_key": "Incline Bench Press (Smith Machine)"
                 },
@@ -1463,6 +2133,8 @@
                       "target_weight": 30.0
                     }
                   ],
+                  "slot": "Chest Fly (Machine)",
+                  "template_sets": 3,
                   "variant_id": 4,
                   "variant_key": "Chest Fly (Machine)"
                 },
@@ -1531,6 +2203,8 @@
                       "target_weight": 10.0
                     }
                   ],
+                  "slot": "Lateral Raise (Cable)",
+                  "template_sets": 3,
                   "variant_id": 6,
                   "variant_key": "Lateral Raise (Cable)"
                 }
@@ -1831,6 +2505,75 @@
               "reason": "forecast not available yet"
             },
             "session": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "deload"
+                  ],
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "progression_note": "deload week (several lifts stalled together): 1 of 2 sets, same load; retest 50 kg after the deload",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
               "deload": {
                 "active": true,
                 "from": "2026-10-26",
@@ -1897,6 +2640,8 @@
                       "target_weight": 72.5
                     }
                   ],
+                  "slot": "Bench Press (Barbell)",
+                  "template_sets": 3,
                   "variant_id": 1,
                   "variant_key": "Bench Press (Barbell)"
                 },
@@ -1958,6 +2703,8 @@
                       "target_weight": 49.0
                     }
                   ],
+                  "slot": "Incline Bench Press (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 2,
                   "variant_key": "Incline Bench Press (Smith Machine)"
                 },
@@ -2020,6 +2767,8 @@
                       "target_weight": 30.0
                     }
                   ],
+                  "slot": "Chest Fly (Machine)",
+                  "template_sets": 3,
                   "variant_id": 4,
                   "variant_key": "Chest Fly (Machine)"
                 },
@@ -2082,6 +2831,8 @@
                       "target_weight": 10.0
                     }
                   ],
+                  "slot": "Lateral Raise (Cable)",
+                  "template_sets": 3,
                   "variant_id": 6,
                   "variant_key": "Lateral Raise (Cable)"
                 }
@@ -2123,6 +2874,155 @@
               "reason": "forecast not available yet"
             },
             "session": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "barbell",
+                  "exercise": "bench_press",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "load_convention": "total",
+                  "name": "Bench Press (Barbell)",
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 72.5 kg after the deload",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 72.5
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 7,
+                      "target_weight": 72.5
+                    }
+                  ],
+                  "variant_id": 1,
+                  "variant_key": "Bench Press (Barbell)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "incline_bench_press",
+                  "flags": [
+                    "deload"
+                  ],
+                  "load_convention": "total",
+                  "name": "Incline Bench Press (Smith Machine)",
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 9,
+                      "target_weight": 49.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 49.0
+                    }
+                  ],
+                  "variant_id": 2,
+                  "variant_key": "Incline Bench Press (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "chest_fly",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "load_convention": "total",
+                  "name": "Chest Fly (Machine)",
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 30 kg after the deload",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 30.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 11,
+                      "target_weight": 30.0
+                    }
+                  ],
+                  "variant_id": 4,
+                  "variant_key": "Chest Fly (Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    15
+                  ],
+                  "equipment_type": "cable",
+                  "exercise": "lateral_raise",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "load_convention": "total",
+                  "name": "Lateral Raise (Cable)",
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load; retest 10 kg after the deload",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 10.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 10.0
+                    }
+                  ],
+                  "variant_id": 6,
+                  "variant_key": "Lateral Raise (Cable)"
+                }
+              ],
               "deload": {
                 "active": true,
                 "from": "2026-10-26",
@@ -2188,6 +3088,8 @@
                       "target_weight": 98.0
                     }
                   ],
+                  "slot": "Squat (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 7,
                   "variant_key": "Squat (Smith Machine)"
                 },
@@ -2239,6 +3141,8 @@
                       "target_weight": 50.0
                     }
                   ],
+                  "slot": "Leg Extension (Machine)",
+                  "template_sets": 2,
                   "variant_id": 8,
                   "variant_key": "Leg Extension (Machine)"
                 }
@@ -2357,6 +3261,75 @@
               "reason": "forecast not available yet"
             },
             "session": {
+              "adhoc_targets": [
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "smith",
+                  "exercise": "squat",
+                  "flags": [
+                    "deload"
+                  ],
+                  "load_convention": "total",
+                  "name": "Squat (Smith Machine)",
+                  "progression_note": "deload week (several lifts stalled together): 2 of 3 sets, same load",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    },
+                    {
+                      "index": 2,
+                      "set_type": "working",
+                      "target_reps": 8,
+                      "target_weight": 98.0
+                    }
+                  ],
+                  "variant_id": 7,
+                  "variant_key": "Squat (Smith Machine)"
+                },
+                {
+                  "effective_rep_range": [
+                    7,
+                    12
+                  ],
+                  "equipment_type": "machine_stack",
+                  "exercise": "leg_extension",
+                  "flags": [
+                    "deload",
+                    "retest_pending"
+                  ],
+                  "load_convention": "total",
+                  "name": "Leg Extension (Machine)",
+                  "progression_note": "deload week (several lifts stalled together): 1 of 2 sets, same load; retest 50 kg after the deload",
+                  "progression_state": "deload",
+                  "rep_range": [
+                    7,
+                    12
+                  ],
+                  "rule": "deload:multi_lift_stall",
+                  "sets": [
+                    {
+                      "index": 1,
+                      "set_type": "working",
+                      "target_reps": 12,
+                      "target_weight": 50.0
+                    }
+                  ],
+                  "variant_id": 8,
+                  "variant_key": "Leg Extension (Machine)"
+                }
+              ],
               "deload": {
                 "active": true,
                 "from": "2026-10-26",
@@ -2423,6 +3396,8 @@
                       "target_weight": 72.5
                     }
                   ],
+                  "slot": "Bench Press (Barbell)",
+                  "template_sets": 3,
                   "variant_id": 1,
                   "variant_key": "Bench Press (Barbell)"
                 },
@@ -2484,6 +3459,8 @@
                       "target_weight": 49.0
                     }
                   ],
+                  "slot": "Incline Bench Press (Smith Machine)",
+                  "template_sets": 3,
                   "variant_id": 2,
                   "variant_key": "Incline Bench Press (Smith Machine)"
                 },
@@ -2546,6 +3523,8 @@
                       "target_weight": 30.0
                     }
                   ],
+                  "slot": "Chest Fly (Machine)",
+                  "template_sets": 3,
                   "variant_id": 4,
                   "variant_key": "Chest Fly (Machine)"
                 },
@@ -2608,6 +3587,8 @@
                       "target_weight": 10.0
                     }
                   ],
+                  "slot": "Lateral Raise (Cable)",
+                  "template_sets": 3,
                   "variant_id": 6,
                   "variant_key": "Lateral Raise (Cable)"
                 }

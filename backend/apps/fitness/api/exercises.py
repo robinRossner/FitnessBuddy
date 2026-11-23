@@ -18,11 +18,13 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from apps.fitness.api.deps import get_db, get_settings_dep, service_errors
 from apps.fitness.engine.core.config import REST_MAX_S, REST_MIN_S
+from apps.fitness.errors import ServiceError
 from apps.fitness.exercises import service as xs
 from apps.fitness.exercises import templates
 from apps.fitness.jobs.engine_jobs import rerun_engine, run_engine_now
@@ -52,8 +54,17 @@ def put_rest(variant_id: int, body: RestBody, db: Db, settings: Cfg) -> dict[str
 
 class TemplateSlot(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    variant_id: int
+    variant_id: int | None = None
+    # the program slot this entry stands for (plan item `slot`): a substitute done in its place,
+    # or a slot not set up here; the program keeps that entry instead of the variant
+    slot: Annotated[str, Field(min_length=1, max_length=160)] | None = None
     sets: Annotated[int, Field(strict=True, ge=1, le=10)] | None = None
+
+    @model_validator(mode="after")
+    def _one_of(self) -> TemplateSlot:
+        if self.variant_id is None and self.slot is None:
+            raise ValueError("variant_id or slot is required")
+        return self
 
 
 class TemplateBody(BaseModel):
@@ -68,7 +79,7 @@ def put_program(kind: str, body: TemplateBody, db: Db, settings: Cfg) -> dict[st
     Idempotent: an identical list writes nothing."""
     with service_errors():
         return templates.set_day_template(
-            db, kind, [(s.variant_id, s.sets) for s in body.exercises], settings,
+            db, kind, [(s.variant_id, s.sets, s.slot) for s in body.exercises], settings,
             replan_now=lambda reason: run_engine_now(db, reason),
         )  # fmt: skip
 
@@ -110,7 +121,13 @@ class ExercisePatch(BaseModel):
 @router.post("/exercises", status_code=201)
 def create_exercise(body: ExerciseBody, db: Db, settings: Cfg) -> dict[str, Any]:
     with service_errors():
-        return xs.new_exercise(db, **body.model_dump(), settings=settings)
+        try:
+            return xs.new_exercise(db, **body.model_dump(), settings=settings)
+        except ServiceError as exc:
+            if not exc.extra:
+                raise
+            # a 409 that names the clashing variant: extra fields beside `detail`
+            return JSONResponse({"detail": exc.message, **exc.extra}, status_code=exc.status)  # type: ignore[return-value]
 
 
 @router.post("/exercises/{exercise_id}/variants")

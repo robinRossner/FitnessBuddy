@@ -81,6 +81,16 @@ enum DemoData {
                     item.adaptsOn = ["last_run", "readiness", "weekly_volume"]
                 }
                 if item.kind == "intervals" { item.changeReason = "Trimmed from 6 to 5 reps after a high-HR session." }
+                if item.kind == "upper", var exercises = item.session?.exercises, exercises.count > 2 {
+                    // one substitute for a default that is not set up at this gym, and one slot with nothing that fits
+                    exercises[1].substituteFor = "Chest Press (Machine)"
+                    exercises[1].substituteReason = "Chest Press (Machine) is not set up at this gym"
+                    exercises.append(PlannedExerciseDTO(order: exercises.count + 1, variantId: nil, name: "Seated Cable Row (Machine)",
+                                                        sets: [], flags: [], exercise: "seated_cable_row", needsSetup: true,
+                                                        slot: "Seated Cable Row (Machine)", templateSets: 3))
+                    exercises[exercises.count - 1].unresolved = true
+                    item.session?.exercises = exercises
+                }
                 if item.kind == "long_run" { item.movedFrom = days[5]; item.status = "moved" }
                 week.days[d].sessions[s] = item
             }

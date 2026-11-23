@@ -172,14 +172,19 @@ def test_patch_variant_equipment_and_increment(client, world, db, reruns):
     out = r.json()
     assert out["equipment_type"] == "smith" and out["increment_kg"] == 1.25
     assert reruns  # engine inputs changed
-    db.refresh(v)
-    assert data.variant_info(v).increment_kg == 1.25
+    # another type is another exercise: a new variant, the old one is retired
+    assert out["id"] != v.id and out["replaced_variant_id"] == v.id
+    db.expire_all()
+    assert db.get(ExerciseVariant, v.id).active is False
+    new = db.get(ExerciseVariant, out["id"])
+    assert data.variant_info(new).increment_kg == 1.25
 
-    r = client.patch(f"/api/v1/variants/{v.id}", json={"increment_kg": None})
+    r = client.patch(f"/api/v1/variants/{new.id}", json={"increment_kg": None})
     assert r.json()["increment_kg"] is None
-    assert client.patch(f"/api/v1/variants/{v.id}", json={"increment_kg": 60}).status_code == 422
+    assert client.patch(f"/api/v1/variants/{new.id}", json={"increment_kg": 60}).status_code == 422
     assert (
-        client.patch(f"/api/v1/variants/{v.id}", json={"equipment_type": "rope"}).status_code == 422
+        client.patch(f"/api/v1/variants/{new.id}", json={"equipment_type": "rope"}).status_code
+        == 422
     )
 
 
@@ -203,6 +208,17 @@ def test_pull_carries_the_new_fields(client, world):
 def _create(client, name, equipment, **extra):
     body = {"name": name, "muscle_group": "chest", "equipment_type": equipment, **extra}
     return client.post("/api/v1/exercises", json=body)
+
+
+def test_rear_delts_is_stored_as_shoulders(client, world):
+    r = client.post(
+        "/api/v1/exercises",
+        json={"name": "Band Pull Apart", "muscle_group": "rear_delts", "equipment_type": "other",
+              "progression": "reps"},
+    )  # fmt: skip
+    assert r.status_code == 201, r.text
+    assert r.json()["exercise"]["muscle_group"] == "shoulders"
+    assert r.json()["exercise"]["body_region"] == "Shoulders"
 
 
 def test_same_name_with_other_equipment_adds_a_variant(client, world, db, reruns):
@@ -231,7 +247,12 @@ def test_same_name_with_other_equipment_adds_a_variant(client, world, db, reruns
     assert other["id"] != deck and other["name"] == "Pec Deck"
     assert db.get(Exercise, other["id"]).slug == "user_pec_deck_2"
     assert r.json()["variant"]["name"] == "Pec Deck (Cable) @ Gym One"
-    assert _create(client, "Pec Deck", "cable", gym_id=g1).status_code == 409
+    r2_id = r.json()["variant"]["id"]
+    r = _create(client, "Pec Deck", "cable", gym_id=g1)
+    assert r.status_code == 409
+    # the error names the variant that is already there (`detail` stays the plain message)
+    assert r.json()["existing_variant_id"] == r2_id and "already exists" in r.json()["detail"]
+    assert r.json()["existing_variant_name"] == "Pec Deck (Cable) @ Gym One"
 
 
 def test_same_name_as_a_catalog_exercise_adds_to_it(client, world):
@@ -275,8 +296,8 @@ def test_rename_user_exercise_renames_its_variants(client, world, db, reruns):
     assert r.json()["name"] == "Butterfly" and "variants" not in r.json()
     r = client.patch(
         f"/api/v1/exercises/{ex_id}", json={"name": "Reverse Fly", "muscle_group": "rear_delts"}
-    )
-    assert r.json()["name"] == "Reverse Fly" and r.json()["muscle_group"] == "rear_delts"
+    )  # merged into shoulders: old clients still send it
+    assert r.json()["name"] == "Reverse Fly" and r.json()["muscle_group"] == "shoulders"
 
 
 def test_rename_validation_and_duplicates(client, world, db):

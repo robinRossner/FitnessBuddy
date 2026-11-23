@@ -91,11 +91,22 @@ public struct PlannedExerciseDTO: Codable, Sendable, Equatable {
     public var progressionNote: String?
     /// Present once the backend sends it; otherwise resolved through the variant / name.
     public var exerciseId: Int?
+    /// Program slot's default variant name; absent on older servers.
+    public var slot: String?
+    /// The program's set count for the slot (before deload/comeback cuts).
+    public var templateSets: Int?
+    /// Set when the backend substituted the slot: the default variant it replaces, and why.
+    public var substituteFor: String?
+    public var substituteReason: String?
 
     public init(order: Int?, variantId: Int?, name: String, equipmentType: String? = nil, repRange: [Int]? = nil,
          sets: [PlannedSetDTO], last: LastPerformanceDTO? = nil, reason: String? = nil, flags: [String] = [],
          restS: Int? = nil, exercise: String? = nil, needsSetup: Bool? = nil, progressionState: String? = nil,
-         hintWeightKg: Double? = nil, progressionNote: String? = nil, exerciseId: Int? = nil) {
+         hintWeightKg: Double? = nil, progressionNote: String? = nil, exerciseId: Int? = nil,
+         slot: String? = nil, templateSets: Int? = nil, substituteFor: String? = nil,
+         substituteReason: String? = nil) {
+        self.slot = slot; self.templateSets = templateSets
+        self.substituteFor = substituteFor; self.substituteReason = substituteReason
         self.order = order; self.variantId = variantId; self.name = name; self.equipmentType = equipmentType
         self.repRange = repRange; self.sets = sets; self.last = last; self.reason = reason; self.flags = flags
         self.restS = restS; self.exercise = exercise; self.needsSetup = needsSetup
@@ -126,6 +137,10 @@ public struct PlannedExerciseDTO: Codable, Sendable, Equatable {
         hintWeightKg = (try? c.decodeIfPresent(Double.self, forKey: .hintWeightKg)) ?? nil
         progressionNote = (try? c.decodeIfPresent(String.self, forKey: .progressionNote)) ?? nil
         exerciseId = (try? c.decodeIfPresent(Int.self, forKey: .exerciseId)) ?? nil
+        slot = (try? c.decodeIfPresent(String.self, forKey: .slot)) ?? nil
+        templateSets = (try? c.decodeIfPresent(Int.self, forKey: .templateSets)) ?? nil
+        substituteFor = (try? c.decodeIfPresent(String.self, forKey: .substituteFor)) ?? nil
+        substituteReason = (try? c.decodeIfPresent(String.self, forKey: .substituteReason)) ?? nil
     }
 }
 
@@ -213,10 +228,13 @@ public struct PrescriptionDTO: Codable, Sendable, Equatable {
     public var optional: Bool?
     /// What easy movement is fine on an optional rest day ("mobility 10-15 min").
     public var suggestion: String?
+    /// Lifting: next targets for recently trained variants usable at this gym that are not in this session.
+    public var adhocTargets: [PlannedExerciseDTO]?
 
     public init(type: String, kind: String? = nil, gym: String? = nil, exercises: [PlannedExerciseDTO]? = nil,
          distanceKm: Double? = nil, hr: HRRangeDTO? = nil, pace: PaceRangeDTO? = nil,
-         structure: IntervalStructureDTO? = nil, totalKm: Double? = nil) {
+         structure: IntervalStructureDTO? = nil, totalKm: Double? = nil, adhocTargets: [PlannedExerciseDTO]? = nil) {
+        self.adhocTargets = adhocTargets
         self.type = type; self.kind = kind; self.gym = gym; self.exercises = exercises
         self.distanceKm = distanceKm; self.hr = hr; self.pace = pace
         self.structure = structure; self.totalKm = totalKm
@@ -238,6 +256,7 @@ public struct PrescriptionDTO: Codable, Sendable, Equatable {
         structure = try c.decodeIfPresent(IntervalStructureDTO.self, forKey: .structure)
         totalKm = try c.decodeIfPresent(Double.self, forKey: .totalKm)
         suggestion = try c.decodeIfPresent(String.self, forKey: .suggestion)
+        adhocTargets = (try? c.decodeIfPresent([PlannedExerciseDTO].self, forKey: .adhocTargets)) ?? nil
         if let flag = try? c.decodeIfPresent(Bool.self, forKey: .optional) {
             optional = flag
         } else if let text = try? c.decodeIfPresent(String.self, forKey: .optional) {
