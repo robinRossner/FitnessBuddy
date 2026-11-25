@@ -161,7 +161,9 @@ The user message holds one JSON document, compact, keys sorted:
 - `readiness_14d`: [date, level, HRV ms, resting HR, sleep hours] per day, level green / yellow /
   red / unknown. `baselines`: 7- and 28-day means of HRV, resting HR and sleep, body-weight
   change over 4 weeks.
-- `running`: `weekly_km_12w` [[week_start, km]], `kpis` (VDOT now and 4 weeks ago, efficiency now
+- `running`: `weekly_km_12w` [[week_start, km]] (complete weeks only),
+  `current_week` (the week in progress: km so far, km still planned, projected total; never judge
+  its km so far as a low week), `kpis` (VDOT now and 4 weeks ago, efficiency now
   and 4 weeks ago with change %, drift flags), `easy_runs` (latest easy / long runs: date, type,
   km, efficiency, decoupling %), `intervals` (latest sessions: date, reps, passed, work pace
   vs target in %, heart rate in range, recovery ok).

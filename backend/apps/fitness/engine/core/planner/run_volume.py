@@ -135,8 +135,9 @@ class RunVolumeMixin(PlannerState):
         rc, vol, lc = self.rc, self.rc.volume, self.rc.long_run
         ws = self.inp.week_start
         run_slots = {s.kind: s for s in todo if s.kind in ("easy_run", "intervals", "long_run")}
-        weekly = R.weekly_km(self.inp.runs)
-        mean = R.mean_km(weekly, ws, vol.mean_weeks)
+        vh = R.volume_history(self.inp.runs, self.today, ws, self.inp.open_run_km)
+        weekly = vh.weekly
+        mean = R.mean_km(weekly, ws, vol.mean_weeks, vh.skip)
         hold = None
         if vol.hold_last_week:
             lower = self.inp.actual_lower_days
@@ -151,7 +152,12 @@ class RunVolumeMixin(PlannerState):
                 return not ev.passed or ev.decoupling_flag
 
             hold = R.hold_volume(
-                weekly, self.inp.runs, ws, limit_factor=vol.hold_limit_factor, flagged=flagged
+                weekly,
+                self.inp.runs,
+                ws,
+                limit_factor=vol.hold_limit_factor,
+                flagged=flagged,
+                unfinished=vh.unfinished,
             )
         cap = R.volume_cap_km(
             weekly,
@@ -160,6 +166,7 @@ class RunVolumeMixin(PlannerState):
             weeks_avg=vol.mean_weeks,
             abs_km=vol.cap_abs_km,
             hold_km=hold.km if hold else None,
+            skip=vh.skip,
         )
         single = R.single_run_cap_km(
             self.inp.runs,
@@ -206,6 +213,13 @@ class RunVolumeMixin(PlannerState):
             if cap is not None
             else "no runs in the last 4 weeks: no cap"
         )
+        for w, (so_far, open_km) in sorted(vh.projected.items()):
+            reasoning += (
+                f"; week of {w} not over yet: counted as projected {so_far + open_km:g} km "
+                f"({so_far:g} km run + {open_km:g} km still planned)"
+            )
+        for w in sorted(vh.skip):
+            reasoning += f"; week of {w} not over yet and no plan known: left out of the mean"
         if cap is not None and hold is not None:
             reasoning += (
                 f"; hold: last week ran {hold.last_week_km:g} km, held up to {held_km:g} km "
@@ -228,6 +242,11 @@ class RunVolumeMixin(PlannerState):
             "target_km": target,
             "single_run_cap_km": single,
             "hold": hold.as_dict() if hold else None,
+            "projected_weeks": {
+                w.isoformat(): {"run_km": round(a, 2), "planned_km": round(b, 2)}
+                for w, (a, b) in sorted(vh.projected.items())
+            },
+            "left_out_weeks": [w.isoformat() for w in sorted(vh.skip)],
             "done_km_this_week": round(done, 2),
             "planned_km_before_cap": {k: round(v, 2) for k, v in km.items()},
             "planned_km": {k: round(v, 2) for k, v in fitted.items()},

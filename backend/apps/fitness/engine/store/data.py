@@ -599,6 +599,40 @@ def is_retired(row: PlannedSession) -> bool:
     )
 
 
+RUN_KINDS = ("easy_run", "intervals", "long_run")
+OPEN_STATUSES = ("proposed", "approved", "modified")
+
+
+def prescribed_km(p: PlannedSession) -> float | None:
+    sess = (p.prescription or {}).get("session") or {}
+    km = sess.get("distance_km", sess.get("total_km"))
+    return float(km) if isinstance(km, int | float) else None
+
+
+def open_run_km(db: Session, today: date, week_start: date) -> dict[date, float]:
+    """Week (Monday) -> km of the planned run sessions still to do (not deleted, open status, day
+    >= today) for every week from today's week up to the one before `week_start`. Only weeks
+    that have a planned run session at all appear; the others are unknown (`volume_history`)."""
+    first = R.iso_week_start(today)
+    out: dict[date, float] = {}
+    if first >= week_start:
+        return out
+    rows = db.scalars(
+        select(PlannedSession).where(
+            PlannedSession.deleted_at.is_(None),
+            PlannedSession.day >= first,
+            PlannedSession.day < week_start,
+            PlannedSession.kind.in_(RUN_KINDS),
+        )
+    )
+    for row in rows:
+        w = R.iso_week_start(row.day)
+        out.setdefault(w, 0.0)
+        if row.day >= today and getattr(row.status, "value", row.status) in OPEN_STATUSES:
+            out[w] += prescribed_km(row) or 0.0
+    return out
+
+
 def frozen_slots(db: Session, week_start: date, template: dict[str, str]) -> set[str]:
     """Slots whose planned session is done / skipped / modified (or deleted): never regenerated."""
     out = set()
@@ -683,6 +717,7 @@ def load_inputs(
         health=load_health(db, today - timedelta(days=120), today),
         runs=runs,
         actual_lower_days=lower_days(db, today - timedelta(weeks=8), today),
+        open_run_km=open_run_km(db, today, week_start),
         frozen_slots=frozen_slots(db, week_start, cfg.weekly_template),
         slot_locks=locks,
         excluded_slots=excluded,

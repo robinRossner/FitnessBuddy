@@ -2246,14 +2246,14 @@
               "progression": {
                 "last_session": null,
                 "lever": null,
-                "reason": "first threshold session of the cycle; minimum warm-up/cool-down",
+                "reason": "first threshold session of the cycle",
                 "rule": "quality:start",
                 "vdot": 45.91
               },
               "progression_note": "first threshold session of the cycle",
               "structure": {
                 "cooldown": {
-                  "distance_km": 0.5
+                  "distance_km": 1.5
                 },
                 "recovery": {
                   "distance_m": 260,
@@ -2263,7 +2263,7 @@
                 },
                 "session_type": "threshold",
                 "warmup": {
-                  "distance_km": 1.0,
+                  "distance_km": 2.0,
                   "hr": {
                     "basis": "lthr",
                     "high": 152,
@@ -2290,7 +2290,7 @@
                   "reps": 3
                 }
               },
-              "total_km": 5.0,
+              "total_km": 7.0,
               "type": "intervals"
             },
             "readiness": {
@@ -2304,14 +2304,14 @@
               "progression": {
                 "last_session": null,
                 "lever": null,
-                "reason": "first threshold session of the cycle; minimum warm-up/cool-down",
+                "reason": "first threshold session of the cycle",
                 "rule": "quality:start",
                 "vdot": 45.91
               },
               "progression_note": "first threshold session of the cycle",
               "structure": {
                 "cooldown": {
-                  "distance_km": 0.5
+                  "distance_km": 1.5
                 },
                 "recovery": {
                   "distance_m": 260,
@@ -2321,7 +2321,7 @@
                 },
                 "session_type": "threshold",
                 "warmup": {
-                  "distance_km": 1.0,
+                  "distance_km": 2.0,
                   "hr": {
                     "basis": "lthr",
                     "high": 152,
@@ -2348,7 +2348,7 @@
                   "reps": 3
                 }
               },
-              "total_km": 5.0,
+              "total_km": 7.0,
               "type": "intervals"
             },
             "slot_id": "fri_intervals",
@@ -2410,7 +2410,7 @@
             "moved_from": null,
             "notes": [],
             "prescription": {
-              "distance_km": 3.0,
+              "distance_km": 4.5,
               "hr": {
                 "basis": "lthr",
                 "high": 152,
@@ -2432,7 +2432,7 @@
                 "last_long_run": null,
                 "reason": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km"
               },
-              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3 km under the weekly cap",
+              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 4.5 km under the weekly cap",
               "step_back": false,
               "type": "long_run"
             },
@@ -2442,7 +2442,7 @@
               "reason": "forecast not available yet"
             },
             "session": {
-              "distance_km": 3.0,
+              "distance_km": 4.5,
               "hr": {
                 "basis": "lthr",
                 "high": 152,
@@ -2464,14 +2464,14 @@
                 "last_long_run": null,
                 "reason": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km"
               },
-              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3 km under the weekly cap",
+              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 4.5 km under the weekly cap",
               "step_back": false,
               "type": "long_run"
             },
             "slot_id": "sun_long_run",
             "status": "preview",
             "template_kind": "long_run",
-            "title": "Long run 3 km"
+            "title": "Long run 4.5 km"
           }
         ]
       }
@@ -3749,7 +3749,7 @@
               "reason": "forecast not available yet"
             },
             "session": {
-              "distance_km": 3.5,
+              "distance_km": 4.0,
               "hr": {
                 "basis": "lthr",
                 "high": 152,
@@ -3771,14 +3771,14 @@
                 "last_long_run": null,
                 "reason": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km"
               },
-              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3.5 km under the weekly cap",
+              "progression_note": "no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 4 km under the weekly cap",
               "step_back": false,
               "type": "long_run"
             },
             "slot_id": "sun_long_run",
             "status": "proposed",
             "template_kind": "long_run",
-            "title": "Long run 3.5 km",
+            "title": "Long run 4 km",
             "updated_at": "<timestamp>"
           }
         ]

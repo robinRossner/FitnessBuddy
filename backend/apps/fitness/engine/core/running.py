@@ -14,7 +14,7 @@ The Friday quality cycle and its levers live in `quality.py`, VDOT updates in `v
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from statistics import fmean, median
@@ -470,6 +470,65 @@ def weekly_km(runs: Sequence[RunData]) -> dict[date, float]:
     return out
 
 
+@dataclass
+class VolumeHistory:
+    """Weekly km as the volume rules see them: a week that has not ended yet is never counted as
+    its partial actual km. `weekly` holds complete weeks as run, plus unfinished weeks as the
+    PROJECTED km (run so far + the still-open planned runs) when that is known; `skip` = the
+    unfinished weeks without a projection, left out of the mean (the cap looks further back);
+    `unfinished` = both kinds; `projected` = week -> (km so far, open planned km)."""
+
+    weekly: dict[date, float]
+    skip: frozenset[date] = frozenset()
+    unfinished: frozenset[date] = frozenset()
+    projected: dict[date, tuple[float, float]] = field(default_factory=dict)
+
+
+def volume_history(
+    runs: Sequence[RunData],
+    today: date,
+    week_start: date,
+    open_km: dict[date, float] | None = None,
+) -> VolumeHistory:
+    """The weekly km for the volume cap / hold / trigger maths when planning `week_start`.
+    A week is unfinished when it contains `today` or lies after it (and before `week_start`).
+    `open_km` = week -> km of the planned run sessions still to do (day >= today); a week missing
+    from it (or `open_km` None) has no plan information and is left out of the mean."""
+    weekly = weekly_km(runs)
+    cur = iso_week_start(today)
+    unfinished, skip = set(), set()
+    projected: dict[date, tuple[float, float]] = {}
+    w = cur
+    while w < week_start:
+        unfinished.add(w)
+        if open_km is not None and w in open_km:
+            so_far = weekly.get(w, 0.0)
+            weekly[w] = so_far + open_km[w]
+            projected[w] = (so_far, open_km[w])
+        else:
+            skip.add(w)
+            weekly.pop(w, None)
+        w += timedelta(days=7)
+    return VolumeHistory(weekly, frozenset(skip), frozenset(unfinished), projected)
+
+
+def prior_weeks(
+    weekly: dict[date, float], week_start: date, n: int, skip: Collection[date] = ()
+) -> list[float]:
+    """The km of the `n` weeks before `week_start`, newest first; weeks in `skip` are passed over
+    (the window reaches one week further back for each). A week without runs counts as 0."""
+    out: list[float] = []
+    w = week_start
+    for _ in range(n + len(skip)):
+        w -= timedelta(days=7)
+        if w in skip:
+            continue
+        out.append(weekly.get(w, 0.0))
+        if len(out) == n:
+            break
+    return out
+
+
 def volume_cap_km(
     weekly: dict[date, float],
     week_start: date,
@@ -478,12 +537,14 @@ def volume_cap_km(
     weeks_avg: int = 4,
     abs_km: float = 2.0,
     hold_km: float | None = None,
+    skip: Collection[date] = (),
 ) -> float | None:
     """Max km for the week starting `week_start`: the mean of the last `weeks_avg` weeks of
-    ACTUAL km (weeks without runs count as 0), then max(mean x (1 + cap %), mean + abs_km,
-    hold_km). `hold_km` is the volume of the last completed week that may be repeated
-    (`hold_volume`). No run in those weeks: nothing to cap against (None)."""
-    prev = [weekly.get(week_start - timedelta(days=7 * i), 0.0) for i in range(1, weeks_avg + 1)]
+    km (weeks without runs count as 0; `skip` = unfinished weeks without a projection, see
+    `volume_history`), then max(mean x (1 + cap %), mean + abs_km, hold_km). `hold_km` is the
+    volume of the last completed week that may be repeated (`hold_volume`). No run in those
+    weeks: nothing to cap against (None)."""
+    prev = prior_weeks(weekly, week_start, weeks_avg, skip)
     if not any(prev):
         return None
     mean = fmean(prev)
@@ -515,12 +576,16 @@ def hold_volume(
     *,
     limit_factor: float,
     flagged: Callable[[RunData], bool],
+    unfinished: Collection[date] = (),
 ) -> VolumeHold | None:
-    """Holding a volume you just completed is low risk: the km of the last completed week
-    (Mon-Sun before `week_start`), at most `limit_factor` x the highest weekly km of the 4 weeks
-    before that week, and only when none of its easy / long runs (`flagged`: an HR fail or a drift
-    flag; interval sessions are not judged) was flagged. None when that week had no runs."""
+    """Holding a volume you just completed is low risk: the km of the last COMPLETED week before
+    `week_start` (Mon-Sun; weeks in `unfinished` are passed over, a plan is not a completed
+    week), at most `limit_factor` x the highest weekly km of the 4 weeks before that week, and
+    only when none of its easy / long runs (`flagged`: an HR fail or a drift flag; interval
+    sessions are not judged) was flagged. None when that week had no runs."""
     last = week_start - timedelta(days=7)
+    while last in unfinished:
+        last -= timedelta(days=7)
     km = weekly.get(last, 0.0)
     if km <= 0:
         return None
@@ -536,8 +601,10 @@ def hold_volume(
     return VolumeHold(km, limit, round(min(km, limit), 2))
 
 
-def mean_km(weekly: dict[date, float], week_start: date, weeks: int = 4) -> float:
-    prev = [weekly.get(week_start - timedelta(days=7 * i), 0.0) for i in range(1, weeks + 1)]
+def mean_km(
+    weekly: dict[date, float], week_start: date, weeks: int = 4, skip: Collection[date] = ()
+) -> float:
+    prev = prior_weeks(weekly, week_start, weeks, skip)
     return round(fmean(prev), 2) if prev else 0.0
 
 

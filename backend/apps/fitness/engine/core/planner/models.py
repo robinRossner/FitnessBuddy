@@ -58,6 +58,9 @@ class PlanInputs:
     health: list[HealthDay]
     runs: list[R.RunData]  # running activities, oldest first
     actual_lower_days: set[date] = field(default_factory=set)
+    # week (Monday) -> km of the planned run sessions still to do (day >= today) in each week that
+    # has not ended; None / a missing week = unknown, that week is left out of the volume mean
+    open_run_km: dict[date, float] | None = None
     frozen_slots: set[str] = field(default_factory=set)
     # placements decided by the missed-session policy / the coach (planned_sessions.schedule_lock)
     slot_locks: dict[str, S.SlotLock] = field(default_factory=dict)

@@ -51,14 +51,20 @@ class TriggersMixin(PlannerState):
     def _fourth_run_trigger(self) -> None:
         fr = self.rc.fourth_run
         ws = self.inp.week_start
-        weeks = [ws - timedelta(days=7 * i) for i in range(1, fr.consistent_weeks + 1)]
+        vh = R.volume_history(self.inp.runs, self.today, ws, self.inp.open_run_km)
+        weeks = []  # the last complete weeks: an unfinished week has no final run count
+        w = ws - timedelta(days=7)
+        while len(weeks) < fr.consistent_weeks:
+            if w not in vh.unfinished:
+                weeks.append(w)
+            w -= timedelta(days=7)
         counts = {w: 0 for w in weeks}
         for r in self.inp.runs:
             w = R.iso_week_start(r.day)
             if w in counts:
                 counts[w] += 1
         consistent = all(c >= fr.min_runs_per_week for c in counts.values())
-        mean4 = R.mean_km(R.weekly_km(self.inp.runs), ws, 4)
+        mean4 = R.mean_km(vh.weekly, ws, 4, vh.skip)
         longest = max(
             (r.km for r in self.inp.runs if r.day >= ws - timedelta(days=28)), default=0.0
         )

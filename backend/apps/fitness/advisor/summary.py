@@ -225,9 +225,26 @@ def running_section(db: Session) -> tuple[dict, dict[str, str]]:
             [i["date"], i["reps"], i["passed"], dev, i["hr_in_range"], i["recovery_ok"]]
         )
     types = {d["run_id"]: d["type"] for w in st["weekly"] for d in w["runs_detail"]}
+    # the week in progress is not a weekly total yet: list complete weeks, and the current one
+    # apart as km so far + still-planned km (a "0 km week" must not read as a collapse)
+    today = common.today()
+    cur = common.week_start(today)
+    cur_km = next((w["km"] for w in st["weekly"] if w["week_start"] == cur.isoformat()), 0.0)
+    open_km = D.open_run_km(db, today, cur + timedelta(days=7)).get(cur)
+    current_week = {
+        "week_start": cur.isoformat(),
+        "km_so_far": cur_km,
+        "km_still_planned": None if open_km is None else _r(open_km, 1),
+        "km_projected": None if open_km is None else _r((cur_km or 0) + open_km, 1),
+    }
     return (
         {
-            "weekly_km_12w": [[w["week_start"], w["km"]] for w in st["weekly"]],
+            "weekly_km_12w": [
+                [w["week_start"], w["km"]]
+                for w in st["weekly"]
+                if w["week_start"] < cur.isoformat()
+            ],
+            "current_week": current_week,
             "kpis": {
                 "vdot": k["vdot_current"],
                 "vdot_4w_ago": k["vdot_4w_ago"],

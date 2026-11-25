@@ -24,10 +24,7 @@ from apps.fitness.engine.store import data as D
 WINDOW_BEFORE, WINDOW_AFTER = 3, 8  # days around a week that count for hard-day neighbours
 
 
-def prescribed_km(p: PlannedSession) -> float | None:
-    sess = (p.prescription or {}).get("session") or {}
-    km = sess.get("distance_km", sess.get("total_km"))
-    return float(km) if isinstance(km, int | float) else None
+prescribed_km = D.prescribed_km
 
 
 def sess_from_row(p: PlannedSession) -> Sess:
@@ -67,13 +64,14 @@ def volume_room(db: Session, cfg: EngineConfig, today: date, week_start: date) -
     """Weekly run cap minus the km already run this week (None = no cap yet)."""
     rc = cfg.running_cfg
     runs = D.load_runs(db, today - timedelta(weeks=8), today)
-    weekly = R.weekly_km(runs)
+    vh = R.volume_history(runs, today, week_start, D.open_run_km(db, today, week_start))
     cap = R.volume_cap_km(
-        weekly,
+        vh.weekly,
         week_start,
         rc.weekly_volume_cap_pct,
         weeks_avg=rc.volume.mean_weeks,
         abs_km=rc.volume.cap_abs_km,
+        skip=vh.skip,
     )
     if cap is None:
         return None

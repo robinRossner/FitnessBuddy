@@ -519,9 +519,9 @@
         "vdot": 45.91
       },
       "volume": {
-        "cap_km": 13.7,
-        "mean_km_4w": 11.7,
-        "reasoning": "4-week mean 11.7 km -> cap max(11.7 x 1.1, 11.7 + 2, hold 13.6) = 13.7 km; hold: last week ran 13.6 km, held up to 13.6 km (limit 1.1 x the highest of the 4 weeks before it = 14.96 km); single run <= 8.4 km (1.1 x the longest of 30 days)",
+        "cap_km": 14.45,
+        "mean_km_4w": 12.45,
+        "reasoning": "4-week mean 12.45 km -> cap max(12.45 x 1.1, 12.45 + 2, hold 13.6) = 14.45 km; week of 2026-10-19 not over yet: counted as projected 16.6 km (13.6 km run + 3 km still planned); hold: last week ran 13.6 km, held up to 13.6 km (limit 1.1 x the highest of the 4 weeks before it = 14.96 km); single run <= 8.4 km (1.1 x the longest of 30 days)",
         "single_run_cap_km": 8.4,
         "target_km": null
       }
@@ -828,7 +828,7 @@
       "running",
       "running:weekly_volume_cap",
       "2026-10-26",
-      "4-week mean 11.7 km -> cap max(11.7 x 1.1, 11.7 + 2, hold 13.6) = 13.7 km; hold: last week ran 13.6 km, held up to 13.6 km (limit 1.1 x the highest of the 4 wee"
+      "4-week mean 12.45 km -> cap max(12.45 x 1.1, 12.45 + 2, hold 13.6) = 14.45 km; week of 2026-10-19 not over yet: counted as projected 16.6 km (13.6 km run + 3 km"
     ],
     [
       "<logged-on>",
@@ -884,7 +884,7 @@
       "running",
       "running:long_run_progression",
       "sun_long_run",
-      "3.5 km: no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 3.5 km under the weekly cap"
+      "4 km: no recent long run: start at 10 km; capped by the single-run cap 8.4 km; 4 km under the weekly cap"
     ],
     [
       "<logged-on>",
@@ -916,6 +916,12 @@
     ]
   ],
   "running": {
+    "current_week": {
+      "km_projected": 16.6,
+      "km_so_far": 13.6,
+      "km_still_planned": 3.0,
+      "week_start": "2026-10-19"
+    },
     "easy_runs": [
       [
         "2026-09-17",
@@ -1041,10 +1047,6 @@
       [
         "2026-10-12",
         13.6
-      ],
-      [
-        "2026-10-19",
-        13.6
       ]
     ]
   },
@@ -1145,7 +1147,7 @@
             "2026-11-01",
             "long_run",
             "proposed",
-            3.5,
+            4.0,
             null
           ]
         ],
