@@ -22,6 +22,7 @@ from apps.fitness.db.types import iso_z, utcnow
 from apps.fitness.engine.core.config import EngineConfig
 from apps.fitness.engine.core.ids import planned_id
 from apps.fitness.engine.core.planner import DayPlan, WeekPlan
+from apps.fitness.engine.store.data import RETIRED_REASON, is_retired
 from apps.fitness.engine.store.decisions import add_trigger, log_decision
 from apps.fitness.engine.store.rest import annotate_session
 from apps.fitness.garmin.mapping import RUN_TYPES
@@ -56,6 +57,7 @@ class PersistResult:
     unchanged: int = 0
     skipped_closed: int = 0
     reproposed: int = 0
+    retired: int = 0
     decisions: int = 0
     triggers: int = 0
     ids: dict[str, str] = field(default_factory=dict)  # slot -> planned id
@@ -68,10 +70,16 @@ def persist_week(
     config_version_id: int | None,
     gym_id: int | None,
     only_days: set[date] | None = None,
+    template_slots: list[str] | None = None,
 ) -> PersistResult:
     """Write the plan. `only_days` limits the sessions written to those dates (a targeted re-run
-    after a schedule change); decisions and triggers are always written."""
+    after a schedule change); decisions and triggers are always written.
+
+    `template_slots` (every slot id of the current weekly template, including past and frozen
+    ones, which `plan.days` leaves out) lets the week retire its stale rows, see `retire_stale`."""
     res = PersistResult()
+    if template_slots is not None:
+        res.retired = retire_stale(db, plan, template_slots, only_days)
     for d in plan.days:
         if only_days is not None and d.day not in only_days:
             continue
@@ -96,6 +104,9 @@ def persist_week(
             )
             res.created += 1
             continue
+        if is_retired(row):
+            row.deleted_at = None  # the template went back: its slot is live again
+            row.change_reason = None
         if row.deleted_at is not None or row.status in ("done", "skipped", "modified"):
             res.skipped_closed += 1
             continue
@@ -149,6 +160,40 @@ def persist_week(
         res.triggers += row is not None
     write_readiness_colors(db, plan.readiness_history)
     return res
+
+
+def retire_stale(
+    db: Session, plan: WeekPlan, template_slots: list[str], only_days: set[date] | None = None
+) -> int:
+    """Soft-delete the week's open rows (proposed / approved) whose slot is no longer in the
+    weekly template, from `plan.today` on. Done / skipped / modified rows and past days are never
+    touched. A row counts as known when its id is a slot of this or a neighbouring week (a
+    make-up may sit in the next week with the id of its original slot). A schedule-locked row
+    whose slot vanished is retired too: its slot no longer exists, so the placement is moot.
+    The soft delete is a tombstone: it bumps `server_seq`, so the app drops the row on pull."""
+    ws = plan.week_start
+    known = {
+        planned_id(w, slot)
+        for w in (ws - timedelta(days=7), ws, ws + timedelta(days=7))
+        for slot in template_slots
+    }
+    rows = db.scalars(
+        select(PlannedSession).where(
+            PlannedSession.deleted_at.is_(None),
+            PlannedSession.status.in_(["proposed", "approved"]),
+            PlannedSession.day >= max(ws, plan.today),
+            PlannedSession.day < ws + timedelta(days=7),
+        )
+    )
+    n = 0
+    for row in rows:
+        if row.id in known or (only_days is not None and row.day not in only_days):
+            continue
+        row.deleted_at = utcnow()
+        row.change_reason, row.changed_by = RETIRED_REASON, "engine"
+        n += 1
+    db.flush()
+    return n
 
 
 def write_readiness_colors(db: Session, colors: dict[date, str]) -> None:

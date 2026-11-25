@@ -14,6 +14,7 @@ from apps.fitness.engine.core import running as R
 from apps.fitness.engine.core import windows as W
 from apps.fitness.engine.core.config import EngineConfig
 from apps.fitness.engine.core.hr import zone_book
+from apps.fitness.engine.core.ids import template_slot_ids
 from apps.fitness.engine.core.planner import WeekPlan, generate_week
 from apps.fitness.engine.core.program import (
     Program,
@@ -187,12 +188,17 @@ def apply_week(
     only_days: set[date] | None = None,
 ) -> WeekResult:
     s = settings or get_settings()
-    plan, _cfg, cv_id = plan_week(
+    plan, cfg, cv_id = plan_week(
         db, today=today, week_start=week_start, settings=s, program=program
     )
     gym = D.current_gym(db, s.gyms_path)
     res = P.persist_week(
-        db, plan, config_version_id=cv_id, gym_id=gym.id if gym else None, only_days=only_days
+        db,
+        plan,
+        config_version_id=cv_id,
+        gym_id=gym.id if gym else None,
+        only_days=only_days,
+        template_slots=template_slot_ids(cfg.weekly_template),
     )
     return WeekResult(plan, res)
 

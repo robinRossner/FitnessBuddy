@@ -586,13 +586,28 @@ def lower_days(db: Session, start: date, end: date) -> set[date]:
 # --------------------------------------------------------------------------- planned sessions
 
 
+RETIRED_REASON = "weekly template changed"
+
+
+def is_retired(row: PlannedSession) -> bool:
+    """Soft-deleted by the engine as its slot left the weekly template (`persist.retire_stale`).
+    Not a user decision: if the slot comes back, the row is revived."""
+    return (
+        row.deleted_at is not None
+        and row.change_reason == RETIRED_REASON
+        and row.status in ("proposed", "approved")
+    )
+
+
 def frozen_slots(db: Session, week_start: date, template: dict[str, str]) -> set[str]:
     """Slots whose planned session is done / skipped / modified (or deleted): never regenerated."""
     out = set()
     for slot in template_slot_ids(template):
         row = db.get(PlannedSession, planned_id(week_start, slot))
-        if row is not None and (
-            row.deleted_at is not None or row.status in ("done", "skipped", "modified")
+        if (
+            row is not None
+            and not is_retired(row)
+            and (row.deleted_at is not None or row.status in ("done", "skipped", "modified"))
         ):
             out.add(slot)
     return out
@@ -625,7 +640,7 @@ def slot_placements(
     excluded: set[str] = set()
     for slot in template_slot_ids(template):
         row = db.get(PlannedSession, planned_id(week_start, slot))
-        if row is None:
+        if row is None or is_retired(row):
             continue
         if row.deleted_at is not None or row.status == "skipped":
             excluded.add(slot)
